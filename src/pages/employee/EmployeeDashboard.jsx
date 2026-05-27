@@ -115,9 +115,9 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus }) {
               { label: 'Almoço',   value: todayRecord.lunchOut ?? '—',  color: '#64748B' },
               { label: 'Retorno',  value: todayRecord.lunchReturn ?? '—', color: '#64748B' },
             ].map(t => (
-              <div key={t.label} className="card-inner p-3 text-center">
-                <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 500, marginBottom: '4px' }}>{t.label}</p>
-                <p className="text-base font-bold" style={{ color: t.color }}>{t.value}</p>
+              <div key={t.label} className="card-inner text-center" style={{ padding: '6px 10px' }}>
+                <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
+                <p className="text-sm font-bold" style={{ color: t.color }}>{t.value}</p>
               </div>
             ))}
           </div>
