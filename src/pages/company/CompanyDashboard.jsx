@@ -1650,6 +1650,8 @@ function EscalasProximas({ companyId }) {
       .map(r => r.date)
   )].sort();
 
+  const [openDate, setOpenDate] = useState(null);
+
   if (futureDates.length === 0) {
     return (
       <div className="py-14 text-center">
@@ -1660,68 +1662,79 @@ function EscalasProximas({ companyId }) {
   }
 
   return (
-    <div className="space-y-6">
-      {futureDates.map(date => {
+    <div className="card overflow-hidden">
+      {futureDates.map((date, idx) => {
         const records = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === date && r.status === 'scheduled');
         const [y, m, d] = date.split('-').map(Number);
         const dow = DOW_FULL[new Date(y, m - 1, d).getDay()];
-        const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        const isOpen = openDate === date;
 
         return (
-          <div key={date} className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#FF4D0C' }} />
-              <p className="text-sm font-semibold" style={T}>{dow}, {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}</p>
-              <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: '#FFF2EE', color: '#FF4D0C' }}>
-                {records.length} escalado{records.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-
-            {/* KPI: só Escala para dias futuros */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="stat-card flex flex-col justify-between" style={{ minHeight: '90px' }}>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#FFF2EE' }}>
-                    <CalendarCheck size={15} style={{ color: '#FF4D0C' }} />
-                  </div>
-                  <span className="text-sm font-bold" style={T}>Escala</span>
+          <div key={date} style={{ borderBottom: idx < futureDates.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+            {/* Header row — clicável */}
+            <button
+              onClick={() => setOpenDate(isOpen ? null : date)}
+              className="w-full text-left transition-colors"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <div className="flex items-center gap-3">
+                <div style={{ textAlign: 'center', minWidth: '44px' }}>
+                  <p className="text-xs uppercase font-semibold" style={{ color: '#94A3B8', letterSpacing: '0.05em' }}>{dow}</p>
+                  <p className="text-lg font-black leading-tight" style={{ color: '#0F172A' }}>{String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}</p>
                 </div>
-                <p className="text-3xl font-black leading-none" style={{ color: '#FF4D0C' }}>{records.length}</p>
+                <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)' }} />
+                <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ background: '#FFF2EE', color: '#FF4D0C' }}>
+                  {records.length} escalado{records.length !== 1 ? 's' : ''}
+                </span>
               </div>
-              <div className="stat-card flex flex-col justify-between col-span-2" style={{ minHeight: '90px' }}>
-                <span className="text-xs font-semibold" style={{ color: '#94A3B8' }}>Ajudantes agendados</span>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {records.map(r => {
-                    const emp = getEmployee(r.employeeId);
-                    return (
-                      <div key={r.id} className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: '#F1F5F9' }}>
-                        <div style={{ width:'20px', height:'20px', borderRadius:'50%', background: emp?.color || '#94A3B8', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'8px', fontWeight:700, color:'white', flexShrink:0 }}>
-                          {emp?.initials}
-                        </div>
-                        <span className="text-xs font-medium" style={{ color: '#475569' }}>{emp?.name?.split(' ')[0]}</span>
+              <ChevronRight size={15} style={{ color: '#94A3B8', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+            </button>
+
+            {/* Detalhe expandido */}
+            {isOpen && (
+              <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)', background: '#FAFBFC' }}>
+                {records.map((rec, rIdx) => {
+                  const emp = getEmployee(rec.employeeId);
+                  const times = [
+                    { label: 'Entrada',   value: rec.checkIn },
+                    { label: 'S. Almoço', value: rec.lunchOut },
+                    { label: 'Retorno',   value: rec.lunchReturn },
+                    { label: 'Saída',     value: rec.checkOut },
+                    { label: 'H. Extra',  value: rec.overtime },
+                  ];
+                  return (
+                    <div key={rec.id} className="table-row" style={{
+                      gridTemplateColumns: 'auto 1fr 1fr auto',
+                      borderBottom: rIdx < records.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                      background: 'transparent',
+                    }}>
+                      <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
+                      <div className="px-3 flex items-center gap-2">
+                        <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
+                        <span className="text-xs" style={{ color: '#94A3B8' }}>·</span>
+                        <p className="text-xs" style={TM}>{rec.service}</p>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Lista */}
-            <div className="card overflow-hidden">
-              {records.map(rec => {
-                const emp = getEmployee(rec.employeeId);
-                return (
-                  <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
-                    <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
-                    <div className="px-3">
-                      <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
-                      <p className="text-xs" style={TM}>{rec.service}</p>
+                      <div className="flex items-center justify-center gap-8">
+                        {times.map(t => (
+                          <div key={t.label} className="text-center">
+                            <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 500, marginBottom: '4px' }}>{t.label}</p>
+                            <span style={{
+                              fontSize: '15px', fontWeight: 700,
+                              color: !t.value ? '#CBD5E1' : t.label === 'H. Extra' ? '#059669' : '#0F172A'
+                            }}>
+                              {t.value ?? '—'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-lg" style={{ background: '#FEF3C7', color: '#D97706', whiteSpace: 'nowrap' }}>Agendado</span>
                     </div>
-                    <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: '#FEF3C7', color: '#D97706' }}>Agendado</span>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })}
