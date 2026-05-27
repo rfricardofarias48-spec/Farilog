@@ -1576,7 +1576,16 @@ function EscalasHoje({ companyId }) {
 
       {/* Lista de ajudantes */}
       <div>
-        <h3 className="text-sm font-semibold mb-3" style={T}>Ajudantes em Serviço Agora</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold" style={T}>Ajudantes em Serviço Agora</h3>
+          {todayRecords.length > 0 && (
+            <button onClick={() => setShowModal(true)}
+              className="flex items-center gap-1 text-xs font-semibold"
+              style={{ color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer' }}>
+              Ver mais <ChevronRight size={13} />
+            </button>
+          )}
+        </div>
         <div className="card overflow-hidden">
           {todayRecords.length === 0 ? (
             <div className="p-8 text-center text-sm" style={TM}>Nenhum ajudante alocado hoje</div>
