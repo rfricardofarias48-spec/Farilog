@@ -16,7 +16,7 @@ export default function EmployeeLayout() {
           <img
             src="https://ik.imagekit.io/xsbrdnr0y/Logo%20Farilog%20branco%20(sem%20fundo).png"
             alt="FariLog"
-            style={{ height: '72px', objectFit: 'contain' }}
+            style={{ height: '100px', objectFit: 'contain' }}
           />
           <div className="flex items-center gap-2.5">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}>
