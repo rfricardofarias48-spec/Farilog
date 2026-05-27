@@ -1576,21 +1576,12 @@ function EscalasHoje({ companyId }) {
 
       {/* Lista de ajudantes */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold" style={T}>Ajudantes em Serviço Agora</h3>
-          {todayRecords.length > 0 && (
-            <button onClick={() => setShowModal(true)}
-              className="flex items-center gap-1 text-xs font-semibold"
-              style={{ color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer' }}>
-              Ver mais <ChevronRight size={13} />
-            </button>
-          )}
-        </div>
+        <h3 className="text-sm font-semibold mb-3" style={T}>Ajudantes em Serviço Agora</h3>
         <div className="card overflow-hidden">
           {todayRecords.length === 0 ? (
             <div className="p-8 text-center text-sm" style={TM}>Nenhum ajudante alocado hoje</div>
           ) : (
-            todayRecords.slice(0, 3).map(rec => {
+            todayRecords.map(rec => {
               const emp = getEmployee(rec.employeeId);
               return (
                 <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 1fr auto auto' }}>
@@ -1608,13 +1599,6 @@ function EscalasHoje({ companyId }) {
                 </div>
               );
             })
-          )}
-          {todayRecords.length > 3 && (
-            <button onClick={() => setShowModal(true)}
-              className="w-full py-3 text-xs font-semibold"
-              style={{ color: '#94A3B8', background: '#F8FAFC', border: 'none', cursor: 'pointer', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-              + {todayRecords.length - 3} mais
-            </button>
           )}
         </div>
       </div>
