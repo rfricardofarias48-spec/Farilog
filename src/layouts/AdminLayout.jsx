@@ -1,7 +1,15 @@
 ﻿import { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, Building2, Users, Menu, ChevronLeft, DollarSign, ClipboardList } from 'lucide-react';
+import { LogOut, LayoutDashboard, Building2, Users, Menu, ChevronLeft, DollarSign, ClipboardList, Search, Bell } from 'lucide-react';
+
+const PAGE_TITLES = {
+  '/admin':            'Visão Geral',
+  '/admin/companies':  'Empresas',
+  '/admin/employees':  'Funcionários',
+  '/admin/financeiro': 'Financeiro',
+  '/admin/demanda':    'Lançar Demanda',
+};
 
 const NAV = [
   { path: '/admin',            label: 'Visão Geral',    icon: LayoutDashboard, exact: true },
@@ -14,7 +22,10 @@ const NAV = [
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(true);
+  const [search, setSearch] = useState('');
+  const pageTitle = PAGE_TITLES[location.pathname] ?? 'Painel';
 
   return (
     <div className="min-h-screen flex" style={{ background: '#EEF1F5' }}>
@@ -76,14 +87,45 @@ export default function AdminLayout() {
           className="sticky top-0 z-40 flex items-center justify-between px-6 py-3.5"
           style={{ background: '#EEF1F5', borderBottom: '1px solid rgba(0,0,0,0.06)' }}
         >
+          {/* Toggle sidebar */}
           <button onClick={() => setOpen(!open)}
-            className="p-2 rounded-lg transition-colors"
+            className="p-2 rounded-lg transition-colors flex-shrink-0"
             style={{ color: '#94A3B8', background: 'rgba(0,0,0,0.04)' }}>
             {open ? <ChevronLeft size={17} /> : <Menu size={17} />}
           </button>
-          <div className="flex items-center gap-2.5">
-            <span className="text-xs font-medium" style={{ color: '#64748B' }}>Admin</span>
-            <div className="avatar w-8 h-8 rounded-full text-xs" style={{ background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', width: '32px', height: '32px', borderRadius: '50%' }}>
+
+          {/* Page title + search */}
+          <div className="flex items-center gap-4 flex-1 mx-4">
+            <span className="font-semibold text-sm hidden sm:block" style={{ color: '#1E293B', whiteSpace: 'nowrap' }}>
+              {pageTitle}
+            </span>
+            <div className="relative flex-1 max-w-sm">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }} />
+              <input
+                type="text"
+                placeholder="Buscar..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-sm rounded-lg outline-none transition"
+                style={{
+                  background: 'rgba(0,0,0,0.05)',
+                  border: '1px solid rgba(0,0,0,0.07)',
+                  color: '#1E293B',
+                  fontSize: '13px',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Actions + avatar */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button className="p-2 rounded-lg relative" style={{ background: 'rgba(0,0,0,0.04)', color: '#64748B' }}>
+              <Bell size={16} />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: '#FF4D0C' }} />
+            </button>
+            <div className="h-6 w-px" style={{ background: 'rgba(0,0,0,0.1)' }} />
+            <span className="text-xs font-medium hidden sm:block" style={{ color: '#64748B' }}>Admin</span>
+            <div className="avatar text-xs flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0 }}>
               {user?.initials}
             </div>
           </div>
