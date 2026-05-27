@@ -1600,20 +1600,22 @@ function EscalasHoje({ companyId }) {
                 { label: 'H. Extra',  value: rec.overtime },
               ];
               return (
-                <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 160px 1fr auto' }}>
+                <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 1fr 1fr auto' }}>
                   <div className="avatar" style={{ background: emp?.color || '#1D6FFF' }}>{emp?.initials}</div>
-                  <div className="px-3">
+                  <div className="px-3 flex items-center gap-2">
                     <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
+                    <span className="text-xs" style={{ color: '#94A3B8' }}>·</span>
                     <p className="text-xs" style={TM}>{rec.service}</p>
                   </div>
-                  <div className="flex items-center justify-center gap-4">
+                  <div className="flex items-center justify-center gap-8">
                     {times.map(t => (
                       <div key={t.label} className="text-center">
-                        <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
-                        <div className="flex items-center justify-center gap-1" style={{ color: t.value ? '#0F172A' : '#CBD5E1' }}>
-                          <Clock size={10} />
-                          <span className="text-xs font-semibold">{t.value ?? '—'}</span>
-                        </div>
+                        <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '3px' }}>{t.label}</p>
+                        <span className="text-xs font-semibold" style={{
+                          color: !t.value ? '#CBD5E1' : t.label === 'H. Extra' ? '#059669' : '#0F172A'
+                        }}>
+                          {t.value ?? '—'}
+                        </span>
                       </div>
                     ))}
                   </div>
