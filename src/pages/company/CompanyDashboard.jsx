@@ -1813,70 +1813,72 @@ function SettingsTab({ company }) {
   ];
 
   return (
-    <div className="max-w-xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold" style={T}>Configurações</h2>
         <p className="text-sm mt-0.5" style={TM}>Dados da empresa</p>
       </div>
 
-      {/* Dados da empresa */}
-      <form onSubmit={handleSave} className="space-y-4">
-        <div className="card p-5 space-y-4">
-          {fields.map(({ key, label }) => (
-            <div key={key}>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
-              <input className="input-field" value={form[key] || ''} onChange={e => setForm({ ...form, [key]: e.target.value })} />
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <button type="submit" className="btn-primary flex items-center gap-2">
-            <Save size={14} /> Salvar alterações
-          </button>
-          {saved && (
-            <div className="flex items-center gap-2 text-xs font-medium" style={{ color: '#059669' }}>
-              <CheckCircle2 size={14} /> Salvo com sucesso!
-            </div>
-          )}
-        </div>
-      </form>
-
-      {/* Alterar senha */}
-      <form onSubmit={handlePwSave} className="space-y-4">
-        <div className="card p-5 space-y-4">
-          <div>
-            <p className="text-sm font-bold mb-0.5" style={T}>Alterar Senha</p>
-            <p className="text-xs" style={TM}>Preencha os campos abaixo para definir uma nova senha de acesso.</p>
+      <div className="grid grid-cols-2 gap-6 items-start">
+        {/* Dados da empresa */}
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="card p-5 space-y-4">
+            {fields.map(({ key, label }) => (
+              <div key={key}>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
+                <input className="input-field" value={form[key] || ''} onChange={e => setForm({ ...form, [key]: e.target.value })} />
+              </div>
+            ))}
           </div>
-          <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)' }} />
-          {[
-            { key: 'current', label: 'Senha atual' },
-            { key: 'next',    label: 'Nova senha' },
-            { key: 'confirm', label: 'Confirmar nova senha' },
-          ].map(({ key, label }) => (
-            <div key={key}>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
-              <input
-                type="password"
-                className="input-field"
-                placeholder="••••••••"
-                value={pwForm[key]}
-                onChange={e => setPwForm({ ...pwForm, [key]: e.target.value })}
-              />
+          <div className="flex items-center gap-3">
+            <button type="submit" className="btn-primary flex items-center gap-2">
+              <Save size={14} /> Salvar alterações
+            </button>
+            {saved && (
+              <div className="flex items-center gap-2 text-xs font-medium" style={{ color: '#059669' }}>
+                <CheckCircle2 size={14} /> Salvo com sucesso!
+              </div>
+            )}
+          </div>
+        </form>
+
+        {/* Alterar senha */}
+        <form onSubmit={handlePwSave} className="space-y-4">
+          <div className="card p-5 space-y-4">
+            <div>
+              <p className="text-sm font-bold mb-0.5" style={T}>Alterar Senha</p>
+              <p className="text-xs" style={TM}>Preencha os campos abaixo para definir uma nova senha de acesso.</p>
             </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <button type="submit" className="btn-primary flex items-center gap-2">
-            <Save size={14} /> Alterar senha
-          </button>
-          {pwMsg && (
-            <div className="flex items-center gap-2 text-xs font-medium" style={{ color: pwMsg.type === 'ok' ? '#059669' : '#DC2626' }}>
-              <CheckCircle2 size={14} /> {pwMsg.text}
-            </div>
-          )}
-        </div>
-      </form>
+            <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)' }} />
+            {[
+              { key: 'current', label: 'Senha atual' },
+              { key: 'next',    label: 'Nova senha' },
+              { key: 'confirm', label: 'Confirmar nova senha' },
+            ].map(({ key, label }) => (
+              <div key={key}>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
+                <input
+                  type="password"
+                  className="input-field"
+                  placeholder="••••••••"
+                  value={pwForm[key]}
+                  onChange={e => setPwForm({ ...pwForm, [key]: e.target.value })}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-3">
+            <button type="submit" className="btn-primary flex items-center gap-2">
+              <Save size={14} /> Alterar senha
+            </button>
+            {pwMsg && (
+              <div className="flex items-center gap-2 text-xs font-medium" style={{ color: pwMsg.type === 'ok' ? '#059669' : '#DC2626' }}>
+                <CheckCircle2 size={14} /> {pwMsg.text}
+              </div>
+            )}
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
