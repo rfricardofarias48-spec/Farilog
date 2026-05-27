@@ -1508,6 +1508,247 @@ function Financial({ companyId }) {
   );
 }
 
+// ── Escalas ────────────────────────────────────────────────────────────────
+
+function EscalasHoje({ companyId }) {
+  const [showModal, setShowModal] = useState(false);
+  const todayRecords  = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === TODAY);
+  const escala        = todayRecords.length;
+  const faltas        = todayRecords.filter(r => r.status === 'absent').length;
+  const atrasos       = todayRecords.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
+  const presenteCount = todayRecords.filter(r => r.status !== 'absent').length;
+  const pct           = escala > 0 ? Math.round((presenteCount / escala) * 100) : 0;
+  const pctColor      = pct >= 80 ? '#059669' : pct >= 50 ? '#D97706' : '#E11D48';
+  const pctBg         = pct >= 80 ? '#DCFCE7' : pct >= 50 ? '#FEF3C7' : '#FFE4E6';
+
+  return (
+    <div className="space-y-4">
+      {/* KPI cards — Escala, Frequência, Presença */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="stat-card flex flex-col justify-between" style={{ minHeight: '110px' }}>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#FFF2EE' }}>
+              <CalendarCheck size={15} style={{ color: '#FF4D0C' }} />
+            </div>
+            <span className="text-sm font-bold" style={T}>Escala</span>
+          </div>
+          <p className="text-4xl font-black leading-none" style={{ color: '#FF4D0C' }}>{escala}</p>
+        </div>
+
+        <div className="stat-card flex flex-col justify-between" style={{ minHeight: '110px' }}>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#FFF1F2' }}>
+              <AlertTriangle size={15} style={{ color: '#E11D48' }} />
+            </div>
+            <span className="text-sm font-bold" style={T}>Frequência</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium" style={T2}>Faltas</span>
+              <span className="text-sm font-black" style={{ color: faltas > 0 ? '#E11D48' : '#94A3B8' }}>{faltas}</span>
+            </div>
+            <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)' }} />
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium" style={T2}>Atrasos</span>
+              <span className="text-sm font-black" style={{ color: atrasos > 0 ? '#D97706' : '#94A3B8' }}>{atrasos}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="stat-card flex flex-col justify-between" style={{ minHeight: '110px' }}>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: pctBg }}>
+              <Users size={15} style={{ color: pctColor }} />
+            </div>
+            <span className="text-sm font-bold" style={T}>Presença</span>
+          </div>
+          <div>
+            <div className="flex items-end gap-1.5 mb-2">
+              <p className="text-3xl font-black leading-none" style={{ color: pctColor }}>{pct}%</p>
+              <p className="text-xs mb-1" style={TM}>{presenteCount}/{escala}</p>
+            </div>
+            <div style={{ height: '4px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)' }}>
+              <div style={{ height: '100%', borderRadius: '4px', background: pctColor, width: `${pct}%`, transition: 'width 0.4s ease' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Lista de ajudantes */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold" style={T}>Ajudantes em Serviço Agora</h3>
+          {todayRecords.length > 0 && (
+            <button onClick={() => setShowModal(true)}
+              className="flex items-center gap-1 text-xs font-semibold"
+              style={{ color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer' }}>
+              Ver mais <ChevronRight size={13} />
+            </button>
+          )}
+        </div>
+        <div className="card overflow-hidden">
+          {todayRecords.length === 0 ? (
+            <div className="p-8 text-center text-sm" style={TM}>Nenhum ajudante alocado hoje</div>
+          ) : (
+            todayRecords.slice(0, 3).map(rec => {
+              const emp = getEmployee(rec.employeeId);
+              return (
+                <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 1fr auto auto' }}>
+                  <div className="avatar" style={{ background: emp?.color || '#1D6FFF' }}>{emp?.initials}</div>
+                  <div className="px-3">
+                    <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
+                    <p className="text-xs" style={TM}>{rec.service}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3" style={TM}>
+                    <Clock size={11} /><span className="text-xs">{rec.checkIn ?? '—'}</span>
+                  </div>
+                  <span className={`badge ${rec.status === 'active' ? 'badge-active' : rec.status === 'absent' ? 'badge-inactive' : 'badge-paid'}`}>
+                    {rec.status === 'active' ? 'Ativo' : rec.status === 'absent' ? 'Falta' : 'Concluído'}
+                  </span>
+                </div>
+              );
+            })
+          )}
+          {todayRecords.length > 3 && (
+            <button onClick={() => setShowModal(true)}
+              className="w-full py-3 text-xs font-semibold"
+              style={{ color: '#94A3B8', background: '#F8FAFC', border: 'none', cursor: 'pointer', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+              + {todayRecords.length - 3} mais
+            </button>
+          )}
+        </div>
+      </div>
+
+      {showModal && (
+        <AjudantesModal
+          records={todayRecords}
+          escala={escala}
+          faltas={faltas}
+          atrasos={atrasos}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function EscalasProximas({ companyId }) {
+  const futureDates = [...new Set(
+    WORK_RECORDS
+      .filter(r => r.companyId === companyId && r.date > TODAY && r.status === 'scheduled')
+      .map(r => r.date)
+  )].sort();
+
+  if (futureDates.length === 0) {
+    return (
+      <div className="py-14 text-center">
+        <CalendarCheck size={32} className="mx-auto mb-3" style={{ color: '#CBD5E1' }} />
+        <p className="text-sm" style={TM}>Nenhuma escala futura lançada</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {futureDates.map(date => {
+        const records = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === date && r.status === 'scheduled');
+        const [y, m, d] = date.split('-').map(Number);
+        const dow = DOW_FULL[new Date(y, m - 1, d).getDay()];
+        const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+        return (
+          <div key={date} className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#FF4D0C' }} />
+              <p className="text-sm font-semibold" style={T}>{dow}, {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}</p>
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: '#FFF2EE', color: '#FF4D0C' }}>
+                {records.length} escalado{records.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {/* KPI: só Escala para dias futuros */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="stat-card flex flex-col justify-between" style={{ minHeight: '90px' }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#FFF2EE' }}>
+                    <CalendarCheck size={15} style={{ color: '#FF4D0C' }} />
+                  </div>
+                  <span className="text-sm font-bold" style={T}>Escala</span>
+                </div>
+                <p className="text-3xl font-black leading-none" style={{ color: '#FF4D0C' }}>{records.length}</p>
+              </div>
+              <div className="stat-card flex flex-col justify-between col-span-2" style={{ minHeight: '90px' }}>
+                <span className="text-xs font-semibold" style={{ color: '#94A3B8' }}>Ajudantes agendados</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {records.map(r => {
+                    const emp = getEmployee(r.employeeId);
+                    return (
+                      <div key={r.id} className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: '#F1F5F9' }}>
+                        <div style={{ width:'20px', height:'20px', borderRadius:'50%', background: emp?.color || '#94A3B8', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'8px', fontWeight:700, color:'white', flexShrink:0 }}>
+                          {emp?.initials}
+                        </div>
+                        <span className="text-xs font-medium" style={{ color: '#475569' }}>{emp?.name?.split(' ')[0]}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Lista */}
+            <div className="card overflow-hidden">
+              {records.map(rec => {
+                const emp = getEmployee(rec.employeeId);
+                return (
+                  <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
+                    <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
+                    <div className="px-3">
+                      <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
+                      <p className="text-xs" style={TM}>{rec.service}</p>
+                    </div>
+                    <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: '#FEF3C7', color: '#D97706' }}>Agendado</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function EscalasTab({ companyId }) {
+  const [sub, setSub] = useState('hoje');
+  const SUBS = [
+    { key: 'hoje',      label: 'Hoje' },
+    { key: 'proximas',  label: 'Próximas Escalas' },
+    { key: 'historico', label: 'Histórico' },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <h2 className="text-xl font-bold" style={T}>Escalas</h2>
+
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'rgba(0,0,0,0.05)' }}>
+        {SUBS.map(s => (
+          <button key={s.key} onClick={() => setSub(s.key)}
+            className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
+            style={sub === s.key
+              ? { background: '#fff', color: '#FF4D0C', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }
+              : { color: '#64748B' }}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {sub === 'hoje'      && <EscalasHoje     companyId={companyId} />}
+      {sub === 'proximas'  && <EscalasProximas companyId={companyId} />}
+      {sub === 'historico' && <HistoryTab      companyId={companyId} />}
+    </div>
+  );
+}
+
 // ── Settings ───────────────────────────────────────────────────────────────
 function SettingsTab({ company }) {
   const [form, setForm]   = useState({ ...company });
@@ -1567,7 +1808,7 @@ export default function CompanyDashboard() {
   return (
     <div className="animate-fade-up">
       {tab === 'panel'     && <Panel       companyId={user.id} />}
-      {tab === 'history'   && <HistoryTab  companyId={user.id} />}
+      {tab === 'escalas'   && <EscalasTab  companyId={user.id} />}
       {tab === 'financial' && <Financial   companyId={user.id} />}
       {tab === 'settings'  && <SettingsTab company={user} />}
     </div>
