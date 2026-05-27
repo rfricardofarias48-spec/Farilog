@@ -1610,8 +1610,9 @@ function EscalasHoje({ companyId }) {
                   <div className="flex items-center justify-center gap-8">
                     {times.map(t => (
                       <div key={t.label} className="text-center">
-                        <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '3px' }}>{t.label}</p>
-                        <span className="text-xs font-semibold" style={{
+                        <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 500, marginBottom: '4px' }}>{t.label}</p>
+                        <span style={{
+                          fontSize: '15px', fontWeight: 700,
                           color: !t.value ? '#CBD5E1' : t.label === 'H. Extra' ? '#059669' : '#0F172A'
                         }}>
                           {t.value ?? '—'}
