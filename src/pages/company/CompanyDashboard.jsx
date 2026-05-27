@@ -1775,13 +1775,31 @@ function EscalasTab({ companyId }) {
 
 // ── Settings ───────────────────────────────────────────────────────────────
 function SettingsTab({ company }) {
-  const [form, setForm]   = useState({ ...company });
-  const [saved, setSaved] = useState(false);
+  const [form, setForm]     = useState({ ...company });
+  const [saved, setSaved]   = useState(false);
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
+  const [pwMsg, setPwMsg]   = useState(null); // { type: 'ok'|'err', text }
 
   const handleSave = (e) => {
     e.preventDefault();
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handlePwSave = (e) => {
+    e.preventDefault();
+    if (pwForm.current !== company.password) {
+      setPwMsg({ type: 'err', text: 'Senha atual incorreta.' });
+    } else if (pwForm.next.length < 6) {
+      setPwMsg({ type: 'err', text: 'A nova senha deve ter ao menos 6 caracteres.' });
+    } else if (pwForm.next !== pwForm.confirm) {
+      setPwMsg({ type: 'err', text: 'As senhas não coincidem.' });
+    } else {
+      company.password = pwForm.next;
+      setPwForm({ current: '', next: '', confirm: '' });
+      setPwMsg({ type: 'ok', text: 'Senha alterada com sucesso!' });
+    }
+    setTimeout(() => setPwMsg(null), 3500);
   };
 
   const fields = [
@@ -1795,11 +1813,13 @@ function SettingsTab({ company }) {
   ];
 
   return (
-    <div className="max-w-xl">
-      <div className="mb-6">
+    <div className="max-w-xl space-y-6">
+      <div>
         <h2 className="text-xl font-bold" style={T}>Configurações</h2>
         <p className="text-sm mt-0.5" style={TM}>Dados da empresa</p>
       </div>
+
+      {/* Dados da empresa */}
       <form onSubmit={handleSave} className="space-y-4">
         <div className="card p-5 space-y-4">
           {fields.map(({ key, label }) => (
@@ -1816,6 +1836,43 @@ function SettingsTab({ company }) {
           {saved && (
             <div className="flex items-center gap-2 text-xs font-medium" style={{ color: '#059669' }}>
               <CheckCircle2 size={14} /> Salvo com sucesso!
+            </div>
+          )}
+        </div>
+      </form>
+
+      {/* Alterar senha */}
+      <form onSubmit={handlePwSave} className="space-y-4">
+        <div className="card p-5 space-y-4">
+          <div>
+            <p className="text-sm font-bold mb-0.5" style={T}>Alterar Senha</p>
+            <p className="text-xs" style={TM}>Preencha os campos abaixo para definir uma nova senha de acesso.</p>
+          </div>
+          <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)' }} />
+          {[
+            { key: 'current', label: 'Senha atual' },
+            { key: 'next',    label: 'Nova senha' },
+            { key: 'confirm', label: 'Confirmar nova senha' },
+          ].map(({ key, label }) => (
+            <div key={key}>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
+              <input
+                type="password"
+                className="input-field"
+                placeholder="••••••••"
+                value={pwForm[key]}
+                onChange={e => setPwForm({ ...pwForm, [key]: e.target.value })}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-3">
+          <button type="submit" className="btn-primary flex items-center gap-2">
+            <Save size={14} /> Alterar senha
+          </button>
+          {pwMsg && (
+            <div className="flex items-center gap-2 text-xs font-medium" style={{ color: pwMsg.type === 'ok' ? '#059669' : '#DC2626' }}>
+              <CheckCircle2 size={14} /> {pwMsg.text}
             </div>
           )}
         </div>
