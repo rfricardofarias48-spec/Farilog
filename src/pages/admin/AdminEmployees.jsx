@@ -1,0 +1,201 @@
+﻿import { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { WORK_RECORDS, COMPANIES, fmtDate } from '../../data/mockData';
+import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight } from 'lucide-react';
+
+const EMPTY = { name: '', cpf: '', phone: '', email: '', password: '', dailyRate: 150, hireDate: '', status: 'active' };
+const T  = { color: '#0F172A' };
+const T2 = { color: '#475569' };
+const TM = { color: '#94A3B8' };
+
+function Modal({ employee, onSave, onClose }) {
+  const [form, setForm] = useState(employee ? { ...employee } : { ...EMPTY });
+
+  const fields = [
+    { key: 'name',       label: 'Nome completo',    required: true, col: 2 },
+    { key: 'cpf',        label: 'CPF',              required: true, placeholder: '000.000.000-00' },
+    { key: 'phone',      label: 'Telefone',          placeholder: '(00) 00000-0000' },
+    { key: 'email',      label: 'E-mail de acesso', required: true, type: 'email', col: 2 },
+    { key: 'password',   label: employee ? 'Nova senha (opcional)' : 'Senha', type: 'password' },
+    { key: 'dailyRate',  label: 'Valor da diária (R$)', type: 'number', required: true },
+    { key: 'hireDate',   label: 'Data de contratação',  type: 'date' },
+  ];
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box animate-fade-up">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-base font-bold" style={T}>{employee ? 'Editar Funcionário' : 'Novo Funcionário'}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
+            <X size={15} />
+          </button>
+        </div>
+        <form onSubmit={e => { e.preventDefault(); onSave(form); }} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            {fields.map(({ key, label, required, placeholder, type, col }) => (
+              <div key={key} className={col === 2 ? 'col-span-2' : ''}>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
+                <input type={type || 'text'} placeholder={placeholder} required={required}
+                  value={form[key] || ''} onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
+              </div>
+            ))}
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Status</label>
+              <div className="flex gap-2">
+                {['active','inactive'].map(s => (
+                  <button key={s} type="button" onClick={() => setForm({ ...form, status: s })}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all"
+                    style={{
+                      background: form.status === s ? (s === 'active' ? '#ECFDF5' : '#FEF2F2') : '#F8FAFC',
+                      borderColor: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : 'rgba(0,0,0,0.08)',
+                      color: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : '#94A3B8',
+                    }}>
+                    {s === 'active' ? 'Ativo' : 'Inativo'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+            <button type="submit" className="btn-primary flex-1">{employee ? 'Salvar' : 'Cadastrar funcionário'}</button>
+            <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminEmployees() {
+  const { employees, setEmployees } = useAuth();
+  const [modal, setModal]           = useState(null);
+  const [search, setSearch]         = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const filtered = employees.filter(e => {
+    const matchSearch = e.name.toLowerCase().includes(search.toLowerCase()) ||
+      e.cpf.includes(search) || e.email.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = filterStatus === 'all' || e.status === filterStatus;
+    return matchSearch && matchStatus;
+  });
+
+  const handleSave = (form) => {
+    if (modal === 'new') {
+      const initials = form.name.split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase();
+      const colors   = ['#FF4D0C','#7C3AED','#059669','#D97706','#DC2626','#0891B2','#BE185D'];
+      setEmployees([...employees, { ...form, id: `e${Date.now()}`, initials, color: colors[employees.length % colors.length], dailyRate: Number(form.dailyRate) }]);
+    } else {
+      setEmployees(employees.map(e => e.id === modal.id
+        ? { ...e, ...form, dailyRate: Number(form.dailyRate), password: form.password || e.password }
+        : e));
+    }
+    setModal(null);
+  };
+
+  const getLastWork = (id) => {
+    const rec = WORK_RECORDS.filter(r => r.employeeId === id).sort((a,b) => b.date.localeCompare(a.date))[0];
+    if (!rec) return null;
+    return { date: rec.date, company: COMPANIES.find(c => c.id === rec.companyId)?.name };
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between animate-fade-up">
+        <div>
+          <h1 className="text-xl font-bold" style={T}>Funcionários</h1>
+          <p className="text-xs mt-0.5" style={TM}>
+            {employees.filter(e => e.status === 'active').length} ativos de {employees.length} cadastrados
+          </p>
+        </div>
+        <button onClick={() => setModal('new')} className="btn-primary flex items-center gap-2">
+          <Plus size={14} /> Novo Funcionário
+        </button>
+      </div>
+
+      <div className="flex gap-3 animate-fade-up delay-1">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }} />
+          <input className="input-field pl-9" placeholder="Buscar por nome, CPF ou e-mail..."
+            value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
+          {[['all','Todos'],['active','Ativos'],['inactive','Inativos']].map(([val, lbl]) => (
+            <button key={val} onClick={() => setFilterStatus(val)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+              style={{
+                background: filterStatus === val ? '#FF4D0C' : 'transparent',
+                color: filterStatus === val ? 'white' : '#64748B',
+              }}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card overflow-hidden animate-fade-up delay-2">
+        <div className="px-5 py-3 grid text-xs font-semibold"
+          style={{ gridTemplateColumns: '1fr auto auto auto auto', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
+          <span>Funcionário</span><span>Diária</span><span>Último serviço</span><span>Status</span><span>Ações</span>
+        </div>
+        {filtered.length === 0 ? (
+          <div className="py-14 text-center">
+            <Users size={32} className="mx-auto mb-3" style={{ color: '#CBD5E1' }} />
+            <p className="text-sm" style={TM}>Nenhum funcionário encontrado</p>
+          </div>
+        ) : (
+          filtered.map(emp => {
+            const lw = getLastWork(emp.id);
+            return (
+              <div key={emp.id} className="table-row" style={{ gridTemplateColumns: '1fr auto auto auto auto', gap: '16px' }}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="avatar flex-shrink-0" style={{ background: emp.color }}>{emp.initials}</div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold truncate" style={T}>{emp.name}</p>
+                    <p className="text-xs truncate" style={TM}>{emp.cpf} · {emp.phone}</p>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold" style={{ color: '#FF4D0C' }}>R$ {emp.dailyRate}</span>
+                <div className="text-xs" style={T2}>
+                  {lw ? (
+                    <><p>{fmtDate(lw.date)}</p><p style={{ ...TM, fontSize: '10px' }}>{lw.company?.split(' ')[0]}</p></>
+                  ) : <span style={TM}>—</span>}
+                </div>
+                <button onClick={() => setEmployees(employees.map(e => e.id === emp.id ? { ...e, status: e.status === 'active' ? 'inactive' : 'active' } : e))}
+                  className="flex items-center gap-1.5 text-xs font-medium">
+                  {emp.status === 'active'
+                    ? <><ToggleRight size={20} style={{ color: '#059669' }} /><span style={{ color: '#059669' }}>Ativo</span></>
+                    : <><ToggleLeft  size={20} style={{ color: '#94A3B8' }} /><span style={TM}>Inativo</span></>
+                  }
+                </button>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setModal(emp)} className="p-1.5 rounded-lg"
+                    style={{ color: '#94A3B8', background: '#F1F5F9' }}><Edit2 size={13}/></button>
+                  <button onClick={() => setDeleteConfirm(emp.id)} className="p-1.5 rounded-lg"
+                    style={{ color: '#94A3B8', background: '#F1F5F9' }}><Trash2 size={13}/></button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {(modal === 'new' || (modal && modal !== 'new')) && (
+        <Modal employee={modal === 'new' ? null : modal} onSave={handleSave} onClose={() => setModal(null)} />
+      )}
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="modal-box max-w-sm animate-fade-up" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-bold mb-2" style={T}>Remover funcionário?</h3>
+            <p className="text-sm mb-5" style={T2}>Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-2">
+              <button onClick={() => { setEmployees(employees.filter(e => e.id !== deleteConfirm)); setDeleteConfirm(null); }}
+                className="btn-danger flex-1 py-2.5">Remover</button>
+              <button onClick={() => setDeleteConfirm(null)} className="btn-ghost flex-1">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
