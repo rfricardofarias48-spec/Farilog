@@ -60,6 +60,22 @@ export const WORK_RECORDS = [
   { id: 'w31', employeeId: 'e3', companyId: 'c3', date: '2026-05-15', checkIn: '08:00', checkOut: '18:00', status: 'completed', value: 150, service: 'Carga e descarga' },
   { id: 'w32', employeeId: 'e5', companyId: 'c1', date: '2026-05-15', checkIn: '07:00', checkOut: '17:00', status: 'completed', value: 150, service: 'Organização de estoque' },
   { id: 'w33', employeeId: 'e6', companyId: 'c2', date: '2026-05-15', checkIn: '07:30', checkOut: '17:30', status: 'completed', value: 150, service: 'Inventário' },
+  // Scheduled - Wed May 27
+  { id: 's1', employeeId: 'e1', companyId: 'c1', date: '2026-05-27', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
+  { id: 's2', employeeId: 'e2', companyId: 'c2', date: '2026-05-27', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Organização de estoque' },
+  { id: 's3', employeeId: 'e3', companyId: 'c1', date: '2026-05-27', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Separação de mercadoria' },
+  { id: 's4', employeeId: 'e5', companyId: 'c3', date: '2026-05-27', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
+  // Scheduled - Thu May 28
+  { id: 's5', employeeId: 'e1', companyId: 'c2', date: '2026-05-28', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Separação de mercadoria' },
+  { id: 's6', employeeId: 'e3', companyId: 'c1', date: '2026-05-28', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
+  { id: 's7', employeeId: 'e6', companyId: 'c3', date: '2026-05-28', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Inventário' },
+  { id: 's8', employeeId: 'e7', companyId: 'c1', date: '2026-05-28', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Organização de estoque' },
+  // Scheduled - Fri May 29
+  { id: 's9',  employeeId: 'e2', companyId: 'c1', date: '2026-05-29', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
+  { id: 's10', employeeId: 'e5', companyId: 'c2', date: '2026-05-29', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Inventário' },
+  { id: 's11', employeeId: 'e6', companyId: 'c1', date: '2026-05-29', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Separação de mercadoria' },
+  { id: 's12', employeeId: 'e7', companyId: 'c3', date: '2026-05-29', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
+  { id: 's13', employeeId: 'e1', companyId: 'c3', date: '2026-05-29', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Organização de estoque' },
 ];
 
 export const PAYMENTS = [
