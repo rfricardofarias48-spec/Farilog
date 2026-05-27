@@ -136,38 +136,31 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus }) {
 
       {/* Próximo pagamento */}
       <div className="card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Banknote size={15} style={{ color: '#D97706' }} />
-          <span className="text-sm font-bold" style={{ color: '#D97706' }}>Próximo Pagamento</span>
-          <span className="ml-auto text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: '#FEF3C7', color: '#D97706' }}>
-            {getQuinzenaLabel(TODAY).split('—')[1].trim()}
-          </span>
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm font-bold" style={T}>Próximo Pagamento</span>
+          <span className="text-xs font-medium" style={TM}>{getQuinzenaLabel(TODAY).split('—')[1].trim()}</span>
         </div>
 
         <div className="space-y-3">
-          {[
-            { label: 'Diárias',       count: diarias,  valor: totalDiarias, color: '#FF4D0C' },
-            { label: 'Horas Extras',  count: heCount,  valor: totalHE,      color: '#7C3AED' },
-          ].map(row => (
-            <div key={row.label} className="flex items-center justify-between py-2.5 px-4 rounded-xl" style={{ background: '#F8FAFC' }}>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold" style={T}>{row.label}</span>
-                <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(0,0,0,0.05)', color: '#64748B' }}>{row.count}×</span>
-              </div>
-              <span className="text-sm font-bold" style={{ color: row.color }}>{fmtCurrency(row.valor)}</span>
-            </div>
-          ))}
-
-          <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)' }} />
-
           <div className="flex items-center justify-between">
+            <span className="text-sm" style={T2}>Diárias: <span className="font-semibold" style={T}>{String(diarias).padStart(2,'0')}</span></span>
+            <span className="text-sm font-semibold" style={T}>{fmtCurrency(totalDiarias)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm" style={T2}>Horas extras: <span className="font-semibold" style={T}>{String(heCount).padStart(2,'0')}:00</span></span>
+            <span className="text-sm font-semibold" style={T}>{fmtCurrency(totalHE)}</span>
+          </div>
+
+          <div style={{ height: '1px', background: 'rgba(0,0,0,0.07)', margin: '4px 0' }} />
+
+          <div className="flex items-end justify-between">
             <div>
-              <p className="text-xs" style={TM}>Total a receber</p>
-              <p className="text-2xl font-black mt-0.5" style={{ color: '#059669' }}>{fmtCurrency(totalReceber)}</p>
+              <p className="text-xs mb-1" style={TM}>Total a receber</p>
+              <p className="text-2xl font-black" style={{ color: '#059669' }}>{fmtCurrency(totalReceber)}</p>
             </div>
             <div className="text-right">
-              <p className="text-xs" style={TM}>Previsão de pagamento</p>
-              <p className="text-xl font-bold mt-0.5" style={T}>05/06</p>
+              <p className="text-xs mb-1" style={TM}>Previsão de pagamento</p>
+              <p className="text-xl font-bold" style={T}>05/06</p>
             </div>
           </div>
         </div>
