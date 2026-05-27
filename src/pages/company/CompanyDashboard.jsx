@@ -1592,15 +1592,30 @@ function EscalasHoje({ companyId }) {
           ) : (
             todayRecords.map(rec => {
               const emp = getEmployee(rec.employeeId);
+              const times = [
+                { label: 'Entrada',   value: rec.checkIn },
+                { label: 'S. Almoço', value: rec.lunchOut },
+                { label: 'Retorno',   value: rec.lunchReturn },
+                { label: 'Saída',     value: rec.checkOut },
+                { label: 'H. Extra',  value: rec.overtime },
+              ];
               return (
-                <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 1fr auto auto' }}>
+                <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 160px 1fr auto' }}>
                   <div className="avatar" style={{ background: emp?.color || '#1D6FFF' }}>{emp?.initials}</div>
                   <div className="px-3">
                     <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
                     <p className="text-xs" style={TM}>{rec.service}</p>
                   </div>
-                  <div className="flex items-center gap-1.5 px-3" style={TM}>
-                    <Clock size={11} /><span className="text-xs">{rec.checkIn ?? '—'}</span>
+                  <div className="flex items-center justify-center gap-4">
+                    {times.map(t => (
+                      <div key={t.label} className="text-center">
+                        <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
+                        <div className="flex items-center justify-center gap-1" style={{ color: t.value ? '#0F172A' : '#CBD5E1' }}>
+                          <Clock size={10} />
+                          <span className="text-xs font-semibold">{t.value ?? '—'}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                   <span className={`badge ${rec.status === 'active' ? 'badge-active' : rec.status === 'absent' ? 'badge-inactive' : 'badge-paid'}`}>
                     {rec.status === 'active' ? 'Ativo' : rec.status === 'absent' ? 'Falta' : 'Concluído'}
