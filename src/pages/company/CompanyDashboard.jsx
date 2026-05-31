@@ -204,6 +204,7 @@ function fmtDateShort(iso) {
 }
 
 function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday }) {
+  const [showModal, setShowModal] = useState(false);
   const escala    = records.length;
   const faltas    = isToday ? records.filter(r => r.status === 'absent').length : 0;
   const atrasos   = isToday ? records.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length : 0;
@@ -276,9 +277,16 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
 
       {/* Lista de ajudantes */}
       <div>
-        <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>
-          Ajudantes
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.06em', textTransform: 'uppercase', margin: 0 }}>
+            Ajudantes
+          </p>
+          {records.length > 0 && (
+            <button onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', fontWeight: 600, color: accentColor, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              Ver mais <ChevronRight size={12} />
+            </button>
+          )}
+        </div>
         {records.length === 0 ? (
           <p style={{ fontSize: '12px', color: '#CBD5E1', textAlign: 'center', padding: '20px 0' }}>
             {isToday ? 'Nenhum ajudante hoje' : 'Nenhuma escala agendada'}
@@ -316,6 +324,16 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
           </div>
         )}
       </div>
+
+      {showModal && (
+        <AjudantesModal
+          records={records}
+          escala={escala}
+          faltas={faltas}
+          atrasos={atrasos}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   );
 }
