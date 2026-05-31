@@ -53,10 +53,13 @@ export default function Login() {
       minHeight: '100vh',
       background: '#E8ECF0',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'center',
       padding: '24px',
+      paddingTop: 'max(24px, 5vh)',
+      paddingBottom: '48px',
       fontFamily: 'Inter, sans-serif',
+      overflowY: 'auto',
     }}>
       <div style={{
         width: '100%',
@@ -68,7 +71,7 @@ export default function Login() {
       }}>
 
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '6px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '6px', overflow: 'hidden' }}>
           <img
             src="https://ik.imagekit.io/xsbrdnr0y/Logo%20Farilog%20branco%20(sem%20fundo).png"
             alt="FariLog"
