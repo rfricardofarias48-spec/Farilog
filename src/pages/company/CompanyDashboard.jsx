@@ -186,7 +186,7 @@ function AjudantesModal({ records, escala, faltas, atrasos, onClose }) {
 }
 
 // ── Panel ──────────────────────────────────────────────────────────────────
-const START_TIME = '07:30'; // horário limite de pontualidade
+const START_TIME = '07:30';
 
 const DOW_FULL = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 function formatDemandDate(iso) {
@@ -196,23 +196,134 @@ function formatDemandDate(iso) {
   return `${dow}, ${d}/${m}/${y}`;
 }
 
-function Panel({ companyId }) {
-  const { demands } = useAuth();
-  const [showModal, setShowModal] = useState(false);
-  const todayRecords  = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === TODAY);
-  const escala        = todayRecords.length;
-  const faltas        = todayRecords.filter(r => r.status === 'absent').length;
-  const atrasos       = todayRecords.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
-  const presenteCount = todayRecords.filter(r => r.status !== 'absent').length;
-  const dayValue      = presenteCount * 150;
-  const quinzenaData  = buildQuinzenaData(companyId);
-  const quinzenaInfo  = getQuinzenaInfo();
-  const quinzenaTotal = quinzenaData.reduce((s, d) => s + d.count, 0);
-  const quinzenaValue = quinzenaTotal * 150;
-  const maxCount      = Math.max(...quinzenaData.map(d => d.count), 1);
+function fmtDateShort(iso) {
+  if (!iso) return '—';
+  const [, m, d] = iso.split('-');
+  const dow = DOW_FULL[new Date(`${iso}T12:00:00`).getDay()];
+  return `${dow}, ${d}/${m}`;
+}
 
+function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday }) {
+  const escala    = records.length;
+  const faltas    = isToday ? records.filter(r => r.status === 'absent').length : 0;
+  const atrasos   = isToday ? records.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length : 0;
+  const presentes = escala - faltas;
+  const pct       = escala > 0 ? Math.round((presentes / escala) * 100) : 0;
+  const pctColor  = !isToday ? '#059669' : pct >= 80 ? '#059669' : pct >= 50 ? '#D97706' : '#E11D48';
+
+  return (
+    <div className="card p-5" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', color: accentColor, textTransform: 'uppercase' }}>{title}</span>
+          <p className="text-sm font-bold mt-0.5" style={T}>{date ? fmtDateShort(date) : 'Sem agendamento'}</p>
+        </div>
+        <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 9px', borderRadius: '6px', background: badgeBg, color: accentColor, whiteSpace: 'nowrap' }}>
+          {badgeLabel}
+        </span>
+      </div>
+
+      {/* Stats: Escala · Frequência · Presença */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+
+        {/* Escala */}
+        <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center' }}>
+          <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', marginBottom: '4px' }}>Escala</p>
+          <p style={{ fontSize: '24px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{escala}</p>
+        </div>
+
+        {/* Frequência */}
+        <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC' }}>
+          <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', marginBottom: '6px', textAlign: 'center' }}>Frequência</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '10px', color: '#64748B' }}>Faltas</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: faltas > 0 ? '#E11D48' : '#CBD5E1' }}>{isToday ? faltas : '—'}</span>
+            </div>
+            <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '10px', color: '#64748B' }}>Atrasos</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: atrasos > 0 ? '#D97706' : '#CBD5E1' }}>{isToday ? atrasos : '—'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Presença */}
+        <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center' }}>
+          <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', marginBottom: '4px' }}>Presença</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: escala > 0 ? pctColor : '#CBD5E1', lineHeight: 1 }}>
+            {escala > 0 ? (isToday ? `${pct}%` : '—') : '—'}
+          </p>
+          <p style={{ fontSize: '10px', color: '#94A3B8', marginTop: '2px' }}>{escala > 0 ? `${isToday ? presentes : escala}/${escala}` : '0/0'}</p>
+        </div>
+      </div>
+
+      {/* Barra de presença */}
+      {isToday && escala > 0 && (
+        <div style={{ height: '4px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)' }}>
+          <div style={{ height: '100%', borderRadius: '4px', background: pctColor, width: `${pct}%`, transition: 'width 0.4s ease' }} />
+        </div>
+      )}
+
+      {/* Lista de ajudantes */}
+      <div>
+        <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>
+          Ajudantes
+        </p>
+        {records.length === 0 ? (
+          <p style={{ fontSize: '12px', color: '#CBD5E1', textAlign: 'center', padding: '20px 0' }}>
+            {isToday ? 'Nenhum ajudante hoje' : 'Nenhuma escala agendada'}
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {records.map(rec => {
+              const emp = getEmployee(rec.employeeId);
+              const isAbsent = rec.status === 'absent';
+              return (
+                <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '10px', background: '#F8FAFC' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: isAbsent ? '#F1F5F9' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#94A3B8' : 'white', flexShrink: 0 }}>
+                    {emp?.initials}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{emp?.name}</p>
+                    <p style={{ fontSize: '10px', color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rec.service}</p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+                    <Clock size={10} style={{ color: '#94A3B8' }} />
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: isAbsent ? '#E11D48' : (rec.checkIn ? '#0F172A' : '#94A3B8') }}>
+                      {rec.checkIn ?? '—'}
+                    </span>
+                  </div>
+                  <span style={{
+                    fontSize: '9px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px', flexShrink: 0,
+                    background: isAbsent ? '#FFE4E6' : rec.status === 'active' ? '#DCFCE7' : rec.status === 'scheduled' ? '#EFF6FF' : '#F1F5F9',
+                    color: isAbsent ? '#BE123C' : rec.status === 'active' ? '#059669' : rec.status === 'scheduled' ? '#2563EB' : '#64748B',
+                  }}>
+                    {isAbsent ? 'Falta' : rec.status === 'active' ? 'Ativo' : rec.status === 'scheduled' ? 'Agend.' : 'OK'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Panel({ companyId }) {
   const weekday = WEEKDAYS[TODAY_DATE.getDay()];
   const month   = MONTHS[TODAY_DATE.getMonth()];
+
+  const todayRecords = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === TODAY);
+
+  const futureRecords = WORK_RECORDS.filter(r => r.companyId === companyId && r.date > TODAY && r.status === 'scheduled');
+  const nextDate = futureRecords.length > 0
+    ? futureRecords.reduce((min, r) => r.date < min ? r.date : min, futureRecords[0].date)
+    : null;
+  const nextRecords = nextDate ? futureRecords.filter(r => r.date === nextDate) : [];
 
   return (
     <div className="space-y-5">
@@ -222,274 +333,27 @@ function Panel({ companyId }) {
         <h2 className="text-xl font-bold mt-0.5" style={T}>Resumo do Dia</h2>
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-3 gap-4">
-
-        {/* Escala */}
-        <div className="stat-card flex flex-col justify-between" style={{ minHeight: '110px' }}>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#FFF2EE' }}>
-              <CalendarCheck size={15} style={{ color: '#FF4D0C' }} />
-            </div>
-            <span className="text-sm font-bold" style={T}>Escala</span>
-          </div>
-          <p className="text-4xl font-black leading-none" style={{ color: '#FF4D0C' }}>{escala}</p>
-        </div>
-
-        {/* Frequência */}
-        <div className="stat-card flex flex-col justify-between" style={{ minHeight: '110px' }}>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#FFF1F2' }}>
-              <AlertTriangle size={15} style={{ color: '#E11D48' }} />
-            </div>
-            <span className="text-sm font-bold" style={T}>Frequência</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium" style={T2}>Faltas</span>
-              <span className="text-sm font-black" style={{ color: faltas > 0 ? '#E11D48' : '#94A3B8' }}>{faltas}</span>
-            </div>
-            <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)' }} />
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium" style={T2}>Atrasos</span>
-              <span className="text-sm font-black" style={{ color: atrasos > 0 ? '#D97706' : '#94A3B8' }}>{atrasos}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Presença */}
-        {(() => {
-          const pct = escala > 0 ? Math.round((presenteCount / escala) * 100) : 0;
-          const color = pct >= 80 ? '#059669' : pct >= 50 ? '#D97706' : '#E11D48';
-          const bg    = pct >= 80 ? '#DCFCE7' : pct >= 50 ? '#FEF3C7' : '#FFE4E6';
-          return (
-            <div className="stat-card flex flex-col justify-between" style={{ minHeight: '110px' }}>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
-                  <Users size={15} style={{ color }} />
-                </div>
-                <span className="text-sm font-bold" style={T}>Presença</span>
-              </div>
-              <div>
-                <div className="flex items-end gap-1.5 mb-2">
-                  <p className="text-3xl font-black leading-none" style={{ color }}>{pct}%</p>
-                  <p className="text-xs mb-1" style={TM}>{presenteCount}/{escala}</p>
-                </div>
-                {/* barra de progresso */}
-                <div style={{ height: '4px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)' }}>
-                  <div style={{ height: '100%', borderRadius: '4px', background: color, width: `${pct}%`, transition: 'width 0.4s ease' }} />
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-      </div>
-
-      {/* ── Quinzena chart ── */}
-      <div className="card p-5">
-        {/* Chart header */}
-        <div className="flex items-start justify-between mb-5">
-          <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <span style={{
-                fontSize: '12px', fontWeight: 700, letterSpacing: '0.01em',
-                padding: '4px 12px', borderRadius: '20px',
-                background: '#FFF7ED',
-                color: '#FB923C',
-                whiteSpace: 'nowrap',
-              }}>
-                {quinzenaInfo.badgeLabel}
-              </span>
-            </div>
-            <p className="text-xs mt-1.5" style={TM}>{quinzenaInfo.rangeLabel}</p>
-          </div>
-          <div className="text-right">
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-xs" style={TM}>Total de diárias</p>
-                <p className="font-bold text-lg" style={{ color: '#FF4D0C' }}>{quinzenaTotal}</p>
-              </div>
-              <div className="w-px h-8" style={{ background: 'rgba(0,0,0,0.07)' }} />
-              <div className="text-right">
-                <p className="text-xs" style={TM}>Valor estimado</p>
-                <p className="font-bold text-base" style={{ color: '#059669' }}>{fmtCurrency(quinzenaValue)}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Area chart */}
-        <ResponsiveContainer width="100%" height={180}>
-          <AreaChart data={quinzenaData} margin={{ top: 4, right: 0, bottom: 0, left: -20 }}>
-            <defs>
-              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#FF4D0C" stopOpacity={0.18} />
-                <stop offset="95%" stopColor="#FF4D0C" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter' }}
-              axisLine={false}
-              tickLine={false}
-              interval={1}
-            />
-            <YAxis
-              tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter' }}
-              axisLine={false}
-              tickLine={false}
-              allowDecimals={false}
-              domain={[0, maxCount + 1]}
-            />
-            <Tooltip content={<QuinzenaTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="count"
-              name="Ajudantes"
-              stroke="#FF4D0C"
-              strokeWidth={2.5}
-              fill="url(#areaGrad)"
-              dot={{ fill: '#FF4D0C', strokeWidth: 0, r: 3 }}
-              activeDot={{ r: 5, fill: '#FF4D0C' }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-
-        {/* Legend */}
-        <div className="flex items-center gap-5 mt-3 pt-3" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-          {[
-            { solid: '#FF4D0C', label: 'Dias trabalhados' },
-          ].map((l, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: l.solid }} />
-              <span className="text-xs" style={TM}>{l.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Active helpers list */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold" style={T}>Ajudantes em Serviço Agora</h3>
-          {todayRecords.length > 0 && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-1 text-xs font-semibold"
-              style={{ color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              Ver mais <ChevronRight size={13} />
-            </button>
-          )}
-        </div>
-        <div className="card overflow-hidden">
-          {todayRecords.length === 0 ? (
-            <div className="p-8 text-center text-sm" style={TM}>Nenhum ajudante alocado hoje</div>
-          ) : (
-            todayRecords.slice(0, 3).map(rec => {
-              const emp = getEmployee(rec.employeeId);
-              return (
-                <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 1fr auto auto' }}>
-                  <div className="avatar" style={{ background: emp?.color || '#1D6FFF' }}>{emp?.initials}</div>
-                  <div className="px-3">
-                    <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
-                    <p className="text-xs" style={TM}>{rec.service}</p>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3" style={TM}>
-                    <Clock size={11} /><span className="text-xs">{rec.checkIn ?? '—'}</span>
-                  </div>
-                  <span className={`badge ${rec.status === 'active' ? 'badge-active' : rec.status === 'absent' ? 'badge-inactive' : 'badge-paid'}`}>
-                    {rec.status === 'active' ? 'Ativo' : rec.status === 'absent' ? 'Falta' : 'Concluído'}
-                  </span>
-                </div>
-              );
-            })
-          )}
-          {todayRecords.length > 3 && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="w-full py-3 text-xs font-semibold"
-              style={{ color: '#94A3B8', background: '#F8FAFC', border: 'none', cursor: 'pointer', borderTop: '1px solid rgba(0,0,0,0.05)' }}
-            >
-              + {todayRecords.length - 3} mais
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Demandas agendadas ───────────────────────────────────────── */}
-      {(() => {
-        const companyDemands = demands
-          .filter(d => d.companyId === companyId)
-          .sort((a, b) => a.date.localeCompare(b.date));
-        if (companyDemands.length === 0) return null;
-        return (
-          <div>
-            <h3 className="text-sm font-semibold mb-3" style={T}>Escalas Agendadas</h3>
-            <div className="space-y-3">
-              {companyDemands.map(d => {
-                const confirmed = d.employees.filter(e => e.status === 'confirmado').length;
-                const waiting   = d.employees.filter(e => e.status === 'aguardando').length;
-                const total     = d.employees.length;
-                return (
-                  <div key={d.id} className="card p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="text-sm font-bold" style={T}>{d.service}</p>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="flex items-center gap-1 text-xs" style={TM}>
-                            <Calendar size={10} /> {formatDemandDate(d.date)}
-                          </span>
-                          <span className="flex items-center gap-1 text-xs" style={TM}>
-                            <Clock size={10} /> {d.time}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {waiting > 0 && (
-                          <span style={{ fontSize:'10px', fontWeight:700, padding:'2px 7px', borderRadius:'5px', background:'#FEF3C7', color:'#D97706' }}>
-                            {waiting} aguard.
-                          </span>
-                        )}
-                        <span style={{ fontSize:'10px', fontWeight:700, padding:'2px 7px', borderRadius:'5px', background:'#DCFCE7', color:'#059669' }}>
-                          {confirmed}/{total} conf.
-                        </span>
-                      </div>
-                    </div>
-                    {/* Avatares */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {d.employees.map(({ employeeId, status }) => {
-                        const emp = EMPLOYEES.find(e => e.id === employeeId);
-                        const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.aguardando;
-                        return (
-                          <div key={employeeId} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'4px 8px 4px 4px', borderRadius:'20px', background: cfg.bg }}>
-                            <div style={{ width:'20px', height:'20px', borderRadius:'50%', background: emp?.color || '#94A3B8', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'8px', fontWeight:700, color:'white', flexShrink:0 }}>
-                              {emp?.initials}
-                            </div>
-                            <span style={{ fontSize:'10px', fontWeight:600, color: cfg.color, whiteSpace:'nowrap' }}>{emp?.name?.split(' ')[0]}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
-
-      {showModal && (
-        <AjudantesModal
+      {/* Duas caixas lado a lado */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'start' }}>
+        <EscalaCard
+          title="Escala do Dia"
+          date={TODAY}
+          accentColor="#FF4D0C"
+          badgeLabel="Hoje"
+          badgeBg="#FFF2EE"
           records={todayRecords}
-          escala={escala}
-          faltas={faltas}
-          atrasos={atrasos}
-          onClose={() => setShowModal(false)}
+          isToday={true}
         />
-      )}
+        <EscalaCard
+          title="Próxima Escala"
+          date={nextDate}
+          accentColor="#2563EB"
+          badgeLabel={nextDate ? fmtDateShort(nextDate) : 'Sem agend.'}
+          badgeBg="#EFF6FF"
+          records={nextRecords}
+          isToday={false}
+        />
+      </div>
     </div>
   );
 }
