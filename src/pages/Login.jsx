@@ -60,10 +60,10 @@ export default function Login() {
     }}>
       <div style={{
         width: '100%',
-        maxWidth: '420px',
+        maxWidth: '360px',
         background: '#1A1A1F',
-        borderRadius: '24px',
-        padding: '40px 36px 36px',
+        borderRadius: '20px',
+        padding: '28px 28px 26px',
         boxShadow: '0 32px 80px rgba(0,0,0,0.28)',
       }}>
 
@@ -72,7 +72,7 @@ export default function Login() {
           <img
             src="https://ik.imagekit.io/xsbrdnr0y/Logo%20Farilog%20branco%20(sem%20fundo).png"
             alt="FariLog"
-            style={{ height: '140px', objectFit: 'contain', width: '100%', transform: 'scale(1.75)', transformOrigin: 'center' }}
+            style={{ height: '110px', objectFit: 'contain', width: '100%', transform: 'scale(1.5)', transformOrigin: 'center' }}
           />
           <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', marginTop: '4px' }} />
         </div>
