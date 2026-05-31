@@ -72,7 +72,7 @@ export default function Login() {
           <img
             src="https://ik.imagekit.io/xsbrdnr0y/Logo%20Farilog%20branco%20(sem%20fundo).png"
             alt="FariLog"
-            style={{ height: '110px', objectFit: 'contain', width: '100%', transform: 'scale(1.75)', transformOrigin: 'center' }}
+            style={{ height: '110px', objectFit: 'contain', width: '100%', transform: 'scale(1.95)', transformOrigin: 'center' }}
           />
           <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', marginTop: '4px' }} />
         </div>
