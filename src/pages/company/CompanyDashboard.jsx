@@ -212,7 +212,13 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
   const pctColor  = !isToday ? '#059669' : pct >= 80 ? '#059669' : pct >= 50 ? '#D97706' : '#E11D48';
 
   return (
-    <div className="card p-5" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+    <div className="card p-5" style={{
+      display: 'flex', flexDirection: 'column', gap: '14px',
+      ...(isToday ? {
+        borderTop: '3px solid #FF4D0C',
+        boxShadow: '0 4px 24px rgba(255,77,12,0.13)',
+      } : {}),
+    }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -233,7 +239,6 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
             <p style={{ fontSize: '24px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{escala}</p>
           </div>
           <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', marginBottom: '6px', textAlign: 'center' }}>Frequência</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '10px', color: '#64748B' }}>Faltas</span>
@@ -1402,12 +1407,6 @@ function EscalasHoje({ companyId }) {
         </div>
 
         <div className="stat-card flex flex-col justify-between" style={{ minHeight: '110px' }}>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#FFF1F2' }}>
-              <AlertTriangle size={15} style={{ color: '#E11D48' }} />
-            </div>
-            <span className="text-sm font-bold" style={T}>Frequência</span>
-          </div>
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium" style={T2}>Faltas</span>
