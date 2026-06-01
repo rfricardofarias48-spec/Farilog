@@ -1959,42 +1959,66 @@ function RelatorioTab({ companyId }) {
   const rangeStr = `${String(sday).padStart(2,'0')}/${String(sm).padStart(2,'0')} — ${String(eday).padStart(2,'0')}/${String(sm).padStart(2,'0')}/${sy}`;
 
   // PDF — paleta minimalista (preto/cinza)
-  const exportPDF = () => {
-    const doc   = new jsPDF();
-    const dark  = [15, 23, 42];      // #0F172A — títulos
-    const mid   = [71, 85, 105];     // #475569 — subtítulos/labels
-    const light = [148, 163, 184];   // #94A3B8 — rodapé
-    const headBg  = [30, 41, 59];    // #1E293B — cabeçalho de tabela escuro
-    const rowAlt  = [248, 250, 252]; // #F8FAFC — linha alternada
+  const exportPDF = async () => {
+    const dark    = [15, 23, 42];
+    const mid     = [71, 85, 105];
+    const light   = [148, 163, 184];
+    const headBg  = [30, 41, 59];
+    const rowAlt  = [248, 250, 252];
 
-    // ── Cabeçalho da página ─────────────────────────────────
+    const pdfRange = `(${String(sday).padStart(2,'0')}/${String(sm).padStart(2,'0')} a ${String(eday).padStart(2,'0')}/${String(sm).padStart(2,'0')})`;
+
+    // Carrega o logo antes de gerar o PDF
+    let logoDataUrl = null;
+    let logoAspect  = 4;
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const i = new Image();
+        i.crossOrigin = 'anonymous';
+        i.onload  = () => resolve(i);
+        i.onerror = reject;
+        i.src = 'https://ik.imagekit.io/xsbrdnr0y/Logo%20Farilog%20branco%20(sem%20fundo).png';
+      });
+      logoAspect = img.width / img.height;
+      const canvas = document.createElement('canvas');
+      canvas.width  = img.width;
+      canvas.height = img.height;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      logoDataUrl = canvas.toDataURL('image/png');
+    } catch (_) {}
+
+    const doc = new jsPDF();
+
+    // ── Cabeçalho ────────────────────────────────────────────
+    const headerH = 22;
     doc.setFillColor(...headBg);
-    doc.rect(0, 0, 210, 20, 'F');
+    doc.rect(0, 0, 210, headerH, 'F');
+
+    // Esquerda: título
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-    doc.text('FariLog', 14, 9);
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-    doc.setTextColor(180, 190, 210);
-    doc.text('Relatório Quinzenal', 14, 15);
+    doc.text('Relatório Quinzenal', 14, headerH / 2 + 2.5);
 
-    // Período à direita
-    const pdfRange = `(${String(sday).padStart(2,'0')}/${String(sm).padStart(2,'0')} a ${String(eday).padStart(2,'0')}/${String(sm).padStart(2,'0')})`;
-    doc.setFontSize(8); doc.setTextColor(180, 190, 210);
-    doc.text(`${label}  ${pdfRange}`, 196, 12, { align: 'right' });
+    // Direita: logo
+    if (logoDataUrl) {
+      const lH = 12;
+      const lW = lH * logoAspect;
+      doc.addImage(logoDataUrl, 'PNG', 210 - 14 - lW, (headerH - lH) / 2, lW, lH);
+    }
 
-    // ── Linha de meta dados ──────────────────────────────────
+    // ── Período e data de geração ────────────────────────────
     doc.setFontSize(8); doc.setFont('helvetica', 'normal');
     doc.setTextColor(...mid);
-    doc.text(`Período: ${label}  ${pdfRange}`, 14, 27);
-    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 32);
+    doc.text(`Período: ${label}  ${pdfRange}`, 14, headerH + 8);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, headerH + 13);
 
     // ── Resumo do Período ────────────────────────────────────
     doc.setFontSize(9); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text('Resumo do Período', 14, 35);
+    doc.text('Resumo do Período', 14, 44);
 
     autoTable(doc, {
-      startY: 38,
+      startY: 47,
       head: [['Diárias', 'Valor Diárias', 'H. Extras', 'Valor HE', 'Total Geral']],
       body: [[
         String(totalDiarias),
