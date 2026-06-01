@@ -99,7 +99,7 @@ function buildQuinzenaData(companyId) {
     const isWeekend = dow === 0 || dow === 6;
     days.push({
       date,
-      label: `${d}/${month + 1}`,
+      label: `${String(d).padStart(2,'0')}/${String(month + 1).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.length,
       value: recs.length * 150,
@@ -1331,7 +1331,7 @@ function Financial({ companyId }) {
                 <Tooltip content={<FinTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 4 }} />
                 <Bar dataKey="value" radius={[5, 5, 0, 0]}>
                   {quinzenaData.map((d, i) => (
-                    <Cell key={i} fill={d.isToday ? 'url(#finToday)' : d.isWeekend || d.count === 0 ? 'url(#finEmpty)' : 'url(#finBar)'} />
+                    <Cell key={i} fill={d.isWeekend || d.count === 0 ? 'url(#finEmpty)' : 'url(#finBar)'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -1340,7 +1340,6 @@ function Financial({ companyId }) {
             <div className="flex items-center gap-5 mt-3 pt-3" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
               {[
                 { solid: '#059669', label: 'Dias faturados' },
-                { solid: '#FF4D0C', label: 'Hoje' },
                 { solid: '#E2E8F0', label: 'Sem faturamento' },
               ].map((l, i) => (
                 <div key={i} className="flex items-center gap-1.5">
