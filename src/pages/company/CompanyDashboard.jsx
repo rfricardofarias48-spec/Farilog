@@ -2088,33 +2088,28 @@ function RelatorioTab({ companyId }) {
       {/* Stats — caixa branca com duas colunas */}
       <div className="card p-0 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', background: '#FFFFFF' }}>
         {/* Diárias */}
-        <div style={{ padding: '14px 20px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Diárias:</span>
-            <span style={{ fontSize: '16px', fontWeight: 800, color: '#FF4D0C' }}>{totalDiarias}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Valor:</span>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#059669' }}>{fmtCurrency(totalValorDiarias)}</span>
-          </div>
+        <div style={{ padding: '14px 20px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+            Diárias: <span style={{ color: '#059669' }}>{totalDiarias}</span>
+          </p>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+            Valor: <span style={{ color: '#059669' }}>{fmtCurrency(totalValorDiarias)}</span>
+          </p>
         </div>
         {/* Divisor vertical */}
         <div style={{ background: 'rgba(0,0,0,0.06)' }} />
         {/* H. Extra */}
-        <div style={{ padding: '14px 20px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Horas Extras:</span>
-            <span style={{ fontSize: '16px', fontWeight: 800, color: '#D97706' }}>{fmtHoursCount(totalHE)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Valor H.E.:</span>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#059669' }}>{fmtCurrency(totalValorHE)}</span>
-          </div>
-          <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '1px 0' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Total:</span>
-            <span style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>{fmtCurrency(totalGeral)}</span>
-          </div>
+        <div style={{ padding: '14px 20px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+            Horas Extras: <span style={{ color: '#059669' }}>{fmtHoursCount(totalHE)}</span>
+          </p>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+            Valor H.E.: <span style={{ color: '#059669' }}>{fmtCurrency(totalValorHE)}</span>
+          </p>
+          <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '2px 0' }} />
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+            Total: <span style={{ color: '#059669' }}>{fmtCurrency(totalGeral)}</span>
+          </p>
         </div>
       </div>
 
