@@ -16,8 +16,9 @@ import {
   ResponsiveContainer, Cell, ReferenceLine
 } from 'recharts';
 
-const TODAY = '2026-05-26';
-const TODAY_DATE = new Date(2026, 4, 26);
+// Data atual no fuso horário do Brasil (America/Sao_Paulo)
+const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+const TODAY_DATE = new Date(TODAY + 'T12:00:00-03:00');
 
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };

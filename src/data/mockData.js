@@ -60,22 +60,36 @@ export const WORK_RECORDS = [
   { id: 'w31', employeeId: 'e3', companyId: 'c3', date: '2026-05-15', checkIn: '08:00', checkOut: '18:00', status: 'completed', value: 150, service: 'Carga e descarga' },
   { id: 'w32', employeeId: 'e5', companyId: 'c1', date: '2026-05-15', checkIn: '07:00', checkOut: '17:00', status: 'completed', value: 150, service: 'Organização de estoque' },
   { id: 'w33', employeeId: 'e6', companyId: 'c2', date: '2026-05-15', checkIn: '07:30', checkOut: '17:30', status: 'completed', value: 150, service: 'Inventário' },
-  // Scheduled - Wed May 27
-  { id: 's1', employeeId: 'e1', companyId: 'c1', date: '2026-05-27', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
-  { id: 's2', employeeId: 'e2', companyId: 'c2', date: '2026-05-27', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Organização de estoque' },
-  { id: 's3', employeeId: 'e3', companyId: 'c1', date: '2026-05-27', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Separação de mercadoria' },
-  { id: 's4', employeeId: 'e5', companyId: 'c3', date: '2026-05-27', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
-  // Scheduled - Thu May 28
-  { id: 's5', employeeId: 'e1', companyId: 'c2', date: '2026-05-28', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Separação de mercadoria' },
-  { id: 's6', employeeId: 'e3', companyId: 'c1', date: '2026-05-28', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
-  { id: 's7', employeeId: 'e6', companyId: 'c3', date: '2026-05-28', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Inventário' },
-  { id: 's8', employeeId: 'e7', companyId: 'c1', date: '2026-05-28', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Organização de estoque' },
-  // Scheduled - Fri May 29
-  { id: 's9',  employeeId: 'e2', companyId: 'c1', date: '2026-05-29', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
-  { id: 's10', employeeId: 'e5', companyId: 'c2', date: '2026-05-29', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Inventário' },
-  { id: 's11', employeeId: 'e6', companyId: 'c1', date: '2026-05-29', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Separação de mercadoria' },
-  { id: 's12', employeeId: 'e7', companyId: 'c3', date: '2026-05-29', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
-  { id: 's13', employeeId: 'e1', companyId: 'c3', date: '2026-05-29', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Organização de estoque' },
+  // Completed - Wed May 27
+  { id: 's1', employeeId: 'e1', companyId: 'c1', date: '2026-05-27', checkIn: '07:30', checkOut: '17:30', status: 'completed', value: 150, service: 'Carga e descarga' },
+  { id: 's2', employeeId: 'e2', companyId: 'c2', date: '2026-05-27', checkIn: '08:00', checkOut: '18:00', status: 'completed', value: 150, service: 'Organização de estoque' },
+  { id: 's3', employeeId: 'e3', companyId: 'c1', date: '2026-05-27', checkIn: '07:30', checkOut: '17:30', status: 'completed', value: 150, service: 'Separação de mercadoria' },
+  { id: 's4', employeeId: 'e5', companyId: 'c3', date: '2026-05-27', checkIn: '07:00', checkOut: '17:00', status: 'completed', value: 150, service: 'Carga e descarga' },
+  // Completed - Thu May 28
+  { id: 's5', employeeId: 'e1', companyId: 'c2', date: '2026-05-28', checkIn: '07:30', checkOut: '17:30', status: 'completed', value: 150, service: 'Separação de mercadoria' },
+  { id: 's6', employeeId: 'e3', companyId: 'c1', date: '2026-05-28', checkIn: '07:30', checkOut: '17:30', status: 'completed', value: 150, service: 'Carga e descarga' },
+  { id: 's7', employeeId: 'e6', companyId: 'c3', date: '2026-05-28', checkIn: '08:00', checkOut: '18:00', status: 'completed', value: 150, service: 'Inventário' },
+  { id: 's8', employeeId: 'e7', companyId: 'c1', date: '2026-05-28', checkIn: '07:30', checkOut: '17:30', status: 'completed', value: 150, service: 'Organização de estoque' },
+  // Completed - Fri May 29
+  { id: 's9',  employeeId: 'e2', companyId: 'c1', date: '2026-05-29', checkIn: '07:30', checkOut: '17:30', status: 'completed', value: 150, service: 'Carga e descarga' },
+  { id: 's10', employeeId: 'e5', companyId: 'c2', date: '2026-05-29', checkIn: '07:00', checkOut: '17:00', status: 'completed', value: 150, service: 'Inventário' },
+  { id: 's11', employeeId: 'e6', companyId: 'c1', date: '2026-05-29', checkIn: '07:30', checkOut: '17:30', status: 'completed', value: 150, service: 'Separação de mercadoria' },
+  { id: 's12', employeeId: 'e7', companyId: 'c3', date: '2026-05-29', checkIn: '07:30', checkOut: '17:30', status: 'completed', value: 150, service: 'Carga e descarga' },
+  { id: 's13', employeeId: 'e1', companyId: 'c3', date: '2026-05-29', checkIn: '08:00', checkOut: '18:00', status: 'completed', value: 150, service: 'Organização de estoque' },
+  // Today - Mon Jun 01
+  { id: 'j1', employeeId: 'e1', companyId: 'c1', date: '2026-06-01', checkIn: '07:30', lunchOut: '12:00', lunchReturn: '13:00', checkOut: null, overtime: null, status: 'active', value: 150, service: 'Carga e descarga' },
+  { id: 'j2', employeeId: 'e2', companyId: 'c1', date: '2026-06-01', checkIn: '07:45', lunchOut: null,    lunchReturn: null,    checkOut: null, overtime: null, status: 'active', value: 150, service: 'Separação de mercadoria' },
+  { id: 'j3', employeeId: 'e6', companyId: 'c1', date: '2026-06-01', checkIn: '07:30', lunchOut: '12:00', lunchReturn: '13:00', checkOut: null, overtime: null, status: 'active', value: 150, service: 'Organização de estoque' },
+  { id: 'j4', employeeId: 'e3', companyId: 'c2', date: '2026-06-01', checkIn: '08:00', lunchOut: null,    lunchReturn: null,    checkOut: null, overtime: null, status: 'active', value: 150, service: 'Carga e descarga' },
+  { id: 'j5', employeeId: 'e5', companyId: 'c3', date: '2026-06-01', checkIn: '07:15', lunchOut: null,    lunchReturn: null,    checkOut: null, overtime: null, status: 'active', value: 150, service: 'Inventário' },
+  // Scheduled - Tue Jun 02
+  { id: 'j6',  employeeId: 'e1', companyId: 'c1', date: '2026-06-02', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Separação de mercadoria' },
+  { id: 'j7',  employeeId: 'e3', companyId: 'c1', date: '2026-06-02', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
+  { id: 'j8',  employeeId: 'e7', companyId: 'c2', date: '2026-06-02', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Organização de estoque' },
+  // Scheduled - Wed Jun 03
+  { id: 'j9',  employeeId: 'e2', companyId: 'c1', date: '2026-06-03', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
+  { id: 'j10', employeeId: 'e5', companyId: 'c3', date: '2026-06-03', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Separação de mercadoria' },
+  { id: 'j11', employeeId: 'e6', companyId: 'c2', date: '2026-06-03', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Inventário' },
 ];
 
 export const PAYMENTS = [
@@ -92,22 +106,22 @@ export const PAYMENTS = [
 ];
 
 export const MONTHLY_REVENUE = [
-  { month: 'Dez/25', revenue: 18500, helpers: 62 },
   { month: 'Jan/26', revenue: 15200, helpers: 51 },
   { month: 'Fev/26', revenue: 21300, helpers: 71 },
   { month: 'Mar/26', revenue: 24800, helpers: 83 },
   { month: 'Abr/26', revenue: 22100, helpers: 74 },
-  { month: 'Mai/26', revenue: 19450, helpers: 65 },
+  { month: 'Mai/26', revenue: 21900, helpers: 73 },
+  { month: 'Jun/26', revenue:  4500, helpers: 15 },
 ];
 
 export const DAILY_HELPERS = [
-  { day: 'Seg 18', count: 3, value: 450 },
-  { day: 'Ter 19', count: 5, value: 750 },
-  { day: 'Qua 20', count: 4, value: 600 },
-  { day: 'Qui 21', count: 5, value: 750 },
-  { day: 'Sex 22', count: 6, value: 900 },
-  { day: 'Sáb 23', count: 2, value: 300 },
-  { day: 'Seg 26', count: 5, value: 750 },
+  { day: 'Seg 25', count: 4, value: 600 },
+  { day: 'Ter 26', count: 5, value: 750 },
+  { day: 'Qua 27', count: 4, value: 600 },
+  { day: 'Qui 28', count: 4, value: 600 },
+  { day: 'Sex 29', count: 5, value: 750 },
+  { day: 'Sáb 30', count: 0, value: 0   },
+  { day: 'Seg 01', count: 5, value: 750 },
 ];
 
 export const fmtCurrency = (val) =>
