@@ -421,9 +421,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
   );
 }
 
-function Panel({ companyId, setTab }) {
-  const weekday = WEEKDAYS[TODAY_DATE.getDay()];
-  const month   = MONTHS[TODAY_DATE.getMonth()];
+function Panel({ companyId, setTab, companyName }) {
 
   const todayRecords = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === TODAY);
 
@@ -437,8 +435,7 @@ function Panel({ companyId, setTab }) {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <p className="text-xs capitalize" style={TM}>{weekday}, {TODAY_DATE.getDate()} de {month} de 2026</p>
-        <h2 className="text-xl font-bold mt-0.5" style={T}>Resumo do Dia</h2>
+        <h2 className="text-xl font-bold" style={T}>Olá, {companyName}</h2>
       </div>
 
       {/* Duas caixas lado a lado */}
@@ -2337,7 +2334,7 @@ export default function CompanyDashboard() {
 
   return (
     <div className="animate-fade-up">
-      {tab === 'panel'     && <Panel       companyId={user.id} setTab={setTab} />}
+      {tab === 'panel'     && <Panel       companyId={user.id} setTab={setTab} companyName={user.name} />}
       {tab === 'escalas'   && <EscalasTab  companyId={user.id} />}
       {tab === 'financial' && <Financial   companyId={user.id} />}
       {tab === 'relatorio' && <RelatorioTab companyId={user.id} />}
