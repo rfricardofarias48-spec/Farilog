@@ -39,6 +39,18 @@ const fmtHoursCount = (n) => {
   return `${String(n).padStart(2,'0')}:00`;
 };
 
+// ── Agrupamento por função ─────────────────────────────────────────────────
+const GROUP_PALETTE = ['#3B82F6','#8B5CF6','#059669','#D97706','#0891B2','#EC4899'];
+function groupByService(records) {
+  const sorted = [...records].sort((a, b) => (a.service || '').localeCompare(b.service || ''));
+  return sorted.reduce((acc, rec) => {
+    const k = rec.service || 'Geral';
+    if (!acc[k]) acc[k] = [];
+    acc[k].push(rec);
+    return acc;
+  }, {});
+}
+
 // ── Helpers: quinzena detection & chart data ───────────────────────────────
 const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -265,6 +277,7 @@ function fmtDateShort(iso) {
 function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday, onVerMais }) {
   const [showModal, setShowModal] = useState(false);
   const [popupEmp, setPopupEmp] = useState(null);
+  const [notes, setNotes] = useState({});
   const escala    = records.length;
   const faltas    = isToday ? records.filter(r => r.status === 'absent').length : 0;
   const atrasos   = isToday ? records.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length : 0;
@@ -344,27 +357,45 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
             {isToday ? 'Nenhum ajudante hoje' : 'Nenhuma escala agendada'}
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {records.map(rec => {
-              const emp = getEmployee(rec.employeeId);
-              const isAbsent = rec.status === 'absent';
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {Object.entries(groupByService(records)).map(([service, recs], gIdx) => {
+              const color = GROUP_PALETTE[gIdx % GROUP_PALETTE.length];
               return (
-                <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', borderRadius: '10px', background: '#EEF2F7' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
-                    {emp?.initials}
+                <div key={service}>
+                  {/* Cabeçalho do grupo */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
+                    <div style={{ width: '7px', height: '7px', borderRadius: '2px', background: color, flexShrink: 0 }} />
+                    <span style={{ fontSize: '9px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{service}</span>
+                    <span style={{ fontSize: '9px', color: '#94A3B8' }}>· {recs.length}</span>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p
-                      onClick={() => setPopupEmp(emp)}
-                      style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#64748B' : '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer', display: 'inline-block', maxWidth: '100%' }}
-                    >{emp?.name}</p>
-                    <p style={{ fontSize: '10px', fontWeight: 500, color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rec.service}</p>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-                    <Clock size={10} style={{ color: '#64748B' }} />
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#E11D48' : (rec.checkIn ? '#0F172A' : '#64748B') }}>
-                      {fmtTime(rec.checkIn) ?? '—'}
-                    </span>
+                  {/* Itens com borda esquerda colorida */}
+                  <div style={{ borderLeft: `2px solid ${color}`, paddingLeft: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    {recs.map(rec => {
+                      const emp = getEmployee(rec.employeeId);
+                      const isAbsent = rec.status === 'absent';
+                      return (
+                        <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 8px', borderRadius: '8px', background: isAbsent ? 'rgba(244,63,94,0.06)' : '#EEF2F7' }}>
+                          <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
+                            {emp?.initials}
+                          </div>
+                          <p onClick={() => setPopupEmp(emp)} style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', flexShrink: 0, cursor: 'pointer', minWidth: '80px' }}>
+                            {emp?.name}
+                          </p>
+                          <input
+                            value={notes[rec.id] || ''}
+                            onChange={e => setNotes(p => ({...p, [rec.id]: e.target.value}))}
+                            placeholder="Observação..."
+                            style={{ flex: 1, border: 'none', borderBottom: '1px dashed rgba(0,0,0,0.13)', background: 'transparent', fontSize: '10px', color: '#475569', outline: 'none', padding: '1px 2px', fontFamily: 'inherit', minWidth: 0 }}
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+                            <Clock size={9} style={{ color: isAbsent ? '#E11D48' : '#64748B' }} />
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: isAbsent ? '#E11D48' : (rec.checkIn ? '#0F172A' : '#94A3B8') }}>
+                              {isAbsent ? 'Falta' : (fmtTime(rec.checkIn) ?? '—')}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -1455,6 +1486,7 @@ function Financial({ companyId }) {
 
 function EscalasHoje({ companyId }) {
   const [showModal, setShowModal] = useState(false);
+  const [notes, setNotes] = useState({});
   const todayRecords  = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === TODAY);
   const escala        = todayRecords.length;
   const faltas        = todayRecords.filter(r => r.status === 'absent').length;
@@ -1523,47 +1555,56 @@ function EscalasHoje({ companyId }) {
             </button>
           )}
         </div>
-        <div className="card overflow-hidden">
+        <div className="card p-4" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {todayRecords.length === 0 ? (
             <div className="p-8 text-center text-sm" style={TM}>Nenhum ajudante alocado hoje</div>
-          ) : (
-            todayRecords.map(rec => {
-              const emp = getEmployee(rec.employeeId);
-              const times = [
-                { label: 'Entrada',   value: rec.checkIn },
-                { label: 'S. Almoço', value: rec.lunchOut },
-                { label: 'Retorno',   value: rec.lunchReturn },
-                { label: 'Saída',     value: rec.checkOut },
-                { label: 'H. Extra',  value: rec.overtime },
-              ];
-              return (
-                <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 1fr 1fr auto' }}>
-                  <div className="avatar" style={{ background: emp?.color || '#1D6FFF' }}>{emp?.initials}</div>
-                  <div className="px-3 flex items-center gap-2">
-                    <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
-                    <span className="text-xs" style={{ color: '#94A3B8' }}>·</span>
-                    <p className="text-xs" style={TM}>{rec.service}</p>
-                  </div>
-                  <div className="flex items-center justify-center gap-8">
-                    {times.map(t => (
-                      <div key={t.label} className="text-center">
-                        <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 500, marginBottom: '4px' }}>{t.label}</p>
-                        <span style={{
-                          fontSize: '15px', fontWeight: 700,
-                          color: !t.value ? '#CBD5E1' : t.label === 'H. Extra' ? '#059669' : '#0F172A'
-                        }}>
-                          {t.value ?? '—'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <span className={`badge ${rec.status === 'active' ? 'badge-active' : rec.status === 'absent' ? 'badge-inactive' : rec.status === 'scheduled' ? 'badge-pending' : 'badge-paid'}`}>
-                    {rec.status === 'active' ? 'Ativo' : rec.status === 'absent' ? 'Falta' : rec.status === 'scheduled' ? 'Agendado' : 'Concluído'}
-                  </span>
+          ) : Object.entries(groupByService(todayRecords)).map(([service, recs], gIdx) => {
+            const color = GROUP_PALETTE[gIdx % GROUP_PALETTE.length];
+            return (
+              <div key={service}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: color, flexShrink: 0 }} />
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{service}</span>
+                  <span style={{ fontSize: '10px', color: '#94A3B8' }}>· {recs.length}</span>
                 </div>
-              );
-            })
-          )}
+                <div style={{ borderLeft: `2px solid ${color}`, paddingLeft: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {recs.map(rec => {
+                    const emp = getEmployee(rec.employeeId);
+                    const isAbsent = rec.status === 'absent';
+                    const TIMES = [
+                      { label: 'Entrada',   val: rec.checkIn },
+                      { label: 'S. Almoço', val: rec.lunchOut },
+                      { label: 'Retorno',   val: rec.lunchReturn },
+                      { label: 'Saída',     val: rec.checkOut },
+                      { label: 'H. Extra',  val: rec.overtime },
+                    ];
+                    return (
+                      <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
+                        <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
+                        <p className="text-xs font-semibold" style={{ color: isAbsent ? '#94A3B8' : '#0F172A', minWidth: '100px', flexShrink: 0 }}>{emp?.name}</p>
+                        <input
+                          value={notes[rec.id] || ''}
+                          onChange={e => setNotes(p => ({...p, [rec.id]: e.target.value}))}
+                          placeholder="Observação..."
+                          style={{ flex: 1, border: 'none', borderBottom: '1px dashed rgba(0,0,0,0.13)', background: 'transparent', fontSize: '11px', color: '#475569', outline: 'none', padding: '2px 4px', fontFamily: 'inherit', minWidth: 0 }}
+                        />
+                        <div className="flex items-center gap-6" style={{ flexShrink: 0 }}>
+                          {TIMES.map(t => (
+                            <div key={t.label} style={{ textAlign: 'center', minWidth: '44px' }}>
+                              <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '3px' }}>{t.label}</p>
+                              <span style={{ fontSize: '13px', fontWeight: 700, color: !t.val ? '#CBD5E1' : t.label === 'H. Extra' ? '#059669' : '#0F172A' }}>
+                                {fmtTime(t.val) ?? '—'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -1827,6 +1868,7 @@ function DiaDetalheRelModal({ date, records, onClose }) {
   const heCount  = ativos.filter(r => r.overtime).length;
   const [, m, d] = date.split('-');
   const dow = DOW_SHORT[new Date(`${date}T12:00:00`).getDay()];
+  const [notes, setNotes] = useState({});
 
   const TIMES = [
     { label: 'Entrada',   key: 'checkIn' },
@@ -1860,44 +1902,50 @@ function DiaDetalheRelModal({ date, records, onClose }) {
         </div>
 
         {/* Lista */}
-        <div className="card overflow-hidden">
+        <div className="card p-4" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {ativos.length === 0 ? (
             <div className="py-10 text-center text-sm" style={{ color: '#94A3B8' }}>Nenhum ajudante ativo neste dia</div>
-          ) : ativos.map((rec, idx) => {
-            const emp = getEmployee(rec.employeeId);
+          ) : Object.entries(groupByService(ativos)).map(([service, recs], gIdx) => {
+            const color = GROUP_PALETTE[gIdx % GROUP_PALETTE.length];
             return (
-              <div key={rec.id} style={{
-                display: 'grid',
-                gridTemplateColumns: 'auto 1fr repeat(5, 72px)',
-                alignItems: 'center',
-                padding: '10px 16px',
-                gap: '4px',
-                borderBottom: idx < ativos.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
-                background: idx % 2 === 1 ? 'rgba(0,0,0,0.012)' : 'transparent',
-              }}>
-                <div className="avatar" style={{ background: emp?.color || '#94A3B8', marginRight: '4px' }}>{emp?.initials}</div>
-                <div className="px-2">
-                  <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>{emp?.name}</p>
-                  <p style={{ fontSize: '10px', color: '#64748B' }}>{rec.service}</p>
+              <div key={service}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: color, flexShrink: 0 }} />
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{service}</span>
+                  <span style={{ fontSize: '10px', color: '#94A3B8' }}>· {recs.length}</span>
                 </div>
-                {TIMES.map(t => {
-                  const val = fmtTime(rec[t.key]);
-                  const isHE = t.key === 'overtime';
-                  return (
-                    <div key={t.label} style={{ textAlign: 'center' }}>
-                      <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', marginBottom: '3px', letterSpacing: '0.03em' }}>{t.label}</p>
-                      <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '3px',
-                        padding: '2px 6px', borderRadius: '6px',
-                        background: val ? (isHE ? '#FEF3C7' : '#EEF2F7') : 'transparent',
-                        color: val ? (isHE ? '#B45309' : '#0F172A') : '#CBD5E1',
-                      }}>
-                        <Clock size={9} />
-                        <span style={{ fontSize: '11px', fontWeight: 700 }}>{val ?? '—'}</span>
+                <div style={{ borderLeft: `2px solid ${color}`, paddingLeft: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {recs.map(rec => {
+                    const emp = getEmployee(rec.employeeId);
+                    return (
+                      <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7' }}>
+                        <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
+                        <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', minWidth: '100px', flexShrink: 0 }}>{emp?.name}</p>
+                        <input
+                          value={notes[rec.id] || ''}
+                          onChange={e => setNotes(p => ({...p, [rec.id]: e.target.value}))}
+                          placeholder="Observação..."
+                          style={{ flex: 1, border: 'none', borderBottom: '1px dashed rgba(0,0,0,0.13)', background: 'transparent', fontSize: '11px', color: '#475569', outline: 'none', padding: '2px 4px', fontFamily: 'inherit', minWidth: 0 }}
+                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                          {TIMES.map(t => {
+                            const val = fmtTime(rec[t.key]);
+                            const isHE = t.key === 'overtime';
+                            return (
+                              <div key={t.label} style={{ textAlign: 'center', minWidth: '40px' }}>
+                                <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', marginBottom: '2px' }}>{t.label}</p>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: val ? (isHE ? '#B45309' : '#0F172A') : '#CBD5E1' }}>
+                                  <Clock size={9} />
+                                  <span style={{ fontSize: '11px', fontWeight: 700 }}>{val ?? '—'}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             );
           })}

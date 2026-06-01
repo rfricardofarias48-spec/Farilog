@@ -77,11 +77,12 @@ export const WORK_RECORDS = [
   { id: 's12', employeeId: 'e7', companyId: 'c3', date: '2026-05-29', checkIn: '07:30', checkOut: '17:30', status: 'completed', value: 150, service: 'Carga e descarga' },
   { id: 's13', employeeId: 'e1', companyId: 'c3', date: '2026-05-29', checkIn: '08:00', checkOut: '18:00', status: 'completed', value: 150, service: 'Organização de estoque' },
   // Today - Mon Jun 01
-  { id: 'j1', employeeId: 'e1', companyId: 'c1', date: '2026-06-01', checkIn: '07:30', lunchOut: '12:00', lunchReturn: '13:00', checkOut: null, overtime: null, status: 'active', value: 150, service: 'Carga e descarga' },
-  { id: 'j2', employeeId: 'e2', companyId: 'c1', date: '2026-06-01', checkIn: '07:45', lunchOut: null,    lunchReturn: null,    checkOut: null, overtime: null, status: 'active', value: 150, service: 'Separação de mercadoria' },
-  { id: 'j3', employeeId: 'e6', companyId: 'c1', date: '2026-06-01', checkIn: '07:30', lunchOut: '12:00', lunchReturn: '13:00', checkOut: null, overtime: null, status: 'active', value: 150, service: 'Organização de estoque' },
-  { id: 'j4', employeeId: 'e3', companyId: 'c2', date: '2026-06-01', checkIn: '08:00', lunchOut: null,    lunchReturn: null,    checkOut: null, overtime: null, status: 'active', value: 150, service: 'Carga e descarga' },
-  { id: 'j5', employeeId: 'e5', companyId: 'c3', date: '2026-06-01', checkIn: '07:15', lunchOut: null,    lunchReturn: null,    checkOut: null, overtime: null, status: 'active', value: 150, service: 'Inventário' },
+  { id: 'j1', employeeId: 'e1', companyId: 'c1', date: '2026-06-01', checkIn: '07:30', lunchOut: '12:00', lunchReturn: '13:00', checkOut: null, overtime: null,    status: 'active', value: 150, service: 'Carga e descarga' },
+  { id: 'j2', employeeId: 'e2', companyId: 'c1', date: '2026-06-01', checkIn: '07:45', lunchOut: null,    lunchReturn: null,    checkOut: null, overtime: null,    status: 'active', value: 150, service: 'Carga e descarga' },
+  { id: 'j3', employeeId: 'e6', companyId: 'c1', date: '2026-06-01', checkIn: '07:30', lunchOut: '12:00', lunchReturn: '13:00', checkOut: null, overtime: '18:30', status: 'active', value: 150, service: 'Separação de mercadoria' },
+  { id: 'j_', employeeId: 'e7', companyId: 'c1', date: '2026-06-01', checkIn: '07:30', lunchOut: null,    lunchReturn: null,    checkOut: null, overtime: null,    status: 'active', value: 150, service: 'Separação de mercadoria' },
+  { id: 'j4', employeeId: 'e3', companyId: 'c2', date: '2026-06-01', checkIn: '08:00', lunchOut: null,    lunchReturn: null,    checkOut: null, overtime: null,    status: 'active', value: 150, service: 'Carga e descarga' },
+  { id: 'j5', employeeId: 'e5', companyId: 'c3', date: '2026-06-01', checkIn: '07:15', lunchOut: null,    lunchReturn: null,    checkOut: null, overtime: null,    status: 'active', value: 150, service: 'Inventário' },
   // Scheduled - Tue Jun 02
   { id: 'j6',  employeeId: 'e1', companyId: 'c1', date: '2026-06-02', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Separação de mercadoria' },
   { id: 'j7',  employeeId: 'e3', companyId: 'c1', date: '2026-06-02', checkIn: null, checkOut: null, status: 'scheduled', value: 150, service: 'Carga e descarga' },
