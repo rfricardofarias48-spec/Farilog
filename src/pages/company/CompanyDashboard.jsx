@@ -2212,45 +2212,34 @@ function RelatorioTab({ companyId }) {
               onMouseEnter={e => { if (hasData) e.currentTarget.style.background = '#FFF2EE'; }}
               onMouseLeave={e => { e.currentTarget.style.background = day.isWeekend ? 'rgba(238,242,247,0.6)' : 'transparent'; }}
             >
-              {/* Data */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {day.isToday && (
-                  <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: '#FFF2EE', color: '#FF4D0C' }}>Hoje</span>
-                )}
-                <p style={{
-                  fontSize: '12px', fontWeight: hasData ? 600 : 400,
-                  color: day.isToday ? '#FF4D0C' : day.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8',
-                }}>{day.label}</p>
-              </div>
+              {/* Data — sem destaque para hoje */}
+              <p style={{
+                fontSize: '12px', fontWeight: hasData ? 600 : 400,
+                color: day.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8',
+              }}>{day.label}</p>
 
               {/* Diárias */}
-              <div style={{ textAlign: 'center' }}>
-                {day.diarias > 0 ? (
-                  <span style={{ display: 'inline-block', fontSize: '14px', fontWeight: 800, color: '#FF4D0C' }}>{day.diarias}</span>
-                ) : (
-                  <span style={{ fontSize: '12px', color: '#E2E8F0' }}>—</span>
-                )}
-              </div>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>
+                {day.diarias > 0 ? day.diarias : '—'}
+              </p>
 
               {/* Val. Diária */}
-              <p style={{ fontSize: '11px', fontWeight: 600, color: day.valorDiarias > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorDiarias > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>
                 {day.valorDiarias > 0 ? fmtCurrency(day.valorDiarias) : '—'}
               </p>
 
-              {/* H. Extra */}
-              <div style={{ textAlign: 'center' }}>
-                <span style={{ fontSize: '13px', fontWeight: 800, color: day.heCount > 0 ? '#D97706' : '#E2E8F0' }}>
-                  {fmtHoursCount(day.heCount)}
-                </span>
-              </div>
+              {/* H. Extra — mesmo tamanho e cor das outras colunas */}
+              <p style={{ fontSize: '12px', fontWeight: 600, color: day.heCount > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>
+                {fmtHoursCount(day.heCount)}
+              </p>
 
               {/* Val. H. Extra */}
-              <p style={{ fontSize: '11px', fontWeight: 600, color: day.valorHE > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorHE > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>
                 {day.valorHE > 0 ? fmtCurrency(day.valorHE) : '—'}
               </p>
 
               {/* Total Dia */}
-              <p style={{ fontSize: '12px', fontWeight: 800, color: day.total > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: day.total > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>
                 {day.total > 0 ? fmtCurrency(day.total) : '—'}
               </p>
 
