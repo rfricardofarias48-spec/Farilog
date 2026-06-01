@@ -1984,7 +1984,7 @@ function RelatorioTab({ companyId }) {
 
     // ── Linha de meta dados ──────────────────────────────────
     doc.setFontSize(8); doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...light);
+    doc.setTextColor(...mid);
     doc.text(`Período: ${label}  ${pdfRange}`, 14, 27);
     doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 32);
 
