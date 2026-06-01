@@ -86,6 +86,26 @@ function getQuinzenaInfo() {
   }
 }
 
+function buildPeriodChartData(companyId, startIso, endIso) {
+  const [sy, sm, sd] = startIso.split('-').map(Number);
+  const [,  ,  ed]   = endIso.split('-').map(Number);
+  const days = [];
+  for (let d = sd; d <= ed; d++) {
+    const date = `${sy}-${String(sm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow  = new Date(`${date}T12:00:00`).getDay();
+    const recs = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === date);
+    const isWeekend = dow === 0 || dow === 6;
+    days.push({
+      date,
+      label: `${String(d).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
+      count: recs.filter(r => r.status !== 'absent').length,
+      value: recs.filter(r => r.status !== 'absent').length * 150,
+      isWeekend,
+    });
+  }
+  return days;
+}
+
 function buildQuinzenaData(companyId) {
   const { startDay, endDay, month, year } = getQuinzenaInfo();
   const days = [];
@@ -1465,6 +1485,38 @@ function Financial({ companyId }) {
                       <span style={{ fontSize:'15px', fontWeight:800, color: sColor, lineHeight:1 }}>{fmtCurrency(totalFatura)}</span>
                     </div>
                   </div>
+
+                  {/* Gráfico diário do período */}
+                  {(() => {
+                    const pStart = parsePeriodStart(p.period);
+                    const pEnd   = parsePeriodEnd(p.period);
+                    if (!pStart || !pEnd) return null;
+                    const chartData = buildPeriodChartData(companyId, pStart, pEnd);
+                    const maxVal    = Math.max(...chartData.map(d => d.value), 1);
+                    return (
+                      <div style={{ marginBottom: '12px' }}>
+                        <ResponsiveContainer width="100%" height={140}>
+                          <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: 8 }} barSize={12} barCategoryGap="25%">
+                            <defs>
+                              <linearGradient id={`bar-${p.id}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%"   stopColor="#059669" stopOpacity={1} />
+                                <stop offset="100%" stopColor="#059669" stopOpacity={0.6} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
+                            <XAxis dataKey="label" tick={{ fill: '#64748B', fontSize: 9, fontFamily: 'Inter' }} axisLine={{ stroke: 'rgba(0,0,0,0.08)' }} tickLine={false} interval={0} />
+                            <YAxis width={50} tick={{ fill: '#64748B', fontSize: 9, fontFamily: 'Inter' }} axisLine={false} tickLine={false} allowDecimals={false} domain={[0, maxVal + 150]} tickFormatter={v => v === 0 ? '' : `R$${v}`} />
+                            <Tooltip content={<FinTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
+                            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                              {chartData.map((d, i) => (
+                                <Cell key={i} fill={d.isWeekend || d.count === 0 ? '#E2E8F0' : `url(#bar-${p.id})`} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    );
+                  })()}
 
                   {/* Botão */}
                   <button
