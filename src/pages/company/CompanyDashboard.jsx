@@ -360,7 +360,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
               return (
                 <div key={service}>
                   {/* Nome da função como cabeçalho do grupo */}
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>
                     {service}
                   </p>
                   {recs.map(rec => {
@@ -1568,7 +1568,7 @@ function EscalasHoje({ companyId }) {
             ];
             return (
               <div key={service}>
-                <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '10px 0 5px' : '0 0 5px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '10px 0 5px' : '0 0 5px' }}>
                   {service}
                 </p>
                 {recs.map(rec => {
@@ -1908,7 +1908,7 @@ function DiaDetalheRelModal({ date, records, onClose }) {
             const color = GROUP_PALETTE[gIdx % GROUP_PALETTE.length];
             return (
               <div key={service}>
-                <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '10px 0 5px' : '0 0 5px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '10px 0 5px' : '0 0 5px' }}>
                   {service}
                 </p>
                 {recs.map(rec => {
