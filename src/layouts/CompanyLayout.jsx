@@ -88,7 +88,7 @@ export default function CompanyLayout() {
       {/* Main */}
       <div className={`flex-1 flex flex-col transition-all duration-300 ${open ? 'md:ml-56' : 'md:ml-16'}`}>
         <main className="flex-1 p-6">
-          <Outlet context={{ tab }} />
+          <Outlet context={{ tab, setTab }} />
         </main>
       </div>
     </div>

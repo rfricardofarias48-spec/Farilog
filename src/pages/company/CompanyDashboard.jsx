@@ -252,7 +252,7 @@ function fmtDateShort(iso) {
   return `${dow}, ${d}/${m}`;
 }
 
-function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday }) {
+function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday, onVerMais }) {
   const [showModal, setShowModal] = useState(false);
   const [popupEmp, setPopupEmp] = useState(null);
   const escala    = records.length;
@@ -332,7 +332,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
             Ajudantes
           </p>
           {records.length > 0 && (
-            <button onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', fontWeight: 600, color: accentColor, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            <button onClick={() => onVerMais ? onVerMais() : setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', fontWeight: 600, color: accentColor, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
               Ver mais <ChevronRight size={12} />
             </button>
           )}
@@ -395,7 +395,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
   );
 }
 
-function Panel({ companyId }) {
+function Panel({ companyId, setTab }) {
   const weekday = WEEKDAYS[TODAY_DATE.getDay()];
   const month   = MONTHS[TODAY_DATE.getMonth()];
 
@@ -425,6 +425,7 @@ function Panel({ companyId }) {
           badgeBg="#FFF2EE"
           records={todayRecords}
           isToday={true}
+          onVerMais={() => setTab('escalas')}
         />
         <EscalaCard
           title="Próxima Escala"
@@ -2289,11 +2290,11 @@ function RelatorioTab({ companyId }) {
 // ── Main ───────────────────────────────────────────────────────────────────
 export default function CompanyDashboard() {
   const { user }  = useAuth();
-  const { tab }   = useOutletContext();
+  const { tab, setTab } = useOutletContext();
 
   return (
     <div className="animate-fade-up">
-      {tab === 'panel'     && <Panel       companyId={user.id} />}
+      {tab === 'panel'     && <Panel       companyId={user.id} setTab={setTab} />}
       {tab === 'escalas'   && <EscalasTab  companyId={user.id} />}
       {tab === 'financial' && <Financial   companyId={user.id} />}
       {tab === 'relatorio' && <RelatorioTab companyId={user.id} />}
