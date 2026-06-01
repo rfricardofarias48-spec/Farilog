@@ -1990,7 +1990,7 @@ function RelatorioTab({ companyId }) {
     const doc = new jsPDF();
 
     // ── Cabeçalho ────────────────────────────────────────────
-    const headerH = 22;
+    const headerH = 28;
     doc.setFillColor(...headBg);
     doc.rect(0, 0, 210, headerH, 'F');
 
@@ -2001,7 +2001,7 @@ function RelatorioTab({ companyId }) {
 
     // Direita: logo
     if (logoDataUrl) {
-      const lH = 12;
+      const lH = 18;
       const lW = lH * logoAspect;
       doc.addImage(logoDataUrl, 'PNG', 210 - 14 - lW, (headerH - lH) / 2, lW, lH);
     }
@@ -2015,10 +2015,10 @@ function RelatorioTab({ companyId }) {
     // ── Resumo do Período ────────────────────────────────────
     doc.setFontSize(9); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text('Resumo do Período', 14, 44);
+    doc.text('Resumo do Período', 14, 50);
 
     autoTable(doc, {
-      startY: 47,
+      startY: 53,
       head: [['Diárias', 'Valor Diárias', 'H. Extras', 'Valor HE', 'Total Geral']],
       body: [[
         String(totalDiarias),
