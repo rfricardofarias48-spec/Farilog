@@ -23,13 +23,25 @@ export default function CompanyLayout() {
         className={`hidden md:flex flex-col fixed left-0 top-0 h-full z-50 transition-all duration-300 ${open ? 'w-56' : 'w-16'}`}
         style={{ background: '#111827' }}
       >
-        {/* Logo */}
-        <div className="flex items-center justify-center overflow-hidden" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px' }}>
+        {/* Logo + toggle */}
+        <div className="flex items-center justify-center overflow-hidden" style={{ position: 'relative', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px' }}>
           <img
             src="https://ik.imagekit.io/xsbrdnr0y/Logo%20Farilog%20branco%20(sem%20fundo).png"
             alt="FariLog"
             style={{ height: open ? '90px' : '40px', objectFit: 'contain', transition: 'height 0.3s, transform 0.3s', maxWidth: '100%', transform: open ? 'scale(1.85)' : 'scale(1)', transformOrigin: 'center' }}
           />
+          <button
+            onClick={() => setOpen(!open)}
+            style={{
+              position: 'absolute', top: '10px', right: '-10px', zIndex: 60,
+              width: '20px', height: '20px', borderRadius: '50%',
+              background: '#1E293B', border: '1.5px solid #374151',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: '#9CA3AF',
+            }}
+          >
+            {open ? <ChevronLeft size={11} /> : <ChevronRight size={11} />}
+          </button>
         </div>
 
         {/* Menu label */}
@@ -71,31 +83,6 @@ export default function CompanyLayout() {
           </button>
         </div>
       </aside>
-
-      {/* Toggle button — flutuante na borda da sidebar */}
-      <button
-        onClick={() => setOpen(!open)}
-        style={{
-          position: 'fixed',
-          top: '20px',
-          left: open ? 'calc(224px - 12px)' : 'calc(64px - 12px)',
-          zIndex: 60,
-          width: '24px',
-          height: '24px',
-          borderRadius: '50%',
-          background: '#1E293B',
-          border: '2px solid #374151',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          color: '#9CA3AF',
-          transition: 'left 0.3s',
-          flexShrink: 0,
-        }}
-      >
-        {open ? <ChevronLeft size={12} /> : <ChevronRight size={12} />}
-      </button>
 
       {/* Main */}
       <div className={`flex-1 flex flex-col transition-all duration-300 ${open ? 'md:ml-56' : 'md:ml-16'}`}>
