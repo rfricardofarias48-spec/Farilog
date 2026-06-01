@@ -1856,18 +1856,6 @@ function DiaDetalheRelModal({ date, records, onClose }) {
                 Horas Extras: <span style={{ color: '#0369A1' }}>{fmtHoursCount(heCount)}</span>
               </p>
             </div>
-            <div className="flex gap-2 mt-2 flex-wrap">
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: '#FFF2EE', color: '#CC3D00' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FF4D0C', display: 'inline-block' }} />
-                {ativos.length} ativo{ativos.length !== 1 ? 's' : ''}
-              </span>
-              {ausentes.length > 0 && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: '#FFE4E6', color: '#BE123C' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#F43F5E', display: 'inline-block' }} />
-                  {ausentes.length} falta{ausentes.length !== 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
             <X size={15} />
