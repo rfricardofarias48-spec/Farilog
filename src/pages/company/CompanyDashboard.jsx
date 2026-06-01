@@ -192,8 +192,8 @@ function AjudantesModal({ records, escala, faltas, atrasos, date, onClose }) {
                       </div>
                     </div>
                   ))}
-                  <span className={`badge ${rec.status === 'active' ? 'badge-active' : rec.status === 'absent' ? 'badge-inactive' : 'badge-paid'}`}>
-                    {rec.status === 'active' ? 'Ativo' : rec.status === 'absent' ? 'Falta' : 'Concluído'}
+                  <span className={`badge ${rec.status === 'active' ? 'badge-active' : rec.status === 'absent' ? 'badge-inactive' : rec.status === 'scheduled' ? 'badge-pending' : 'badge-paid'}`}>
+                    {rec.status === 'active' ? 'Ativo' : rec.status === 'absent' ? 'Falta' : rec.status === 'scheduled' ? 'Agendado' : 'Concluído'}
                   </span>
                 </div>
               );
@@ -1559,8 +1559,8 @@ function EscalasHoje({ companyId }) {
                       </div>
                     ))}
                   </div>
-                  <span className={`badge ${rec.status === 'active' ? 'badge-active' : rec.status === 'absent' ? 'badge-inactive' : 'badge-paid'}`}>
-                    {rec.status === 'active' ? 'Ativo' : rec.status === 'absent' ? 'Falta' : 'Concluído'}
+                  <span className={`badge ${rec.status === 'active' ? 'badge-active' : rec.status === 'absent' ? 'badge-inactive' : rec.status === 'scheduled' ? 'badge-pending' : 'badge-paid'}`}>
+                    {rec.status === 'active' ? 'Ativo' : rec.status === 'absent' ? 'Falta' : rec.status === 'scheduled' ? 'Agendado' : 'Concluído'}
                   </span>
                 </div>
               );
