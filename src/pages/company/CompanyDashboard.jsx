@@ -2104,7 +2104,7 @@ function RelatorioTab({ companyId }) {
             Horas Extras: <span style={{ color: '#059669' }}>{fmtHoursCount(totalHE)}</span>
           </p>
           <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-            Valor H.E.: <span style={{ color: '#059669' }}>{fmtCurrency(totalValorHE)}</span>
+            Valor HE: <span style={{ color: '#059669' }}>{fmtCurrency(totalValorHE)}</span>
           </p>
           <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '2px 0' }} />
           <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
