@@ -340,12 +340,9 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
         </div>
       )}
 
-      {/* Lista de ajudantes */}
+      {/* Lista de ajudantes — agrupada por função */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <p style={{ fontSize: '10px', fontWeight: 700, color: '#64748B', letterSpacing: '0.06em', textTransform: 'uppercase', margin: 0 }}>
-            Ajudantes
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '4px' }}>
           {records.length > 0 && (
             <button onClick={() => onVerMais ? onVerMais() : setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', fontWeight: 600, color: accentColor, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
               Ver mais <ChevronRight size={12} />
@@ -362,7 +359,10 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
               const color = GROUP_PALETTE[gIdx % GROUP_PALETTE.length];
               return (
                 <div key={service}>
-                  {gIdx > 0 && <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '4px 0' }} />}
+                  {/* Nome da função como cabeçalho do grupo */}
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: color, letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>
+                    {service}
+                  </p>
                   {recs.map(rec => {
                     const emp = getEmployee(rec.employeeId);
                     const isAbsent = rec.status === 'absent';
@@ -1568,7 +1568,9 @@ function EscalasHoje({ companyId }) {
             ];
             return (
               <div key={service}>
-                {gIdx > 0 && <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '6px 0' }} />}
+                <p style={{ fontSize: '10px', fontWeight: 700, color: color, letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '10px 0 5px' : '0 0 5px' }}>
+                  {service}
+                </p>
                 {recs.map(rec => {
                   const emp = getEmployee(rec.employeeId);
                   const isAbsent = rec.status === 'absent';
@@ -1906,7 +1908,9 @@ function DiaDetalheRelModal({ date, records, onClose }) {
             const color = GROUP_PALETTE[gIdx % GROUP_PALETTE.length];
             return (
               <div key={service}>
-                {gIdx > 0 && <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '6px 0' }} />}
+                <p style={{ fontSize: '10px', fontWeight: 700, color: color, letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '10px 0 5px' : '0 0 5px' }}>
+                  {service}
+                </p>
                 {recs.map(rec => {
                   const emp = getEmployee(rec.employeeId);
                   return (
