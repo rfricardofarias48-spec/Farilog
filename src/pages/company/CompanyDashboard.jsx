@@ -1996,29 +1996,29 @@ function RelatorioTab({ companyId }) {
 
     // Esquerda: título
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-    doc.text('Relatório Quinzenal', 14, headerH / 2 + 2.5);
+    doc.setFontSize(15); doc.setFont('helvetica', 'bold');
+    doc.text('Relatório Quinzenal', 10, headerH / 2 + 3);
 
     // Direita: logo
     if (logoDataUrl) {
       const lH = 18;
       const lW = lH * logoAspect;
-      doc.addImage(logoDataUrl, 'PNG', 210 - 14 - lW, (headerH - lH) / 2, lW, lH);
+      doc.addImage(logoDataUrl, 'PNG', 210 - 10 - lW, (headerH - lH) / 2, lW, lH);
     }
 
     // ── Período e data de geração ────────────────────────────
-    doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5); doc.setFont('helvetica', 'normal');
     doc.setTextColor(...mid);
-    doc.text(`Período: ${label}  ${pdfRange}`, 14, headerH + 8);
-    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, headerH + 13);
+    doc.text(`Período: ${label}  ${pdfRange}`, 10, headerH + 9);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 10, headerH + 15);
 
     // ── Resumo do Período ────────────────────────────────────
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text('Resumo do Período', 14, 50);
+    doc.text('Resumo do Período', 10, 53);
 
     autoTable(doc, {
-      startY: 53,
+      startY: 56,
       head: [['Diárias', 'Valor Diárias', 'H. Extras', 'Valor HE', 'Total Geral']],
       body: [[
         String(totalDiarias),
@@ -2029,10 +2029,10 @@ function RelatorioTab({ companyId }) {
       ]],
       headStyles: {
         fillColor: headBg, textColor: 255,
-        fontSize: 8, fontStyle: 'bold', halign: 'center',
+        fontSize: 9.5, fontStyle: 'bold', halign: 'center',
       },
       bodyStyles: {
-        fontSize: 9, fontStyle: 'bold', halign: 'center',
+        fontSize: 10, fontStyle: 'bold', halign: 'center',
         textColor: dark,
       },
       columnStyles: {
@@ -2042,17 +2042,17 @@ function RelatorioTab({ companyId }) {
         3: { textColor: mid },
         4: { textColor: dark, fontStyle: 'bold' },
       },
-      margin: { left: 14, right: 14 },
+      margin: { left: 10, right: 10 },
     });
 
     // ── Extrato por Dia ──────────────────────────────────────
     const y2 = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text('Extrato por Dia', 14, y2);
+    doc.text('Extrato por Dia', 10, y2);
 
     autoTable(doc, {
-      startY: y2 + 3,
+      startY: y2 + 4,
       head: [['Data', 'Diárias', 'Val. Diária', 'H. Extra', 'Val. HE', 'Total Dia']],
       body: allDays.filter(d => !d.isWeekend).map(d => [
         d.label,
@@ -2064,17 +2064,17 @@ function RelatorioTab({ companyId }) {
       ]),
       headStyles: {
         fillColor: [241, 245, 249], textColor: mid,
-        fontSize: 8, fontStyle: 'bold', halign: 'center',
+        fontSize: 9.5, fontStyle: 'bold', halign: 'center',
       },
       bodyStyles: {
-        fontSize: 8, textColor: dark, halign: 'center',
+        fontSize: 9.5, textColor: dark, halign: 'center',
       },
       alternateRowStyles: { fillColor: rowAlt },
       columnStyles: {
         0: { halign: 'left', fontStyle: 'bold', textColor: dark },
         5: { fontStyle: 'bold', textColor: dark },
       },
-      margin: { left: 14, right: 14 },
+      margin: { left: 10, right: 10 },
     });
 
     // ── Rodapé: total + vencimento ───────────────────────────
@@ -2085,22 +2085,22 @@ function RelatorioTab({ companyId }) {
 
     doc.setFontSize(10); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text(`Total da Cobrança: ${fmtCurrency(totalGeral)}`, 20, y3 + 9);
+    doc.text(`Total da Cobrança: ${fmtCurrency(totalGeral)}`, 16, y3 + 10);
 
     if (payment?.dueDate) {
       const lbl = payment.status === 'paid'
         ? `Pago em: ${fmtDate(payment.paidDate)}`
         : `Vencimento: ${fmtDate(payment.dueDate)}`;
-      doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal');
       doc.setTextColor(...mid);
-      doc.text(lbl, 20, y3 + 16);
+      doc.text(lbl, 16, y3 + 18);
     }
 
     // ── Paginação ────────────────────────────────────────────
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      doc.setFontSize(7); doc.setTextColor(...light);
+      doc.setFontSize(8); doc.setTextColor(...light);
       doc.text(
         `FariLog © ${new Date().getFullYear()}   |   Página ${i} de ${pageCount}`,
         105, 290, { align: 'center' }
