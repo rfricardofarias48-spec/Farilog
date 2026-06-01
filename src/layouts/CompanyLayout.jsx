@@ -85,7 +85,6 @@ export default function CompanyLayout() {
             {open ? <ChevronLeft size={17} /> : <Menu size={17} />}
           </button>
           <div className="flex items-center gap-2.5">
-            <span className="text-xs font-medium" style={{ color: '#64748B' }}>{user?.name}</span>
             <div className="avatar w-8 h-8 rounded-full text-xs"
               style={{ background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', width: '32px', height: '32px', borderRadius: '50%', fontSize: '11px' }}>
               {user?.name?.slice(0,2).toUpperCase()}
