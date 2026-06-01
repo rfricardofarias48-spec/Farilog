@@ -1990,7 +1990,7 @@ function RelatorioTab({ companyId }) {
     const doc = new jsPDF();
 
     // ── Cabeçalho ────────────────────────────────────────────
-    const headerH = 28;
+    const headerH = 32;
     doc.setFillColor(...headBg);
     doc.rect(0, 0, 210, headerH, 'F');
 
@@ -2001,7 +2001,7 @@ function RelatorioTab({ companyId }) {
 
     // Direita: logo
     if (logoDataUrl) {
-      const lH = 18;
+      const lH = 24;
       const lW = lH * logoAspect;
       doc.addImage(logoDataUrl, 'PNG', 210 - 10 - lW, (headerH - lH) / 2, lW, lH);
     }
