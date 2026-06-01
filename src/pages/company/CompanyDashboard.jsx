@@ -1810,6 +1810,348 @@ function SettingsTab({ company }) {
   );
 }
 
+// ── Modal: ajudantes do dia no relatório ──────────────────────────────────
+function DiaDetalheRelModal({ date, records, onClose }) {
+  const ativos = records.filter(r => r.status !== 'absent');
+  const [, m, d] = date.split('-');
+  const dow = DOW_SHORT[new Date(`${date}T12:00:00`).getDay()];
+
+  return createPortal(
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box animate-fade-up" style={{ maxWidth: '700px' }}>
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="text-xs font-semibold uppercase" style={{ color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '4px' }}>Ajudantes do dia</p>
+            <h2 className="text-base font-bold" style={{ color: '#0F172A' }}>{dow}, {d}/{m}</h2>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '6px', background: '#FFF2EE', color: '#CC3D00', marginTop: '8px' }}>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#FF4D0C', display: 'inline-block' }} />
+              {ativos.length} em serviço
+            </span>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="card overflow-hidden">
+          {ativos.length === 0 ? (
+            <div className="py-8 text-center text-sm" style={{ color: '#94A3B8' }}>Nenhum ajudante ativo neste dia</div>
+          ) : ativos.map(rec => {
+            const emp = getEmployee(rec.employeeId);
+            return (
+              <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 1fr repeat(5, auto)' }}>
+                <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
+                <div className="px-3">
+                  <p className="text-xs font-semibold" style={{ color: '#0F172A' }}>{emp?.name}</p>
+                  <p className="text-xs" style={{ color: '#94A3B8' }}>{rec.service}</p>
+                </div>
+                {[
+                  { label: 'Entrada',   value: rec.checkIn },
+                  { label: 'S. Almoço', value: rec.lunchOut },
+                  { label: 'Retorno',   value: rec.lunchReturn },
+                  { label: 'Saída',     value: rec.checkOut },
+                  { label: 'H. Extra',  value: rec.overtime },
+                ].map(t => (
+                  <div key={t.label} className="px-2 text-center">
+                    <p style={{ fontSize: '9px', color: '#94A3B8', marginBottom: '2px' }}>{t.label}</p>
+                    <div className="flex items-center gap-1 justify-center" style={{ color: t.value ? '#0F172A' : '#CBD5E1' }}>
+                      <Clock size={9} />
+                      <span style={{ fontSize: '11px', fontWeight: 600 }}>{t.value ?? '—'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ── Relatório ──────────────────────────────────────────────────────────────
+function RelatorioTab({ companyId }) {
+  const [offset, setOffset]           = useState(0);
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  const { start, end, label } = getPeriodBounds('quinzena', offset);
+  const [sy, sm, sday] = start.split('-').map(Number);
+  const [, ,   eday]   = end.split('-').map(Number);
+
+  // Todos os dias da quinzena
+  const allDays = [];
+  for (let day = sday; day <= eday; day++) {
+    const iso  = `${sy}-${String(sm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dow  = new Date(`${iso}T12:00:00`).getDay();
+    const recs = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === iso);
+    const presentes   = recs.filter(r => r.status !== 'absent');
+    const diarias     = presentes.length;
+    const heCount     = presentes.filter(r => r.overtime).length;
+    const valorDiarias = diarias  * VALOR_DIARIA;
+    const valorHE     = heCount  * VALOR_HORA_EXTRA;
+    allDays.push({
+      date: iso, dow, dayNum: day,
+      label: `${DOW_SHORT[dow]}, ${String(day).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
+      isWeekend: dow === 0 || dow === 6,
+      isToday: iso === TODAY,
+      recs, diarias, heCount, valorDiarias, valorHE,
+      total: valorDiarias + valorHE,
+    });
+  }
+
+  const totalDiarias      = allDays.reduce((s, d) => s + d.diarias, 0);
+  const totalHE           = allDays.reduce((s, d) => s + d.heCount, 0);
+  const totalValorDiarias = allDays.reduce((s, d) => s + d.valorDiarias, 0);
+  const totalValorHE      = allDays.reduce((s, d) => s + d.valorHE, 0);
+  const totalGeral        = totalValorDiarias + totalValorHE;
+
+  const payment = PAYMENTS.find(p => {
+    const ps = parsePeriodStart(p.period);
+    return p.companyId === companyId && ps === start;
+  });
+
+  const rangeStr = `${String(sday).padStart(2,'0')}/${String(sm).padStart(2,'0')} — ${String(eday).padStart(2,'0')}/${String(sm).padStart(2,'0')}/${sy}`;
+
+  const COL = '1fr 60px 100px 60px 110px 104px 18px';
+
+  const exportPDF = () => {
+    const doc    = new jsPDF();
+    const orange = [255, 77, 12];
+    const grey   = [100, 116, 139];
+
+    doc.setFillColor(...orange);
+    doc.rect(0, 0, 210, 18, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(13); doc.setFont('helvetica','bold');
+    doc.text('FariLog — Relatório Quinzenal', 14, 12);
+
+    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.setTextColor(...grey);
+    doc.text(`Período: ${label}   ·   ${rangeStr}`, 14, 24);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+
+    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('Resumo do Período', 14, 40);
+
+    autoTable(doc, {
+      startY: 44,
+      head: [['Diárias', 'Valor Diárias', 'H. Extras', 'Valor H. Extras', 'Total Geral']],
+      body: [[totalDiarias, fmtCurrency(totalValorDiarias), totalHE, fmtCurrency(totalValorHE), fmtCurrency(totalGeral)]],
+      headStyles: { fillColor: orange, textColor: 255, fontSize: 9, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 10, fontStyle: 'bold', halign: 'center' },
+      columnStyles: {
+        0: { textColor: [255,77,12] }, 1: { textColor: [5,150,105] },
+        2: { textColor: [217,119,6] }, 3: { textColor: [5,150,105] },
+        4: { textColor: [15,23,42] },
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    const y2 = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('Extrato por Dia', 14, y2);
+
+    autoTable(doc, {
+      startY: y2 + 4,
+      head: [['Data', 'Diárias', 'Val. Diária', 'H. Extra', 'Val. H. Extra', 'Total Dia']],
+      body: allDays.filter(d => !d.isWeekend).map(d => [
+        d.label,
+        d.diarias   > 0 ? String(d.diarias)              : '—',
+        d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias) : '—',
+        d.heCount   > 0 ? String(d.heCount)              : '—',
+        d.valorHE   > 0 ? fmtCurrency(d.valorHE)         : '—',
+        d.total     > 0 ? fmtCurrency(d.total)           : '—',
+      ]),
+      headStyles: { fillColor: [241,245,249], textColor: grey, fontSize: 8, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 8, textColor: [15,23,42] },
+      columnStyles: {
+        0: { fontStyle: 'bold' },
+        1: { halign: 'center', textColor: [255,77,12] },
+        2: { halign: 'right',  textColor: [5,150,105] },
+        3: { halign: 'center', textColor: [217,119,6] },
+        4: { halign: 'right',  textColor: [5,150,105] },
+        5: { halign: 'right',  fontStyle: 'bold' },
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    const y3 = doc.lastAutoTable.finalY + 8;
+    doc.setFillColor(255, 242, 238);
+    doc.roundedRect(14, y3, 182, 22, 3, 3, 'F');
+    doc.setFontSize(12); doc.setFont('helvetica','bold');
+    doc.setTextColor(255, 77, 12);
+    doc.text(`Total da Cobrança: ${fmtCurrency(totalGeral)}`, 20, y3 + 10);
+    if (payment?.dueDate) {
+      const lbl = payment.status === 'paid'
+        ? `Pago em: ${fmtDate(payment.paidDate)}`
+        : `Vencimento: ${fmtDate(payment.dueDate)}`;
+      doc.setFontSize(9); doc.setFont('helvetica','normal');
+      doc.setTextColor(...grey);
+      doc.text(lbl, 20, y3 + 17);
+    }
+
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7); doc.setTextColor(148, 163, 184);
+      doc.text(`FariLog © ${new Date().getFullYear()}   |   Página ${i} de ${pageCount}`, 105, 290, { align: 'center' });
+    }
+
+    doc.save(`relatorio-${label.replace(/[\/\s—]+/g,'-')}.pdf`);
+  };
+
+  const navBtn = (icon, fn) => (
+    <button onClick={fn} className="p-1.5 rounded-lg"
+      style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex' }}>
+      {icon}
+    </button>
+  );
+
+  return (
+    <div className="space-y-5">
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold" style={T}>Relatório</h2>
+          <p className="text-sm mt-0.5" style={TM}>Extrato detalhado por quinzena</p>
+        </div>
+        <button
+          onClick={exportPDF}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
+          style={{ background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(255,77,12,0.3)' }}
+          onMouseEnter={e => e.currentTarget.style.background = '#E03A00'}
+          onMouseLeave={e => e.currentTarget.style.background = '#FF4D0C'}
+        >
+          <FileDown size={13} /> Exportar PDF
+        </button>
+      </div>
+
+      {/* Navegador de quinzena */}
+      <div className="flex items-center justify-between p-3 rounded-xl"
+        style={{ background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.05)' }}>
+        {navBtn(<ChevronLeft size={15} />, () => setOffset(o => o - 1))}
+        <div className="text-center">
+          <p className="text-sm font-bold" style={{ color: '#0F172A' }}>{label}</p>
+          <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>{rangeStr}</p>
+        </div>
+        {navBtn(<ChevronRight size={15} />, () => setOffset(o => Math.min(o + 1, 0)))}
+      </div>
+
+      {/* Cards resumo */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
+        {[
+          { label: 'Total Diárias',  value: totalDiarias,                   color: '#FF4D0C', big: true },
+          { label: 'Valor Diárias',  value: fmtCurrency(totalValorDiarias), color: '#059669', big: false },
+          { label: 'Total H. Extra', value: totalHE,                         color: '#D97706', big: true },
+          { label: 'Valor H. Extra', value: fmtCurrency(totalValorHE),       color: '#059669', big: false },
+        ].map((s, i) => (
+          <div key={i} className="card p-4 text-center">
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{s.label}</p>
+            <p style={{ fontSize: s.big ? '28px' : '17px', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabela por dia */}
+      <div className="card overflow-hidden">
+        {/* Cabeçalho */}
+        <div style={{ display: 'grid', gridTemplateColumns: COL, padding: '9px 16px', background: '#F1F5F9', borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+          {['Data','Diárias','Val. Diária','H. Extra','Val. H. Extra','Total Dia',''].map((h, i) => (
+            <p key={i} style={{ fontSize: '10px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: i === 0 ? 'left' : 'center' }}>{h}</p>
+          ))}
+        </div>
+
+        {allDays.map((day, idx) => {
+          const hasData = day.diarias > 0 || day.heCount > 0;
+          const isLast  = idx === allDays.length - 1;
+          return (
+            <button key={day.date}
+              onClick={() => hasData && setSelectedDay(day.date)}
+              disabled={!hasData}
+              style={{
+                width: '100%', display: 'grid', gridTemplateColumns: COL,
+                alignItems: 'center', padding: '9px 16px', border: 'none',
+                background: day.isWeekend ? 'rgba(0,0,0,0.018)' : 'transparent',
+                cursor: hasData ? 'pointer' : 'default',
+                borderBottom: !isLast ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => { if (hasData) e.currentTarget.style.background = '#F8FAFC'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = day.isWeekend ? 'rgba(0,0,0,0.018)' : 'transparent'; }}
+            >
+              <p style={{ fontSize: '12px', fontWeight: day.isToday ? 700 : 500, color: day.isToday ? '#FF4D0C' : day.isWeekend ? '#CBD5E1' : '#0F172A', textAlign: 'left' }}>
+                {day.label}
+              </p>
+              <p style={{ fontSize: '15px', fontWeight: 800, color: day.diarias > 0 ? '#FF4D0C' : '#E2E8F0', textAlign: 'center' }}>
+                {day.diarias > 0 ? day.diarias : '—'}
+              </p>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: day.valorDiarias > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>
+                {day.valorDiarias > 0 ? fmtCurrency(day.valorDiarias) : '—'}
+              </p>
+              <p style={{ fontSize: '15px', fontWeight: 800, color: day.heCount > 0 ? '#D97706' : '#E2E8F0', textAlign: 'center' }}>
+                {day.heCount > 0 ? day.heCount : '—'}
+              </p>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: day.valorHE > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>
+                {day.valorHE > 0 ? fmtCurrency(day.valorHE) : '—'}
+              </p>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: day.total > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>
+                {day.total > 0 ? fmtCurrency(day.total) : '—'}
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                {hasData && <ChevronRight size={12} style={{ color: '#CBD5E1' }} />}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Total da cobrança + vencimento */}
+      <div className="card p-5" style={{ borderLeft: '4px solid #FF4D0C' }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold" style={{ color: '#64748B' }}>Total da Cobrança</p>
+            <p className="text-3xl font-black mt-0.5" style={{ color: '#FF4D0C' }}>{fmtCurrency(totalGeral)}</p>
+            <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>
+              {totalDiarias} diária{totalDiarias !== 1 ? 's' : ''} · {totalHE} h. extra{totalHE !== 1 ? 's' : ''}
+            </p>
+          </div>
+          {payment ? (
+            <div className="text-right">
+              <p className="text-xs font-semibold" style={{ color: '#64748B' }}>
+                {payment.status === 'paid' ? 'Pago em' : 'Vencimento'}
+              </p>
+              <p className="text-xl font-bold mt-1" style={{
+                color: payment.status === 'paid' ? '#059669' : payment.status === 'overdue' ? '#E11D48' : '#D97706',
+              }}>
+                {payment.status === 'paid' && payment.paidDate
+                  ? fmtDate(payment.paidDate)
+                  : fmtDate(payment.dueDate)}
+              </p>
+              <span className={`badge badge-${payment.status}`} style={{ marginTop: '6px', display: 'inline-block' }}>
+                {payment.status === 'paid' ? 'Pago' : payment.status === 'pending' ? 'Pendente' : 'Atrasado'}
+              </span>
+            </div>
+          ) : (
+            <p className="text-xs" style={{ color: '#94A3B8' }}>Vencimento a definir</p>
+          )}
+        </div>
+      </div>
+
+      {selectedDay && (
+        <DiaDetalheRelModal
+          date={selectedDay}
+          records={WORK_RECORDS.filter(r => r.companyId === companyId && r.date === selectedDay)}
+          onClose={() => setSelectedDay(null)}
+        />
+      )}
+    </div>
+  );
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 export default function CompanyDashboard() {
   const { user }  = useAuth();
@@ -1820,6 +2162,7 @@ export default function CompanyDashboard() {
       {tab === 'panel'     && <Panel       companyId={user.id} />}
       {tab === 'escalas'   && <EscalasTab  companyId={user.id} />}
       {tab === 'financial' && <Financial   companyId={user.id} />}
+      {tab === 'relatorio' && <RelatorioTab companyId={user.id} />}
       {tab === 'settings'  && <SettingsTab company={user} />}
     </div>
   );
