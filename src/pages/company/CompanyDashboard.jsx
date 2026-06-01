@@ -1825,8 +1825,9 @@ function SettingsTab({ company }) {
 
 // ── Modal: ajudantes do dia no relatório ──────────────────────────────────
 function DiaDetalheRelModal({ date, records, onClose }) {
-  const ativos  = records.filter(r => r.status !== 'absent');
+  const ativos   = records.filter(r => r.status !== 'absent');
   const ausentes = records.filter(r => r.status === 'absent');
+  const heCount  = ativos.filter(r => r.overtime).length;
   const [, m, d] = date.split('-');
   const dow = DOW_SHORT[new Date(`${date}T12:00:00`).getDay()];
 
@@ -1847,6 +1848,14 @@ function DiaDetalheRelModal({ date, records, onClose }) {
           <div>
             <p className="text-xs font-semibold uppercase" style={{ color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '6px' }}>Ajudantes em serviço</p>
             <h2 className="text-lg font-bold" style={{ color: '#0F172A' }}>{dow}, {d}/{m}</h2>
+            <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+                Diárias: <span style={{ color: '#0369A1' }}>{ativos.length}</span>
+              </p>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+                Horas Extras: <span style={{ color: '#0369A1' }}>{fmtHoursCount(heCount)}</span>
+              </p>
+            </div>
             <div className="flex gap-2 mt-2 flex-wrap">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: '#FFF2EE', color: '#CC3D00' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FF4D0C', display: 'inline-block' }} />
