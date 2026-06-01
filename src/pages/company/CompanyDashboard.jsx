@@ -2268,9 +2268,9 @@ function RelatorioTab({ companyId }) {
               <span style={{ fontSize: '13px', fontWeight: 700, color: payment.status === 'paid' ? '#059669' : payment.status === 'overdue' ? '#E11D48' : '#D97706' }}>
                 {payment.status === 'paid' && payment.paidDate ? fmtDate(payment.paidDate) : fmtDate(payment.dueDate)}
               </span>
-              <span className={`badge badge-${payment.status}`}>
-                {payment.status === 'paid' ? 'Pago' : payment.status === 'pending' ? 'Pendente' : 'Atrasado'}
-              </span>
+              {payment.status === 'overdue' && (
+                <span className="badge badge-overdue">Atrasado</span>
+              )}
             </div>
           ) : (
             <span style={{ fontSize: '11px', color: '#94A3B8' }}>Vencimento a definir</span>
