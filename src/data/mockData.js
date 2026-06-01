@@ -1,11 +1,11 @@
 export const EMPLOYEES = [
-  { id: 'e1', name: 'Carlos Silva', cpf: '123.456.789-00', phone: '(11) 98765-4321', email: 'carlos@email.com', password: '123456', initials: 'CS', color: '#2563EB', status: 'active', dailyRate: 150, hireDate: '2024-01-15' },
-  { id: 'e2', name: 'Pedro Alves', cpf: '987.654.321-00', phone: '(11) 91234-5678', email: 'pedro@email.com', password: '123456', initials: 'PA', color: '#7C3AED', status: 'active', dailyRate: 150, hireDate: '2024-03-01' },
-  { id: 'e3', name: 'João Santos', cpf: '456.789.123-00', phone: '(11) 95555-1234', email: 'joao@email.com', password: '123456', initials: 'JS', color: '#059669', status: 'active', dailyRate: 150, hireDate: '2024-02-10' },
-  { id: 'e4', name: 'André Ferreira', cpf: '321.654.987-00', phone: '(11) 94444-5678', email: 'andre@email.com', password: '123456', initials: 'AF', color: '#DC2626', status: 'inactive', dailyRate: 150, hireDate: '2023-11-20' },
-  { id: 'e5', name: 'Lucas Martins', cpf: '654.321.789-00', phone: '(11) 93333-4567', email: 'lucas@email.com', password: '123456', initials: 'LM', color: '#D97706', status: 'active', dailyRate: 150, hireDate: '2024-04-05' },
-  { id: 'e6', name: 'Rafael Costa', cpf: '789.012.345-00', phone: '(11) 92222-3456', email: 'rafael@email.com', password: '123456', initials: 'RC', color: '#0891B2', status: 'active', dailyRate: 150, hireDate: '2024-05-01' },
-  { id: 'e7', name: 'Diego Pereira', cpf: '012.345.678-00', phone: '(11) 91111-2345', email: 'diego@email.com', password: '123456', initials: 'DP', color: '#BE185D', status: 'active', dailyRate: 150, hireDate: '2024-04-20' },
+  { id: 'e1', name: 'Carlos Silva',   cargo: 'Ajudante de Logística',  cpf: '123.456.789-00', phone: '(11) 98765-4321', email: 'carlos@email.com', password: '123456', initials: 'CS', color: '#2563EB', status: 'active',   dailyRate: 150, hireDate: '2024-01-15' },
+  { id: 'e2', name: 'Pedro Alves',    cargo: 'Ajudante de Logística',  cpf: '987.654.321-00', phone: '(11) 91234-5678', email: 'pedro@email.com',  password: '123456', initials: 'PA', color: '#7C3AED', status: 'active',   dailyRate: 150, hireDate: '2024-03-01' },
+  { id: 'e3', name: 'João Santos',    cargo: 'Ajudante de Logística',  cpf: '456.789.123-00', phone: '(11) 95555-1234', email: 'joao@email.com',   password: '123456', initials: 'JS', color: '#059669', status: 'active',   dailyRate: 150, hireDate: '2024-02-10' },
+  { id: 'e4', name: 'André Ferreira', cargo: 'Ajudante de Logística',  cpf: '321.654.987-00', phone: '(11) 94444-5678', email: 'andre@email.com',  password: '123456', initials: 'AF', color: '#DC2626', status: 'inactive', dailyRate: 150, hireDate: '2023-11-20' },
+  { id: 'e5', name: 'Lucas Martins',  cargo: 'Ajudante de Logística',  cpf: '654.321.789-00', phone: '(11) 93333-4567', email: 'lucas@email.com',  password: '123456', initials: 'LM', color: '#D97706', status: 'active',   dailyRate: 150, hireDate: '2024-04-05' },
+  { id: 'e6', name: 'Rafael Costa',   cargo: 'Ajudante de Logística',  cpf: '789.012.345-00', phone: '(11) 92222-3456', email: 'rafael@email.com', password: '123456', initials: 'RC', color: '#0891B2', status: 'active',   dailyRate: 150, hireDate: '2024-05-01' },
+  { id: 'e7', name: 'Diego Pereira',  cargo: 'Ajudante de Logística',  cpf: '012.345.678-00', phone: '(11) 91111-2345', email: 'diego@email.com',  password: '123456', initials: 'DP', color: '#BE185D', status: 'active',   dailyRate: 150, hireDate: '2024-04-20' },
 ];
 
 export const COMPANIES = [

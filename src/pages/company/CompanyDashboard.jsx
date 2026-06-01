@@ -185,6 +185,42 @@ function AjudantesModal({ records, escala, faltas, atrasos, onClose }) {
   );
 }
 
+// ── Mini-popup: dados do ajudante ─────────────────────────────────────────
+function AjudantePopup({ emp, onClose }) {
+  if (!emp) return null;
+  return createPortal(
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: '#fff',
+          borderRadius: '14px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
+          padding: '24px 28px',
+          minWidth: '240px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '10px',
+          border: '1px solid rgba(0,0,0,0.06)',
+        }}
+      >
+        <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: 700, color: 'white' }}>
+          {emp.initials}
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>{emp.name}</p>
+          <p style={{ fontSize: '12px', fontWeight: 500, color: '#64748B' }}>{emp.cargo || '—'}</p>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ── Panel ──────────────────────────────────────────────────────────────────
 const START_TIME = '07:30';
 
@@ -205,6 +241,7 @@ function fmtDateShort(iso) {
 
 function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday }) {
   const [showModal, setShowModal] = useState(false);
+  const [popupEmp, setPopupEmp] = useState(null);
   const escala    = records.length;
   const faltas    = isToday ? records.filter(r => r.status === 'absent').length : 0;
   const atrasos   = isToday ? records.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length : 0;
@@ -302,7 +339,10 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                     {emp?.initials}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#64748B' : '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{emp?.name}</p>
+                    <p
+                      onClick={() => setPopupEmp(emp)}
+                      style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#64748B' : '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer', display: 'inline-block', maxWidth: '100%' }}
+                    >{emp?.name}</p>
                     <p style={{ fontSize: '10px', fontWeight: 500, color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rec.service}</p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
@@ -333,6 +373,10 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
           atrasos={atrasos}
           onClose={() => setShowModal(false)}
         />
+      )}
+
+      {popupEmp && (
+        <AjudantePopup emp={popupEmp} onClose={() => setPopupEmp(null)} />
       )}
     </div>
   );
