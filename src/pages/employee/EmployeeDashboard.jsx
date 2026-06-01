@@ -52,6 +52,14 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus }) {
   const findDemand = (date) =>
     demands.find(d => d.date === date && d.employees?.find(e => e.employeeId === user.id));
 
+  // Deriva o estado real da caixa a partir das batidas, não do campo status
+  // scheduled → sem checkIn | active → tem checkIn, sem checkOut | completed → tem checkOut
+  const derivedState = todayRecord
+    ? todayRecord.checkOut ? 'completed'
+    : todayRecord.checkIn  ? 'active'
+    : 'scheduled'
+    : null;
+
   // Próximo pagamento (quinzena atual: 16/05–31/05)
   const qBounds    = getQuinzenaBounds(TODAY);
   const qRecords   = myRecords.filter(r => r.date >= qBounds.start && r.date <= qBounds.end && r.status !== 'absent');
@@ -107,7 +115,7 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus }) {
       })}
 
       {/* Caixa de trabalho — estado dinâmico */}
-      {todayRecord?.status === 'active' ? (
+      {derivedState === 'active' ? (
         /* ── TRABALHANDO AGORA ── */
         <div className="card p-5" style={{ borderLeft: '4px solid #059669' }}>
           <div className="flex items-center gap-2 mb-3">
@@ -130,7 +138,7 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus }) {
           </div>
         </div>
 
-      ) : todayRecord?.status === 'completed' ? (
+      ) : derivedState === 'completed' ? (
         /* ── SERVIÇO CONCLUÍDO ── */
         <div className="card p-5" style={{ borderLeft: '4px solid #475569' }}>
           <div className="flex items-center gap-2 mb-3">
@@ -163,7 +171,7 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus }) {
 
       ) : (() => {
         /* ── PRÓXIMA ESCALA (hoje agendado ou próximo dia) ── */
-        const rec     = todayRecord?.status === 'scheduled' ? todayRecord : nextRecord;
+        const rec     = derivedState === 'scheduled' ? todayRecord : nextRecord;
         const demand  = rec ? findDemand(rec.date) : null;
         const company = rec ? getCompany(rec.companyId) : null;
         const isToday = rec?.date === TODAY;
