@@ -1,7 +1,7 @@
 ﻿import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, Building2, Users, Menu, ChevronLeft, DollarSign, ClipboardList, Search, Bell } from 'lucide-react';
+import { LogOut, LayoutDashboard, Building2, Users, ChevronLeft, ChevronRight, DollarSign, ClipboardList, Search, Bell } from 'lucide-react';
 
 const PAGE_TITLES = {
   '/admin':            'Visão Geral',
@@ -80,58 +80,58 @@ export default function AdminLayout() {
         </div>
       </aside>
 
+      {/* Toggle button — flutuante na borda da sidebar */}
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          position: 'fixed',
+          top: '20px',
+          left: open ? 'calc(224px - 12px)' : 'calc(64px - 12px)',
+          zIndex: 60,
+          width: '24px',
+          height: '24px',
+          borderRadius: '50%',
+          background: '#1E293B',
+          border: '2px solid #374151',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          color: '#9CA3AF',
+          transition: 'left 0.3s',
+          flexShrink: 0,
+        }}
+      >
+        {open ? <ChevronLeft size={12} /> : <ChevronRight size={12} />}
+      </button>
+
       {/* Main */}
       <div className={`flex-1 flex flex-col transition-all duration-300 ${open ? 'md:ml-56' : 'md:ml-16'}`}>
-        {/* Top bar */}
-        <header
-          className="sticky top-0 z-40 flex items-center justify-between px-6 py-3.5"
-          style={{ background: '#EEF1F5', borderBottom: '1px solid rgba(0,0,0,0.06)' }}
-        >
-          {/* Toggle sidebar */}
-          <button onClick={() => setOpen(!open)}
-            className="p-2 rounded-lg transition-colors flex-shrink-0"
-            style={{ color: '#94A3B8', background: 'rgba(0,0,0,0.04)' }}>
-            {open ? <ChevronLeft size={17} /> : <Menu size={17} />}
-          </button>
-
-          {/* Page title + search */}
-          <div className="flex items-center gap-4 flex-1 mx-4">
-            <span className="font-semibold text-sm hidden sm:block" style={{ color: '#1E293B', whiteSpace: 'nowrap' }}>
-              {pageTitle}
-            </span>
-            <div className="relative flex-1 max-w-sm">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }} />
-              <input
-                type="text"
-                placeholder="Buscar..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm rounded-lg outline-none transition"
-                style={{
-                  background: 'rgba(0,0,0,0.05)',
-                  border: '1px solid rgba(0,0,0,0.07)',
-                  color: '#1E293B',
-                  fontSize: '13px',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Actions + avatar */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <button className="p-2 rounded-lg relative" style={{ background: 'rgba(0,0,0,0.04)', color: '#64748B' }}>
-              <Bell size={16} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: '#FF4D0C' }} />
-            </button>
-            <div className="h-6 w-px" style={{ background: 'rgba(0,0,0,0.1)' }} />
-            <span className="text-xs font-medium hidden sm:block" style={{ color: '#64748B' }}>Admin</span>
-            <div className="avatar text-xs flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0 }}>
-              {user?.initials}
-            </div>
-          </div>
-        </header>
-
         <main className="flex-1 p-6">
+          {/* Barra utilitária inline — sem altura de header */}
+          <div className="flex items-center justify-between mb-5" style={{ paddingLeft: '20px' }}>
+            <span className="font-semibold text-sm" style={{ color: '#1E293B' }}>{pageTitle}</span>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }} />
+                <input
+                  type="text"
+                  placeholder="Buscar..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-8 pr-4 py-1.5 rounded-lg outline-none"
+                  style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.07)', color: '#1E293B', fontSize: '13px', width: '200px' }}
+                />
+              </div>
+              <button className="p-1.5 rounded-lg relative" style={{ background: 'rgba(0,0,0,0.04)', color: '#64748B' }}>
+                <Bell size={15} />
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style={{ background: '#FF4D0C' }} />
+              </button>
+              <div className="avatar text-xs flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', width: '30px', height: '30px', borderRadius: '50%' }}>
+                {user?.initials}
+              </div>
+            </div>
+          </div>
           <Outlet />
         </main>
       </div>
