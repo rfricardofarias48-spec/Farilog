@@ -7,8 +7,8 @@ import {
   X, Briefcase, ChevronDown, ChevronUp, TrendingUp, Banknote
 } from 'lucide-react';
 
-const TODAY      = '2026-05-26';
-const TODAY_DATE = new Date(2026, 4, 26);
+const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+const TODAY_DATE = new Date(TODAY + 'T12:00:00-03:00');
 const VALOR_DIARIA = 150;
 const VALOR_HE     = 50;
 
@@ -44,7 +44,13 @@ function getQuinzenaBounds(date) {
 // ── Visão Geral ──────────────────────────────────────────────────────────────
 
 function VisaoGeral({ user, myRecords, demands, updateDemandStatus }) {
-  const todayRecord = myRecords.find(r => r.date === TODAY);
+  const todayRecord  = myRecords.find(r => r.date === TODAY);
+  const nextRecord   = myRecords
+    .filter(r => r.date > TODAY && r.status === 'scheduled')
+    .sort((a, b) => a.date.localeCompare(b.date))[0];
+
+  const findDemand = (date) =>
+    demands.find(d => d.date === date && d.employees?.find(e => e.employeeId === user.id));
 
   // Próximo pagamento (quinzena atual: 16/05–31/05)
   const qBounds    = getQuinzenaBounds(TODAY);
@@ -100,39 +106,110 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus }) {
         );
       })}
 
-      {/* Trabalhando agora */}
-      {todayRecord ? (
-        <div className="card p-5" style={{ borderLeft: '4px solid #FF4D0C' }}>
+      {/* Caixa de trabalho — estado dinâmico */}
+      {todayRecord?.status === 'active' ? (
+        /* ── TRABALHANDO AGORA ── */
+        <div className="card p-5" style={{ borderLeft: '4px solid #059669' }}>
           <div className="flex items-center gap-2 mb-3">
             <span className="w-2 h-2 rounded-full" style={{ background: '#059669', boxShadow: '0 0 0 3px rgba(5,150,105,0.2)' }} />
-            <span className="text-xs font-bold" style={{ color: '#059669', letterSpacing: '0.06em' }}>TRABALHANDO AGORA</span>
+            <span style={{ fontSize: '10px', fontWeight: 700, color: '#059669', letterSpacing: '0.06em' }}>TRABALHANDO AGORA</span>
           </div>
           <p className="text-base font-bold" style={T}>{getCompany(todayRecord.companyId)?.name}</p>
-          <p className="text-xs mt-0.5 mb-4" style={TM}>{todayRecord.service}</p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-2 mt-3">
             {[
-              { label: 'Entrada',  value: todayRecord.checkIn ?? '—',   color: '#FF4D0C' },
-              { label: 'Almoço',   value: todayRecord.lunchOut ?? '—',  color: '#64748B' },
-              { label: 'Retorno',  value: todayRecord.lunchReturn ?? '—', color: '#64748B' },
+              { label: 'Entrada',   value: todayRecord.checkIn },
+              { label: 'S. Almoço', value: todayRecord.lunchOut },
+              { label: 'Retorno',   value: todayRecord.lunchReturn },
+              { label: 'Saída',     value: todayRecord.checkOut },
             ].map(t => (
-              <div key={t.label} className="card-inner text-center" style={{ padding: '6px 10px' }}>
+              <div key={t.label} className="card-inner text-center" style={{ padding: '6px 8px' }}>
                 <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
-                <p className="text-sm font-bold" style={{ color: t.color }}>{t.value}</p>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: t.value ? '#0F172A' : '#CBD5E1' }}>{t.value ?? '—'}</p>
               </div>
             ))}
           </div>
         </div>
-      ) : (
-        <div className="card p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F1F5F9' }}>
-            <AlertCircle size={18} style={{ color: '#94A3B8' }} />
+
+      ) : todayRecord?.status === 'completed' ? (
+        /* ── SERVIÇO CONCLUÍDO ── */
+        <div className="card p-5" style={{ borderLeft: '4px solid #475569' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircle2 size={13} style={{ color: '#475569' }} />
+            <span style={{ fontSize: '10px', fontWeight: 700, color: '#475569', letterSpacing: '0.06em' }}>SERVIÇO CONCLUÍDO</span>
           </div>
-          <div>
-            <p className="text-sm font-semibold" style={T}>Sem alocação hoje</p>
-            <p className="text-xs" style={TM}>Nenhum serviço registrado para hoje</p>
+          <p className="text-base font-bold" style={T}>{getCompany(todayRecord.companyId)?.name}</p>
+          <div className="grid grid-cols-4 gap-2 mt-3">
+            {[
+              { label: 'Entrada',   value: todayRecord.checkIn },
+              { label: 'S. Almoço', value: todayRecord.lunchOut },
+              { label: 'Retorno',   value: todayRecord.lunchReturn },
+              { label: 'Saída',     value: todayRecord.checkOut },
+            ].map(t => (
+              <div key={t.label} className="card-inner text-center" style={{ padding: '6px 8px' }}>
+                <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: t.value ? '#0F172A' : '#CBD5E1' }}>{t.value ?? '—'}</p>
+              </div>
+            ))}
           </div>
+          {todayRecord.overtime && (
+            <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '8px', background: '#F0FDF4', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Clock size={12} style={{ color: '#059669' }} />
+              <p style={{ fontSize: '12px', fontWeight: 600, color: '#059669' }}>
+                Hora extra · {todayRecord.overtime}
+              </p>
+            </div>
+          )}
         </div>
-      )}
+
+      ) : (() => {
+        /* ── PRÓXIMA ESCALA (hoje agendado ou próximo dia) ── */
+        const rec     = todayRecord?.status === 'scheduled' ? todayRecord : nextRecord;
+        const demand  = rec ? findDemand(rec.date) : null;
+        const company = rec ? getCompany(rec.companyId) : null;
+        const isToday = rec?.date === TODAY;
+
+        if (!rec) return (
+          <div className="card p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F1F5F9' }}>
+              <AlertCircle size={18} style={{ color: '#94A3B8' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={T}>Sem alocação</p>
+              <p className="text-xs" style={TM}>Nenhum serviço agendado</p>
+            </div>
+          </div>
+        );
+
+        return (
+          <div className="card p-5" style={{ borderLeft: '4px solid #2563EB' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar size={13} style={{ color: '#2563EB' }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#2563EB', letterSpacing: '0.06em' }}>
+                {isToday ? 'ESCALA DE HOJE' : 'PRÓXIMA ESCALA'}
+              </span>
+            </div>
+            <p className="text-base font-bold" style={T}>{company?.name}</p>
+            {!isToday && (
+              <p className="text-xs mt-0.5" style={TM}>{fmtISO(rec.date)}</p>
+            )}
+            <p className="text-xs mt-0.5 mb-3" style={TM}>{rec.service}</p>
+            <div className="flex items-start gap-3">
+              {demand?.time && (
+                <div className="card-inner text-center" style={{ padding: '6px 14px', flexShrink: 0 }}>
+                  <p style={{ fontSize: '9px', color: '#94A3B8', marginBottom: '2px' }}>Horário</p>
+                  <p style={{ fontSize: '16px', fontWeight: 800, color: '#2563EB' }}>{demand.time}</p>
+                </div>
+              )}
+              {company?.address && (
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '9px', color: '#94A3B8', marginBottom: '2px' }}>Endereço</p>
+                  <p style={{ fontSize: '11px', color: '#475569', lineHeight: 1.4 }}>{company.address}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Próximo pagamento */}
       <div className="card p-5">
@@ -410,8 +487,10 @@ export default function EmployeeDashboard() {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <p className="text-xs capitalize" style={TM}>{weekday}, {TODAY_DATE.getDate()} de {month} de 2026</p>
-        <h1 className="text-lg font-bold mt-0.5" style={T}>Olá, {user.name.split(' ')[0]}</h1>
+        <h1 className="text-lg" style={T}>
+          <span className="font-bold">Olá,</span>{' '}
+          <span style={{ fontWeight: 400, fontSize: '16px' }}>{user.name.split(' ')[0]}</span>
+        </h1>
       </div>
 
       {/* Tabs */}
