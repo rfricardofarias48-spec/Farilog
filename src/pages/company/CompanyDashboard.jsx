@@ -122,14 +122,23 @@ const QuinzenaTooltip = ({ active, payload, label }) => {
 };
 
 // ── Modal: todos os ajudantes ──────────────────────────────────────────────
-function AjudantesModal({ records, escala, faltas, atrasos, onClose }) {
+function AjudantesModal({ records, escala, faltas, atrasos, date, onClose }) {
+  const dateLabel = date ? (() => {
+    const [, m, d] = date.split('-');
+    const dow = DOW_FULL[new Date(`${date}T12:00:00`).getDay()];
+    return `${dow}, ${d}/${m}`;
+  })() : null;
+
   return createPortal(
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-box animate-fade-up" style={{ maxWidth: '780px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-base font-bold" style={{ color: '#0F172A' }}>Ajudantes em Serviço</h2>
+            <p className="text-xs font-semibold uppercase" style={{ color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '4px' }}>Escala do Dia</p>
+            <h2 className="text-base font-bold" style={{ color: '#0F172A' }}>
+              {dateLabel ? `${dateLabel}` : 'Ajudantes Escalados'}
+            </h2>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '6px', background: '#FFF2EE', color: '#CC3D00' }}>
                 <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#FF4D0C', flexShrink: 0, display: 'inline-block' }} />
@@ -372,6 +381,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
           escala={escala}
           faltas={faltas}
           atrasos={atrasos}
+          date={date}
           onClose={() => setShowModal(false)}
         />
       )}
