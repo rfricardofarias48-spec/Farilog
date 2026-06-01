@@ -2080,28 +2080,33 @@ function RelatorioTab({ companyId }) {
         {navBtn(<ChevronRight size={15} />, () => setOffset(o => Math.min(o + 1, 0)))}
       </div>
 
-      {/* Stats — mesmo estilo do EscalaCard */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-        {/* Diárias */}
-        <div style={{ padding: '14px 16px', borderRadius: '12px', background: '#EEF2F7' }}>
-          <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Diárias</p>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: '36px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{totalDiarias}</p>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '10px', fontWeight: 600, color: '#64748B' }}>Valor total</p>
-              <p style={{ fontSize: '16px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(totalValorDiarias)}</p>
-            </div>
+      {/* Stats — resumo compacto */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: 'rgba(0,0,0,0.06)', borderRadius: '12px', overflow: 'hidden' }}>
+        {/* Diárias — esquerda */}
+        <div style={{ padding: '14px 18px', background: '#EEF2F7', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Diárias:</span>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#FF4D0C' }}>{totalDiarias}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Valor:</span>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#059669' }}>{fmtCurrency(totalValorDiarias)}</span>
           </div>
         </div>
-        {/* H. Extra */}
-        <div style={{ padding: '14px 16px', borderRadius: '12px', background: '#EEF2F7' }}>
-          <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Horas Extras</p>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: '36px', fontWeight: 800, color: '#D97706', lineHeight: 1 }}>{totalHE}</p>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '10px', fontWeight: 600, color: '#64748B' }}>Valor total</p>
-              <p style={{ fontSize: '16px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(totalValorHE)}</p>
-            </div>
+        {/* H. Extra — direita */}
+        <div style={{ padding: '14px 18px', background: '#EEF2F7', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Horas Extras:</span>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#D97706' }}>{totalHE}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Valor H.E.:</span>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#059669' }}>{fmtCurrency(totalValorHE)}</span>
+          </div>
+          <div style={{ height: '1px', background: 'rgba(0,0,0,0.08)', margin: '2px 0' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Total:</span>
+            <span style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>{fmtCurrency(totalGeral)}</span>
           </div>
         </div>
       </div>
@@ -2195,33 +2200,27 @@ function RelatorioTab({ companyId }) {
         })}
       </div>
 
-      {/* Total cobrança + vencimento */}
-      <div className="card p-5" style={{ borderTop: '3px solid #FF4D0C', boxShadow: '0 4px 20px rgba(255,77,12,0.1)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '16px', alignItems: 'center' }}>
+      {/* Total cobrança + vencimento — compacto */}
+      <div className="card" style={{ padding: '12px 16px', borderTop: '2px solid #FF4D0C' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Total da Cobrança</p>
-            <p style={{ fontSize: '36px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{fmtCurrency(totalGeral)}</p>
-            <p className="text-xs mt-2" style={{ color: '#64748B' }}>
-              {totalDiarias} diária{totalDiarias !== 1 ? 's' : ''} (R$ {VALOR_DIARIA}/dia)
-              {totalHE > 0 && ` · ${totalHE} h. extra${totalHE !== 1 ? 's' : ''} (R$ ${VALOR_HORA_EXTRA}/h)`}
-            </p>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569' }}>Total da cobrança: </span>
+            <span style={{ fontSize: '15px', fontWeight: 800, color: '#FF4D0C' }}>{fmtCurrency(totalGeral)}</span>
           </div>
           {payment ? (
-            <div style={{ textAlign: 'right', padding: '12px 16px', borderRadius: '12px', background: '#EEF2F7', minWidth: '140px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
-                {payment.status === 'paid' ? 'Pago em' : 'Vencimento'}
-              </p>
-              <p style={{ fontSize: '18px', fontWeight: 800, color: payment.status === 'paid' ? '#059669' : payment.status === 'overdue' ? '#E11D48' : '#D97706' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569' }}>
+                {payment.status === 'paid' ? 'Pago em:' : 'Vencimento:'}
+              </span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: payment.status === 'paid' ? '#059669' : payment.status === 'overdue' ? '#E11D48' : '#D97706' }}>
                 {payment.status === 'paid' && payment.paidDate ? fmtDate(payment.paidDate) : fmtDate(payment.dueDate)}
-              </p>
-              <span className={`badge badge-${payment.status}`} style={{ marginTop: '6px', display: 'inline-block' }}>
+              </span>
+              <span className={`badge badge-${payment.status}`}>
                 {payment.status === 'paid' ? 'Pago' : payment.status === 'pending' ? 'Pendente' : 'Atrasado'}
               </span>
             </div>
           ) : (
-            <div style={{ padding: '12px 16px', borderRadius: '12px', background: '#EEF2F7' }}>
-              <p style={{ fontSize: '11px', color: '#94A3B8' }}>Vencimento a definir</p>
-            </div>
+            <span style={{ fontSize: '11px', color: '#94A3B8' }}>Vencimento a definir</span>
           )}
         </div>
       </div>
