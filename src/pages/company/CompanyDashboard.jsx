@@ -313,11 +313,8 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
           </div>
         </div>
       ) : (
-        <div style={{ padding: '10px 16px', borderRadius: '10px', background: '#EEF2F7', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div>
-            <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>Escala</p>
-            <p style={{ fontSize: '28px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{escala}</p>
-          </div>
+        <div style={{ padding: '10px 16px', borderRadius: '10px', background: '#EEF2F7', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '28px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{escala}</span>
           <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>ajudante{escala !== 1 ? 's' : ''} agendado{escala !== 1 ? 's' : ''}</span>
         </div>
       )}
