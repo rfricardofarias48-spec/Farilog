@@ -33,6 +33,22 @@ const fmtTime = (t) => {
   return `${String(h).padStart(2,'0')}:${String(m ?? '00').padStart(2,'0')}`;
 };
 
+// ── Observações persistidas no localStorage ───────────────────────────────
+function useNotes() {
+  const [notes, setNotesState] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('farilog_notes') || '{}'); }
+    catch { return {}; }
+  });
+  const setNotes = (updater) => {
+    setNotesState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      localStorage.setItem('farilog_notes', JSON.stringify(next));
+      return next;
+    });
+  };
+  return [notes, setNotes];
+}
+
 // Converte contagem de horas extras para formato HH:MM (ex: 3 → "03:00")
 const fmtHoursCount = (n) => {
   if (!n) return '—';
@@ -298,7 +314,7 @@ function fmtDateShort(iso) {
 function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday, onVerMais }) {
   const [showModal, setShowModal] = useState(false);
   const [popupEmp, setPopupEmp] = useState(null);
-  const [notes, setNotes] = useState({});
+  const [notes, setNotes] = useNotes();
   const escala    = records.length;
   const faltas    = isToday ? records.filter(r => r.status === 'absent').length : 0;
   const atrasos   = isToday ? records.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length : 0;
@@ -1548,7 +1564,7 @@ function Financial({ companyId }) {
 
 function EscalasHoje({ companyId }) {
   const [showModal, setShowModal] = useState(false);
-  const [notes, setNotes] = useState({});
+  const [notes, setNotes] = useNotes();
   const todayRecords  = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === TODAY);
   const escala        = todayRecords.length;
   const faltas        = todayRecords.filter(r => r.status === 'absent').length;
@@ -1929,7 +1945,7 @@ function DiaDetalheRelModal({ date, records, onClose }) {
   const heCount  = ativos.filter(r => r.overtime).length;
   const [, m, d] = date.split('-');
   const dow = DOW_SHORT[new Date(`${date}T12:00:00`).getDay()];
-  const [notes, setNotes] = useState({});
+  const [notes, setNotes] = useNotes();
 
   const TIMES = [
     { label: 'Entrada',   key: 'checkIn' },
