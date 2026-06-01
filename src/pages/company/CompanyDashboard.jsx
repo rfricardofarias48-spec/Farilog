@@ -235,36 +235,36 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
       {/* Stats */}
       {isToday ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', marginBottom: '4px' }}>Escala</p>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#EEF2F7', textAlign: 'center' }}>
+            <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>Escala</p>
             <p style={{ fontSize: '24px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{escala}</p>
           </div>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC' }}>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#EEF2F7' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '10px', color: '#64748B' }}>Faltas</span>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: faltas > 0 ? '#E11D48' : '#CBD5E1' }}>{faltas}</span>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#475569' }}>Faltas</span>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: faltas > 0 ? '#E11D48' : '#94A3B8' }}>{faltas}</span>
               </div>
-              <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)' }} />
+              <div style={{ height: '1px', background: 'rgba(0,0,0,0.12)' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '10px', color: '#64748B' }}>Atrasos</span>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: atrasos > 0 ? '#D97706' : '#CBD5E1' }}>{atrasos}</span>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#475569' }}>Atrasos</span>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: atrasos > 0 ? '#D97706' : '#94A3B8' }}>{atrasos}</span>
               </div>
             </div>
           </div>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', marginBottom: '4px' }}>Presença</p>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: escala > 0 ? pctColor : '#CBD5E1', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
-            <p style={{ fontSize: '10px', color: '#94A3B8', marginTop: '2px' }}>{escala > 0 ? `${presentes}/${escala}` : '0/0'}</p>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#EEF2F7', textAlign: 'center' }}>
+            <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>Presença</p>
+            <p style={{ fontSize: '20px', fontWeight: 800, color: escala > 0 ? pctColor : '#94A3B8', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', marginTop: '2px' }}>{escala > 0 ? `${presentes}/${escala}` : '0/0'}</p>
           </div>
         </div>
       ) : (
-        <div style={{ padding: '10px 16px', borderRadius: '10px', background: '#F8FAFC', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ padding: '10px 16px', borderRadius: '10px', background: '#EEF2F7', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', marginBottom: '2px' }}>Escala</p>
+            <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>Escala</p>
             <p style={{ fontSize: '28px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{escala}</p>
           </div>
-          <span style={{ fontSize: '11px', color: '#94A3B8' }}>ajudante{escala !== 1 ? 's' : ''} agendado{escala !== 1 ? 's' : ''}</span>
+          <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>ajudante{escala !== 1 ? 's' : ''} agendado{escala !== 1 ? 's' : ''}</span>
         </div>
       )}
 
@@ -278,7 +278,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
       {/* Lista de ajudantes */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.06em', textTransform: 'uppercase', margin: 0 }}>
+          <p style={{ fontSize: '10px', fontWeight: 700, color: '#64748B', letterSpacing: '0.06em', textTransform: 'uppercase', margin: 0 }}>
             Ajudantes
           </p>
           {records.length > 0 && (
@@ -297,17 +297,17 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
               const emp = getEmployee(rec.employeeId);
               const isAbsent = rec.status === 'absent';
               return (
-                <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '10px', background: '#F8FAFC' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: isAbsent ? '#F1F5F9' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#94A3B8' : 'white', flexShrink: 0 }}>
+                <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', borderRadius: '10px', background: '#EEF2F7' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
                     {emp?.initials}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{emp?.name}</p>
-                    <p style={{ fontSize: '10px', color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rec.service}</p>
+                    <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#64748B' : '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{emp?.name}</p>
+                    <p style={{ fontSize: '10px', fontWeight: 500, color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rec.service}</p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-                    <Clock size={10} style={{ color: '#94A3B8' }} />
-                    <span style={{ fontSize: '11px', fontWeight: 600, color: isAbsent ? '#E11D48' : (rec.checkIn ? '#0F172A' : '#94A3B8') }}>
+                    <Clock size={10} style={{ color: '#64748B' }} />
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#E11D48' : (rec.checkIn ? '#0F172A' : '#64748B') }}>
                       {rec.checkIn ?? '—'}
                     </span>
                   </div>
