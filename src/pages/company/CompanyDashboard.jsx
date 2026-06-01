@@ -272,14 +272,9 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
     }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', color: accentColor, textTransform: 'uppercase' }}>{title}</span>
-          <p className="text-sm font-bold mt-0.5" style={T}>{date ? fmtDateShort(date) : 'Sem agendamento'}</p>
-        </div>
-        <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 9px', borderRadius: '6px', background: badgeBg, color: accentColor, whiteSpace: 'nowrap' }}>
-          {badgeLabel}
-        </span>
+      <div>
+        <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', color: accentColor, textTransform: 'uppercase' }}>{title}</span>
+        <p className="text-sm font-bold mt-0.5" style={T}>{date ? fmtDateShort(date) : 'Sem agendamento'}</p>
       </div>
 
       {/* Stats */}
@@ -364,13 +359,6 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                       {fmtTime(rec.checkIn) ?? '—'}
                     </span>
                   </div>
-                  <span style={{
-                    fontSize: '9px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px', flexShrink: 0,
-                    background: isAbsent ? '#FFE4E6' : rec.status === 'active' ? '#DCFCE7' : rec.status === 'scheduled' ? '#EFF6FF' : '#F1F5F9',
-                    color: isAbsent ? '#BE123C' : rec.status === 'active' ? '#059669' : rec.status === 'scheduled' ? '#2563EB' : '#64748B',
-                  }}>
-                    {isAbsent ? 'Falta' : rec.status === 'active' ? 'Ativo' : rec.status === 'scheduled' ? 'Agend.' : 'OK'}
-                  </span>
                 </div>
               );
             })}
