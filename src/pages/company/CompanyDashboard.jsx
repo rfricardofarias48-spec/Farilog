@@ -1978,14 +1978,15 @@ function RelatorioTab({ companyId }) {
     doc.text('Relatório Quinzenal', 14, 15);
 
     // Período à direita
+    const pdfRange = `(${String(sday).padStart(2,'0')}/${String(sm).padStart(2,'0')} a ${String(eday).padStart(2,'0')}/${String(sm).padStart(2,'0')})`;
     doc.setFontSize(8); doc.setTextColor(180, 190, 210);
-    doc.text(`${label}`, 196, 9,  { align: 'right' });
-    doc.text(rangeStr,   196, 15, { align: 'right' });
+    doc.text(`${label}  ${pdfRange}`, 196, 12, { align: 'right' });
 
     // ── Linha de meta dados ──────────────────────────────────
     doc.setFontSize(8); doc.setFont('helvetica', 'normal');
     doc.setTextColor(...light);
-    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 27);
+    doc.text(`Período: ${label}  ${pdfRange}`, 14, 27);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 32);
 
     // ── Resumo do Período ────────────────────────────────────
     doc.setFontSize(9); doc.setFont('helvetica', 'bold');
