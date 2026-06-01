@@ -2076,7 +2076,7 @@ function RelatorioTab({ companyId }) {
       </div>
 
       {/* Navegador quinzena — caixa branca */}
-      <div className="card flex items-center justify-between p-3">
+      <div className="card flex items-center justify-between p-3" style={{ background: '#FFFFFF' }}>
         {navBtn(<ChevronLeft size={15} />, () => setOffset(o => o - 1))}
         <div className="text-center">
           <p className="text-sm font-bold" style={{ color: '#0F172A' }}>{label}</p>
@@ -2086,9 +2086,9 @@ function RelatorioTab({ companyId }) {
       </div>
 
       {/* Stats — caixa branca com duas colunas */}
-      <div className="card p-0 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr' }}>
+      <div className="card p-0 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', background: '#FFFFFF' }}>
         {/* Diárias */}
-        <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ padding: '14px 20px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Diárias:</span>
             <span style={{ fontSize: '16px', fontWeight: 800, color: '#FF4D0C' }}>{totalDiarias}</span>
@@ -2101,7 +2101,7 @@ function RelatorioTab({ companyId }) {
         {/* Divisor vertical */}
         <div style={{ background: 'rgba(0,0,0,0.06)' }} />
         {/* H. Extra */}
-        <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ padding: '14px 20px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Horas Extras:</span>
             <span style={{ fontSize: '16px', fontWeight: 800, color: '#D97706' }}>{fmtHoursCount(totalHE)}</span>
