@@ -435,7 +435,7 @@ function Panel({ companyId, setTab, companyName }) {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h2 className="text-xl" style={T}><span className="font-bold">Olá,</span> <span style={{ fontWeight: 400 }}>{companyName}</span></h2>
+        <h2 className="text-xl font-bold" style={T}>Olá, <span style={{ fontWeight: 400, fontSize: '16px' }}>{companyName}</span></h2>
       </div>
 
       {/* Duas caixas lado a lado */}
