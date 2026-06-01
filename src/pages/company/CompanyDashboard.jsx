@@ -2088,27 +2088,27 @@ function RelatorioTab({ companyId }) {
       {/* Stats — caixa branca com duas colunas */}
       <div className="card p-0 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', background: '#FFFFFF' }}>
         {/* Diárias */}
-        <div style={{ padding: '14px 20px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-            Diárias: <span style={{ color: '#059669' }}>{totalDiarias}</span>
+        <div style={{ padding: '14px 20px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+            Diárias: <span style={{ color: '#0369A1' }}>{totalDiarias}</span>
           </p>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-            Valor: <span style={{ color: '#059669' }}>{fmtCurrency(totalValorDiarias)}</span>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+            Valor: <span style={{ color: '#0369A1' }}>{fmtCurrency(totalValorDiarias)}</span>
           </p>
         </div>
         {/* Divisor vertical */}
         <div style={{ background: 'rgba(0,0,0,0.06)' }} />
         {/* H. Extra */}
-        <div style={{ padding: '14px 20px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-            Horas Extras: <span style={{ color: '#059669' }}>{fmtHoursCount(totalHE)}</span>
+        <div style={{ padding: '14px 20px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+            Horas Extras: <span style={{ color: '#0369A1' }}>{fmtHoursCount(totalHE)}</span>
           </p>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-            Valor HE: <span style={{ color: '#059669' }}>{fmtCurrency(totalValorHE)}</span>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+            Valor HE: <span style={{ color: '#0369A1' }}>{fmtCurrency(totalValorHE)}</span>
           </p>
           <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '2px 0' }} />
-          <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-            Total: <span style={{ color: '#059669' }}>{fmtCurrency(totalGeral)}</span>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+            Total: <span style={{ color: '#0369A1' }}>{fmtCurrency(totalGeral)}</span>
           </p>
         </div>
       </div>

@@ -111,7 +111,7 @@ export const DAILY_HELPERS = [
 ];
 
 export const fmtCurrency = (val) =>
-  val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/R\$\s/, 'R$');
 
 export const fmtDate = (dateStr) => {
   const [y, m, d] = dateStr.split('-');
