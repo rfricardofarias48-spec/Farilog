@@ -389,8 +389,6 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                     const isAbsent = rec.status === 'absent';
                     return (
                       <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 8px', borderRadius: '8px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
-                        {/* Indicador de função */}
-                        <div style={{ width: '6px', height: '6px', borderRadius: '2px', background: color, flexShrink: 0 }} />
                         {/* Avatar */}
                         <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
                           {emp?.initials}
@@ -1641,7 +1639,6 @@ function EscalasHoje({ companyId }) {
                   const isAbsent = rec.status === 'absent';
                   return (
                     <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
-                      <div style={{ width: '6px', height: '6px', borderRadius: '2px', background: color, flexShrink: 0 }} />
                       <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
                       <div style={{ minWidth: '100px', flexShrink: 0 }}>
                         <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2 }}>{emp?.name}</p>
@@ -1980,7 +1977,6 @@ function DiaDetalheRelModal({ date, records, onClose }) {
                   const emp = getEmployee(rec.employeeId);
                   return (
                     <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
-                      <div style={{ width: '6px', height: '6px', borderRadius: '2px', background: color, flexShrink: 0 }} />
                       <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
                       <div style={{ minWidth: '110px', flexShrink: 0 }}>
                         <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', lineHeight: 1.2 }}>{emp?.name}</p>
