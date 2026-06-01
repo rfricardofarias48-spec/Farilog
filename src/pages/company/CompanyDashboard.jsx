@@ -25,6 +25,13 @@ const TM = { color: '#94A3B8' };
 
 function getEmployee(id) { return EMPLOYEES.find(e => e.id === id); }
 
+// Garante formato HH:MM com zeros à esquerda
+const fmtTime = (t) => {
+  if (!t) return null;
+  const [h, m] = t.split(':');
+  return `${String(h).padStart(2,'0')}:${String(m ?? '00').padStart(2,'0')}`;
+};
+
 // ── Helpers: quinzena detection & chart data ───────────────────────────────
 const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -166,7 +173,7 @@ function AjudantesModal({ records, escala, faltas, atrasos, onClose }) {
                       <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
                       <div className="flex items-center justify-center gap-1" style={{ color: t.value ? '#0F172A' : '#CBD5E1' }}>
                         <Clock size={10} />
-                        <span className="text-xs font-semibold">{t.value ?? '—'}</span>
+                        <span className="text-xs font-semibold">{fmtTime(t.value) ?? '—'}</span>
                       </div>
                     </div>
                   ))}
@@ -348,7 +355,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                   <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
                     <Clock size={10} style={{ color: '#64748B' }} />
                     <span style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#E11D48' : (rec.checkIn ? '#0F172A' : '#64748B') }}>
-                      {rec.checkIn ?? '—'}
+                      {fmtTime(rec.checkIn) ?? '—'}
                     </span>
                   </div>
                   <span style={{
@@ -505,7 +512,7 @@ function DiaModal({ date, records, onClose }) {
                     <p style={{ fontSize:'9px', color:'#94A3B8', fontWeight:500, marginBottom:'2px' }}>{t.label}</p>
                     <div className="flex items-center justify-center gap-1" style={{ color: t.value ? '#0F172A' : '#CBD5E1' }}>
                       <Clock size={10} />
-                      <span className="text-xs font-semibold">{t.value ?? '—'}</span>
+                      <span className="text-xs font-semibold">{fmtTime(t.value) ?? '—'}</span>
                     </div>
                   </div>
                 ))}
@@ -1812,58 +1819,90 @@ function SettingsTab({ company }) {
 
 // ── Modal: ajudantes do dia no relatório ──────────────────────────────────
 function DiaDetalheRelModal({ date, records, onClose }) {
-  const ativos = records.filter(r => r.status !== 'absent');
+  const ativos  = records.filter(r => r.status !== 'absent');
+  const ausentes = records.filter(r => r.status === 'absent');
   const [, m, d] = date.split('-');
   const dow = DOW_SHORT[new Date(`${date}T12:00:00`).getDay()];
 
+  const TIMES = [
+    { label: 'Entrada',   key: 'checkIn' },
+    { label: 'S. Almoço', key: 'lunchOut' },
+    { label: 'Retorno',   key: 'lunchReturn' },
+    { label: 'Saída',     key: 'checkOut' },
+    { label: 'H. Extra',  key: 'overtime' },
+  ];
+
   return createPortal(
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-box animate-fade-up" style={{ maxWidth: '700px' }}>
-        <div className="flex items-start justify-between mb-4">
+      <div className="modal-box animate-fade-up" style={{ maxWidth: '720px' }}>
+
+        {/* Header */}
+        <div className="flex items-start justify-between mb-5">
           <div>
-            <p className="text-xs font-semibold uppercase" style={{ color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '4px' }}>Ajudantes do dia</p>
-            <h2 className="text-base font-bold" style={{ color: '#0F172A' }}>{dow}, {d}/{m}</h2>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '6px', background: '#FFF2EE', color: '#CC3D00', marginTop: '8px' }}>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#FF4D0C', display: 'inline-block' }} />
-              {ativos.length} em serviço
-            </span>
+            <p className="text-xs font-semibold uppercase" style={{ color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '6px' }}>Ajudantes em serviço</p>
+            <h2 className="text-lg font-bold" style={{ color: '#0F172A' }}>{dow}, {d}/{m}</h2>
+            <div className="flex gap-2 mt-2 flex-wrap">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: '#FFF2EE', color: '#CC3D00' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FF4D0C', display: 'inline-block' }} />
+                {ativos.length} ativo{ativos.length !== 1 ? 's' : ''}
+              </span>
+              {ausentes.length > 0 && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: '#FFE4E6', color: '#BE123C' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#F43F5E', display: 'inline-block' }} />
+                  {ausentes.length} falta{ausentes.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
             <X size={15} />
           </button>
         </div>
 
+        {/* Lista */}
         <div className="card overflow-hidden">
           {ativos.length === 0 ? (
-            <div className="py-8 text-center text-sm" style={{ color: '#94A3B8' }}>Nenhum ajudante ativo neste dia</div>
-          ) : ativos.map(rec => {
+            <div className="py-10 text-center text-sm" style={{ color: '#94A3B8' }}>Nenhum ajudante ativo neste dia</div>
+          ) : ativos.map((rec, idx) => {
             const emp = getEmployee(rec.employeeId);
             return (
-              <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 1fr repeat(5, auto)' }}>
-                <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
-                <div className="px-3">
-                  <p className="text-xs font-semibold" style={{ color: '#0F172A' }}>{emp?.name}</p>
-                  <p className="text-xs" style={{ color: '#94A3B8' }}>{rec.service}</p>
+              <div key={rec.id} style={{
+                display: 'grid',
+                gridTemplateColumns: 'auto 1fr repeat(5, 72px)',
+                alignItems: 'center',
+                padding: '10px 16px',
+                gap: '4px',
+                borderBottom: idx < ativos.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                background: idx % 2 === 1 ? 'rgba(0,0,0,0.012)' : 'transparent',
+              }}>
+                <div className="avatar" style={{ background: emp?.color || '#94A3B8', marginRight: '4px' }}>{emp?.initials}</div>
+                <div className="px-2">
+                  <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>{emp?.name}</p>
+                  <p style={{ fontSize: '10px', color: '#64748B' }}>{rec.service}</p>
                 </div>
-                {[
-                  { label: 'Entrada',   value: rec.checkIn },
-                  { label: 'S. Almoço', value: rec.lunchOut },
-                  { label: 'Retorno',   value: rec.lunchReturn },
-                  { label: 'Saída',     value: rec.checkOut },
-                  { label: 'H. Extra',  value: rec.overtime },
-                ].map(t => (
-                  <div key={t.label} className="px-2 text-center">
-                    <p style={{ fontSize: '9px', color: '#94A3B8', marginBottom: '2px' }}>{t.label}</p>
-                    <div className="flex items-center gap-1 justify-center" style={{ color: t.value ? '#0F172A' : '#CBD5E1' }}>
-                      <Clock size={9} />
-                      <span style={{ fontSize: '11px', fontWeight: 600 }}>{t.value ?? '—'}</span>
+                {TIMES.map(t => {
+                  const val = fmtTime(rec[t.key]);
+                  const isHE = t.key === 'overtime';
+                  return (
+                    <div key={t.label} style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', marginBottom: '3px', letterSpacing: '0.03em' }}>{t.label}</p>
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '3px',
+                        padding: '2px 6px', borderRadius: '6px',
+                        background: val ? (isHE ? '#FEF3C7' : '#EEF2F7') : 'transparent',
+                        color: val ? (isHE ? '#B45309' : '#0F172A') : '#CBD5E1',
+                      }}>
+                        <Clock size={9} />
+                        <span style={{ fontSize: '11px', fontWeight: 700 }}>{val ?? '—'}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })}
         </div>
+
       </div>
     </div>,
     document.body
@@ -1913,25 +1952,24 @@ function RelatorioTab({ companyId }) {
 
   const rangeStr = `${String(sday).padStart(2,'0')}/${String(sm).padStart(2,'0')} — ${String(eday).padStart(2,'0')}/${String(sm).padStart(2,'0')}/${sy}`;
 
-  const COL = '1fr 60px 100px 60px 110px 104px 18px';
-
+  // PDF
   const exportPDF = () => {
-    const doc    = new jsPDF();
+    const doc = new jsPDF();
     const orange = [255, 77, 12];
     const grey   = [100, 116, 139];
 
     doc.setFillColor(...orange);
     doc.rect(0, 0, 210, 18, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(13); doc.setFont('helvetica','bold');
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold');
     doc.text('FariLog — Relatório Quinzenal', 14, 12);
 
-    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
     doc.setTextColor(...grey);
     doc.text(`Período: ${label}   ·   ${rangeStr}`, 14, 24);
     doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
 
-    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
     doc.text('Resumo do Período', 14, 40);
 
@@ -1950,7 +1988,7 @@ function RelatorioTab({ companyId }) {
     });
 
     const y2 = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
     doc.text('Extrato por Dia', 14, y2);
 
@@ -1959,11 +1997,11 @@ function RelatorioTab({ companyId }) {
       head: [['Data', 'Diárias', 'Val. Diária', 'H. Extra', 'Val. H. Extra', 'Total Dia']],
       body: allDays.filter(d => !d.isWeekend).map(d => [
         d.label,
-        d.diarias   > 0 ? String(d.diarias)              : '—',
-        d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias) : '—',
-        d.heCount   > 0 ? String(d.heCount)              : '—',
-        d.valorHE   > 0 ? fmtCurrency(d.valorHE)         : '—',
-        d.total     > 0 ? fmtCurrency(d.total)           : '—',
+        d.diarias      > 0 ? String(d.diarias)              : '—',
+        d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias)    : '—',
+        d.heCount      > 0 ? String(d.heCount)              : '—',
+        d.valorHE      > 0 ? fmtCurrency(d.valorHE)         : '—',
+        d.total        > 0 ? fmtCurrency(d.total)           : '—',
       ]),
       headStyles: { fillColor: [241,245,249], textColor: grey, fontSize: 8, fontStyle: 'bold' },
       bodyStyles: { fontSize: 8, textColor: [15,23,42] },
@@ -1980,17 +2018,17 @@ function RelatorioTab({ companyId }) {
 
     const y3 = doc.lastAutoTable.finalY + 8;
     doc.setFillColor(255, 242, 238);
-    doc.roundedRect(14, y3, 182, 22, 3, 3, 'F');
-    doc.setFontSize(12); doc.setFont('helvetica','bold');
+    doc.roundedRect(14, y3, 182, 24, 3, 3, 'F');
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 77, 12);
     doc.text(`Total da Cobrança: ${fmtCurrency(totalGeral)}`, 20, y3 + 10);
     if (payment?.dueDate) {
       const lbl = payment.status === 'paid'
         ? `Pago em: ${fmtDate(payment.paidDate)}`
         : `Vencimento: ${fmtDate(payment.dueDate)}`;
-      doc.setFontSize(9); doc.setFont('helvetica','normal');
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal');
       doc.setTextColor(...grey);
-      doc.text(lbl, 20, y3 + 17);
+      doc.text(lbl, 20, y3 + 18);
     }
 
     const pageCount = doc.getNumberOfPages();
@@ -1999,16 +2037,17 @@ function RelatorioTab({ companyId }) {
       doc.setFontSize(7); doc.setTextColor(148, 163, 184);
       doc.text(`FariLog © ${new Date().getFullYear()}   |   Página ${i} de ${pageCount}`, 105, 290, { align: 'center' });
     }
-
-    doc.save(`relatorio-${label.replace(/[\/\s—]+/g,'-')}.pdf`);
+    doc.save(`relatorio-${label.replace(/[\/\s—]+/g, '-')}.pdf`);
   };
 
   const navBtn = (icon, fn) => (
     <button onClick={fn} className="p-1.5 rounded-lg"
-      style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex' }}>
+      style={{ background: '#EEF2F7', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex' }}>
       {icon}
     </button>
   );
+
+  const COL = '1fr 62px 104px 62px 112px 108px 18px';
 
   return (
     <div className="space-y-5">
@@ -2030,38 +2069,57 @@ function RelatorioTab({ companyId }) {
         </button>
       </div>
 
-      {/* Navegador de quinzena */}
+      {/* Navegador quinzena */}
       <div className="flex items-center justify-between p-3 rounded-xl"
-        style={{ background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.05)' }}>
+        style={{ background: '#EEF2F7', border: '1px solid rgba(0,0,0,0.06)' }}>
         {navBtn(<ChevronLeft size={15} />, () => setOffset(o => o - 1))}
         <div className="text-center">
           <p className="text-sm font-bold" style={{ color: '#0F172A' }}>{label}</p>
-          <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>{rangeStr}</p>
+          <p className="text-xs mt-0.5" style={{ color: '#64748B' }}>{rangeStr}</p>
         </div>
         {navBtn(<ChevronRight size={15} />, () => setOffset(o => Math.min(o + 1, 0)))}
       </div>
 
-      {/* Cards resumo */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
-        {[
-          { label: 'Total Diárias',  value: totalDiarias,                   color: '#FF4D0C', big: true },
-          { label: 'Valor Diárias',  value: fmtCurrency(totalValorDiarias), color: '#059669', big: false },
-          { label: 'Total H. Extra', value: totalHE,                         color: '#D97706', big: true },
-          { label: 'Valor H. Extra', value: fmtCurrency(totalValorHE),       color: '#059669', big: false },
-        ].map((s, i) => (
-          <div key={i} className="card p-4 text-center">
-            <p className="text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{s.label}</p>
-            <p style={{ fontSize: s.big ? '28px' : '17px', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</p>
+      {/* Stats — mesmo estilo do EscalaCard */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        {/* Diárias */}
+        <div style={{ padding: '14px 16px', borderRadius: '12px', background: '#EEF2F7' }}>
+          <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Diárias</p>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+            <p style={{ fontSize: '36px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{totalDiarias}</p>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: '10px', fontWeight: 600, color: '#64748B' }}>Valor total</p>
+              <p style={{ fontSize: '16px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(totalValorDiarias)}</p>
+            </div>
           </div>
-        ))}
+        </div>
+        {/* H. Extra */}
+        <div style={{ padding: '14px 16px', borderRadius: '12px', background: '#EEF2F7' }}>
+          <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Horas Extras</p>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+            <p style={{ fontSize: '36px', fontWeight: 800, color: '#D97706', lineHeight: 1 }}>{totalHE}</p>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: '10px', fontWeight: 600, color: '#64748B' }}>Valor total</p>
+              <p style={{ fontSize: '16px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(totalValorHE)}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Tabela por dia */}
       <div className="card overflow-hidden">
         {/* Cabeçalho */}
-        <div style={{ display: 'grid', gridTemplateColumns: COL, padding: '9px 16px', background: '#F1F5F9', borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
-          {['Data','Diárias','Val. Diária','H. Extra','Val. H. Extra','Total Dia',''].map((h, i) => (
-            <p key={i} style={{ fontSize: '10px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: i === 0 ? 'left' : 'center' }}>{h}</p>
+        <div style={{
+          display: 'grid', gridTemplateColumns: COL,
+          padding: '8px 16px', background: '#EEF2F7',
+          borderBottom: '2px solid rgba(0,0,0,0.06)',
+        }}>
+          {['Data', 'Diárias', 'Val. Diária', 'H. Extra', 'Val. H. Extra', 'Total Dia', ''].map((h, i) => (
+            <p key={i} style={{
+              fontSize: '10px', fontWeight: 700, color: '#475569',
+              textTransform: 'uppercase', letterSpacing: '0.05em',
+              textAlign: i === 0 ? 'left' : 'center',
+            }}>{h}</p>
           ))}
         </div>
 
@@ -2074,69 +2132,96 @@ function RelatorioTab({ companyId }) {
               disabled={!hasData}
               style={{
                 width: '100%', display: 'grid', gridTemplateColumns: COL,
-                alignItems: 'center', padding: '9px 16px', border: 'none',
-                background: day.isWeekend ? 'rgba(0,0,0,0.018)' : 'transparent',
+                alignItems: 'center', padding: '10px 16px', border: 'none',
+                background: day.isWeekend ? 'rgba(238,242,247,0.6)' : hasData ? 'transparent' : 'transparent',
                 cursor: hasData ? 'pointer' : 'default',
                 borderBottom: !isLast ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                borderLeft: hasData ? '3px solid #FF4D0C' : '3px solid transparent',
                 transition: 'background 0.12s',
               }}
-              onMouseEnter={e => { if (hasData) e.currentTarget.style.background = '#F8FAFC'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = day.isWeekend ? 'rgba(0,0,0,0.018)' : 'transparent'; }}
+              onMouseEnter={e => { if (hasData) e.currentTarget.style.background = '#FFF2EE'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = day.isWeekend ? 'rgba(238,242,247,0.6)' : 'transparent'; }}
             >
-              <p style={{ fontSize: '12px', fontWeight: day.isToday ? 700 : 500, color: day.isToday ? '#FF4D0C' : day.isWeekend ? '#CBD5E1' : '#0F172A', textAlign: 'left' }}>
-                {day.label}
-              </p>
-              <p style={{ fontSize: '15px', fontWeight: 800, color: day.diarias > 0 ? '#FF4D0C' : '#E2E8F0', textAlign: 'center' }}>
-                {day.diarias > 0 ? day.diarias : '—'}
-              </p>
+              {/* Data */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {day.isToday && (
+                  <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: '#FFF2EE', color: '#FF4D0C' }}>Hoje</span>
+                )}
+                <p style={{
+                  fontSize: '12px', fontWeight: hasData ? 600 : 400,
+                  color: day.isToday ? '#FF4D0C' : day.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8',
+                }}>{day.label}</p>
+              </div>
+
+              {/* Diárias */}
+              <div style={{ textAlign: 'center' }}>
+                {day.diarias > 0 ? (
+                  <span style={{ display: 'inline-block', fontSize: '14px', fontWeight: 800, color: '#FF4D0C' }}>{day.diarias}</span>
+                ) : (
+                  <span style={{ fontSize: '12px', color: '#E2E8F0' }}>—</span>
+                )}
+              </div>
+
+              {/* Val. Diária */}
               <p style={{ fontSize: '11px', fontWeight: 600, color: day.valorDiarias > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>
                 {day.valorDiarias > 0 ? fmtCurrency(day.valorDiarias) : '—'}
               </p>
-              <p style={{ fontSize: '15px', fontWeight: 800, color: day.heCount > 0 ? '#D97706' : '#E2E8F0', textAlign: 'center' }}>
-                {day.heCount > 0 ? day.heCount : '—'}
-              </p>
+
+              {/* H. Extra */}
+              <div style={{ textAlign: 'center' }}>
+                {day.heCount > 0 ? (
+                  <span style={{ display: 'inline-block', fontSize: '14px', fontWeight: 800, color: '#D97706' }}>{day.heCount}</span>
+                ) : (
+                  <span style={{ fontSize: '12px', color: '#E2E8F0' }}>—</span>
+                )}
+              </div>
+
+              {/* Val. H. Extra */}
               <p style={{ fontSize: '11px', fontWeight: 600, color: day.valorHE > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>
                 {day.valorHE > 0 ? fmtCurrency(day.valorHE) : '—'}
               </p>
-              <p style={{ fontSize: '12px', fontWeight: 700, color: day.total > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>
+
+              {/* Total Dia */}
+              <p style={{ fontSize: '12px', fontWeight: 800, color: day.total > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>
                 {day.total > 0 ? fmtCurrency(day.total) : '—'}
               </p>
+
+              {/* Chevron */}
               <div style={{ display: 'flex', justifyContent: 'center' }}>
-                {hasData && <ChevronRight size={12} style={{ color: '#CBD5E1' }} />}
+                {hasData && <ChevronRight size={13} style={{ color: '#FF4D0C' }} />}
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* Total da cobrança + vencimento */}
-      <div className="card p-5" style={{ borderLeft: '4px solid #FF4D0C' }}>
-        <div className="flex items-center justify-between">
+      {/* Total cobrança + vencimento */}
+      <div className="card p-5" style={{ borderTop: '3px solid #FF4D0C', boxShadow: '0 4px 20px rgba(255,77,12,0.1)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '16px', alignItems: 'center' }}>
           <div>
-            <p className="text-xs font-semibold" style={{ color: '#64748B' }}>Total da Cobrança</p>
-            <p className="text-3xl font-black mt-0.5" style={{ color: '#FF4D0C' }}>{fmtCurrency(totalGeral)}</p>
-            <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>
-              {totalDiarias} diária{totalDiarias !== 1 ? 's' : ''} · {totalHE} h. extra{totalHE !== 1 ? 's' : ''}
+            <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Total da Cobrança</p>
+            <p style={{ fontSize: '36px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{fmtCurrency(totalGeral)}</p>
+            <p className="text-xs mt-2" style={{ color: '#64748B' }}>
+              {totalDiarias} diária{totalDiarias !== 1 ? 's' : ''} (R$ {VALOR_DIARIA}/dia)
+              {totalHE > 0 && ` · ${totalHE} h. extra${totalHE !== 1 ? 's' : ''} (R$ ${VALOR_HORA_EXTRA}/h)`}
             </p>
           </div>
           {payment ? (
-            <div className="text-right">
-              <p className="text-xs font-semibold" style={{ color: '#64748B' }}>
+            <div style={{ textAlign: 'right', padding: '12px 16px', borderRadius: '12px', background: '#EEF2F7', minWidth: '140px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
                 {payment.status === 'paid' ? 'Pago em' : 'Vencimento'}
               </p>
-              <p className="text-xl font-bold mt-1" style={{
-                color: payment.status === 'paid' ? '#059669' : payment.status === 'overdue' ? '#E11D48' : '#D97706',
-              }}>
-                {payment.status === 'paid' && payment.paidDate
-                  ? fmtDate(payment.paidDate)
-                  : fmtDate(payment.dueDate)}
+              <p style={{ fontSize: '18px', fontWeight: 800, color: payment.status === 'paid' ? '#059669' : payment.status === 'overdue' ? '#E11D48' : '#D97706' }}>
+                {payment.status === 'paid' && payment.paidDate ? fmtDate(payment.paidDate) : fmtDate(payment.dueDate)}
               </p>
               <span className={`badge badge-${payment.status}`} style={{ marginTop: '6px', display: 'inline-block' }}>
                 {payment.status === 'paid' ? 'Pago' : payment.status === 'pending' ? 'Pendente' : 'Atrasado'}
               </span>
             </div>
           ) : (
-            <p className="text-xs" style={{ color: '#94A3B8' }}>Vencimento a definir</p>
+            <div style={{ padding: '12px 16px', borderRadius: '12px', background: '#EEF2F7' }}>
+              <p style={{ fontSize: '11px', color: '#94A3B8' }}>Vencimento a definir</p>
+            </div>
           )}
         </div>
       </div>
