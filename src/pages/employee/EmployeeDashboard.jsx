@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { WORK_RECORDS, COMPANIES, fmtCurrency, fmtDate, WEEKDAYS, MONTHS } from '../../data/mockData';
+import { fetchTodayRecord, subscribeToRecord } from '../../lib/db';
 import { STATUS_CONFIG } from '../admin/AdminDemanda';
 import {
   Clock, DollarSign, Calendar, CheckCircle2, AlertCircle,
@@ -43,8 +44,9 @@ function getQuinzenaBounds(date) {
 
 // ── Visão Geral ──────────────────────────────────────────────────────────────
 
-function VisaoGeral({ user, myRecords, demands, updateDemandStatus }) {
-  const todayRecord  = myRecords.find(r => r.date === TODAY);
+function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverride }) {
+  // todayOverride vem do Supabase (tempo real); fallback para mock
+  const todayRecord  = todayOverride !== undefined ? todayOverride : myRecords.find(r => r.date === TODAY);
   const nextRecord   = myRecords
     .filter(r => r.date > TODAY && r.status === 'scheduled')
     .sort((a, b) => a.date.localeCompare(b.date))[0];
@@ -485,8 +487,41 @@ export default function EmployeeDashboard() {
   const { user, demands, updateDemandStatus } = useAuth();
   const [tab, setTab] = useState('visao');
 
-  const myRecords = WORK_RECORDS.filter(r => r.employeeId === user.id)
+  // Registro de hoje vindo do Supabase (atualizado em tempo real)
+  const [liveRecord, setLiveRecord] = useState(null);
+  const [syncReady,  setSyncReady]  = useState(false);
+
+  const loadToday = useCallback(async () => {
+    const rec = await fetchTodayRecord(user.id, TODAY);
+    if (rec !== null) setLiveRecord(rec);
+    setSyncReady(true);
+  }, [user.id]);
+
+  useEffect(() => {
+    // Carga inicial
+    loadToday();
+
+    // Realtime: atualiza instantaneamente quando o ponto é batido
+    const unsubscribe = subscribeToRecord(user.id, TODAY, (rec) => {
+      setLiveRecord(rec);
+    });
+
+    // Polling a cada 30s como fallback (caso o realtime falhe)
+    const poll = setInterval(loadToday, 30_000);
+
+    return () => { unsubscribe(); clearInterval(poll); };
+  }, [loadToday]);
+
+  // Usa o registro do Supabase se disponível, senão usa o mock
+  const mockRecords = WORK_RECORDS.filter(r => r.employeeId === user.id)
     .sort((a, b) => b.date.localeCompare(a.date));
+
+  // Para o registro de hoje: Supabase tem prioridade sobre mock
+  const effectiveTodayRecord = syncReady ? liveRecord : mockRecords.find(r => r.date === TODAY);
+
+  const myRecords = mockRecords.map(r =>
+    r.date === TODAY && liveRecord ? liveRecord : r
+  );
 
   const weekday = WEEKDAYS[TODAY_DATE.getDay()];
   const month   = MONTHS[TODAY_DATE.getMonth()];
@@ -514,7 +549,7 @@ export default function EmployeeDashboard() {
         ))}
       </div>
 
-      {tab === 'visao'      && <VisaoGeral user={user} myRecords={myRecords} demands={demands} updateDemandStatus={updateDemandStatus} />}
+      {tab === 'visao'      && <VisaoGeral user={user} myRecords={myRecords} demands={demands} updateDemandStatus={updateDemandStatus} todayOverride={effectiveTodayRecord} />}
       {tab === 'pagamentos' && <Pagamentos user={user} myRecords={myRecords} />}
       {tab === 'historico'  && <Historico  myRecords={myRecords} />}
     </div>
