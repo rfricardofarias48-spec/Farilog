@@ -98,6 +98,7 @@ function buildPeriodChartData(companyId, startIso, endIso) {
     days.push({
       date,
       label: `${String(d).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
+      shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.filter(r => r.status !== 'absent').length,
       value: recs.filter(r => r.status !== 'absent').length * 150,
       isWeekend,
@@ -1445,7 +1446,9 @@ function Financial({ companyId }) {
                       </div>
                       <p className="text-sm font-bold" style={T}>{formatPeriod(p.period)}</p>
                     </div>
-                    <span className={`badge badge-${p.status}`}>{sLabel}</span>
+                    {p.status !== 'pending' && (
+                      <span className={`badge badge-${p.status}`}>{sLabel}</span>
+                    )}
                   </div>
 
                   {/* Grid de informações — ordem: Diárias, H.Extra, Vencimento, Valor fatura */}
