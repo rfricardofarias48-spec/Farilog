@@ -1506,7 +1506,7 @@ function EscalasHoje({ companyId }) {
           <p className="text-4xl font-black leading-none" style={{ color: '#FF4D0C' }}>{escala}</p>
         </div>
 
-        <div className="stat-card flex flex-col justify-between" style={{ minHeight: '110px' }}>
+        <div className="stat-card flex flex-col justify-center" style={{ minHeight: '110px' }}>
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium" style={T2}>Faltas</span>
