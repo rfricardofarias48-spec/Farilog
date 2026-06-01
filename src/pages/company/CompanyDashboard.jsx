@@ -32,6 +32,12 @@ const fmtTime = (t) => {
   return `${String(h).padStart(2,'0')}:${String(m ?? '00').padStart(2,'0')}`;
 };
 
+// Converte contagem de horas extras para formato HH:MM (ex: 3 → "03:00")
+const fmtHoursCount = (n) => {
+  if (!n) return '—';
+  return `${String(n).padStart(2,'0')}:00`;
+};
+
 // ── Helpers: quinzena detection & chart data ───────────────────────────────
 const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -1976,7 +1982,7 @@ function RelatorioTab({ companyId }) {
     autoTable(doc, {
       startY: 44,
       head: [['Diárias', 'Valor Diárias', 'H. Extras', 'Valor H. Extras', 'Total Geral']],
-      body: [[totalDiarias, fmtCurrency(totalValorDiarias), totalHE, fmtCurrency(totalValorHE), fmtCurrency(totalGeral)]],
+      body: [[totalDiarias, fmtCurrency(totalValorDiarias), fmtHoursCount(totalHE), fmtCurrency(totalValorHE), fmtCurrency(totalGeral)]],
       headStyles: { fillColor: orange, textColor: 255, fontSize: 9, fontStyle: 'bold' },
       bodyStyles: { fontSize: 10, fontStyle: 'bold', halign: 'center' },
       columnStyles: {
@@ -1999,7 +2005,7 @@ function RelatorioTab({ companyId }) {
         d.label,
         d.diarias      > 0 ? String(d.diarias)              : '—',
         d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias)    : '—',
-        d.heCount      > 0 ? String(d.heCount)              : '—',
+        fmtHoursCount(d.heCount),
         d.valorHE      > 0 ? fmtCurrency(d.valorHE)         : '—',
         d.total        > 0 ? fmtCurrency(d.total)           : '—',
       ]),
@@ -2069,9 +2075,8 @@ function RelatorioTab({ companyId }) {
         </button>
       </div>
 
-      {/* Navegador quinzena */}
-      <div className="flex items-center justify-between p-3 rounded-xl"
-        style={{ background: '#EEF2F7', border: '1px solid rgba(0,0,0,0.06)' }}>
+      {/* Navegador quinzena — caixa branca */}
+      <div className="card flex items-center justify-between p-3">
         {navBtn(<ChevronLeft size={15} />, () => setOffset(o => o - 1))}
         <div className="text-center">
           <p className="text-sm font-bold" style={{ color: '#0F172A' }}>{label}</p>
@@ -2080,10 +2085,10 @@ function RelatorioTab({ companyId }) {
         {navBtn(<ChevronRight size={15} />, () => setOffset(o => Math.min(o + 1, 0)))}
       </div>
 
-      {/* Stats — resumo compacto */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: 'rgba(0,0,0,0.06)', borderRadius: '12px', overflow: 'hidden' }}>
-        {/* Diárias — esquerda */}
-        <div style={{ padding: '14px 18px', background: '#EEF2F7', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      {/* Stats — caixa branca com duas colunas */}
+      <div className="card p-0 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr' }}>
+        {/* Diárias */}
+        <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Diárias:</span>
             <span style={{ fontSize: '16px', fontWeight: 800, color: '#FF4D0C' }}>{totalDiarias}</span>
@@ -2093,17 +2098,19 @@ function RelatorioTab({ companyId }) {
             <span style={{ fontSize: '13px', fontWeight: 700, color: '#059669' }}>{fmtCurrency(totalValorDiarias)}</span>
           </div>
         </div>
-        {/* H. Extra — direita */}
-        <div style={{ padding: '14px 18px', background: '#EEF2F7', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        {/* Divisor vertical */}
+        <div style={{ background: 'rgba(0,0,0,0.06)' }} />
+        {/* H. Extra */}
+        <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Horas Extras:</span>
-            <span style={{ fontSize: '16px', fontWeight: 800, color: '#D97706' }}>{totalHE}</span>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#D97706' }}>{fmtHoursCount(totalHE)}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Valor H.E.:</span>
             <span style={{ fontSize: '13px', fontWeight: 700, color: '#059669' }}>{fmtCurrency(totalValorHE)}</span>
           </div>
-          <div style={{ height: '1px', background: 'rgba(0,0,0,0.08)', margin: '2px 0' }} />
+          <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '1px 0' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Total:</span>
             <span style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>{fmtCurrency(totalGeral)}</span>
@@ -2174,11 +2181,9 @@ function RelatorioTab({ companyId }) {
 
               {/* H. Extra */}
               <div style={{ textAlign: 'center' }}>
-                {day.heCount > 0 ? (
-                  <span style={{ display: 'inline-block', fontSize: '14px', fontWeight: 800, color: '#D97706' }}>{day.heCount}</span>
-                ) : (
-                  <span style={{ fontSize: '12px', color: '#E2E8F0' }}>—</span>
-                )}
+                <span style={{ fontSize: '13px', fontWeight: 800, color: day.heCount > 0 ? '#D97706' : '#E2E8F0' }}>
+                  {fmtHoursCount(day.heCount)}
+                </span>
               </div>
 
               {/* Val. H. Extra */}
