@@ -53,11 +53,9 @@ export default function Login() {
       minHeight: '100vh',
       background: '#E8ECF0',
       display: 'flex',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       justifyContent: 'center',
       padding: '24px',
-      paddingTop: 'max(24px, 5vh)',
-      paddingBottom: '48px',
       fontFamily: 'Inter, sans-serif',
       overflowY: 'auto',
     }}>
