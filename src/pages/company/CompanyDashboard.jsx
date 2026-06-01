@@ -1295,27 +1295,41 @@ function Financial({ companyId }) {
               </div>
             </div>
 
-            <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={quinzenaData} margin={{ top:4, right:0, bottom:0, left:-28 }} barSize={16}>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={quinzenaData} margin={{ top: 8, right: 8, bottom: 4, left: 8 }} barSize={14} barCategoryGap="25%">
                 <defs>
                   <linearGradient id="finBar" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%"   stopColor="#059669" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#059669" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="#059669" stopOpacity={0.65} />
                   </linearGradient>
                   <linearGradient id="finToday" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%"   stopColor="#FF4D0C" stopOpacity={1} />
                     <stop offset="100%" stopColor="#FF4D0C" stopOpacity={0.7} />
                   </linearGradient>
                   <linearGradient id="finEmpty" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#E2E8F0" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#F1F5F9" stopOpacity={1} />
+                    <stop offset="0%"   stopColor="#E2E8F0" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="#F1F5F9" stopOpacity={0.9} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill:'#94A3B8', fontSize:10, fontFamily:'Inter' }} axisLine={false} tickLine={false} interval={1} />
-                <YAxis tick={{ fill:'#94A3B8', fontSize:10, fontFamily:'Inter' }} axisLine={false} tickLine={false} allowDecimals={false} domain={[0, maxValue + 150]} tickFormatter={v => v > 0 ? `R$${v}` : ''} />
-                <Tooltip content={<FinTooltip />} cursor={{ fill:'rgba(5,150,105,0.05)', radius:6 }} />
-                <Bar dataKey="value" radius={[6,6,0,0]}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: '#475569', fontSize: 10, fontFamily: 'Inter' }}
+                  axisLine={{ stroke: 'rgba(0,0,0,0.08)' }}
+                  tickLine={false}
+                  interval={0}
+                />
+                <YAxis
+                  width={55}
+                  tick={{ fill: '#475569', fontSize: 10, fontFamily: 'Inter' }}
+                  axisLine={false}
+                  tickLine={false}
+                  allowDecimals={false}
+                  domain={[0, maxValue + 200]}
+                  tickFormatter={v => v === 0 ? '' : `R$${v}`}
+                />
+                <Tooltip content={<FinTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 4 }} />
+                <Bar dataKey="value" radius={[5, 5, 0, 0]}>
                   {quinzenaData.map((d, i) => (
                     <Cell key={i} fill={d.isToday ? 'url(#finToday)' : d.isWeekend || d.count === 0 ? 'url(#finEmpty)' : 'url(#finBar)'} />
                   ))}
@@ -1323,14 +1337,14 @@ function Financial({ companyId }) {
               </BarChart>
             </ResponsiveContainer>
 
-            <div className="flex items-center gap-5 mt-3 pt-3" style={{ borderTop:'1px solid rgba(0,0,0,0.05)' }}>
+            <div className="flex items-center gap-5 mt-3 pt-3" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
               {[
-                { solid:'#059669', label:'Dias faturados' },
-                { solid:'#FF4D0C', label:'Hoje' },
-                { solid:'#E2E8F0', label:'Sem faturamento' },
-              ].map((l,i) => (
+                { solid: '#059669', label: 'Dias faturados' },
+                { solid: '#FF4D0C', label: 'Hoje' },
+                { solid: '#E2E8F0', label: 'Sem faturamento' },
+              ].map((l, i) => (
                 <div key={i} className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background:l.solid }} />
+                  <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: l.solid }} />
                   <span className="text-xs" style={TM}>{l.label}</span>
                 </div>
               ))}
