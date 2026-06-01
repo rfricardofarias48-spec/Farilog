@@ -2116,7 +2116,7 @@ function RelatorioTab({ companyId }) {
     </button>
   );
 
-  const COL = '1fr 62px 104px 62px 112px 108px 18px';
+  const COL = '130px 1fr 1fr 1fr 1fr 1fr 24px';
 
   return (
     <div className="space-y-5">
@@ -2188,7 +2188,7 @@ function RelatorioTab({ companyId }) {
             <p key={i} style={{
               fontSize: '10px', fontWeight: 700, color: '#475569',
               textTransform: 'uppercase', letterSpacing: '0.05em',
-              textAlign: i === 0 ? 'left' : 'center',
+              textAlign: 'center',
             }}>{h}</p>
           ))}
         </div>
@@ -2216,6 +2216,7 @@ function RelatorioTab({ companyId }) {
               <p style={{
                 fontSize: '12px', fontWeight: hasData ? 600 : 400,
                 color: day.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8',
+                textAlign: 'center',
               }}>{day.label}</p>
 
               {/* Diárias */}
