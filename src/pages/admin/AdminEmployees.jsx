@@ -35,7 +35,8 @@ function Modal({ employee, onSave, onClose }) {
               <div key={key} className={col === 2 ? 'col-span-2' : ''}>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
                 <input type={type || 'text'} placeholder={placeholder} required={required}
-                  value={form[key] ?? ''} onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
+                  autoComplete="off" value={form[key] ?? ''}
+                  onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
               </div>
             ))}
           </div>

@@ -22,6 +22,7 @@ function Modal({ company, onSave, onClose }) {
         type={opts.type || 'text'}
         placeholder={opts.placeholder}
         required={opts.required}
+        autoComplete="off"
         value={form[key] ?? ''}
         onChange={e => setForm({ ...form, [key]: e.target.value })}
         className="input-field"
@@ -38,7 +39,7 @@ function Modal({ company, onSave, onClose }) {
             <X size={15} />
           </button>
         </div>
-        <form onSubmit={e => { e.preventDefault(); onSave({ ...form, dailyRate: Number(form.dailyRate) }); }} className="space-y-3">
+        <form onSubmit={e => { e.preventDefault(); onSave({ ...form, dailyRate: Number(form.dailyRate) }); }} className="space-y-3" autoComplete="off">
           <div className="grid grid-cols-2 gap-3">
             {/* Linha 1: nome (full) */}
             {field('name',     'Razão Social',     { required: true, col: 2 })}
