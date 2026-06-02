@@ -653,17 +653,50 @@ function Relatorios() {
                 <span className="text-center">Val. HE</span>
                 <span className="text-center">Total</span>
               </div>
-              {allDays.filter(d => !d.isWeekend).map(d => (
-                <div key={d.date} className="px-5 py-2.5 grid text-xs"
-                  style={{ gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr', borderBottom: '1px solid rgba(0,0,0,0.03)', gap: '8px', background: d.date === TODAY ? '#FFFBF5' : 'transparent' }}>
-                  <span className="font-semibold" style={T}>{d.label}</span>
-                  <span className="text-center" style={TM}>{d.diarias > 0 ? d.diarias : '—'}</span>
-                  <span className="text-center" style={TM}>{d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias) : '—'}</span>
-                  <span className="text-center" style={TM}>{fmtHoursCount(d.heCount)}</span>
-                  <span className="text-center" style={TM}>{d.valorHE > 0 ? fmtCurrency(d.valorHE) : '—'}</span>
-                  <span className="text-center font-bold" style={{ color: d.total > 0 ? '#0F172A' : '#CBD5E1' }}>{d.total > 0 ? fmtCurrency(d.total) : '—'}</span>
-                </div>
-              ))}
+              {allDays.map((d, idx) => {
+                const hasData = d.diarias > 0 || d.heCount > 0;
+                const isLast  = idx === allDays.length - 1;
+                return (
+                  <div key={d.date} className="px-5 py-2.5 grid text-xs"
+                    style={{
+                      gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr',
+                      gap: '8px',
+                      borderBottom: !isLast ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                      borderLeft: hasData ? '3px solid #FF4D0C' : '3px solid transparent',
+                      background: d.isWeekend
+                        ? 'rgba(238,242,247,0.7)'
+                        : d.date === TODAY ? '#FFFBF5' : 'transparent',
+                    }}>
+                    {/* Data */}
+                    <span style={{
+                      fontWeight: hasData ? 600 : 400,
+                      color: d.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8',
+                    }}>
+                      {d.label}
+                    </span>
+                    {/* Diárias */}
+                    <span className="text-center" style={{ color: d.diarias > 0 ? '#0F172A' : '#E2E8F0', fontWeight: d.diarias > 0 ? 600 : 400 }}>
+                      {d.diarias > 0 ? d.diarias : '—'}
+                    </span>
+                    {/* Val. Diária */}
+                    <span className="text-center" style={{ color: d.valorDiarias > 0 ? '#059669' : '#E2E8F0', fontWeight: d.valorDiarias > 0 ? 600 : 400 }}>
+                      {d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias) : '—'}
+                    </span>
+                    {/* H. Extra */}
+                    <span className="text-center" style={{ color: d.heCount > 0 ? '#0F172A' : '#E2E8F0', fontWeight: d.heCount > 0 ? 600 : 400 }}>
+                      {fmtHoursCount(d.heCount)}
+                    </span>
+                    {/* Val. HE */}
+                    <span className="text-center" style={{ color: d.valorHE > 0 ? '#059669' : '#E2E8F0', fontWeight: d.valorHE > 0 ? 600 : 400 }}>
+                      {d.valorHE > 0 ? fmtCurrency(d.valorHE) : '—'}
+                    </span>
+                    {/* Total */}
+                    <span className="text-center font-bold" style={{ color: d.total > 0 ? '#0F172A' : '#E2E8F0' }}>
+                      {d.total > 0 ? fmtCurrency(d.total) : '—'}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
