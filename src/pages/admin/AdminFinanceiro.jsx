@@ -36,7 +36,7 @@ function calcPaymentTotal(payment, companies = []) {
   const pEnd   = parsePeriodEnd(payment.period_label ?? payment.period);
   if (!pStart || !pEnd) return { total: 0, diarias: 0, heCount: 0 };
 
-  const company   = companies.find(c => c.id === payment.companyId || c.id === payment.company_id);
+  const company   = companies.find(c => c.id === payment.companyId);
   const dailyRate = company?.dailyRate ?? 150;
   const he50Rate  = dailyRate / 8 * 1.5;
 

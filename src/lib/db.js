@@ -6,17 +6,19 @@ function mapRecord(r) {
   if (!r) return null;
   return {
     id:          r.id,
-    employeeId:  r.employee_id,
-    companyId:   r.company_id,
+    employeeId:  r.funcionario_id,
+    companyId:   r.empresa_id,
+    escalaId:    r.escala_id,
     date:        r.date,
-    service:     r.service,
-    checkIn:     r.check_in,
-    lunchOut:    r.lunch_out,
-    lunchReturn: r.lunch_return,
-    checkOut:    r.check_out,
-    overtime:    r.overtime,
+    service:     r.servico,
+    checkIn:     r.entrada,
+    lunchOut:    r.saida_almoco,
+    lunchReturn: r.retorno_almoco,
+    checkOut:    r.saida,
+    overtime:    r.hora_extra,
     status:      r.status,
-    value:       r.value,
+    value:       r.valor,
+    confirmacao: r.confirmacao,
   };
 }
 
@@ -32,8 +34,8 @@ function mapEmployee(r) {
     initials:     r.initials,
     color:        r.color,
     status:       r.status,
-    dailyRate:    Number(r.daily_rate),
-    overtimeRate: Number(r.overtime_rate ?? 50),
+    dailyRate:    Number(r.diaria),
+    overtimeRate: Number(r.hora_extra ?? 50),
   };
 }
 
@@ -46,11 +48,26 @@ function mapCompany(r) {
     email:     r.email,
     password:  r.password,
     phone:     r.phone,
-    contact:   r.contact,
+    contact:   r.responsavel,
     address:   r.address,
     location:  r.location,
-    dailyRate: Number(r.daily_rate ?? 150),
-    isActive:  r.is_active,
+    dailyRate: Number(r.diaria ?? 150),
+    isActive:  r.ativo,
+  };
+}
+
+function mapDemand(escala) {
+  return {
+    id:          escala.id,
+    companyId:   escala.empresa_id,
+    date:        escala.date,
+    time:        escala.horario,
+    service:     escala.servico,
+    employees:   (escala.work_records || []).map(wr => ({
+      employeeId: wr.funcionario_id,
+      status:     wr.confirmacao || 'aguardando',
+    })),
+    createdAt:   escala.created_at,
   };
 }
 
@@ -64,7 +81,8 @@ export async function loginAdmin(email, password) {
     .eq('password', password)
     .maybeSingle();
   if (error) { console.error('[db] loginAdmin:', error.message); return null; }
-  return data;
+  if (!data) return null;
+  return { ...data, initials: data.iniciais };
 }
 
 export async function loginEmployee(phoneOrEmail, password) {
@@ -105,17 +123,18 @@ export async function createEmployee(emp) {
   const { data, error } = await supabase
     .from('employees')
     .insert({
-      id:           emp.id,
-      name:         emp.name,
-      cargo:        emp.cargo || 'Ajudante de Logística',
-      phone:        emp.phone || null,
-      email:        emp.email || null,
-      password:     emp.password,
-      initials:     emp.initials,
-      color:        emp.color,
-      status:       emp.status || 'active',
-      daily_rate:   emp.dailyRate,
-      overtime_rate: emp.overtimeRate ?? 50,
+      id:                emp.id,
+      name:              emp.name,
+      cargo:             emp.cargo || 'Ajudante de Logística',
+      phone:             emp.phone || null,
+      email:             emp.email || null,
+      password:          emp.password,
+      initials:          emp.initials,
+      color:             emp.color,
+      status:            emp.status || 'active',
+      diaria:            emp.dailyRate,
+      hora_extra:        emp.overtimeRate ?? 50,
+      data_contratacao:  null,
     })
     .select()
     .single();
@@ -125,16 +144,16 @@ export async function createEmployee(emp) {
 
 export async function updateEmployee(id, emp) {
   const patch = {};
-  if (emp.name         !== undefined) patch.name          = emp.name;
-  if (emp.cargo        !== undefined) patch.cargo         = emp.cargo;
-  if (emp.phone        !== undefined) patch.phone         = emp.phone;
-  if (emp.email        !== undefined) patch.email         = emp.email;
-  if (emp.password     !== undefined) patch.password      = emp.password;
-  if (emp.initials     !== undefined) patch.initials      = emp.initials;
-  if (emp.color        !== undefined) patch.color         = emp.color;
-  if (emp.status       !== undefined) patch.status        = emp.status;
-  if (emp.dailyRate    !== undefined) patch.daily_rate    = emp.dailyRate;
-  if (emp.overtimeRate !== undefined) patch.overtime_rate = emp.overtimeRate;
+  if (emp.name         !== undefined) patch.name             = emp.name;
+  if (emp.cargo        !== undefined) patch.cargo            = emp.cargo;
+  if (emp.phone        !== undefined) patch.phone            = emp.phone;
+  if (emp.email        !== undefined) patch.email            = emp.email;
+  if (emp.password     !== undefined) patch.password         = emp.password;
+  if (emp.initials     !== undefined) patch.initials         = emp.initials;
+  if (emp.color        !== undefined) patch.color            = emp.color;
+  if (emp.status       !== undefined) patch.status           = emp.status;
+  if (emp.dailyRate    !== undefined) patch.diaria           = emp.dailyRate;
+  if (emp.overtimeRate !== undefined) patch.hora_extra       = emp.overtimeRate;
 
   const { data, error } = await supabase
     .from('employees')
@@ -167,16 +186,16 @@ export async function createCompany(co) {
   const { data, error } = await supabase
     .from('companies')
     .insert({
-      id:         co.id,
-      name:       co.name,
-      cnpj:       co.cnpj || null,
-      email:      co.email,
-      password:   co.password,
-      phone:      co.phone || null,
-      contact:    co.contact || null,
-      address:    co.address || null,
-      location:   co.location || null,
-      daily_rate: co.dailyRate ?? 150,
+      id:          co.id,
+      name:        co.name,
+      cnpj:        co.cnpj || null,
+      email:       co.email,
+      password:    co.password,
+      phone:       co.phone || null,
+      responsavel: co.contact || null,
+      address:     co.address || null,
+      location:    co.location || null,
+      diaria:      co.dailyRate ?? 150,
     })
     .select()
     .single();
@@ -186,15 +205,15 @@ export async function createCompany(co) {
 
 export async function updateCompany(id, co) {
   const patch = {};
-  if (co.name      !== undefined) patch.name       = co.name;
-  if (co.cnpj      !== undefined) patch.cnpj       = co.cnpj;
-  if (co.email     !== undefined) patch.email      = co.email;
-  if (co.password  !== undefined) patch.password   = co.password;
-  if (co.phone     !== undefined) patch.phone      = co.phone;
-  if (co.contact   !== undefined) patch.contact    = co.contact;
-  if (co.address   !== undefined) patch.address    = co.address;
-  if (co.location  !== undefined) patch.location   = co.location;
-  if (co.dailyRate !== undefined) patch.daily_rate = co.dailyRate;
+  if (co.name      !== undefined) patch.name        = co.name;
+  if (co.cnpj      !== undefined) patch.cnpj        = co.cnpj;
+  if (co.email     !== undefined) patch.email       = co.email;
+  if (co.password  !== undefined) patch.password    = co.password;
+  if (co.phone     !== undefined) patch.phone       = co.phone;
+  if (co.contact   !== undefined) patch.responsavel = co.contact;
+  if (co.address   !== undefined) patch.address     = co.address;
+  if (co.location  !== undefined) patch.location    = co.location;
+  if (co.dailyRate !== undefined) patch.diaria      = co.dailyRate;
 
   const { data, error } = await supabase
     .from('companies')
@@ -212,13 +231,70 @@ export async function deleteCompany(id) {
   return true;
 }
 
+// ── Demands (Escalas) ──────────────────────────────────────────────────────
+
+export async function fetchDemands() {
+  const { data, error } = await supabase
+    .from('escalas')
+    .select('*, work_records(*)')
+    .order('date', { ascending: false });
+  if (error) { console.error('[db] fetchDemands:', error.message); return []; }
+  return data.map(mapDemand);
+}
+
+export async function createDemand({ companyId, date, time, service, employeeIds, adminId }) {
+  const escalaId = crypto.randomUUID();
+
+  const { data: escala, error: escErr } = await supabase
+    .from('escalas')
+    .insert({
+      id:         escalaId,
+      empresa_id: companyId,
+      date,
+      horario:    time || null,
+      servico:    service || null,
+      status:     'scheduled',
+      criado_por: adminId || null,
+    })
+    .select()
+    .single();
+
+  if (escErr) { console.error('[db] createDemand escala:', escErr.message); return null; }
+
+  const workRecords = employeeIds.map(empId => ({
+    id:           crypto.randomUUID(),
+    escala_id:    escalaId,
+    funcionario_id: empId,
+    empresa_id:   companyId,
+    date,
+    servico:      service || null,
+    status:       'scheduled',
+    confirmacao:  'aguardando',
+    valor:        150,
+  }));
+
+  const { error: wrErr } = await supabase.from('work_records').insert(workRecords);
+  if (wrErr) { console.error('[db] createDemand work_records:', wrErr.message); return null; }
+
+  return mapDemand({ ...escala, work_records: workRecords });
+}
+
+export async function updateDemandEmployeeStatus(escalaId, employeeId, confirmacao) {
+  const { error } = await supabase
+    .from('work_records')
+    .update({ confirmacao })
+    .eq('escala_id', escalaId)
+    .eq('funcionario_id', employeeId);
+  if (error) { console.error('[db] updateDemandEmployeeStatus:', error.message); }
+}
+
 // ── Work Records ───────────────────────────────────────────────────────────
 
 export async function fetchTodayRecord(employeeId, today) {
   const { data, error } = await supabase
     .from('work_records')
     .select('*')
-    .eq('employee_id', employeeId)
+    .eq('funcionario_id', employeeId)
     .eq('date', today)
     .maybeSingle();
   if (error) { console.error('[db] fetchTodayRecord:', error.message); return null; }
@@ -229,7 +305,7 @@ export async function fetchEmployeeRecords(employeeId) {
   const { data, error } = await supabase
     .from('work_records')
     .select('*')
-    .eq('employee_id', employeeId)
+    .eq('funcionario_id', employeeId)
     .order('date', { ascending: false });
   if (error) { console.error('[db] fetchEmployeeRecords:', error.message); return []; }
   return data.map(mapRecord);
@@ -244,7 +320,7 @@ export function subscribeToRecord(employeeId, today, onChange) {
         event:  '*',
         schema: 'public',
         table:  'work_records',
-        filter: `employee_id=eq.${employeeId}`,
+        filter: `funcionario_id=eq.${employeeId}`,
       },
       (payload) => {
         const rec = mapRecord(payload.new || payload.old);

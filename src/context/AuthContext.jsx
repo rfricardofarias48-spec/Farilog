@@ -1,5 +1,9 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { loginAdmin, loginEmployee, loginCompany, fetchEmployees, fetchCompanies } from '../lib/db';
+import {
+  loginAdmin, loginEmployee, loginCompany,
+  fetchEmployees, fetchCompanies, fetchDemands,
+  createDemand, updateDemandEmployeeStatus,
+} from '../lib/db';
 
 const AuthContext = createContext(null);
 
@@ -7,21 +11,31 @@ export function AuthProvider({ children }) {
   const [user, setUser]           = useState(null);
   const [employees, setEmployees] = useState([]);
   const [companies, setCompanies] = useState([]);
-  const [loading, setLoading]     = useState(true);
   const [demands, setDemands]     = useState([]);
+  const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
-    Promise.all([fetchEmployees(), fetchCompanies()])
-      .then(([emps, cos]) => {
+    Promise.all([fetchEmployees(), fetchCompanies(), fetchDemands()])
+      .then(([emps, cos, dems]) => {
         setEmployees(emps);
         setCompanies(cos);
+        setDemands(dems);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  const addDemand = (demand) => setDemands(prev => [demand, ...prev]);
+  const addDemand = async ({ companyId, date, time, service, employeeIds, adminId }) => {
+    const saved = await createDemand({ companyId, date, time, service, employeeIds, adminId });
+    if (saved) {
+      // attach companyName for display
+      const company = companies.find(c => c.id === companyId);
+      setDemands(prev => [{ ...saved, companyName: company?.name }, ...prev]);
+    }
+    return saved;
+  };
 
-  const updateDemandStatus = (demandId, employeeId, status) => {
+  const updateDemandStatus = async (demandId, employeeId, status) => {
+    // Optimistic update
     setDemands(prev => prev.map(d =>
       d.id === demandId
         ? { ...d, employees: d.employees.map(e =>
@@ -29,6 +43,7 @@ export function AuthProvider({ children }) {
           )}
         : d
     ));
+    await updateDemandEmployeeStatus(demandId, employeeId, status);
   };
 
   const login = async (email, password) => {

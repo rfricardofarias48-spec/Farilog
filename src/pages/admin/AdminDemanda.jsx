@@ -191,23 +191,25 @@ export default function AdminDemanda() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.companyId) { setError('Selecione uma empresa.'); return; }
     if (form.selectedEmployees.length === 0) { setError('Selecione ao menos um ajudante.'); return; }
     setError('');
+    setSaving(true);
 
-    const company = companies.find(c => c.id === form.companyId);
-    addDemand({
-      id: `demand-${Date.now()}`,
+    const saved = await addDemand({
       companyId:   form.companyId,
-      companyName: company?.name,
       date:        form.date,
       time:        form.time,
       service:     form.service || 'Serviço geral',
-      employees:   form.selectedEmployees.map(id => ({ employeeId: id, status: 'aguardando' })),
-      createdAt:   new Date().toISOString(),
+      employeeIds: form.selectedEmployees,
     });
+
+    setSaving(false);
+    if (!saved) { setError('Erro ao salvar demanda. Tente novamente.'); return; }
 
     setForm({ companyId: '', date: new Date().toISOString().slice(0,10), time: '07:30', service: '', selectedEmployees: [] });
     setSearch('');
@@ -215,7 +217,7 @@ export default function AdminDemanda() {
     setTimeout(() => setSuccess(false), 3000);
   };
 
-  const canSubmit = form.companyId && form.selectedEmployees.length > 0;
+  const canSubmit = form.companyId && form.selectedEmployees.length > 0 && !saving;
 
   return (
     <div className="space-y-6">
@@ -344,7 +346,7 @@ export default function AdminDemanda() {
               boxShadow: canSubmit ? '0 2px 10px rgba(255,77,12,0.3)' : 'none',
               transition:'all 0.2s',
             }}>
-              <Send size={14} /> Lançar Demanda
+              <Send size={14} /> {saving ? 'Salvando...' : 'Lançar Demanda'}
             </button>
 
             {success && (
