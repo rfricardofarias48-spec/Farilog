@@ -15,15 +15,19 @@ function Modal({ company, onSave, onClose }) {
   const he50    = (rate / 8 * 1.5).toFixed(2);
   const he100   = (rate / 8 * 2).toFixed(2);
 
-  const fields = [
-    { key: 'name',      label: 'Razão Social',                required: true, col: 2 },
-    { key: 'cnpj',      label: 'CNPJ',                        required: true, placeholder: '00.000.000/0001-00' },
-    { key: 'contact',   label: 'Responsável',                  required: true },
-    { key: 'phone',     label: 'Telefone',                     placeholder: '(00) 00000-0000' },
-    { key: 'email',     label: 'E-mail de acesso',             required: true, type: 'email', col: 2 },
-    { key: 'password',  label: company ? 'Nova senha (opcional)' : 'Senha de acesso', type: 'password', col: 2 },
-    { key: 'address',   label: 'Endereço completo',            col: 2 },
-  ];
+  const field = (key, label, opts = {}) => (
+    <div key={key} className={opts.col === 2 ? 'col-span-2' : ''}>
+      <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
+      <input
+        type={opts.type || 'text'}
+        placeholder={opts.placeholder}
+        required={opts.required}
+        value={form[key] ?? ''}
+        onChange={e => setForm({ ...form, [key]: e.target.value })}
+        className="input-field"
+      />
+    </div>
+  );
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -36,26 +40,33 @@ function Modal({ company, onSave, onClose }) {
         </div>
         <form onSubmit={e => { e.preventDefault(); onSave({ ...form, dailyRate: Number(form.dailyRate) }); }} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            {fields.map(({ key, label, required, placeholder, type, col }) => (
-              <div key={key} className={col === 2 ? 'col-span-2' : ''}>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
-                <input type={type || 'text'} placeholder={placeholder} required={required}
-                  value={form[key] || ''} onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
-              </div>
-            ))}
-            {/* Diária + HE calculadas */}
+            {/* Linha 1: nome (full) */}
+            {field('name',     'Razão Social',     { required: true, col: 2 })}
+            {/* Linha 2: CNPJ | Responsável */}
+            {field('cnpj',    'CNPJ',             { required: true, placeholder: '00.000.000/0001-00' })}
+            {field('contact', 'Responsável',       { required: true })}
+            {/* Linha 3: Telefone | E-mail */}
+            {field('phone',   'Telefone',          { placeholder: '(00) 00000-0000' })}
+            {field('email',   'E-mail de acesso',  { required: true, type: 'email' })}
+            {/* Linha 4: Senha | Diária */}
+            {field('password', company ? 'Nova senha (opcional)' : 'Senha de acesso', { type: 'password' })}
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Diária (R$)</label>
               <input type="number" required value={form.dailyRate ?? 150}
                 onChange={e => setForm({ ...form, dailyRate: e.target.value })} className="input-field" />
             </div>
-            <div className="flex flex-col justify-end gap-1 pb-0.5">
-              <p className="text-xs font-medium" style={{ color: '#64748B' }}>
-                HE 50%: <span style={{ color: '#FF4D0C', fontWeight: 700 }}>R$ {he50}/h</span>
-              </p>
-              <p className="text-xs font-medium" style={{ color: '#64748B' }}>
-                HE 100%: <span style={{ color: '#7C3AED', fontWeight: 700 }}>R$ {he100}/h</span>
-              </p>
+            {/* Linha 5: Endereço (full) */}
+            {field('address', 'Endereço completo', { col: 2 })}
+            {/* Linha 6: HE calculadas (full) */}
+            <div className="col-span-2 flex gap-3">
+              <div className="flex-1 rounded-xl px-4 py-2.5" style={{ background: '#FFF2EE', border: '1px solid rgba(255,77,12,0.15)' }}>
+                <p className="text-xs font-semibold" style={{ color: '#94A3B8', marginBottom: '2px' }}>Hora extra 50%</p>
+                <p className="text-sm font-bold" style={{ color: '#FF4D0C' }}>R$ {he50}/h</p>
+              </div>
+              <div className="flex-1 rounded-xl px-4 py-2.5" style={{ background: '#F5F3FF', border: '1px solid rgba(124,58,237,0.15)' }}>
+                <p className="text-xs font-semibold" style={{ color: '#94A3B8', marginBottom: '2px' }}>Hora extra 100%</p>
+                <p className="text-sm font-bold" style={{ color: '#7C3AED' }}>R$ {he100}/h</p>
+              </div>
             </div>
           </div>
           <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
