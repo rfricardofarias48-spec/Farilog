@@ -2,7 +2,7 @@
 import { useAuth } from '../../context/AuthContext';
 import { fmtDate } from '../../data/mockData';
 import { createEmployee, updateEmployee, deleteEmployee } from '../../lib/db';
-import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, KeyRound } from 'lucide-react';
 
 const EMPTY = { name: '', phone: '', dailyRate: 150, overtimeRate: 50, password: '', status: 'active' };
 const T  = { color: '#0F172A' };
@@ -10,14 +10,15 @@ const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
 
 function Modal({ employee, onSave, onClose }) {
-  const [form, setForm] = useState(employee ? { ...employee } : { ...EMPTY });
+  const [form, setForm]               = useState(employee ? { ...employee } : { ...EMPTY });
+  const [showReset, setShowReset]     = useState(false);
 
   const fields = [
-    { key: 'name',        label: 'Nome completo',      required: true, col: 2 },
-    { key: 'phone',       label: 'Telefone',            required: true, placeholder: '(00) 00000-0000', col: 2 },
-    { key: 'dailyRate',   label: 'Valor da diária (R$)', type: 'number', required: true },
-    { key: 'overtimeRate',label: 'Hora extra (R$)',      type: 'number', required: true },
-    { key: 'password',    label: employee ? 'Nova senha (opcional)' : 'Senha', type: 'password', col: 2, required: !employee },
+    { key: 'name',        label: 'Nome completo',        required: true, col: 2 },
+    { key: 'phone',       label: 'Telefone',              required: true, placeholder: '(00) 00000-0000', col: 2 },
+    { key: 'dailyRate',   label: 'Valor da diária (R$)',  type: 'number', required: true },
+    { key: 'overtimeRate',label: 'Hora extra (R$)',        type: 'number', required: true },
+    ...(!employee ? [{ key: 'password', label: 'Senha', type: 'password', col: 2, required: true }] : []),
   ];
 
   return (
@@ -56,6 +57,39 @@ function Modal({ employee, onSave, onClose }) {
               ))}
             </div>
           </div>
+          {/* Redefinir senha — só no modo edição */}
+          {employee && (
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)' }}>
+              <button
+                type="button"
+                onClick={() => { setShowReset(v => !v); setForm(f => ({ ...f, password: '' })); }}
+                className="w-full flex items-center gap-2 px-4 py-3 text-xs font-semibold transition-colors"
+                style={{
+                  background: showReset ? '#FFF2EE' : '#F8FAFC',
+                  color: showReset ? '#FF4D0C' : '#475569',
+                  borderBottom: showReset ? '1px solid rgba(255,77,12,0.12)' : 'none',
+                }}
+              >
+                <KeyRound size={13} />
+                Redefinir senha
+              </button>
+              {showReset && (
+                <div className="px-4 py-3" style={{ background: '#FFFAF9' }}>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Nova senha</label>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    placeholder="Digite a nova senha"
+                    value={form.password ?? ''}
+                    onChange={e => setForm({ ...form, password: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
             <button type="submit" className="btn-primary flex-1">{employee ? 'Salvar' : 'Cadastrar funcionário'}</button>
             <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
