@@ -447,66 +447,60 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onD
   }
 
   return (
-    <div className="space-y-2">
-      {demands.length === 0 && (
-        <div className="card p-12 text-center">
-          <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-            <ClipboardList size={22} style={{ color: '#CBD5E1' }} />
-          </div>
-          <p className="text-sm font-semibold" style={{ color: '#94A3B8' }}>Nenhuma demanda lançada</p>
-          <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>Use "Nova Demanda" para escalar ajudantes</p>
+    <div className="card overflow-hidden" style={{ maxWidth: '600px' }}>
+      {demands.length === 0 ? (
+        <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Nenhuma demanda ativa</p>
+          <p style={{ fontSize: '11px', color: '#CBD5E1', marginTop: '4px' }}>Use "Nova Demanda" para escalar ajudantes</p>
         </div>
-      )}
-
-      {demands.map(d => {
-        const counts = ADMIN_STATUS_OPTIONS.reduce((acc, s) => {
-          acc[s] = d.employees.filter(e => e.status === s).length;
-          return acc;
-        }, {});
+      ) : demands.map((d, i) => {
+        const confirmed  = d.employees.filter(e => e.status === 'confirmado').length;
+        const total      = d.employees.length;
+        const [, m, day] = d.date.split('-');
 
         return (
           <button
             key={d.id}
             onClick={() => setSelectedId(d.id)}
-            className="card w-full"
             style={{
-              padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px',
-              cursor: 'pointer', border: 'none', textAlign: 'left', transition: 'box-shadow 0.15s',
+              width: '100%', display: 'flex', alignItems: 'center', gap: '14px',
+              padding: '11px 16px', border: 'none', background: 'transparent',
+              borderBottom: i < demands.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
+              cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow = ''; }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
           >
-            <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: '#FFF2EE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Building2 size={16} style={{ color: '#FF4D0C' }} />
+            {/* Data */}
+            <div style={{ textAlign: 'center', width: '32px', flexShrink: 0 }}>
+              <p style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{day}</p>
+              <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][Number(m) - 1]}
+              </p>
             </div>
 
+            {/* Divisor */}
+            <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.07)', flexShrink: 0 }} />
+
+            {/* Empresa + serviço */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{d.companyName}</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '3px', flexWrap: 'wrap' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#94A3B8' }}>
-                  <Calendar size={10} /> {formatDate(d.date)}
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#94A3B8' }}>
-                  <Clock size={10} /> {d.time || '—'}
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#94A3B8' }}>
-                  <Users size={10} /> {d.employees.length} ajudante{d.employees.length !== 1 ? 's' : ''}
-                </span>
-              </div>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {d.companyName}
+              </p>
+              <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {d.time || '—'} · {d.service || 'Serviço geral'}
+              </p>
             </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'flex-end' }}>
-              {Object.entries(counts).filter(([, n]) => n > 0).map(([s, n]) => {
-                const c = STATUS_CONFIG[s];
-                return (
-                  <span key={s} style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '5px', background: c.bg, color: c.color, whiteSpace: 'nowrap' }}>
-                    {n} {c.label}
-                  </span>
-                );
-              })}
-            </div>
+            {/* Ajudantes */}
+            <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', flexShrink: 0 }}>
+              {total} <span style={{ fontWeight: 400, color: '#CBD5E1' }}>aj.</span>
+              {confirmed > 0 && (
+                <span style={{ marginLeft: '4px', color: '#059669' }}>· {confirmed} ✓</span>
+              )}
+            </span>
 
-            <ChevronRight size={14} style={{ color: '#CBD5E1', flexShrink: 0 }} />
+            <ChevronRight size={13} style={{ color: '#CBD5E1', flexShrink: 0 }} />
           </button>
         );
       })}
