@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { fmtCurrency } from '../../data/mockData';
 import { createCompany, updateCompany, deleteCompany } from '../../lib/db';
 import { Plus, Edit2, Trash2, X, Building2, Search, Phone, Mail } from 'lucide-react';
-const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', sector: '' };
+const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', dailyRate: 150 };
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
@@ -11,15 +11,18 @@ const TM = { color: '#94A3B8' };
 function Modal({ company, onSave, onClose }) {
   const [form, setForm] = useState(company ? { ...company } : { ...EMPTY });
 
+  const rate    = Number(form.dailyRate) || 0;
+  const he50    = (rate / 8 * 1.5).toFixed(2);
+  const he100   = (rate / 8 * 2).toFixed(2);
+
   const fields = [
-    { key: 'name',     label: 'Razão Social',                required: true, col: 2 },
-    { key: 'cnpj',     label: 'CNPJ',                        required: true, placeholder: '00.000.000/0001-00' },
-    { key: 'contact',  label: 'Responsável',                  required: true },
-    { key: 'sector',   label: 'Setor' },
-    { key: 'phone',    label: 'Telefone',                     placeholder: '(00) 00000-0000' },
-    { key: 'email',    label: 'E-mail de acesso',             required: true, type: 'email', col: 2 },
-    { key: 'password', label: company ? 'Nova senha (opcional)' : 'Senha de acesso', type: 'password' },
-    { key: 'address',  label: 'Endereço completo',            col: 2 },
+    { key: 'name',      label: 'Razão Social',                required: true, col: 2 },
+    { key: 'cnpj',      label: 'CNPJ',                        required: true, placeholder: '00.000.000/0001-00' },
+    { key: 'contact',   label: 'Responsável',                  required: true },
+    { key: 'phone',     label: 'Telefone',                     placeholder: '(00) 00000-0000' },
+    { key: 'email',     label: 'E-mail de acesso',             required: true, type: 'email', col: 2 },
+    { key: 'password',  label: company ? 'Nova senha (opcional)' : 'Senha de acesso', type: 'password', col: 2 },
+    { key: 'address',   label: 'Endereço completo',            col: 2 },
   ];
 
   return (
@@ -31,7 +34,7 @@ function Modal({ company, onSave, onClose }) {
             <X size={15} />
           </button>
         </div>
-        <form onSubmit={e => { e.preventDefault(); onSave(form); }} className="space-y-3">
+        <form onSubmit={e => { e.preventDefault(); onSave({ ...form, dailyRate: Number(form.dailyRate) }); }} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             {fields.map(({ key, label, required, placeholder, type, col }) => (
               <div key={key} className={col === 2 ? 'col-span-2' : ''}>
@@ -40,6 +43,20 @@ function Modal({ company, onSave, onClose }) {
                   value={form[key] || ''} onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
               </div>
             ))}
+            {/* Diária + HE calculadas */}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Diária (R$)</label>
+              <input type="number" required value={form.dailyRate ?? 150}
+                onChange={e => setForm({ ...form, dailyRate: e.target.value })} className="input-field" />
+            </div>
+            <div className="flex flex-col justify-end gap-1 pb-0.5">
+              <p className="text-xs font-medium" style={{ color: '#64748B' }}>
+                HE 50%: <span style={{ color: '#FF4D0C', fontWeight: 700 }}>R$ {he50}/h</span>
+              </p>
+              <p className="text-xs font-medium" style={{ color: '#64748B' }}>
+                HE 100%: <span style={{ color: '#7C3AED', fontWeight: 700 }}>R$ {he100}/h</span>
+              </p>
+            </div>
           </div>
           <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
             <button type="submit" className="btn-primary flex-1">{company ? 'Salvar' : 'Cadastrar empresa'}</button>
@@ -59,8 +76,8 @@ export default function AdminCompanies() {
 
   const filtered = companies.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.cnpj.includes(search) ||
-    c.contact.toLowerCase().includes(search.toLowerCase())
+    (c.cnpj || '').includes(search) ||
+    (c.contact || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const handleSave = async (form) => {
@@ -99,7 +116,7 @@ export default function AdminCompanies() {
       <div className="card overflow-hidden animate-fade-up delay-2">
         <div className="px-5 py-3 grid text-xs font-semibold"
           style={{ gridTemplateColumns: '1fr auto auto auto auto', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
-          <span>Empresa</span><span>Setor</span><span>Hoje</span><span>Faturado</span><span>Ações</span>
+          <span>Empresa</span><span>Diária</span><span>HE 50%</span><span>Faturado</span><span>Ações</span>
         </div>
         {filtered.length === 0 ? (
           <div className="py-14 text-center">
@@ -124,9 +141,9 @@ export default function AdminCompanies() {
                     </div>
                   </div>
                 </div>
-                <span className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ background: '#F1F5F9', color: '#475569' }}>{c.sector}</span>
-                <span className="text-xs font-semibold" style={{ color: stats.active > 0 ? '#059669' : '#94A3B8' }}>
-                  {stats.active} ativo{stats.active !== 1 ? 's' : ''}
+                <span className="text-xs font-semibold" style={{ color: '#FF4D0C' }}>R$ {c.dailyRate ?? 150}</span>
+                <span className="text-xs font-semibold" style={{ color: '#7C3AED' }}>
+                  R$ {((Number(c.dailyRate ?? 150) / 8) * 1.5).toFixed(2)}/h
                 </span>
                 <span className="text-xs font-semibold" style={{ color: '#FF4D0C' }}>{fmtCurrency(stats.paid)}</span>
                 <div className="flex items-center gap-1">

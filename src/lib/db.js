@@ -39,16 +39,16 @@ function mapEmployee(r) {
 function mapCompany(r) {
   if (!r) return null;
   return {
-    id:       r.id,
-    name:     r.name,
-    cnpj:     r.cnpj,
-    email:    r.email,
-    password: r.password,
-    phone:    r.phone,
-    contact:  r.contact,
-    address:  r.address,
-    sector:   r.sector,
-    isActive: r.is_active,
+    id:        r.id,
+    name:      r.name,
+    cnpj:      r.cnpj,
+    email:     r.email,
+    password:  r.password,
+    phone:     r.phone,
+    contact:   r.contact,
+    address:   r.address,
+    dailyRate: Number(r.daily_rate ?? 150),
+    isActive:  r.is_active,
   };
 }
 
@@ -163,15 +163,15 @@ export async function createCompany(co) {
   const { data, error } = await supabase
     .from('companies')
     .insert({
-      id:       co.id,
-      name:     co.name,
-      cnpj:     co.cnpj || null,
-      email:    co.email,
-      password: co.password,
-      phone:    co.phone || null,
-      contact:  co.contact || null,
-      address:  co.address || null,
-      sector:   co.sector || null,
+      id:         co.id,
+      name:       co.name,
+      cnpj:       co.cnpj || null,
+      email:      co.email,
+      password:   co.password,
+      phone:      co.phone || null,
+      contact:    co.contact || null,
+      address:    co.address || null,
+      daily_rate: co.dailyRate ?? 150,
     })
     .select()
     .single();
@@ -181,14 +181,14 @@ export async function createCompany(co) {
 
 export async function updateCompany(id, co) {
   const patch = {};
-  if (co.name     !== undefined) patch.name     = co.name;
-  if (co.cnpj     !== undefined) patch.cnpj     = co.cnpj;
-  if (co.email    !== undefined) patch.email    = co.email;
-  if (co.password !== undefined) patch.password = co.password;
-  if (co.phone    !== undefined) patch.phone    = co.phone;
-  if (co.contact  !== undefined) patch.contact  = co.contact;
-  if (co.address  !== undefined) patch.address  = co.address;
-  if (co.sector   !== undefined) patch.sector   = co.sector;
+  if (co.name      !== undefined) patch.name       = co.name;
+  if (co.cnpj      !== undefined) patch.cnpj       = co.cnpj;
+  if (co.email     !== undefined) patch.email      = co.email;
+  if (co.password  !== undefined) patch.password   = co.password;
+  if (co.phone     !== undefined) patch.phone      = co.phone;
+  if (co.contact   !== undefined) patch.contact    = co.contact;
+  if (co.address   !== undefined) patch.address    = co.address;
+  if (co.dailyRate !== undefined) patch.daily_rate = co.dailyRate;
 
   const { data, error } = await supabase
     .from('companies')

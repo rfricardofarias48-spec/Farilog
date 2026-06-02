@@ -20,9 +20,6 @@ const TODAY_DATE = new Date(TODAY + 'T12:00:00-03:00');
 
 const PIE_COLORS = ['#FF4D0C', '#7C3AED', '#059669', '#0EA5E9', '#F59E0B'];
 
-const VALOR_DIARIA     = 150;
-const VALOR_HORA_EXTRA = 50;
-
 // Parse "01/05 - 15/05/2026" → ISO dates
 function parsePeriodStart(period) {
   const m = period.match(/^(\d{2})\/(\d{2}) - \d{2}\/\d{2}\/(\d{4})/);
@@ -33,18 +30,23 @@ function parsePeriodEnd(period) {
   return m ? `${m[5]}-${m[4]}-${m[3]}` : null;
 }
 
-// Calcula o valor total de uma fatura como (diárias × 150) + (horas extras × 50)
-function calcPaymentTotal(payment) {
-  const pStart = parsePeriodStart(payment.period);
-  const pEnd   = parsePeriodEnd(payment.period);
+// Calcula fatura: diárias × company.dailyRate + HE × (dailyRate/8 × 1.5)
+function calcPaymentTotal(payment, companies = []) {
+  const pStart = parsePeriodStart(payment.period_label ?? payment.period);
+  const pEnd   = parsePeriodEnd(payment.period_label ?? payment.period);
   if (!pStart || !pEnd) return { total: 0, diarias: 0, heCount: 0 };
-  const recs = WORK_RECORDS.filter(r => r.companyId === payment.companyId && r.date >= pStart && r.date <= pEnd);
+
+  const company   = companies.find(c => c.id === payment.companyId || c.id === payment.company_id);
+  const dailyRate = company?.dailyRate ?? 150;
+  const he50Rate  = dailyRate / 8 * 1.5;
+
+  const recs    = WORK_RECORDS.filter(r => r.companyId === payment.companyId && r.date >= pStart && r.date <= pEnd);
   const diarias = recs.filter(r => r.status !== 'absent').length;
   const heCount = recs.filter(r => r.overtime).length;
-  return { total: diarias * VALOR_DIARIA + heCount * VALOR_HORA_EXTRA, diarias, heCount };
+  return { total: diarias * dailyRate + heCount * he50Rate, diarias, heCount, dailyRate, he50Rate };
 }
 
-function payAmount(p) { return calcPaymentTotal(p).total; }
+function payAmount(p, companies) { return calcPaymentTotal(p, companies).total; }
 
 const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -72,10 +74,10 @@ export default function AdminFinanceiro() {
     const pending  = PAYMENTS.filter(p => p.status === 'pending');
     const overdue  = PAYMENTS.filter(p => p.status === 'overdue');
     return {
-      totalRevenue:  paid.reduce((s, p) => s + payAmount(p), 0),
-      totalPending:  pending.reduce((s, p) => s + payAmount(p), 0),
-      totalOverdue:  overdue.reduce((s, p) => s + payAmount(p), 0),
-      totalInvoiced: PAYMENTS.reduce((s, p) => s + payAmount(p), 0),
+      totalRevenue:  paid.reduce((s, p) => s + payAmount(p, companies), 0),
+      totalPending:  pending.reduce((s, p) => s + payAmount(p, companies), 0),
+      totalOverdue:  overdue.reduce((s, p) => s + payAmount(p, companies), 0),
+      totalInvoiced: PAYMENTS.reduce((s, p) => s + payAmount(p, companies), 0),
       countPaid:     paid.length,
       countPending:  pending.length,
       countOverdue:  overdue.length,
@@ -91,8 +93,8 @@ export default function AdminFinanceiro() {
     return companies.map(c => ({
       name:  c.name.split(' ')[0],
       fullName: c.name,
-      value: PAYMENTS.filter(p => p.companyId === c.id && p.status === 'paid').reduce((s, p) => s + payAmount(p), 0),
-      pending: PAYMENTS.filter(p => p.companyId === c.id && p.status !== 'paid').reduce((s, p) => s + payAmount(p), 0),
+      value: PAYMENTS.filter(p => p.companyId === c.id && p.status === 'paid').reduce((s, p) => s + payAmount(p, companies), 0),
+      pending: PAYMENTS.filter(p => p.companyId === c.id && p.status !== 'paid').reduce((s, p) => s + payAmount(p, companies), 0),
     })).filter(d => d.value > 0 || d.pending > 0);
   }, [companies]);
 
@@ -375,7 +377,7 @@ export default function AdminFinanceiro() {
               <div key={p.id} className="card-inner" style={{ padding:'14px', borderLeft:`3px solid ${isOverdue ? '#E11D48' : '#D97706'}` }}>
                 <p className="text-xs font-semibold mb-1" style={T}>{c?.name}</p>
                 <p className="text-xs mb-2" style={TM}>{p.period}</p>
-                <p className="text-base font-black" style={{ color: isOverdue ? '#E11D48' : '#D97706' }}>{fmtCurrency(payAmount(p))}</p>
+                <p className="text-base font-black" style={{ color: isOverdue ? '#E11D48' : '#D97706' }}>{fmtCurrency(payAmount(p, companies))}</p>
                 <p className="text-xs mt-1" style={TM}>
                   {isOverdue ? `Atrasado ${Math.abs(days)} dias` : days === 0 ? 'Vence hoje' : `Vence em ${days} dias`}
                 </p>
@@ -477,7 +479,7 @@ export default function AdminFinanceiro() {
                 </div>
                 {/* Valor */}
                 <div style={{ textAlign:'right' }}>
-                  <p className="text-sm font-bold" style={T}>{fmtCurrency(payAmount(p))}</p>
+                  <p className="text-sm font-bold" style={T}>{fmtCurrency(payAmount(p, companies))}</p>
                 </div>
                 {/* Status */}
                 <div style={{ textAlign:'center' }}>
