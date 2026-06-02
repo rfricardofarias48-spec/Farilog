@@ -139,7 +139,7 @@ function DemandCard({ demand, employees, onChangeStatus }) {
       {/* Lista de ajudantes */}
       <div className="card overflow-hidden">
         {demand.employees.map(({ employeeId, status }) => {
-          const emp = EMPLOYEES.find(e => e.id === employeeId);
+          const emp = employees.find(e => e.id === employeeId);
           return (
             <div key={employeeId} style={{
               display: 'flex', alignItems: 'center', gap: '10px',
