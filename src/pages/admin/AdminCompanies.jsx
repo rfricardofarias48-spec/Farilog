@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { fmtCurrency } from '../../data/mockData';
 import { createCompany, updateCompany, deleteCompany } from '../../lib/db';
 import { Plus, Edit2, Trash2, X, Building2, Search, Phone, Mail } from 'lucide-react';
-const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', dailyRate: 150 };
+const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', dailyRate: 150 };
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
@@ -57,7 +57,8 @@ function Modal({ company, onSave, onClose }) {
                 onChange={e => setForm({ ...form, dailyRate: e.target.value })} className="input-field" />
             </div>
             {/* Linha 5: Endereço (full) */}
-            {field('address', 'Endereço completo', { col: 2 })}
+            {field('address',  'Endereço completo', { col: 2 })}
+            {field('location', 'Link de localização (Google Maps)', { col: 2, placeholder: 'https://maps.google.com/...' })}
             {/* Linha 6: HE calculadas (full) */}
             <div className="col-span-2 flex gap-3">
               <div className="flex-1 rounded-xl px-4 py-2.5" style={{ background: '#FFF2EE', border: '1px solid rgba(255,77,12,0.15)' }}>

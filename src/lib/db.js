@@ -48,6 +48,7 @@ function mapCompany(r) {
     phone:     r.phone,
     contact:   r.contact,
     address:   r.address,
+    location:  r.location,
     dailyRate: Number(r.daily_rate ?? 150),
     isActive:  r.is_active,
   };
@@ -174,6 +175,7 @@ export async function createCompany(co) {
       phone:      co.phone || null,
       contact:    co.contact || null,
       address:    co.address || null,
+      location:   co.location || null,
       daily_rate: co.dailyRate ?? 150,
     })
     .select()
@@ -191,6 +193,7 @@ export async function updateCompany(id, co) {
   if (co.phone     !== undefined) patch.phone      = co.phone;
   if (co.contact   !== undefined) patch.contact    = co.contact;
   if (co.address   !== undefined) patch.address    = co.address;
+  if (co.location  !== undefined) patch.location   = co.location;
   if (co.dailyRate !== undefined) patch.daily_rate = co.dailyRate;
 
   const { data, error } = await supabase

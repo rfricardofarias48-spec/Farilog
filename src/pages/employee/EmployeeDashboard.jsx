@@ -44,7 +44,8 @@ function getQuinzenaBounds(date) {
 
 // ── Visão Geral ──────────────────────────────────────────────────────────────
 
-function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverride }) {
+function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverride, companies = [] }) {
+  const findCompany = (id) => companies.find(c => c.id === id);
   // todayOverride vem do Supabase (tempo real); fallback para mock
   const todayRecord  = todayOverride !== undefined ? todayOverride : myRecords.find(r => r.date === TODAY);
   const nextRecord   = myRecords
@@ -92,16 +93,46 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
 
       {/* Demandas aguardando */}
       {pendingDemands.map(d => {
-        const company = getCompany(d.companyId);
+        const company = findCompany(d.companyId);
         return (
           <div key={d.id} className="card p-4" style={{ borderLeft: '4px solid #D97706' }}>
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#D97706', letterSpacing: '0.06em' }}>CONFIRMAÇÃO PENDENTE</span>
-                <p className="text-sm font-bold mt-0.5" style={T}>{company?.name}</p>
-                <p className="text-xs mt-0.5" style={TM}>{fmtISO(d.date)} · {d.time} · {d.service}</p>
+            <span style={{ fontSize: '10px', fontWeight: 700, color: '#D97706', letterSpacing: '0.06em' }}>CONFIRMAÇÃO PENDENTE</span>
+
+            {/* Detalhes da empresa */}
+            <div className="mt-2 mb-3 space-y-1.5">
+              <p className="text-sm font-bold" style={T}>{company?.name ?? d.companyName}</p>
+
+              <div className="flex items-center gap-1.5" style={{ color: '#475569' }}>
+                <Clock size={11} />
+                <span style={{ fontSize: '12px' }}>{fmtISO(d.date)} · {d.time} · {d.service}</span>
               </div>
+
+              {company?.contact && (
+                <div className="flex items-center gap-1.5" style={{ color: '#475569' }}>
+                  <Briefcase size={11} />
+                  <span style={{ fontSize: '12px' }}>Responsável: {company.contact}</span>
+                </div>
+              )}
+
+              {company?.address && (
+                <div className="flex items-start gap-1.5" style={{ color: '#475569' }}>
+                  <AlertCircle size={11} style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <span style={{ fontSize: '12px' }}>{company.address}</span>
+                </div>
+              )}
+
+              {company?.location && (
+                <a
+                  href={company.location}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, color: '#FF4D0C', textDecoration: 'none', marginTop: '2px' }}
+                >
+                  📍 Ver localização
+                </a>
+              )}
             </div>
+
             <div className="flex gap-2">
               <button onClick={() => updateDemandStatus(d.id, user.id, 'confirmado')}
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#059669', color: 'white', fontSize: '12px', fontWeight: 700 }}>
@@ -484,7 +515,7 @@ const TABS = [
 ];
 
 export default function EmployeeDashboard() {
-  const { user, demands, updateDemandStatus } = useAuth();
+  const { user, demands, updateDemandStatus, companies } = useAuth();
   const [tab, setTab] = useState('visao');
 
   // Registro de hoje vindo do Supabase (atualizado em tempo real)
@@ -549,7 +580,7 @@ export default function EmployeeDashboard() {
         ))}
       </div>
 
-      {tab === 'visao'      && <VisaoGeral user={user} myRecords={myRecords} demands={demands} updateDemandStatus={updateDemandStatus} todayOverride={effectiveTodayRecord} />}
+      {tab === 'visao'      && <VisaoGeral user={user} myRecords={myRecords} demands={demands} updateDemandStatus={updateDemandStatus} todayOverride={effectiveTodayRecord} companies={companies} />}
       {tab === 'pagamentos' && <Pagamentos user={user} myRecords={myRecords} />}
       {tab === 'historico'  && <Historico  myRecords={myRecords} />}
     </div>
