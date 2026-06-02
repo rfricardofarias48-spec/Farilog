@@ -127,8 +127,8 @@ export default function AdminCompanies() {
 
       <div className="card overflow-hidden animate-fade-up delay-2">
         <div className="px-5 py-3 grid text-xs font-semibold"
-          style={{ gridTemplateColumns: '1fr auto auto auto auto', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
-          <span>Empresa</span><span>Diária</span><span>HE 50%</span><span>Faturado</span><span>Ações</span>
+          style={{ gridTemplateColumns: '1fr auto auto auto', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
+          <span>Empresa</span><span>Diária</span><span>HE 50%</span><span>Ações</span>
         </div>
         {filtered.length === 0 ? (
           <div className="py-14 text-center">
@@ -139,7 +139,7 @@ export default function AdminCompanies() {
           filtered.map(c => {
             const stats = getStats(c.id);
             return (
-              <div key={c.id} className="table-row" style={{ gridTemplateColumns: '1fr auto auto auto auto', gap: '16px' }}>
+              <div key={c.id} className="table-row" style={{ gridTemplateColumns: '1fr auto auto auto', gap: '16px' }}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="avatar flex-shrink-0"
                     style={{ background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', width: '36px', height: '36px', borderRadius: '10px', fontSize: '11px' }}>
@@ -157,7 +157,6 @@ export default function AdminCompanies() {
                 <span className="text-xs font-semibold" style={{ color: '#7C3AED' }}>
                   R$ {((Number(c.dailyRate ?? 150) / 8) * 1.5).toFixed(2)}/h
                 </span>
-                <span className="text-xs font-semibold" style={{ color: '#FF4D0C' }}>{fmtCurrency(stats.paid)}</span>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setModal(c)} className="p-1.5 rounded-lg transition-colors"
                     style={{ color: '#94A3B8', background: '#F1F5F9' }}><Edit2 size={13}/></button>
