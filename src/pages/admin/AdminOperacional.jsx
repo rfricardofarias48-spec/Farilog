@@ -604,16 +604,16 @@ function Relatorios() {
         <div className="flex gap-3">
           <div className="card flex-1 p-3 text-center">
             <p className="text-xs" style={TM}>Diária</p>
-            <p className="text-base font-black" style={{ color: '#FF4D0C' }}>R$ {dailyRate}</p>
+            <p className="text-base font-bold" style={{ color: '#0F172A' }}>R$ {dailyRate}</p>
           </div>
           <div className="card flex-1 p-3 text-center">
             <p className="text-xs" style={TM}>{viewBy === 'empresa' ? 'HE 50%' : 'Hora extra'}</p>
-            <p className="text-base font-black" style={{ color: '#7C3AED' }}>R$ {heRate.toFixed(2)}</p>
+            <p className="text-base font-bold" style={{ color: '#1E40AF' }}>R$ {heRate.toFixed(2)}</p>
           </div>
           {viewBy === 'empresa' && (
             <div className="card flex-1 p-3 text-center">
               <p className="text-xs" style={TM}>HE 100%</p>
-              <p className="text-base font-black" style={{ color: '#0891B2' }}>R$ {he100Rate.toFixed(2)}</p>
+              <p className="text-base font-bold" style={{ color: '#1E40AF' }}>R$ {he100Rate.toFixed(2)}</p>
             </div>
           )}
         </div>
@@ -626,11 +626,11 @@ function Relatorios() {
           <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', background: '#F8FAFC' }}>
             <div className="grid grid-cols-5 gap-3 text-center">
               {[
-                ['Diárias', totalDiarias, '#0F172A'],
-                ['Valor Diárias', fmtCurrency(totalValorDiarias), '#475569'],
-                ['H. Extras', fmtHoursCount(totalHE), '#0F172A'],
-                ['Valor HE', fmtCurrency(totalValorHE), '#475569'],
-                ['Total', fmtCurrency(totalGeral), '#FF4D0C'],
+                ['Diárias',      totalDiarias,                    '#0F172A'],
+                ['Valor Diárias',fmtCurrency(totalValorDiarias),  '#1E40AF'],
+                ['H. Extras',    fmtHoursCount(totalHE),          '#0F172A'],
+                ['Valor HE',     fmtCurrency(totalValorHE),       '#1E40AF'],
+                ['Total',        fmtCurrency(totalGeral),         '#0F172A'],
               ].map(([lbl, val, color]) => (
                 <div key={lbl}>
                   <p className="text-xs font-medium" style={TM}>{lbl}</p>
@@ -662,10 +662,7 @@ function Relatorios() {
                       gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr',
                       gap: '8px',
                       borderBottom: !isLast ? '1px solid rgba(0,0,0,0.04)' : 'none',
-                      borderLeft: hasData ? '3px solid #FF4D0C' : '3px solid transparent',
-                      background: d.isWeekend
-                        ? 'rgba(238,242,247,0.7)'
-                        : d.date === TODAY ? '#FFFBF5' : 'transparent',
+                      background: d.isWeekend ? 'rgba(238,242,247,0.7)' : 'transparent',
                     }}>
                     {/* Data */}
                     <span style={{
@@ -679,7 +676,7 @@ function Relatorios() {
                       {d.diarias > 0 ? d.diarias : '—'}
                     </span>
                     {/* Val. Diária */}
-                    <span className="text-center" style={{ color: d.valorDiarias > 0 ? '#059669' : '#E2E8F0', fontWeight: d.valorDiarias > 0 ? 600 : 400 }}>
+                    <span className="text-center" style={{ color: d.valorDiarias > 0 ? '#1E40AF' : '#E2E8F0', fontWeight: d.valorDiarias > 0 ? 600 : 400 }}>
                       {d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias) : '—'}
                     </span>
                     {/* H. Extra */}
@@ -687,7 +684,7 @@ function Relatorios() {
                       {fmtHoursCount(d.heCount)}
                     </span>
                     {/* Val. HE */}
-                    <span className="text-center" style={{ color: d.valorHE > 0 ? '#059669' : '#E2E8F0', fontWeight: d.valorHE > 0 ? 600 : 400 }}>
+                    <span className="text-center" style={{ color: d.valorHE > 0 ? '#1E40AF' : '#E2E8F0', fontWeight: d.valorHE > 0 ? 600 : 400 }}>
                       {d.valorHE > 0 ? fmtCurrency(d.valorHE) : '—'}
                     </span>
                     {/* Total */}
