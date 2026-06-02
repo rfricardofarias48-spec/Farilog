@@ -298,14 +298,15 @@ export async function fetchTodayAllRecords(today) {
   return data.map(mapRecord);
 }
 
-export async function fetchWorkRecordsByPeriod(companyId, start, end) {
-  const query = supabase
+export async function fetchWorkRecordsByPeriod(companyId, employeeId, start, end) {
+  let query = supabase
     .from('registros')
     .select('*')
     .gte('data', start)
     .lte('data', end)
     .order('data');
-  if (companyId) query.eq('empresa_id', companyId);
+  if (companyId)  query = query.eq('empresa_id',    companyId);
+  if (employeeId) query = query.eq('funcionario_id', employeeId);
   const { data, error } = await query;
   if (error) { console.error('[db] fetchWorkRecordsByPeriod:', error.message); return []; }
   return data.map(mapRecord);

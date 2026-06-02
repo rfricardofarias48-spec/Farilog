@@ -378,42 +378,54 @@ function Historico() {
 
 // ── RELATÓRIOS ─────────────────────────────────────────────────────────────
 function Relatorios() {
-  const { companies } = useAuth();
-  const [companyId, setCompanyId] = useState('');
-  const [period,    setPeriod]    = useState('quinzena');
-  const [offset,    setOffset]    = useState(0);
-  const [records,   setRecords]   = useState([]);
-  const [loading,   setLoading]   = useState(false);
+  const { companies, employees } = useAuth();
+  const [viewBy,   setViewBy]   = useState('empresa');   // 'empresa' | 'ajudante'
+  const [selected, setSelected] = useState('');
+  const [period,   setPeriod]   = useState('quinzena');
+  const [offset,   setOffset]   = useState(0);
+  const [records,  setRecords]  = useState([]);
+  const [loading,  setLoading]  = useState(false);
+
+  const handleViewBy = (v) => { setViewBy(v); setSelected(''); setRecords([]); };
 
   const { start, end, label, sday, eday, sm, tYear } = getPeriodBounds(period, offset);
 
   useEffect(() => {
-    if (!companyId) { setRecords([]); return; }
+    if (!selected) { setRecords([]); return; }
     setLoading(true);
-    fetchWorkRecordsByPeriod(companyId, start, end)
+    const cId = viewBy === 'empresa'  ? selected : null;
+    const eId = viewBy === 'ajudante' ? selected : null;
+    fetchWorkRecordsByPeriod(cId, eId, start, end)
       .then(setRecords)
       .finally(() => setLoading(false));
-  }, [companyId, start, end]);
+  }, [selected, start, end, viewBy]);
 
-  const company = companies.find(c => c.id === companyId);
-  const dailyRate = Number(company?.dailyRate ?? 150);
-  const he50Rate  = dailyRate / 8 * 1.5;
+  // Taxas
+  const company  = viewBy === 'empresa'  ? companies.find(c => c.id === selected) : null;
+  const employee = viewBy === 'ajudante' ? employees.find(e => e.id === selected) : null;
+  const subject  = company || employee;
+  const subjectName = company?.name ?? employee?.name ?? '';
 
+  const dailyRate    = viewBy === 'empresa'  ? Number(company?.dailyRate ?? 150) : Number(employee?.dailyRate ?? 150);
+  const heRate       = viewBy === 'empresa'  ? dailyRate / 8 * 1.5              : Number(employee?.overtimeRate ?? 50);
+  const he100Rate    = viewBy === 'empresa'  ? dailyRate / 8 * 2                : null;
+
+  // Montar dias do período
   const allDays = [];
   for (let day = sday; day <= eday; day++) {
     const iso  = `${tYear}-${String(sm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     const dow  = new Date(`${iso}T12:00:00`).getDay();
     const recs = records.filter(r => r.date === iso);
     const presentes    = recs.filter(r => r.status !== 'absent');
-    const diarias      = presentes.length;
+    const diarias      = viewBy === 'empresa' ? presentes.length : (presentes.length > 0 ? 1 : 0);
     const heCount      = presentes.filter(r => r.overtime).length;
     const valorDiarias = diarias * dailyRate;
-    const valorHE      = heCount * he50Rate;
+    const valorHE      = heCount * heRate;
     allDays.push({
-      date: iso, dow, dayNum: day,
+      date: iso, dow,
       label: `${DOW_SHORT[dow]}, ${String(day).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
       isWeekend: dow === 0 || dow === 6,
-      recs, diarias, heCount, valorDiarias, valorHE,
+      diarias, heCount, valorDiarias, valorHE,
       total: valorDiarias + valorHE,
     });
   }
@@ -423,89 +435,68 @@ function Relatorios() {
   const totalValorDiarias = allDays.reduce((s, d) => s + d.valorDiarias, 0);
   const totalValorHE      = allDays.reduce((s, d) => s + d.valorHE, 0);
   const totalGeral        = totalValorDiarias + totalValorHE;
-
   const pdfRange = `(${String(sday).padStart(2,'0')}/${String(sm).padStart(2,'0')} a ${String(eday).padStart(2,'0')}/${String(sm).padStart(2,'0')})`;
 
   const exportPDF = async () => {
-    if (!companyId) return;
-    const dark   = [15, 23, 42];
-    const mid    = [71, 85, 105];
-    const light  = [148, 163, 184];
-    const headBg = [30, 41, 59];
-    const rowAlt = [248, 250, 252];
-
+    if (!selected) return;
+    const dark = [15,23,42], mid = [71,85,105], light = [148,163,184], headBg = [30,41,59], rowAlt = [248,250,252];
     let logoDataUrl = null;
     try {
-      const img = await new Promise((resolve, reject) => {
-        const i = new Image();
-        i.crossOrigin = 'anonymous';
-        i.onload = () => resolve(i);
-        i.onerror = reject;
+      const img = await new Promise((res, rej) => {
+        const i = new Image(); i.crossOrigin = 'anonymous';
+        i.onload = () => res(i); i.onerror = rej;
         i.src = 'https://ik.imagekit.io/xsbrdnr0y/Logo%20Farilog%20branco%20(sem%20fundo).png';
       });
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width; canvas.height = img.height;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      logoDataUrl = canvas.toDataURL('image/png');
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      logoDataUrl = c.toDataURL('image/png');
     } catch (_) {}
 
     const doc = new jsPDF();
     const headerH = 26;
-
     doc.setFillColor(...headBg);
     doc.rect(0, 0, 210, headerH, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(15); doc.setFont('helvetica', 'bold');
-    doc.text(`Relatório ${period === 'quinzena' ? 'Quinzenal' : 'Mensal'}`, 10, headerH / 2 + 3);
+    doc.setTextColor(255,255,255); doc.setFontSize(15); doc.setFont('helvetica','bold');
+    doc.text(`Relatório ${period === 'quinzena' ? 'Quinzenal' : 'Mensal'} — ${viewBy === 'empresa' ? 'Empresa' : 'Funcionário'}`, 10, headerH / 2 + 3);
+    if (logoDataUrl) doc.addImage(logoDataUrl, 'PNG', 165, (headerH - 10) / 2, 35, 10);
 
-    if (logoDataUrl) {
-      const lH = 30, lW = lH * (img?.width / img?.height || 4);
-      doc.addImage(logoDataUrl, 'PNG', 210 - 10 - 40, (headerH - lH) / 2, 40, 10);
-    }
-
-    doc.setFontSize(9.5); doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...mid);
-    doc.text(`Empresa: ${company?.name}`, 10, headerH + 9);
+    doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(...mid);
+    doc.text(`${viewBy === 'empresa' ? 'Empresa' : 'Funcionário'}: ${subjectName}`, 10, headerH + 9);
     doc.text(`Período: ${label}  ${pdfRange}`, 10, headerH + 15);
-    doc.text(`Diária: R$ ${dailyRate}  |  HE 50%: R$ ${he50Rate.toFixed(2)}/h`, 10, headerH + 21);
+    if (viewBy === 'empresa') {
+      doc.text(`Diária: R$ ${dailyRate}  |  HE 50%: R$ ${heRate.toFixed(2)}/h  |  HE 100%: R$ ${he100Rate.toFixed(2)}/h`, 10, headerH + 21);
+    } else {
+      doc.text(`Diária: R$ ${dailyRate}  |  Hora extra: R$ ${heRate.toFixed(2)}`, 10, headerH + 21);
+    }
     doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 150, headerH + 9);
 
-    doc.setFontSize(10.5); doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...dark);
+    doc.setFontSize(10.5); doc.setFont('helvetica','bold'); doc.setTextColor(...dark);
     doc.text('Resumo do Período', 10, 57);
-
     autoTable(doc, {
       startY: 60,
       head: [['Diárias', 'Valor Diárias', 'H. Extras', 'Valor HE', 'Total Geral']],
-      body: [[
-        String(totalDiarias),
-        fmtCurrency(totalValorDiarias),
-        fmtHoursCount(totalHE),
-        fmtCurrency(totalValorHE),
-        fmtCurrency(totalGeral),
-      ]],
+      body: [[String(totalDiarias), fmtCurrency(totalValorDiarias), fmtHoursCount(totalHE), fmtCurrency(totalValorHE), fmtCurrency(totalGeral)]],
       headStyles: { fillColor: headBg, textColor: 255, fontSize: 9.5, fontStyle: 'bold', halign: 'center' },
       bodyStyles: { fontSize: 10, fontStyle: 'bold', halign: 'center', textColor: dark },
       margin: { left: 10, right: 10 },
     });
 
     const y2 = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(10.5); doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...dark);
+    doc.setFontSize(10.5); doc.setFont('helvetica','bold'); doc.setTextColor(...dark);
     doc.text('Extrato por Dia', 10, y2);
-
     autoTable(doc, {
       startY: y2 + 4,
       head: [['Data', 'Diárias', 'Val. Diária', 'H. Extra', 'Val. HE', 'Total Dia']],
       body: allDays.filter(d => !d.isWeekend).map(d => [
         d.label,
-        d.diarias      > 0 ? String(d.diarias)           : '—',
+        d.diarias > 0 ? String(d.diarias) : '—',
         d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias) : '—',
         fmtHoursCount(d.heCount),
-        d.valorHE      > 0 ? fmtCurrency(d.valorHE)      : '—',
-        d.total        > 0 ? fmtCurrency(d.total)        : '—',
+        d.valorHE > 0 ? fmtCurrency(d.valorHE) : '—',
+        d.total > 0 ? fmtCurrency(d.total) : '—',
       ]),
-      headStyles: { fillColor: [241, 245, 249], textColor: mid, fontSize: 9.5, fontStyle: 'bold', halign: 'center' },
+      headStyles: { fillColor: [241,245,249], textColor: mid, fontSize: 9.5, fontStyle: 'bold', halign: 'center' },
       bodyStyles: { fontSize: 9.5, textColor: dark, halign: 'center' },
       alternateRowStyles: { fillColor: rowAlt },
       columnStyles: { 0: { halign: 'left', fontStyle: 'bold', textColor: dark }, 5: { fontStyle: 'bold', textColor: dark } },
@@ -513,20 +504,16 @@ function Relatorios() {
     });
 
     const y3 = doc.lastAutoTable.finalY + 8;
-    doc.setFillColor(...rowAlt);
-    doc.setDrawColor(200, 210, 220);
+    doc.setFillColor(...rowAlt); doc.setDrawColor(200,210,220);
     doc.roundedRect(14, y3, 182, 16, 2, 2, 'FD');
-    doc.setFontSize(10); doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...dark);
-    doc.text(`Total da Cobrança: ${fmtCurrency(totalGeral)}`, 16, y3 + 10);
-
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8); doc.setTextColor(...light);
-      doc.text(`FariLog © ${new Date().getFullYear()}   |   Página ${i} de ${pageCount}`, 105, 290, { align: 'center' });
+    doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...dark);
+    doc.text(`Total ${viewBy === 'empresa' ? 'da Cobrança' : 'a Receber'}: ${fmtCurrency(totalGeral)}`, 16, y3 + 10);
+    const pages = doc.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i); doc.setFontSize(8); doc.setTextColor(...light);
+      doc.text(`FariLog © ${new Date().getFullYear()}   |   Página ${i} de ${pages}`, 105, 290, { align: 'center' });
     }
-    doc.save(`relatorio-${company?.name?.replace(/\s+/g,'-')}-${label.replace(/[\/\s—]+/g,'-')}.pdf`);
+    doc.save(`relatorio-${subjectName.replace(/\s+/g,'-')}-${label.replace(/[\/\s—]+/g,'-')}.pdf`);
   };
 
   const navBtn = (icon, fn) => (
@@ -540,36 +527,59 @@ function Relatorios() {
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-lg font-bold" style={T}>Relatórios</h2>
-          <p className="text-xs mt-0.5" style={TM}>Extrato por empresa e período</p>
+          <p className="text-xs mt-0.5" style={TM}>Extrato quinzenal ou mensal</p>
         </div>
-        <button
-          onClick={exportPDF}
-          disabled={!companyId}
+        <button onClick={exportPDF} disabled={!selected}
           className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
-          style={{
-            background: companyId ? '#FF4D0C' : '#E2E8F0',
-            color: companyId ? 'white' : '#94A3B8',
-            border: 'none', cursor: companyId ? 'pointer' : 'not-allowed',
-            boxShadow: companyId ? '0 2px 8px rgba(255,77,12,0.3)' : 'none',
-          }}
-        >
+          style={{ background: selected ? '#FF4D0C' : '#E2E8F0', color: selected ? 'white' : '#94A3B8', border: 'none', cursor: selected ? 'pointer' : 'not-allowed', boxShadow: selected ? '0 2px 8px rgba(255,77,12,0.3)' : 'none' }}>
           <FileDown size={13} /> Exportar PDF
         </button>
       </div>
 
-      {/* Seletores */}
-      <div className="card p-4 space-y-3">
+      {/* Controles */}
+      <div className="card p-4 space-y-4">
+
+        {/* Toggle Empresa / Ajudante */}
         <div>
-          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Empresa</label>
-          <select value={companyId} onChange={e => setCompanyId(e.target.value)} className="input-field">
-            <option value="">Selecionar empresa...</option>
-            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>Tipo de relatório</p>
+          <div className="flex gap-2">
+            {[['empresa','Empresa', Building2],['ajudante','Funcionário', Users]].map(([val, lbl, Icon]) => (
+              <button key={val} onClick={() => handleViewBy(val)}
+                className="flex items-center gap-2 flex-1 justify-center py-2.5 rounded-xl text-xs font-semibold border transition-all"
+                style={{
+                  background:  viewBy === val ? (val === 'empresa' ? '#FFF2EE' : '#F0F9FF') : '#F8FAFC',
+                  borderColor: viewBy === val ? (val === 'empresa' ? '#FF4D0C' : '#0891B2') : 'rgba(0,0,0,0.08)',
+                  color:       viewBy === val ? (val === 'empresa' ? '#FF4D0C' : '#0891B2') : '#94A3B8',
+                  cursor: 'pointer',
+                }}>
+                <Icon size={13} /> {lbl}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {/* Seletor */}
         <div>
-          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Período</label>
-          <div className="flex gap-1 p-0.5 rounded-xl w-fit" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>
+            {viewBy === 'empresa' ? 'Selecionar empresa' : 'Selecionar funcionário'}
+          </p>
+          {viewBy === 'empresa' ? (
+            <select value={selected} onChange={e => setSelected(e.target.value)} className="input-field">
+              <option value="">Escolha uma empresa...</option>
+              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          ) : (
+            <select value={selected} onChange={e => setSelected(e.target.value)} className="input-field">
+              <option value="">Escolha um funcionário...</option>
+              {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          )}
+        </div>
+
+        {/* Período */}
+        <div>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>Período</p>
+          <div className="flex gap-1 p-0.5 rounded-xl w-fit mb-3" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
             {[['quinzena','Quinzenal'],['mes','Mensal']].map(([val, lbl]) => (
               <button key={val} onClick={() => { setPeriod(val); setOffset(0); }}
                 className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all"
@@ -578,39 +588,41 @@ function Relatorios() {
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {navBtn(<ChevronLeft size={15} />, () => setOffset(o => o - 1))}
-          <div className="flex-1 text-center">
-            <p className="text-sm font-bold" style={T}>{label}</p>
-            <p className="text-xs" style={TM}>{String(sday).padStart(2,'0')}/{String(sm).padStart(2,'0')} — {String(eday).padStart(2,'0')}/{String(sm).padStart(2,'0')}/{tYear}</p>
+          <div className="flex items-center gap-3">
+            {navBtn(<ChevronLeft size={15} />, () => setOffset(o => o - 1))}
+            <div className="flex-1 text-center">
+              <p className="text-sm font-bold" style={T}>{label}</p>
+              <p className="text-xs" style={TM}>{String(sday).padStart(2,'0')}/{String(sm).padStart(2,'0')} — {String(eday).padStart(2,'0')}/{String(sm).padStart(2,'0')}/{tYear}</p>
+            </div>
+            {navBtn(<ChevronRight size={15} />, () => setOffset(o => Math.min(o + 1, 0)))}
           </div>
-          {navBtn(<ChevronRight size={15} />, () => setOffset(o => Math.min(o + 1, 0)))}
         </div>
       </div>
 
-      {/* Diária info */}
-      {company && (
+      {/* Taxas */}
+      {subject && (
         <div className="flex gap-3">
           <div className="card flex-1 p-3 text-center">
             <p className="text-xs" style={TM}>Diária</p>
             <p className="text-base font-black" style={{ color: '#FF4D0C' }}>R$ {dailyRate}</p>
           </div>
           <div className="card flex-1 p-3 text-center">
-            <p className="text-xs" style={TM}>HE 50%</p>
-            <p className="text-base font-black" style={{ color: '#7C3AED' }}>R$ {he50Rate.toFixed(2)}/h</p>
+            <p className="text-xs" style={TM}>{viewBy === 'empresa' ? 'HE 50%' : 'Hora extra'}</p>
+            <p className="text-base font-black" style={{ color: '#7C3AED' }}>R$ {heRate.toFixed(2)}</p>
           </div>
-          <div className="card flex-1 p-3 text-center">
-            <p className="text-xs" style={TM}>HE 100%</p>
-            <p className="text-base font-black" style={{ color: '#0891B2' }}>R$ {(dailyRate / 8 * 2).toFixed(2)}/h</p>
-          </div>
+          {viewBy === 'empresa' && (
+            <div className="card flex-1 p-3 text-center">
+              <p className="text-xs" style={TM}>HE 100%</p>
+              <p className="text-base font-black" style={{ color: '#0891B2' }}>R$ {he100Rate.toFixed(2)}</p>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Resumo */}
-      {companyId && (
+      {/* Tabela */}
+      {selected ? (
         <div className="card overflow-hidden">
+          {/* Totais */}
           <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', background: '#F8FAFC' }}>
             <div className="grid grid-cols-5 gap-3 text-center">
               {[
@@ -627,16 +639,23 @@ function Relatorios() {
               ))}
             </div>
           </div>
-
+          {/* Dias */}
           {loading ? (
             <div className="py-10 text-center text-xs" style={TM}>Carregando...</div>
           ) : (
             <div>
-              <div className="px-5 py-2 grid text-xs font-semibold" style={{ gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '8px' }}>
-                <span>Data</span><span className="text-center">Diárias</span><span className="text-center">Val. Diária</span><span className="text-center">H. Extra</span><span className="text-center">Val. HE</span><span className="text-center">Total</span>
+              <div className="px-5 py-2 grid text-xs font-semibold"
+                style={{ gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '8px' }}>
+                <span>Data</span>
+                <span className="text-center">Diárias</span>
+                <span className="text-center">Val. Diária</span>
+                <span className="text-center">H. Extra</span>
+                <span className="text-center">Val. HE</span>
+                <span className="text-center">Total</span>
               </div>
               {allDays.filter(d => !d.isWeekend).map(d => (
-                <div key={d.date} className="px-5 py-2.5 grid text-xs" style={{ gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr', borderBottom: '1px solid rgba(0,0,0,0.03)', gap: '8px', background: d.date === TODAY ? '#FFFBF5' : 'transparent' }}>
+                <div key={d.date} className="px-5 py-2.5 grid text-xs"
+                  style={{ gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr', borderBottom: '1px solid rgba(0,0,0,0.03)', gap: '8px', background: d.date === TODAY ? '#FFFBF5' : 'transparent' }}>
                   <span className="font-semibold" style={T}>{d.label}</span>
                   <span className="text-center" style={TM}>{d.diarias > 0 ? d.diarias : '—'}</span>
                   <span className="text-center" style={TM}>{d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias) : '—'}</span>
@@ -648,12 +667,12 @@ function Relatorios() {
             </div>
           )}
         </div>
-      )}
-
-      {!companyId && (
+      ) : (
         <div className="card py-14 text-center">
           <BarChart2 size={28} className="mx-auto mb-2" style={{ color: '#CBD5E1' }} />
-          <p className="text-sm" style={TM}>Selecione uma empresa para ver o relatório</p>
+          <p className="text-sm" style={TM}>
+            Selecione {viewBy === 'empresa' ? 'uma empresa' : 'um funcionário'} para ver o relatório
+          </p>
         </div>
       )}
     </div>
