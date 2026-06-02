@@ -56,82 +56,133 @@ function getPeriodBounds(period, offset) {
 }
 
 // ── RESUMO DO DIA ──────────────────────────────────────────────────────────
+const DOW_PT = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+
 function ResumoDia() {
   const { demands, companies, employees } = useAuth();
   const [records, setRecords] = useState([]);
 
-  useEffect(() => {
-    fetchTodayAllRecords(TODAY).then(setRecords);
-  }, []);
+  useEffect(() => { fetchTodayAllRecords(TODAY).then(setRecords); }, []);
 
-  const todayDemands = demands.filter(d => d.date === TODAY);
-  const activeRecs   = records.filter(r => r.status === 'active');
-  const doneRecs     = records.filter(r => r.status === 'completed');
+  const todayDemands     = demands.filter(d => d.date === TODAY);
+  const activeRecs       = records.filter(r => r.status === 'active');
+  const doneRecs         = records.filter(r => r.status === 'completed');
+  const scheduledRecs    = records.filter(r => r.status === 'scheduled');
   const companiesWorking = [...new Set(activeRecs.map(r => r.companyId))];
   const helpersWorking   = [...new Set(activeRecs.map(r => r.employeeId))];
   const faturamentoDia   = [...activeRecs, ...doneRecs].reduce((s, r) => s + Number(r.value ?? 150), 0);
 
-  const stats = [
-    { label: 'Diárias Concluídas', value: doneRecs.length,          icon: CheckCircle2, color: '#059669', bg: '#F0FDF4' },
-    { label: 'Em Andamento',       value: activeRecs.length,         icon: Activity,     color: '#2563EB', bg: '#EFF6FF' },
-    { label: 'Empresas Ativas',    value: companiesWorking.length,   icon: Building2,    color: '#7C3AED', bg: '#F5F3FF' },
-    { label: 'Ajudantes Ativos',   value: helpersWorking.length,     icon: Users,        color: '#EA580C', bg: '#FFF7ED' },
-    { label: 'Faturamento do Dia', value: fmtCurrency(faturamentoDia), icon: DollarSign, color: '#FF4D0C', bg: '#FFF2EE', wide: true },
+  const [dayOfWeek] = [DOW_PT[TODAY_DATE.getDay()]];
+  const [d, m, y]   = TODAY.split('-');
+
+  const kpis = [
+    { label: 'Concluídas',     value: doneRecs.length,        icon: CheckCircle2, color: '#059669', bg: '#F0FDF4', bar: '#059669' },
+    { label: 'Em andamento',   value: activeRecs.length,      icon: Activity,     color: '#2563EB', bg: '#EFF6FF', bar: '#2563EB' },
+    { label: 'Empresas',       value: companiesWorking.length, icon: Building2,   color: '#7C3AED', bg: '#F5F3FF', bar: '#7C3AED' },
+    { label: 'Ajudantes',      value: helpersWorking.length,   icon: Users,       color: '#EA580C', bg: '#FFF7ED', bar: '#EA580C' },
   ];
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-bold" style={T}>Resumo do Dia</h2>
-        <p className="text-xs mt-0.5" style={TM}>{fmtDate(TODAY)} — dados em tempo real</p>
+
+      {/* Banner de data */}
+      <div className="rounded-2xl p-5 flex items-center justify-between"
+        style={{ background: 'linear-gradient(135deg, #111827 0%, #1E293B 100%)', color: 'white' }}>
+        <div>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{dayOfWeek}</p>
+          <p style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{d}/{m}/{y}</p>
+          <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>Dados em tempo real</p>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ fontSize: '11px', color: '#64748B', marginBottom: '4px' }}>Faturamento do dia</p>
+          <p style={{ fontSize: '28px', fontWeight: 900, color: '#FF4D0C', lineHeight: 1 }}>{fmtCurrency(faturamentoDia)}</p>
+          <p style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>
+            {doneRecs.length + activeRecs.length} diária{doneRecs.length + activeRecs.length !== 1 ? 's' : ''} no total
+          </p>
+        </div>
       </div>
 
+      {/* KPIs — 2×2 */}
       <div className="grid grid-cols-2 gap-3">
-        {stats.map(({ label, value, icon: Icon, color, bg, wide }) => (
-          <div key={label} className={`card p-4 ${wide ? 'col-span-2' : ''}`} style={{ background: '#fff' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
-                <Icon size={16} style={{ color }} />
-              </div>
-              <div>
-                <p className="text-xs font-medium" style={TM}>{label}</p>
-                <p className="text-xl font-black mt-0.5" style={{ color }}>{value}</p>
+        {kpis.map(({ label, value, icon: Icon, color, bg, bar }) => (
+          <div key={label} className="card p-4" style={{ background: '#fff', overflow: 'hidden', position: 'relative' }}>
+            {/* barra colorida esquerda */}
+            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px', background: bar, borderRadius: '8px 0 0 8px' }} />
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold" style={{ color: '#64748B' }}>{label}</p>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: bg }}>
+                <Icon size={14} style={{ color }} />
               </div>
             </div>
+            <p style={{ fontSize: '32px', fontWeight: 900, color, lineHeight: 1 }}>{value}</p>
           </div>
         ))}
       </div>
 
       {/* Demandas do dia */}
       <div className="card overflow-hidden">
-        <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-          <p className="text-sm font-bold" style={T}>Demandas de Hoje</p>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>
-            {todayDemands.length} demanda{todayDemands.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-        {todayDemands.length === 0 ? (
-          <div className="py-10 text-center">
-            <ClipboardList size={28} className="mx-auto mb-2" style={{ color: '#CBD5E1' }} />
-            <p className="text-sm" style={TM}>Nenhuma demanda lançada para hoje</p>
+        <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+          <div className="flex items-center gap-2">
+            <ClipboardList size={14} style={{ color: '#FF4D0C' }} />
+            <p className="text-sm font-bold" style={T}>Demandas de Hoje</p>
           </div>
-        ) : todayDemands.map(d => {
-          const co = companies.find(c => c.id === d.companyId);
+          <div className="flex items-center gap-2">
+            {scheduledRecs.length > 0 && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: '#EFF6FF', color: '#2563EB' }}>
+                {scheduledRecs.length} aguardando
+              </span>
+            )}
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>
+              {todayDemands.length} demanda{todayDemands.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+        </div>
+
+        {todayDemands.length === 0 ? (
+          <div className="py-12 text-center">
+            <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: '#F1F5F9' }}>
+              <ClipboardList size={22} style={{ color: '#CBD5E1' }} />
+            </div>
+            <p className="text-sm font-semibold" style={{ color: '#94A3B8' }}>Nenhuma demanda hoje</p>
+            <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>Use Lançar Demanda para escalar ajudantes</p>
+          </div>
+        ) : todayDemands.map((d, idx) => {
+          const co        = companies.find(c => c.id === d.companyId);
           const confirmed = d.employees.filter(e => e.status === 'confirmado').length;
+          const falta     = d.employees.filter(e => e.status === 'falta').length;
           const total     = d.employees.length;
+          const allOk     = confirmed === total;
+          const hasFalta  = falta > 0;
           return (
-            <div key={d.id} className="px-5 py-3 flex items-center gap-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', fontSize: '10px', fontWeight: 700, color: 'white' }}>
+            <div key={d.id} className="px-5 py-4 flex items-center gap-4"
+              style={{ borderBottom: idx < todayDemands.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
+              {/* Avatar empresa */}
+              <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', fontSize: '11px', fontWeight: 800, color: 'white', letterSpacing: '0.01em' }}>
                 {(co?.name ?? 'E').slice(0,2).toUpperCase()}
               </div>
+
+              {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold truncate" style={T}>{co?.name ?? d.companyId}</p>
-                <p className="text-xs" style={TM}>{d.time} · {d.service}</p>
+                <p className="text-sm font-bold truncate" style={T}>{co?.name ?? d.companyId}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Clock size={10} style={{ color: '#94A3B8' }} />
+                  <p className="text-xs" style={TM}>{d.time} · {d.service}</p>
+                </div>
               </div>
-              <span className="text-xs font-bold" style={{ color: confirmed === total ? '#059669' : '#D97706' }}>
-                {confirmed}/{total} confirmados
-              </span>
+
+              {/* Status badges */}
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: allOk ? '#DCFCE7' : '#FEF3C7', color: allOk ? '#059669' : '#D97706' }}>
+                  {confirmed}/{total} confirm.
+                </span>
+                {hasFalta && (
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#FFE4E6', color: '#E11D48' }}>
+                    {falta} falta{falta > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
@@ -143,104 +194,183 @@ function ResumoDia() {
 // ── HISTÓRICO ──────────────────────────────────────────────────────────────
 function Historico() {
   const { demands, companies, employees } = useAuth();
-  const [filterCompany,  setFilterCompany]  = useState('');
-  const [filterEmployee, setFilterEmployee] = useState('');
-  const [period,  setPeriod]  = useState('quinzena');
-  const [offset,  setOffset]  = useState(0);
-  const [search,  setSearch]  = useState('');
+  const [viewBy,   setViewBy]   = useState('empresa');   // 'empresa' | 'ajudante'
+  const [selected, setSelected] = useState('');
+  const [period,   setPeriod]   = useState('quinzena');
+  const [offset,   setOffset]   = useState(0);
+
+  // Reset seleção ao trocar tipo
+  const handleViewBy = (v) => { setViewBy(v); setSelected(''); };
 
   const { start, end, label } = getPeriodBounds(period, offset);
 
   const filtered = demands.filter(d => {
     if (d.date < start || d.date > end) return false;
-    if (filterCompany && d.companyId !== filterCompany) return false;
-    if (filterEmployee && !d.employees.some(e => e.employeeId === filterEmployee)) return false;
-    if (search) {
-      const co = companies.find(c => c.id === d.companyId);
-      const term = search.toLowerCase();
-      if (!co?.name.toLowerCase().includes(term) && !(d.service || '').toLowerCase().includes(term)) return false;
-    }
+    if (!selected) return false;
+    if (viewBy === 'empresa')   return d.companyId === selected;
+    if (viewBy === 'ajudante')  return d.employees.some(e => e.employeeId === selected);
     return true;
   }).sort((a, b) => b.date.localeCompare(a.date));
+
+  const selectedName = viewBy === 'empresa'
+    ? companies.find(c => c.id === selected)?.name
+    : employees.find(e => e.id === selected)?.name;
 
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-bold" style={T}>Histórico de Demandas</h2>
-        <p className="text-xs mt-0.5" style={TM}>Todas as escalas lançadas</p>
+        <p className="text-xs mt-0.5" style={TM}>Consulte por empresa ou ajudante</p>
       </div>
 
       {/* Filtros */}
-      <div className="card p-4 space-y-3">
-        {/* Período */}
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1 p-0.5 rounded-xl" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
-            {[['quinzena','Quinzenal'],['mes','Mensal']].map(([val, lbl]) => (
-              <button key={val} onClick={() => { setPeriod(val); setOffset(0); }}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{ background: period === val ? '#FF4D0C' : 'transparent', color: period === val ? 'white' : '#64748B', border: 'none', cursor: 'pointer' }}>
+      <div className="card p-4 space-y-4">
+
+        {/* Linha 1 — Período */}
+        <div>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>Período</p>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 p-0.5 rounded-xl" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
+              {[['quinzena','Quinzenal'],['mes','Mensal']].map(([val, lbl]) => (
+                <button key={val} onClick={() => { setPeriod(val); setOffset(0); }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                  style={{ background: period === val ? '#FF4D0C' : 'transparent', color: period === val ? 'white' : '#64748B', border: 'none', cursor: 'pointer' }}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setOffset(o => o - 1)} className="p-1.5 rounded-lg"
+              style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex' }}>
+              <ChevronLeft size={14} />
+            </button>
+            <span className="text-xs font-bold flex-1 text-center" style={T}>{label}</span>
+            <button onClick={() => setOffset(o => Math.min(o + 1, 0))} className="p-1.5 rounded-lg"
+              style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex' }}>
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Linha 2 — Toggle Empresa/Ajudante */}
+        <div>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>Ver por</p>
+          <div className="flex gap-2">
+            {[['empresa','Empresa', Building2],['ajudante','Ajudante', Users]].map(([val, lbl, Icon]) => (
+              <button key={val} onClick={() => handleViewBy(val)}
+                className="flex items-center gap-2 flex-1 justify-center py-2.5 rounded-xl text-xs font-semibold border transition-all"
+                style={{
+                  background:   viewBy === val ? (val === 'empresa' ? '#FFF2EE' : '#F0F9FF') : '#F8FAFC',
+                  borderColor:  viewBy === val ? (val === 'empresa' ? '#FF4D0C' : '#0891B2') : 'rgba(0,0,0,0.08)',
+                  color:        viewBy === val ? (val === 'empresa' ? '#FF4D0C' : '#0891B2') : '#94A3B8',
+                  cursor: 'pointer',
+                }}>
+                <Icon size={13} />
                 {lbl}
               </button>
             ))}
           </div>
-          <button onClick={() => setOffset(o => o - 1)} className="p-1.5 rounded-lg" style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#475569' }}>
-            <ChevronLeft size={14} />
-          </button>
-          <span className="text-xs font-semibold flex-1 text-center" style={T}>{label}</span>
-          <button onClick={() => setOffset(o => Math.min(o + 1, 0))} className="p-1.5 rounded-lg" style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#475569' }}>
-            <ChevronRight size={14} />
-          </button>
         </div>
 
-        {/* Filtros de empresa/ajudante */}
-        <div className="grid grid-cols-2 gap-2">
-          <select value={filterCompany} onChange={e => setFilterCompany(e.target.value)} className="input-field text-xs">
-            <option value="">Todas as empresas</option>
-            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} className="input-field text-xs">
-            <option value="">Todos os ajudantes</option>
-            {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-          </select>
-        </div>
-
-        <div className="relative">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }} />
-          <input className="input-field pl-8 text-xs" placeholder="Buscar por empresa ou serviço..."
-            value={search} onChange={e => setSearch(e.target.value)} />
+        {/* Linha 3 — Seletor dinâmico */}
+        <div>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>
+            {viewBy === 'empresa' ? 'Selecionar empresa' : 'Selecionar ajudante'}
+          </p>
+          {viewBy === 'empresa' ? (
+            <select value={selected} onChange={e => setSelected(e.target.value)} className="input-field">
+              <option value="">Escolha uma empresa...</option>
+              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          ) : (
+            <select value={selected} onChange={e => setSelected(e.target.value)} className="input-field">
+              <option value="">Escolha um ajudante...</option>
+              {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          )}
         </div>
       </div>
 
       {/* Resultados */}
-      <p className="text-xs font-semibold px-1" style={TM}>{filtered.length} demanda{filtered.length !== 1 ? 's' : ''}</p>
-
-      {filtered.length === 0 ? (
+      {!selected ? (
         <div className="card py-12 text-center">
-          <ClipboardList size={28} className="mx-auto mb-2" style={{ color: '#CBD5E1' }} />
-          <p className="text-sm" style={TM}>Nenhuma demanda encontrada</p>
+          <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: '#F1F5F9' }}>
+            <Filter size={20} style={{ color: '#CBD5E1' }} />
+          </div>
+          <p className="text-sm font-semibold" style={{ color: '#94A3B8' }}>
+            Selecione {viewBy === 'empresa' ? 'uma empresa' : 'um ajudante'}
+          </p>
+          <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>para ver o histórico do período</p>
         </div>
       ) : (
-        <div className="card overflow-hidden">
-          {filtered.map((d, idx) => {
-            const co = companies.find(c => c.id === d.companyId);
-            const confirmed = d.employees.filter(e => e.status === 'confirmado').length;
-            const falta     = d.employees.filter(e => e.status === 'falta').length;
-            const total     = d.employees.length;
-            return (
-              <div key={d.id} className="px-5 py-3 grid gap-3"
-                style={{ gridTemplateColumns: '1fr auto auto auto', alignItems: 'center', borderBottom: idx < filtered.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold truncate" style={T}>{co?.name ?? d.companyId}</p>
-                  <p className="text-xs" style={TM}>{fmtDate(d.date)} · {d.time} · {d.service}</p>
-                </div>
-                <span className="text-xs font-semibold whitespace-nowrap" style={{ color: '#2563EB' }}>{total} ajudante{total !== 1 ? 's' : ''}</span>
-                <span className="text-xs font-semibold whitespace-nowrap" style={{ color: '#059669' }}>{confirmed} confirm.</span>
-                {falta > 0 && <span className="text-xs font-semibold whitespace-nowrap" style={{ color: '#E11D48' }}>{falta} falta{falta !== 1 ? 's' : ''}</span>}
-                {falta === 0 && <span />}
-              </div>
-            );
-          })}
-        </div>
+        <>
+          <div className="flex items-center justify-between px-1">
+            <p className="text-sm font-bold" style={T}>{selectedName}</p>
+            <span className="text-xs font-semibold" style={TM}>{filtered.length} demanda{filtered.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="card py-10 text-center">
+              <ClipboardList size={26} className="mx-auto mb-2" style={{ color: '#CBD5E1' }} />
+              <p className="text-sm" style={TM}>Nenhuma demanda neste período</p>
+            </div>
+          ) : (
+            <div className="card overflow-hidden">
+              {filtered.map((d, idx) => {
+                const co = companies.find(c => c.id === d.companyId);
+                const myEmps    = viewBy === 'ajudante'
+                  ? d.employees.filter(e => e.employeeId === selected)
+                  : d.employees;
+                const confirmed = myEmps.filter(e => e.status === 'confirmado').length;
+                const falta     = myEmps.filter(e => e.status === 'falta').length;
+                const total     = myEmps.length;
+
+                return (
+                  <div key={d.id} className="px-5 py-4 flex items-start gap-4"
+                    style={{ borderBottom: idx < filtered.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
+                    {/* Data */}
+                    <div className="flex-shrink-0 text-center rounded-xl px-3 py-2" style={{ background: '#F8FAFC', minWidth: '52px' }}>
+                      <p style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+                        {d.date.split('-')[2]}
+                      </p>
+                      <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600 }}>
+                        {DOW_SHORT[new Date(d.date + 'T12:00:00').getDay()]}
+                      </p>
+                    </div>
+
+                    {/* Detalhe */}
+                    <div className="flex-1 min-w-0">
+                      {viewBy === 'ajudante' && (
+                        <p className="text-sm font-bold truncate" style={T}>{co?.name ?? d.companyId}</p>
+                      )}
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Clock size={10} style={{ color: '#94A3B8' }} />
+                        <p className="text-xs" style={TM}>{d.time} · {d.service}</p>
+                      </div>
+                      {viewBy === 'empresa' && (
+                        <p className="text-xs mt-1" style={{ color: '#475569' }}>
+                          {total} ajudante{total !== 1 ? 's' : ''}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Badges */}
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: confirmed === total ? '#DCFCE7' : '#FEF3C7', color: confirmed === total ? '#059669' : '#D97706' }}>
+                        {confirmed}/{total} confirm.
+                      </span>
+                      {falta > 0 && (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#FFE4E6', color: '#E11D48' }}>
+                          {falta} falta{falta > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
