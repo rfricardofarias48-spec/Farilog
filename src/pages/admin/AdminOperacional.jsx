@@ -441,12 +441,14 @@ function Relatorios() {
     if (!selected) return;
     const dark = [15,23,42], mid = [71,85,105], light = [148,163,184], headBg = [30,41,59], rowAlt = [248,250,252];
     let logoDataUrl = null;
+    let logoAspect  = 4;
     try {
       const img = await new Promise((res, rej) => {
         const i = new Image(); i.crossOrigin = 'anonymous';
         i.onload = () => res(i); i.onerror = rej;
         i.src = 'https://ik.imagekit.io/xsbrdnr0y/Logo%20Farilog%20branco%20(sem%20fundo).png';
       });
+      logoAspect = img.width / img.height;
       const c = document.createElement('canvas');
       c.width = img.width; c.height = img.height;
       c.getContext('2d').drawImage(img, 0, 0);
@@ -459,7 +461,11 @@ function Relatorios() {
     doc.rect(0, 0, 210, headerH, 'F');
     doc.setTextColor(255,255,255); doc.setFontSize(15); doc.setFont('helvetica','bold');
     doc.text(`Relatório ${period === 'quinzena' ? 'Quinzenal' : 'Mensal'} — ${viewBy === 'empresa' ? 'Empresa' : 'Funcionário'}`, 10, headerH / 2 + 3);
-    if (logoDataUrl) doc.addImage(logoDataUrl, 'PNG', 165, (headerH - 10) / 2, 35, 10);
+    if (logoDataUrl) {
+      const lH = 30;
+      const lW = lH * logoAspect;
+      doc.addImage(logoDataUrl, 'PNG', 210 - 10 - lW, (headerH - lH) / 2, lW, lH);
+    }
 
     doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(...mid);
     doc.text(`${viewBy === 'empresa' ? 'Empresa' : 'Funcionário'}: ${subjectName}`, 10, headerH + 9);
