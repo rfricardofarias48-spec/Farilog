@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { fetchTodayAllRecords, fetchWorkRecordsByPeriod } from '../../lib/db';
 import { fmtCurrency, fmtDate } from '../../data/mockData';
@@ -900,35 +901,12 @@ function Relatorios() {
 }
 
 // ── PÁGINA PRINCIPAL ───────────────────────────────────────────────────────
-const TABS = [
-  { key: 'resumo',     label: 'Resumo do Dia',  icon: Activity },
-  { key: 'demanda',    label: 'Lançar Demanda',  icon: Send },
-  { key: 'historico',  label: 'Histórico',        icon: ClipboardList },
-  { key: 'relatorios', label: 'Relatórios',       icon: BarChart2 },
-];
-
 export default function AdminOperacional() {
-  const [tab, setTab] = useState('resumo');
+  const [searchParams] = useSearchParams();
+  const tab = searchParams.get('tab') || 'resumo';
 
   return (
     <div className="space-y-5">
-      {/* Tab bar */}
-      <div className="flex gap-1 p-1 rounded-2xl w-fit" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
-        {TABS.map(({ key, label, icon: Icon }) => (
-          <button key={key} onClick={() => setTab(key)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all"
-            style={{
-              background: tab === key ? 'white' : 'transparent',
-              color: tab === key ? '#FF4D0C' : '#64748B',
-              border: 'none', cursor: 'pointer',
-              boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-            }}>
-            <Icon size={13} />
-            {label}
-          </button>
-        ))}
-      </div>
-
       {tab === 'resumo'     && <ResumoDia />}
       {tab === 'demanda'    && <AdminDemanda />}
       {tab === 'historico'  && <Historico />}

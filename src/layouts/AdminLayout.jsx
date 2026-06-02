@@ -1,14 +1,22 @@
 ﻿import { useState } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, Building2, Users, ChevronLeft, ChevronRight, DollarSign, ClipboardList, Search, Bell, Briefcase } from 'lucide-react';
+import { LogOut, LayoutDashboard, Building2, Users, ChevronLeft, ChevronRight, DollarSign, ClipboardList, Search, Bell, Briefcase, Activity, Send, BarChart2, ChevronDown } from 'lucide-react';
+
+const OP_TABS = [
+  { key: 'resumo',     label: 'Resumo do Dia',   icon: Activity },
+  { key: 'demanda',    label: 'Lançar Demanda',   icon: Send },
+  { key: 'historico',  label: 'Histórico',         icon: ClipboardList },
+  { key: 'relatorios', label: 'Relatórios',        icon: BarChart2 },
+];
+
+const OP_TAB_LABELS = Object.fromEntries(OP_TABS.map(t => [t.key, t.label]));
 
 const PAGE_TITLES = {
   '/admin':              'Visão Geral',
   '/admin/companies':    'Empresas',
   '/admin/employees':    'Funcionários',
   '/admin/financeiro':   'Financeiro',
-  '/admin/demanda':      'Lançar Demanda',
   '/admin/operacional':  'Operacional',
 };
 
@@ -17,16 +25,20 @@ const NAV = [
   { path: '/admin/companies',    label: 'Empresas',       icon: Building2 },
   { path: '/admin/employees',    label: 'Funcionários',   icon: Users },
   { path: '/admin/financeiro',   label: 'Financeiro',     icon: DollarSign },
-  { path: '/admin/operacional',  label: 'Operacional',    icon: Briefcase },
 ];
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [open, setOpen] = useState(true);
   const [search, setSearch] = useState('');
-  const pageTitle = PAGE_TITLES[location.pathname] ?? 'Painel';
+
+  const isOperacional = location.pathname === '/admin/operacional';
+  const activeTab = searchParams.get('tab') || 'resumo';
+  const baseTitle = PAGE_TITLES[location.pathname] ?? 'Painel';
+  const pageTitle = isOperacional ? (OP_TAB_LABELS[activeTab] ?? 'Operacional') : baseTitle;
 
   return (
     <div className="min-h-screen flex" style={{ background: '#EEF1F5' }}>
@@ -72,6 +84,54 @@ export default function AdminLayout() {
               {open && <span>{label}</span>}
             </NavLink>
           ))}
+
+          {/* Operacional — accordion */}
+          <button
+            onClick={() => navigate(`/admin/operacional?tab=${isOperacional ? activeTab : 'resumo'}`)}
+            className={`sidebar-link w-full ${isOperacional ? 'active' : ''} ${!open ? 'justify-center px-0' : ''}`}
+            style={{ border: 'none', background: 'none' }}
+          >
+            <Briefcase size={17} className="flex-shrink-0" />
+            {open && (
+              <>
+                <span style={{ flex: 1, textAlign: 'left' }}>Operacional</span>
+                <ChevronDown
+                  size={13}
+                  style={{
+                    transition: 'transform 0.2s',
+                    transform: isOperacional ? 'rotate(180deg)' : 'rotate(0deg)',
+                    color: '#6B7280',
+                  }}
+                />
+              </>
+            )}
+          </button>
+
+          {/* Sub-abas do Operacional */}
+          {isOperacional && open && (
+            <div style={{ paddingLeft: '12px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {OP_TABS.map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => navigate(`/admin/operacional?tab=${key}`)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '7px 10px', borderRadius: '8px',
+                    fontSize: '12px', fontWeight: activeTab === key ? 700 : 500,
+                    color: activeTab === key ? '#FF4D0C' : '#9CA3AF',
+                    background: activeTab === key ? 'rgba(255,77,12,0.08)' : 'transparent',
+                    border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { if (activeTab !== key) e.currentTarget.style.color = '#D1D5DB'; }}
+                  onMouseLeave={e => { if (activeTab !== key) e.currentTarget.style.color = '#9CA3AF'; }}
+                >
+                  <Icon size={13} style={{ flexShrink: 0 }} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
         </nav>
 
         {/* User + logout */}
