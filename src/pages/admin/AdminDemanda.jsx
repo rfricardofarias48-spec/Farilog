@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   Building2, Calendar, Clock, ChevronDown, CheckCircle2,
   Send, ClipboardList, Search, AlertCircle, Briefcase,
-  ChevronRight, Trash2, Edit2, ArrowLeft, Plus, Users,
+  ChevronRight, Trash2, Edit2, ArrowLeft, Plus, Users, X,
 } from 'lucide-react';
 
 const T  = { color: '#0F172A' };
@@ -270,124 +271,185 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
   );
 }
 
-// ── Detalhe de uma demanda ────────────────────────────────────────────────
-function DemandDetail({ demand, employees, onChangeStatus, onEdit, onDelete, onBack }) {
+// ── Modal de detalhe de uma demanda ──────────────────────────────────────
+function DemandModal({ demand, employees, onChangeStatus, onEdit, onDelete, onClose }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  return (
-    <div className="space-y-4 animate-fade-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <button onClick={onBack} style={{
-          display: 'flex', alignItems: 'center', gap: '6px',
-          fontSize: '13px', fontWeight: 600, color: '#64748B',
-          background: 'none', border: 'none', cursor: 'pointer',
+  // Fecha com Esc
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(15,23,42,0.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '24px',
+      }}
+    >
+      <div
+        style={{
+          background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '480px',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
+          overflow: 'hidden', display: 'flex', flexDirection: 'column',
+          maxHeight: '90vh',
+        }}
+      >
+        {/* ── Cabeçalho do modal ── */}
+        <div style={{
+          padding: '20px 20px 16px',
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
         }}>
-          <ArrowLeft size={14} /> Voltar
-        </button>
-        <div className="flex gap-2">
+          {/* Linha topo: empresa + fechar */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '13px',
+                background: '#FFF2EE', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', flexShrink: 0,
+              }}>
+                <Building2 size={20} style={{ color: '#FF4D0C' }} />
+              </div>
+              <div>
+                <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
+                  {demand.companyName}
+                </p>
+                <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '3px' }}>
+                  {demand.service || 'Serviço geral'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                width: '30px', height: '30px', borderRadius: '8px', flexShrink: 0,
+                background: '#F1F5F9', border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#64748B',
+              }}
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          {/* Pills de info */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              fontSize: '12px', fontWeight: 700, padding: '5px 11px',
+              borderRadius: '8px', background: '#FFF2EE', color: '#FF4D0C',
+            }}>
+              <Clock size={12} /> {demand.time || '—'}
+            </span>
+            <span style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              fontSize: '12px', fontWeight: 600, padding: '5px 11px',
+              borderRadius: '8px', background: '#F1F5F9', color: '#475569',
+            }}>
+              <Calendar size={12} /> {formatDate(demand.date)}
+            </span>
+            <span style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              fontSize: '12px', fontWeight: 600, padding: '5px 11px',
+              borderRadius: '8px', background: '#F1F5F9', color: '#475569',
+            }}>
+              <Users size={12} /> {demand.employees.length} ajudante{demand.employees.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+        </div>
+
+        {/* ── Lista de ajudantes ── */}
+        <div style={{ overflowY: 'auto', flex: 1 }}>
+          {demand.employees.length === 0 ? (
+            <p style={{ textAlign: 'center', padding: '32px 0', fontSize: '13px', color: '#94A3B8' }}>
+              Nenhum ajudante escalado
+            </p>
+          ) : demand.employees.map(({ employeeId, status, entrada, saida, saidaAlmoco, retornoAlmoco }, idx) => {
+            const emp = employees.find(e => e.id === employeeId);
+            const hasTime = entrada || saida || saidaAlmoco || retornoAlmoco;
+            const isLast = idx === demand.employees.length - 1;
+            return (
+              <div key={employeeId} style={{
+                display: 'flex', alignItems: 'flex-start', gap: '12px',
+                padding: '14px 20px',
+                borderBottom: isLast ? 'none' : '1px solid rgba(0,0,0,0.05)',
+              }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+                  background: emp?.color || '#94A3B8',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '11px', fontWeight: 700, color: 'white',
+                }}>
+                  {emp?.initials}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
+                  {hasTime ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '4px' }}>
+                      {entrada       && <span style={{ fontSize: '11px', color: '#64748B' }}>Entrada: <b style={{ color: '#0F172A' }}>{entrada}</b></span>}
+                      {saidaAlmoco   && <span style={{ fontSize: '11px', color: '#64748B' }}>S. almoço: <b style={{ color: '#0F172A' }}>{saidaAlmoco}</b></span>}
+                      {retornoAlmoco && <span style={{ fontSize: '11px', color: '#64748B' }}>Retorno: <b style={{ color: '#0F172A' }}>{retornoAlmoco}</b></span>}
+                      {saida         && <span style={{ fontSize: '11px', color: '#64748B' }}>Saída: <b style={{ color: '#0F172A' }}>{saida}</b></span>}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '11px', color: '#CBD5E1', marginTop: '2px' }}>Sem horários registrados</p>
+                  )}
+                </div>
+                <StatusBadge
+                  status={status}
+                  onChangeStatus={(s) => onChangeStatus(demand.id, employeeId, s)}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Rodapé: ações ── */}
+        <div style={{
+          display: 'flex', gap: '8px', padding: '14px 20px',
+          borderTop: '1px solid rgba(0,0,0,0.06)',
+        }}>
           <button onClick={onEdit} style={{
-            display: 'flex', alignItems: 'center', gap: '5px',
-            padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            padding: '9px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
             background: '#F1F5F9', color: '#374151', border: 'none', cursor: 'pointer',
           }}>
-            <Edit2 size={12} /> Editar
+            <Edit2 size={13} /> Editar
           </button>
+
           {confirmDelete ? (
-            <div className="flex gap-1">
+            <>
               <button onClick={() => onDelete(demand.id)} style={{
-                padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 700,
+                flex: 2, padding: '9px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
                 background: '#E11D48', color: 'white', border: 'none', cursor: 'pointer',
-              }}>Confirmar exclusão</button>
+              }}>
+                Confirmar exclusão
+              </button>
               <button onClick={() => setConfirmDelete(false)} style={{
-                padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                flex: 1, padding: '9px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
                 background: '#F1F5F9', color: '#374151', border: 'none', cursor: 'pointer',
-              }}>Cancelar</button>
-            </div>
+              }}>
+                Cancelar
+              </button>
+            </>
           ) : (
             <button onClick={() => setConfirmDelete(true)} style={{
-              display: 'flex', alignItems: 'center', gap: '5px',
-              padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              padding: '9px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
               background: '#FFF1F2', color: '#E11D48', border: 'none', cursor: 'pointer',
             }}>
-              <Trash2 size={12} /> Deletar
+              <Trash2 size={13} /> Deletar
             </button>
           )}
         </div>
       </div>
-
-      {/* Info da demanda */}
-      <div className="card p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#FFF2EE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Building2 size={18} style={{ color: '#FF4D0C' }} />
-          </div>
-          <div>
-            <p className="text-sm font-bold" style={T}>{demand.companyName}</p>
-            <p className="text-xs mt-0.5" style={TM}>{demand.service || 'Serviço geral'}</p>
-          </div>
-        </div>
-        <div className="flex gap-5">
-          <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#475569' }}>
-            <Calendar size={12} /> {formatDate(demand.date)}
-          </span>
-          <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#475569' }}>
-            <Clock size={12} /> {demand.time || '—'}
-          </span>
-        </div>
-      </div>
-
-      {/* Ajudantes */}
-      <div className="card overflow-hidden">
-        <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-          <p className="text-xs font-bold" style={T}>
-            Ajudantes escalados ({demand.employees.length})
-          </p>
-        </div>
-
-        {demand.employees.length === 0 && (
-          <p className="text-xs text-center py-8" style={TM}>Nenhum ajudante escalado</p>
-        )}
-
-        {demand.employees.map(({ employeeId, status, entrada, saida, saidaAlmoco, retornoAlmoco }) => {
-          const emp = employees.find(e => e.id === employeeId);
-          const hasTime = entrada || saida || saidaAlmoco || retornoAlmoco;
-          return (
-            <div key={employeeId} style={{
-              display: 'flex', alignItems: 'flex-start', gap: '12px',
-              padding: '13px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)',
-            }}>
-              <div style={{
-                width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0,
-                background: emp?.color || '#94A3B8',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '10px', fontWeight: 700, color: 'white',
-              }}>
-                {emp?.initials}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
-                {hasTime && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '5px' }}>
-                    {entrada      && <span className="text-xs" style={{ color: '#64748B' }}>Entrada: <b style={{ color: '#0F172A' }}>{entrada}</b></span>}
-                    {saidaAlmoco  && <span className="text-xs" style={{ color: '#64748B' }}>Saída almoço: <b style={{ color: '#0F172A' }}>{saidaAlmoco}</b></span>}
-                    {retornoAlmoco && <span className="text-xs" style={{ color: '#64748B' }}>Retorno: <b style={{ color: '#0F172A' }}>{retornoAlmoco}</b></span>}
-                    {saida        && <span className="text-xs" style={{ color: '#64748B' }}>Saída: <b style={{ color: '#0F172A' }}>{saida}</b></span>}
-                  </div>
-                )}
-                {!hasTime && (
-                  <p className="text-xs mt-0.5" style={{ color: '#CBD5E1' }}>Nenhum horário registrado</p>
-                )}
-              </div>
-              <StatusBadge
-                status={status}
-                onChangeStatus={(s) => onChangeStatus(demand.id, employeeId, s)}
-              />
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -399,55 +461,60 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onD
   const selectedDemand = demands.find(d => d.id === selectedId);
   const editingDemand  = demands.find(d => d.id === editingId);
 
-  if (editingDemand) {
-    return (
-      <div className="max-w-lg animate-fade-up">
-        <div className="flex items-center gap-2 mb-4">
-          <button onClick={() => setEditingId(null)} style={{
-            background: 'none', border: 'none', cursor: 'pointer', color: '#64748B',
-            display: 'flex', alignItems: 'center', gap: '5px',
-            fontSize: '13px', fontWeight: 600,
-          }}>
-            <ArrowLeft size={14} /> Voltar
-          </button>
-        </div>
-        <DemandForm
-          initialData={{
-            companyId:         editingDemand.companyId,
-            date:              editingDemand.date,
-            time:              editingDemand.time || '07:30',
-            service:           editingDemand.service || '',
-            selectedEmployees: editingDemand.employees.map(e => e.employeeId),
-          }}
-          employees={employees}
-          companies={companies}
-          submitLabel="Salvar Alterações"
-          onCancel={() => setEditingId(null)}
-          onSubmit={async (form) => {
-            const ok = await onEdit(editingId, form);
-            if (ok) setEditingId(null);
-            return ok;
-          }}
-        />
-      </div>
-    );
-  }
-
-  if (selectedDemand) {
-    return (
-      <DemandDetail
-        demand={selectedDemand}
-        employees={employees}
-        onChangeStatus={onChangeStatus}
-        onEdit={() => { setEditingId(selectedDemand.id); setSelectedId(null); }}
-        onDelete={async (id) => { await onDelete(id); setSelectedId(null); }}
-        onBack={() => setSelectedId(null)}
-      />
-    );
-  }
-
   return (
-    <div className="card overflow-hidden" style={{ maxWidth: '600px' }}>
+    <>
+      {/* Modal de edição */}
+      {editingDemand && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(15,23,42,0.45)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
+        }}
+          onClick={(e) => { if (e.target === e.currentTarget) setEditingId(null); }}
+        >
+          <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '480px', padding: '24px', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="flex items-center justify-between mb-4">
+              <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Editar Demanda</p>
+              <button onClick={() => setEditingId(null)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                <X size={15} />
+              </button>
+            </div>
+            <DemandForm
+              initialData={{
+                companyId:         editingDemand.companyId,
+                date:              editingDemand.date,
+                time:              editingDemand.time || '07:30',
+                service:           editingDemand.service || '',
+                selectedEmployees: editingDemand.employees.map(e => e.employeeId),
+              }}
+              employees={employees}
+              companies={companies}
+              submitLabel="Salvar Alterações"
+              onCancel={() => setEditingId(null)}
+              onSubmit={async (form) => {
+                const ok = await onEdit(editingId, form);
+                if (ok) setEditingId(null);
+                return ok;
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal de detalhe */}
+      {selectedDemand && (
+        <DemandModal
+          demand={selectedDemand}
+          employees={employees}
+          onChangeStatus={onChangeStatus}
+          onEdit={() => { setEditingId(selectedDemand.id); setSelectedId(null); }}
+          onDelete={async (id) => { await onDelete(id); setSelectedId(null); }}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
+
+      {/* Lista */}
+      <div className="card overflow-hidden" style={{ maxWidth: '600px' }}>
       {demands.length === 0 ? (
         <div style={{ padding: '48px 24px', textAlign: 'center' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Nenhuma demanda ativa</p>
@@ -526,7 +593,8 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onD
           </button>
         );
       })}
-    </div>
+      </div>
+    </>
   );
 }
 
