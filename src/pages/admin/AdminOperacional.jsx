@@ -193,40 +193,68 @@ function ResumoDia() {
 
 // ── HISTÓRICO ──────────────────────────────────────────────────────────────
 function Historico() {
-  const { demands, companies, employees } = useAuth();
-  const [viewBy,   setViewBy]   = useState('empresa');   // 'empresa' | 'ajudante'
-  const [selected, setSelected] = useState('');
-  const [period,   setPeriod]   = useState('quinzena');
-  const [offset,   setOffset]   = useState(0);
+  const { companies, employees } = useAuth();
+  const [viewBy,      setViewBy]      = useState('empresa');
+  const [selected,    setSelected]    = useState('');
+  const [period,      setPeriod]      = useState('quinzena');
+  const [offset,      setOffset]      = useState(0);
+  const [histRecords, setHistRecords] = useState([]);
+  const [loadingHist, setLoadingHist] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
 
-  // Reset seleção ao trocar tipo
-  const handleViewBy = (v) => { setViewBy(v); setSelected(''); };
+  const handleViewBy = (v) => { setViewBy(v); setSelected(''); setHistRecords([]); setSelectedDay(null); };
 
-  const { start, end, label } = getPeriodBounds(period, offset);
+  const { start, end, label, sday, eday, sm, tYear } = getPeriodBounds(period, offset);
 
-  const filtered = demands.filter(d => {
-    if (d.date < start || d.date > end) return false;
-    if (!selected) return false;
-    if (viewBy === 'empresa')   return d.companyId === selected;
-    if (viewBy === 'ajudante')  return d.employees.some(e => e.employeeId === selected);
-    return true;
-  }).sort((a, b) => b.date.localeCompare(a.date));
+  useEffect(() => {
+    if (!selected) { setHistRecords([]); return; }
+    setLoadingHist(true);
+    const cId = viewBy === 'empresa'  ? selected : null;
+    const eId = viewBy === 'ajudante' ? selected : null;
+    fetchWorkRecordsByPeriod(cId, eId, start, end)
+      .then(setHistRecords)
+      .finally(() => setLoadingHist(false));
+  }, [selected, start, end, viewBy]);
 
-  const selectedName = viewBy === 'empresa'
-    ? companies.find(c => c.id === selected)?.name
-    : employees.find(e => e.id === selected)?.name;
+  const company  = viewBy === 'empresa'  ? companies.find(c => c.id === selected) : null;
+  const employee = viewBy === 'ajudante' ? employees.find(e => e.id === selected) : null;
+  const selectedName = company?.name ?? employee?.name ?? '';
+  const dailyRate = viewBy === 'empresa' ? Number(company?.dailyRate ?? 150) : Number(employee?.dailyRate ?? 150);
+  const heRate    = viewBy === 'empresa' ? dailyRate / 8 * 1.5 : Number(employee?.overtimeRate ?? 50);
+
+  // Montar dias do período
+  const allDays = [];
+  for (let day = sday; day <= eday; day++) {
+    const iso      = `${tYear}-${String(sm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dow      = new Date(`${iso}T12:00:00`).getDay();
+    const recs     = histRecords.filter(r => r.date === iso);
+    const presentes = recs.filter(r => r.status !== 'absent');
+    const diarias   = viewBy === 'empresa' ? presentes.length : (presentes.length > 0 ? 1 : 0);
+    const heCount   = presentes.filter(r => r.overtime).length;
+    const total     = diarias * dailyRate + heCount * heRate;
+    allDays.push({
+      date: iso, dow,
+      label: `${DOW_SHORT[dow]}, ${String(day).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
+      isWeekend: dow === 0 || dow === 6,
+      recs, presentes,
+      diarias, heCount, total,
+    });
+  }
+
+  const totalDias      = allDays.reduce((s, d) => s + d.diarias, 0);
+  const totalHEGeral   = allDays.reduce((s, d) => s + d.heCount, 0);
+  const totalCobranca  = allDays.reduce((s, d) => s + d.total, 0);
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-bold" style={T}>Histórico de Demandas</h2>
-        <p className="text-xs mt-0.5" style={TM}>Consulte por empresa ou ajudante</p>
+        <h2 className="text-lg font-bold" style={T}>Histórico</h2>
+        <p className="text-xs mt-0.5" style={TM}>Consulte por empresa ou ajudante — clique no dia para ver os detalhes</p>
       </div>
 
       {/* Filtros */}
       <div className="card p-4 space-y-4">
-
-        {/* Linha 1 — Período */}
+        {/* Período */}
         <div>
           <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>Período</p>
           <div className="flex items-center gap-2">
@@ -251,7 +279,7 @@ function Historico() {
           </div>
         </div>
 
-        {/* Linha 2 — Toggle Empresa/Ajudante */}
+        {/* Toggle Empresa/Ajudante */}
         <div>
           <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>Ver por</p>
           <div className="flex gap-2">
@@ -259,30 +287,29 @@ function Historico() {
               <button key={val} onClick={() => handleViewBy(val)}
                 className="flex items-center gap-2 flex-1 justify-center py-2.5 rounded-xl text-xs font-semibold border transition-all"
                 style={{
-                  background:   viewBy === val ? (val === 'empresa' ? '#FFF2EE' : '#F0F9FF') : '#F8FAFC',
-                  borderColor:  viewBy === val ? (val === 'empresa' ? '#FF4D0C' : '#0891B2') : 'rgba(0,0,0,0.08)',
-                  color:        viewBy === val ? (val === 'empresa' ? '#FF4D0C' : '#0891B2') : '#94A3B8',
+                  background:  viewBy === val ? (val === 'empresa' ? '#FFF2EE' : '#F0F9FF') : '#F8FAFC',
+                  borderColor: viewBy === val ? (val === 'empresa' ? '#FF4D0C' : '#0891B2') : 'rgba(0,0,0,0.08)',
+                  color:       viewBy === val ? (val === 'empresa' ? '#FF4D0C' : '#0891B2') : '#94A3B8',
                   cursor: 'pointer',
                 }}>
-                <Icon size={13} />
-                {lbl}
+                <Icon size={13} /> {lbl}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Linha 3 — Seletor dinâmico */}
+        {/* Seletor */}
         <div>
           <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>
             {viewBy === 'empresa' ? 'Selecionar empresa' : 'Selecionar ajudante'}
           </p>
           {viewBy === 'empresa' ? (
-            <select value={selected} onChange={e => setSelected(e.target.value)} className="input-field">
+            <select value={selected} onChange={e => { setSelected(e.target.value); setSelectedDay(null); }} className="input-field">
               <option value="">Escolha uma empresa...</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : (
-            <select value={selected} onChange={e => setSelected(e.target.value)} className="input-field">
+            <select value={selected} onChange={e => { setSelected(e.target.value); setSelectedDay(null); }} className="input-field">
               <option value="">Escolha um ajudante...</option>
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
@@ -301,77 +328,94 @@ function Historico() {
           </p>
           <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>para ver o histórico do período</p>
         </div>
+      ) : loadingHist ? (
+        <div className="card py-10 text-center text-xs" style={TM}>Carregando...</div>
       ) : (
         <>
-          <div className="flex items-center justify-between px-1">
-            <p className="text-sm font-bold" style={T}>{selectedName}</p>
-            <span className="text-xs font-semibold" style={TM}>{filtered.length} demanda{filtered.length !== 1 ? 's' : ''}</span>
+          {/* Totais do período */}
+          <div className="card overflow-hidden">
+            <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', background: '#F8FAFC' }}>
+              <p className="text-sm font-bold" style={T}>{selectedName}</p>
+              <span className="text-xs font-semibold" style={TM}>{label}</span>
+            </div>
+            <div className="grid grid-cols-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+              {[
+                ['Diárias', totalDias, '#0F172A'],
+                ['Horas extras', totalHEGeral > 0 ? `${totalHEGeral}x` : '—', '#0F172A'],
+                ['Total cobrança', fmtCurrency(totalCobranca), '#1E40AF'],
+              ].map(([lbl, val, color], i) => (
+                <div key={lbl} className="py-3 text-center" style={{ borderRight: i < 2 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                  <p className="text-xs" style={TM}>{lbl}</p>
+                  <p className="text-sm font-bold mt-0.5" style={{ color }}>{val}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Cabeçalho tabela */}
+            <div className="px-5 py-2 grid text-xs font-semibold"
+              style={{ gridTemplateColumns: '130px 1fr 1fr 1fr', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '8px' }}>
+              <span>Data</span>
+              <span className="text-center">Ajudantes</span>
+              <span className="text-center">H. Extras</span>
+              <span className="text-center">Total</span>
+            </div>
+
+            {/* Linhas por dia */}
+            {allDays.map((d, idx) => {
+              const hasData = d.diarias > 0 || d.heCount > 0;
+              const isLast  = idx === allDays.length - 1;
+              const isSelected = selectedDay === d.date;
+              return (
+                <div key={d.date}
+                  onClick={() => hasData && setSelectedDay(isSelected ? null : d.date)}
+                  className="px-5 py-2.5 grid text-xs"
+                  style={{
+                    gridTemplateColumns: '130px 1fr 1fr 1fr',
+                    gap: '8px',
+                    borderBottom: !isLast ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                    cursor: hasData ? 'pointer' : 'default',
+                    background: isSelected ? '#EFF6FF'
+                      : d.isWeekend ? 'rgba(238,242,247,0.7)'
+                      : 'transparent',
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={e => { if (hasData && !isSelected) e.currentTarget.style.background = '#F8FAFC'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = isSelected ? '#EFF6FF' : d.isWeekend ? 'rgba(238,242,247,0.7)' : 'transparent'; }}
+                >
+                  <span style={{ fontWeight: hasData ? 600 : 400, color: d.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8' }}>
+                    {d.label}
+                  </span>
+                  <span className="text-center" style={{ color: d.diarias > 0 ? '#0F172A' : '#E2E8F0', fontWeight: d.diarias > 0 ? 600 : 400 }}>
+                    {d.diarias > 0 ? d.diarias : '—'}
+                  </span>
+                  <span className="text-center" style={{ color: d.heCount > 0 ? '#1E40AF' : '#E2E8F0', fontWeight: d.heCount > 0 ? 600 : 400 }}>
+                    {d.heCount > 0 ? `${d.heCount}x` : '—'}
+                  </span>
+                  <span className="text-center font-bold" style={{ color: d.total > 0 ? '#0F172A' : '#E2E8F0' }}>
+                    {d.total > 0 ? fmtCurrency(d.total) : '—'}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-
-          {filtered.length === 0 ? (
-            <div className="card py-10 text-center">
-              <ClipboardList size={26} className="mx-auto mb-2" style={{ color: '#CBD5E1' }} />
-              <p className="text-sm" style={TM}>Nenhuma demanda neste período</p>
-            </div>
-          ) : (
-            <div className="card overflow-hidden">
-              {filtered.map((d, idx) => {
-                const co = companies.find(c => c.id === d.companyId);
-                const myEmps    = viewBy === 'ajudante'
-                  ? d.employees.filter(e => e.employeeId === selected)
-                  : d.employees;
-                const confirmed = myEmps.filter(e => e.status === 'confirmado').length;
-                const falta     = myEmps.filter(e => e.status === 'falta').length;
-                const total     = myEmps.length;
-
-                return (
-                  <div key={d.id} className="px-5 py-4 flex items-start gap-4"
-                    style={{ borderBottom: idx < filtered.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
-                    {/* Data */}
-                    <div className="flex-shrink-0 text-center rounded-xl px-3 py-2" style={{ background: '#F8FAFC', minWidth: '52px' }}>
-                      <p style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
-                        {d.date.split('-')[2]}
-                      </p>
-                      <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600 }}>
-                        {DOW_SHORT[new Date(d.date + 'T12:00:00').getDay()]}
-                      </p>
-                    </div>
-
-                    {/* Detalhe */}
-                    <div className="flex-1 min-w-0">
-                      {viewBy === 'ajudante' && (
-                        <p className="text-sm font-bold truncate" style={T}>{co?.name ?? d.companyId}</p>
-                      )}
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <Clock size={10} style={{ color: '#94A3B8' }} />
-                        <p className="text-xs" style={TM}>{d.time} · {d.service}</p>
-                      </div>
-                      {viewBy === 'empresa' && (
-                        <p className="text-xs mt-1" style={{ color: '#475569' }}>
-                          {total} ajudante{total !== 1 ? 's' : ''}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Badges */}
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: confirmed === total ? '#DCFCE7' : '#FEF3C7', color: confirmed === total ? '#059669' : '#D97706' }}>
-                        {confirmed}/{total} confirm.
-                      </span>
-                      {falta > 0 && (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#FFE4E6', color: '#E11D48' }}>
-                          {falta} falta{falta > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </>
       )}
+
+      {/* Modal detalhe do dia */}
+      {selectedDay && (() => {
+        const day = allDays.find(d => d.date === selectedDay);
+        return day ? (
+          <DayDetailModal
+            day={day}
+            employees={employees}
+            companies={companies}
+            viewBy={viewBy}
+            dailyRate={dailyRate}
+            heRate={heRate}
+            onClose={() => setSelectedDay(null)}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }
@@ -522,11 +566,10 @@ function Relatorios() {
   const [selected, setSelected] = useState('');
   const [period,   setPeriod]   = useState('quinzena');
   const [offset,   setOffset]   = useState(0);
-  const [records,     setRecords]     = useState([]);
-  const [loading,     setLoading]     = useState(false);
-  const [selectedDay, setSelectedDay] = useState(null); // date string
+  const [records,  setRecords]  = useState([]);
+  const [loading,  setLoading]  = useState(false);
 
-  const handleViewBy = (v) => { setViewBy(v); setSelected(''); setRecords([]); setSelectedDay(null); };
+  const handleViewBy = (v) => { setViewBy(v); setSelected(''); setRecords([]); };
 
   const { start, end, label, sday, eday, sm, tYear } = getPeriodBounds(period, offset);
 
@@ -565,7 +608,6 @@ function Relatorios() {
       date: iso, dow,
       label: `${DOW_SHORT[dow]}, ${String(day).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
       isWeekend: dow === 0 || dow === 6,
-      recs, presentes,
       diarias, heCount, valorDiarias, valorHE,
       total: valorDiarias + valorHE,
     });
@@ -803,21 +845,14 @@ function Relatorios() {
               {allDays.map((d, idx) => {
                 const hasData = d.diarias > 0 || d.heCount > 0;
                 const isLast  = idx === allDays.length - 1;
-                const isSelected = selectedDay === d.date;
                 return (
-                  <div key={d.date}
-                    onClick={() => hasData && setSelectedDay(isSelected ? null : d.date)}
-                    className="px-5 py-2.5 grid text-xs"
+                  <div key={d.date} className="px-5 py-2.5 grid text-xs"
                     style={{
                       gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr',
                       gap: '8px',
                       borderBottom: !isLast ? '1px solid rgba(0,0,0,0.04)' : 'none',
-                      cursor: hasData ? 'pointer' : 'default',
-                      background: isSelected ? '#EFF6FF' : d.isWeekend ? 'rgba(238,242,247,0.7)' : 'transparent',
-                      transition: 'background 0.12s',
+                      background: d.isWeekend ? 'rgba(238,242,247,0.7)' : 'transparent',
                     }}
-                    onMouseEnter={e => { if (hasData && !isSelected) e.currentTarget.style.background = '#F8FAFC'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = isSelected ? '#EFF6FF' : d.isWeekend ? 'rgba(238,242,247,0.7)' : 'transparent'; }}
                   >
                     {/* Data */}
                     <span style={{
@@ -860,22 +895,6 @@ function Relatorios() {
           </p>
         </div>
       )}
-
-      {/* Modal detalhe do dia */}
-      {selectedDay && (() => {
-        const day = allDays.find(d => d.date === selectedDay);
-        return day ? (
-          <DayDetailModal
-            day={day}
-            employees={employees}
-            companies={companies}
-            viewBy={viewBy}
-            dailyRate={dailyRate}
-            heRate={heRate}
-            onClose={() => setSelectedDay(null)}
-          />
-        ) : null;
-      })()}
     </div>
   );
 }
