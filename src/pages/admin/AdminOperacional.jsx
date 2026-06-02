@@ -8,7 +8,7 @@ import autoTable from 'jspdf-autotable';
 import {
   Activity, Building2, Users, DollarSign, CheckCircle2,
   Clock, Send, ClipboardList, BarChart2, FileDown,
-  ChevronLeft, ChevronRight, Filter, Search,
+  ChevronLeft, ChevronRight, Filter, Search, X,
 } from 'lucide-react';
 
 const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -376,6 +376,145 @@ function Historico() {
   );
 }
 
+// ── MODAL DETALHE DO DIA ──────────────────────────────────────────────────
+function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, onClose }) {
+  if (!day) return null;
+
+  const presentes = day.presentes ?? day.recs?.filter(r => r.status !== 'absent') ?? [];
+  const totalValor = day.total;
+
+  return (
+    <div
+      onClick={e => e.target === e.currentTarget && onClose()}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 999,
+        background: 'rgba(15,23,42,0.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '24px',
+      }}
+    >
+      <div style={{
+        background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '600px',
+        maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.25)',
+      }}>
+        {/* Cabeçalho */}
+        <div style={{
+          padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: '1px solid rgba(0,0,0,0.07)',
+          background: '#1E293B', borderRadius: '20px 20px 0 0',
+        }}>
+          <div>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F9' }}>{day.label}</p>
+            <p style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
+              {presentes.length} ajudante{presentes.length !== 1 ? 's' : ''} · {day.heCount} H.E. · Total: {fmtCurrency(totalValor)}
+            </p>
+          </div>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#94A3B8', display: 'flex' }}>
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Resumo do dia */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1px', background: 'rgba(0,0,0,0.06)' }}>
+          {[
+            ['Ajudantes',    presentes.length,           '#0F172A'],
+            ['Horas extras', day.heCount > 0 ? `${day.heCount}x` : '—', '#0F172A'],
+            ['Total do dia', fmtCurrency(totalValor),    '#1E40AF'],
+          ].map(([lbl, val, color]) => (
+            <div key={lbl} style={{ background: '#F8FAFC', padding: '12px 16px', textAlign: 'center' }}>
+              <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '4px' }}>{lbl}</p>
+              <p style={{ fontSize: '18px', fontWeight: 800, color }}>{val}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Lista de ajudantes */}
+        <div style={{ overflowY: 'auto', flex: 1 }}>
+          {presentes.length === 0 ? (
+            <div style={{ padding: '32px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
+              Nenhum registro neste dia
+            </div>
+          ) : (
+            <>
+              {/* Cabeçalho da tabela */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px 60px 70px 70px',
+                gap: '4px', padding: '8px 20px',
+                background: '#F1F5F9', borderBottom: '1px solid rgba(0,0,0,0.06)',
+                fontSize: '10px', fontWeight: 700, color: '#64748B',
+                textTransform: 'uppercase', letterSpacing: '0.04em',
+              }}>
+                <span>{viewBy === 'empresa' ? 'Ajudante' : 'Serviço'}</span>
+                <span style={{ textAlign: 'center' }}>Entrada</span>
+                <span style={{ textAlign: 'center' }}>S.Almoço</span>
+                <span style={{ textAlign: 'center' }}>Retorno</span>
+                <span style={{ textAlign: 'center' }}>Saída</span>
+                <span style={{ textAlign: 'center' }}>H. Extra</span>
+                <span style={{ textAlign: 'center' }}>Valor</span>
+              </div>
+
+              {presentes.map((rec, idx) => {
+                const emp    = viewBy === 'empresa' ? employees.find(e => e.id === rec.employeeId) : null;
+                const empRate = viewBy === 'empresa'
+                  ? Number(employees.find(e => e.id === rec.employeeId)?.dailyRate ?? dailyRate)
+                  : dailyRate;
+                const empHE  = viewBy === 'empresa'
+                  ? Number(employees.find(e => e.id === rec.employeeId)?.overtimeRate ?? heRate)
+                  : heRate;
+                const recVal = empRate + (rec.overtime ? empHE : 0);
+
+                return (
+                  <div key={rec.id ?? idx} style={{
+                    display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px 60px 70px 70px',
+                    gap: '4px', padding: '11px 20px', alignItems: 'center',
+                    borderBottom: idx < presentes.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                    background: idx % 2 === 1 ? '#FAFAFA' : 'transparent',
+                  }}>
+                    {/* Nome / serviço */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                      {viewBy === 'empresa' && (
+                        <div style={{
+                          width: '26px', height: '26px', borderRadius: '8px', flexShrink: 0,
+                          background: emp?.color ?? '#94A3B8',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '9px', fontWeight: 800, color: 'white',
+                        }}>
+                          {emp?.initials ?? '?'}
+                        </div>
+                      )}
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {viewBy === 'empresa' ? (emp?.name ?? rec.employeeId) : (rec.service ?? '—')}
+                      </p>
+                    </div>
+
+                    {/* Horários */}
+                    {[rec.checkIn, rec.lunchOut, rec.lunchReturn, rec.checkOut].map((t, i) => (
+                      <p key={i} style={{ fontSize: '11px', fontWeight: t ? 600 : 400, color: t ? '#0F172A' : '#CBD5E1', textAlign: 'center' }}>
+                        {t ?? '—'}
+                      </p>
+                    ))}
+
+                    {/* H. Extra */}
+                    <p style={{ fontSize: '11px', fontWeight: rec.overtime ? 700 : 400, color: rec.overtime ? '#1E40AF' : '#CBD5E1', textAlign: 'center' }}>
+                      {rec.overtime ?? '—'}
+                    </p>
+
+                    {/* Valor */}
+                    <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', textAlign: 'center' }}>
+                      {fmtCurrency(recVal)}
+                    </p>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── RELATÓRIOS ─────────────────────────────────────────────────────────────
 function Relatorios() {
   const { companies, employees } = useAuth();
@@ -383,10 +522,11 @@ function Relatorios() {
   const [selected, setSelected] = useState('');
   const [period,   setPeriod]   = useState('quinzena');
   const [offset,   setOffset]   = useState(0);
-  const [records,  setRecords]  = useState([]);
-  const [loading,  setLoading]  = useState(false);
+  const [records,     setRecords]     = useState([]);
+  const [loading,     setLoading]     = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null); // date string
 
-  const handleViewBy = (v) => { setViewBy(v); setSelected(''); setRecords([]); };
+  const handleViewBy = (v) => { setViewBy(v); setSelected(''); setRecords([]); setSelectedDay(null); };
 
   const { start, end, label, sday, eday, sm, tYear } = getPeriodBounds(period, offset);
 
@@ -425,6 +565,7 @@ function Relatorios() {
       date: iso, dow,
       label: `${DOW_SHORT[dow]}, ${String(day).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
       isWeekend: dow === 0 || dow === 6,
+      recs, presentes,
       diarias, heCount, valorDiarias, valorHE,
       total: valorDiarias + valorHE,
     });
@@ -662,14 +803,22 @@ function Relatorios() {
               {allDays.map((d, idx) => {
                 const hasData = d.diarias > 0 || d.heCount > 0;
                 const isLast  = idx === allDays.length - 1;
+                const isSelected = selectedDay === d.date;
                 return (
-                  <div key={d.date} className="px-5 py-2.5 grid text-xs"
+                  <div key={d.date}
+                    onClick={() => hasData && setSelectedDay(isSelected ? null : d.date)}
+                    className="px-5 py-2.5 grid text-xs"
                     style={{
                       gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr',
                       gap: '8px',
                       borderBottom: !isLast ? '1px solid rgba(0,0,0,0.04)' : 'none',
-                      background: d.isWeekend ? 'rgba(238,242,247,0.7)' : 'transparent',
-                    }}>
+                      cursor: hasData ? 'pointer' : 'default',
+                      background: isSelected ? '#EFF6FF' : d.isWeekend ? 'rgba(238,242,247,0.7)' : 'transparent',
+                      transition: 'background 0.12s',
+                    }}
+                    onMouseEnter={e => { if (hasData && !isSelected) e.currentTarget.style.background = '#F8FAFC'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = isSelected ? '#EFF6FF' : d.isWeekend ? 'rgba(238,242,247,0.7)' : 'transparent'; }}
+                  >
                     {/* Data */}
                     <span style={{
                       fontWeight: hasData ? 600 : 400,
@@ -711,6 +860,22 @@ function Relatorios() {
           </p>
         </div>
       )}
+
+      {/* Modal detalhe do dia */}
+      {selectedDay && (() => {
+        const day = allDays.find(d => d.date === selectedDay);
+        return day ? (
+          <DayDetailModal
+            day={day}
+            employees={employees}
+            companies={companies}
+            viewBy={viewBy}
+            dailyRate={dailyRate}
+            heRate={heRate}
+            onClose={() => setSelectedDay(null)}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }
