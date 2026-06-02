@@ -27,6 +27,7 @@ function mapEmployee(r) {
     name:         r.name,
     cargo:        r.cargo,
     phone:        r.phone,
+    email:        r.email,
     password:     r.password,
     initials:     r.initials,
     color:        r.color,
@@ -107,6 +108,7 @@ export async function createEmployee(emp) {
       name:         emp.name,
       cargo:        emp.cargo || 'Ajudante de Logística',
       phone:        emp.phone || null,
+      email:        emp.email || null,
       password:     emp.password,
       initials:     emp.initials,
       color:        emp.color,
@@ -125,6 +127,7 @@ export async function updateEmployee(id, emp) {
   if (emp.name         !== undefined) patch.name          = emp.name;
   if (emp.cargo        !== undefined) patch.cargo         = emp.cargo;
   if (emp.phone        !== undefined) patch.phone         = emp.phone;
+  if (emp.email        !== undefined) patch.email         = emp.email;
   if (emp.password     !== undefined) patch.password      = emp.password;
   if (emp.initials     !== undefined) patch.initials      = emp.initials;
   if (emp.color        !== undefined) patch.color         = emp.color;
