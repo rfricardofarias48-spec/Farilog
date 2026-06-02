@@ -4,7 +4,7 @@ import { fmtDate } from '../../data/mockData';
 import { createEmployee, updateEmployee, deleteEmployee } from '../../lib/db';
 import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight } from 'lucide-react';
 
-const EMPTY = { name: '', phone: '', dailyRate: 150, overtimeRate: 50, password: '' };
+const EMPTY = { name: '', phone: '', dailyRate: 150, overtimeRate: 50, password: '', status: 'active' };
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
@@ -39,6 +39,22 @@ function Modal({ employee, onSave, onClose }) {
               </div>
             ))}
           </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Status</label>
+            <div className="flex gap-2">
+              {['active','inactive'].map(s => (
+                <button key={s} type="button" onClick={() => setForm({ ...form, status: s })}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all"
+                  style={{
+                    background: form.status === s ? (s === 'active' ? '#ECFDF5' : '#FEF2F2') : '#F8FAFC',
+                    borderColor: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : 'rgba(0,0,0,0.08)',
+                    color: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : '#94A3B8',
+                  }}>
+                  {s === 'active' ? 'Ativo' : 'Inativo'}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
             <button type="submit" className="btn-primary flex-1">{employee ? 'Salvar' : 'Cadastrar funcionário'}</button>
             <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
@@ -58,7 +74,7 @@ export default function AdminEmployees() {
 
   const filtered = employees.filter(e => {
     const matchSearch = e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.cpf.includes(search) || e.email.toLowerCase().includes(search.toLowerCase());
+      (e.phone || '').includes(search);
     const matchStatus = filterStatus === 'all' || e.status === filterStatus;
     return matchSearch && matchStatus;
   });
@@ -142,7 +158,7 @@ export default function AdminEmployees() {
                   <div className="avatar flex-shrink-0" style={{ background: emp.color }}>{emp.initials}</div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold truncate" style={T}>{emp.name}</p>
-                    <p className="text-xs truncate" style={TM}>{emp.cpf} · {emp.phone}</p>
+                    <p className="text-xs truncate" style={TM}>{emp.phone}</p>
                   </div>
                 </div>
                 <span className="text-xs font-semibold" style={{ color: '#FF4D0C' }}>R$ {emp.dailyRate}</span>
