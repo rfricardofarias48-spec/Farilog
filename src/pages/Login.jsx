@@ -1,13 +1,7 @@
-﻿import { useState, useRef, useEffect } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, ArrowRight, Package, Building2, ShieldCheck } from 'lucide-react';
-
-const DEMO_ACCOUNTS = [
-  { label: 'Funcionário',   icon: Package,    email: 'carlos@email.com',      password: '123456'   },
-  { label: 'Empresa',       icon: Building2,  email: 'logtech@empresa.com',   password: '123456'   },
-  { label: 'Administrador', icon: ShieldCheck, email: 'admin@farilog.com',    password: 'admin123' },
-];
+import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 export default function Login() {
   const navigate   = useNavigate();
@@ -17,35 +11,19 @@ export default function Login() {
   const [showPwd,  setShowPwd]  = useState(false);
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
-  const [showPicker, setShowPicker] = useState(false);
-  const pickerRef = useRef(null);
-
-  // Close picker on outside click
-  useEffect(() => {
-    const handler = (e) => { if (pickerRef.current && !pickerRef.current.contains(e.target)) setShowPicker(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     await new Promise(r => setTimeout(r, 480));
-    const result = login(email, password);
+    const result = await login(email, password);
     if (result.success) {
       navigate(`/${result.role}`);
     } else {
       setError(result.error);
       setLoading(false);
     }
-  };
-
-  const fillDemo = (account) => {
-    setEmail(account.email);
-    setPassword(account.password);
-    setError('');
-    setShowPicker(false);
   };
 
   return (
@@ -164,68 +142,6 @@ export default function Login() {
             {loading ? 'Entrando...' : <><span>Entrar</span><ArrowRight size={17} /></>}
           </button>
 
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '20px 0' }}>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.07)' }} />
-            <span style={{ fontSize: '12px', color: '#4B5563' }}>ou</span>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.07)' }} />
-          </div>
-
-          {/* Demo picker */}
-          <div style={{ position: 'relative' }} ref={pickerRef}>
-            <button type="button" onClick={() => setShowPicker(v => !v)} style={{
-              width: '100%', padding: '13px',
-              background: '#252529', border: '1.5px solid rgba(255,255,255,0.07)',
-              borderRadius: '12px', color: '#9CA3AF', fontSize: '13.5px', fontWeight: 500,
-              fontFamily: 'Inter, sans-serif', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              transition: 'border-color 0.18s, color 0.18s',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = '#E5E7EB'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#9CA3AF'; }}
-            >
-              <span style={{ fontSize: '13px', fontWeight: 700, background: 'linear-gradient(135deg,#4285F4,#EA4335,#FBBC05,#34A853)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>G</span>
-              Preencher credenciais de demonstração
-            </button>
-
-            {/* Picker dropdown */}
-            {showPicker && (
-              <div style={{
-                position: 'absolute', bottom: 'calc(100% + 8px)', left: 0, right: 0,
-                background: '#2A2A30', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '14px', padding: '8px', zIndex: 50,
-                boxShadow: '0 -8px 32px rgba(0,0,0,0.4)',
-              }}>
-                <p style={{ fontSize: '10px', fontWeight: 600, color: '#4B5563', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '4px 8px 8px', margin: 0 }}>
-                  Selecione a conta
-                </p>
-                {DEMO_ACCOUNTS.map(({ label, icon: Icon, email: e, password: p }) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => fillDemo({ email: e, password: p })}
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: '12px',
-                      padding: '10px 12px', borderRadius: '10px', border: 'none',
-                      background: 'transparent', color: '#D1D5DB', fontSize: '13px', fontWeight: 500,
-                      fontFamily: 'Inter, sans-serif', cursor: 'pointer', textAlign: 'left',
-                      transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,77,12,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon size={14} style={{ color: '#FF4D0C' }} />
-                    </div>
-                    <div>
-                      <p style={{ margin: 0, fontWeight: 600, color: '#F1F5F9' }}>{label}</p>
-                      <p style={{ margin: 0, fontSize: '11px', color: '#6B7280' }}>{e}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </form>
       </div>
 

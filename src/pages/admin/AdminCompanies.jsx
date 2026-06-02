@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { PAYMENTS, WORK_RECORDS, fmtCurrency } from '../../data/mockData';
+import { fmtCurrency } from '../../data/mockData';
+import { createCompany, updateCompany, deleteCompany } from '../../lib/db';
 import { Plus, Edit2, Trash2, X, Building2, Search, Phone, Mail } from 'lucide-react';
-
-const TODAY = '2026-05-26';
 const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', sector: '' };
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
@@ -64,19 +63,20 @@ export default function AdminCompanies() {
     c.contact.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleSave = (form) => {
+  const handleSave = async (form) => {
     if (modal === 'new') {
-      setCompanies([...companies, { ...form, id: `c${Date.now()}`, password: form.password || '123456' }]);
+      const saved = await createCompany({ ...form, id: crypto.randomUUID() });
+      if (saved) setCompanies(prev => [...prev, saved]);
     } else {
-      setCompanies(companies.map(c => c.id === modal.id ? { ...c, ...form, password: form.password || c.password } : c));
+      const patch = { ...form };
+      if (!patch.password) delete patch.password;
+      const saved = await updateCompany(modal.id, patch);
+      if (saved) setCompanies(prev => prev.map(c => c.id === modal.id ? saved : c));
     }
     setModal(null);
   };
 
-  const getStats = (id) => ({
-    paid:   PAYMENTS.filter(p => p.companyId === id && p.status === 'paid').reduce((s,p) => s + p.amount, 0),
-    active: WORK_RECORDS.filter(r => r.companyId === id && r.date === TODAY && r.status === 'active').length,
-  });
+  const getStats = (_id) => ({ paid: 0, active: 0 });
 
   return (
     <div className="space-y-5">
@@ -150,7 +150,7 @@ export default function AdminCompanies() {
             <h3 className="text-base font-bold mb-2" style={T}>Remover empresa?</h3>
             <p className="text-sm mb-5" style={T2}>Esta ação não pode ser desfeita.</p>
             <div className="flex gap-2">
-              <button onClick={() => { setCompanies(companies.filter(c => c.id !== deleteConfirm)); setDeleteConfirm(null); }}
+              <button onClick={async () => { await deleteCompany(deleteConfirm); setCompanies(prev => prev.filter(c => c.id !== deleteConfirm)); setDeleteConfirm(null); }}
                 className="btn-danger flex-1 py-2.5">Remover</button>
               <button onClick={() => setDeleteConfirm(null)} className="btn-ghost flex-1">Cancelar</button>
             </div>

@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { WORK_RECORDS, COMPANIES, fmtDate } from '../../data/mockData';
+import { fmtDate } from '../../data/mockData';
+import { createEmployee, updateEmployee, deleteEmployee } from '../../lib/db';
 import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight } from 'lucide-react';
 
 const EMPTY = { name: '', cpf: '', phone: '', email: '', password: '', dailyRate: 150, hireDate: '', status: 'active' };
@@ -80,24 +81,29 @@ export default function AdminEmployees() {
     return matchSearch && matchStatus;
   });
 
-  const handleSave = (form) => {
+  const handleSave = async (form) => {
     if (modal === 'new') {
       const initials = form.name.split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase();
       const colors   = ['#FF4D0C','#7C3AED','#059669','#D97706','#DC2626','#0891B2','#BE185D'];
-      setEmployees([...employees, { ...form, id: `e${Date.now()}`, initials, color: colors[employees.length % colors.length], dailyRate: Number(form.dailyRate) }]);
+      const saved = await createEmployee({
+        ...form,
+        id:        crypto.randomUUID(),
+        initials,
+        color:     colors[employees.length % colors.length],
+        dailyRate: Number(form.dailyRate),
+        cargo:     'Ajudante de Logística',
+      });
+      if (saved) setEmployees(prev => [...prev, saved]);
     } else {
-      setEmployees(employees.map(e => e.id === modal.id
-        ? { ...e, ...form, dailyRate: Number(form.dailyRate), password: form.password || e.password }
-        : e));
+      const patch = { ...form, dailyRate: Number(form.dailyRate) };
+      if (!patch.password) delete patch.password;
+      const saved = await updateEmployee(modal.id, patch);
+      if (saved) setEmployees(prev => prev.map(e => e.id === modal.id ? saved : e));
     }
     setModal(null);
   };
 
-  const getLastWork = (id) => {
-    const rec = WORK_RECORDS.filter(r => r.employeeId === id).sort((a,b) => b.date.localeCompare(a.date))[0];
-    if (!rec) return null;
-    return { date: rec.date, company: COMPANIES.find(c => c.id === rec.companyId)?.name };
-  };
+  const getLastWork = (_id) => null;
 
   return (
     <div className="space-y-5">
@@ -161,7 +167,11 @@ export default function AdminEmployees() {
                     <><p>{fmtDate(lw.date)}</p><p style={{ ...TM, fontSize: '10px' }}>{lw.company?.split(' ')[0]}</p></>
                   ) : <span style={TM}>—</span>}
                 </div>
-                <button onClick={() => setEmployees(employees.map(e => e.id === emp.id ? { ...e, status: e.status === 'active' ? 'inactive' : 'active' } : e))}
+                <button onClick={async () => {
+                  const newStatus = emp.status === 'active' ? 'inactive' : 'active';
+                  const saved = await updateEmployee(emp.id, { status: newStatus });
+                  if (saved) setEmployees(prev => prev.map(e => e.id === emp.id ? saved : e));
+                }}
                   className="flex items-center gap-1.5 text-xs font-medium">
                   {emp.status === 'active'
                     ? <><ToggleRight size={20} style={{ color: '#059669' }} /><span style={{ color: '#059669' }}>Ativo</span></>
@@ -189,7 +199,7 @@ export default function AdminEmployees() {
             <h3 className="text-base font-bold mb-2" style={T}>Remover funcionário?</h3>
             <p className="text-sm mb-5" style={T2}>Esta ação não pode ser desfeita.</p>
             <div className="flex gap-2">
-              <button onClick={() => { setEmployees(employees.filter(e => e.id !== deleteConfirm)); setDeleteConfirm(null); }}
+              <button onClick={async () => { await deleteEmployee(deleteConfirm); setEmployees(prev => prev.filter(e => e.id !== deleteConfirm)); setDeleteConfirm(null); }}
                 className="btn-danger flex-1 py-2.5">Remover</button>
               <button onClick={() => setDeleteConfirm(null)} className="btn-ghost flex-1">Cancelar</button>
             </div>

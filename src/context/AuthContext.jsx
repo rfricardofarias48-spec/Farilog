@@ -1,19 +1,26 @@
-import { createContext, useContext, useState } from 'react';
-import { EMPLOYEES, COMPANIES, ADMIN_USER } from '../data/mockData';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { loginAdmin, loginEmployee, loginCompany, fetchEmployees, fetchCompanies } from '../lib/db';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [employees, setEmployees] = useState(EMPLOYEES);
-  const [companies, setCompanies] = useState(COMPANIES);
+  const [user, setUser]           = useState(null);
+  const [employees, setEmployees] = useState([]);
+  const [companies, setCompanies] = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [demands, setDemands]     = useState([]);
 
-  // ── Demandas compartilhadas entre admin, empresa e ajudante ──────────────
-  const [demands, setDemands] = useState([]);
+  useEffect(() => {
+    Promise.all([fetchEmployees(), fetchCompanies()])
+      .then(([emps, cos]) => {
+        setEmployees(emps);
+        setCompanies(cos);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const addDemand = (demand) => setDemands(prev => [demand, ...prev]);
 
-  // Atualiza o status de um ajudante dentro de uma demanda
   const updateDemandStatus = (demandId, employeeId, status) => {
     setDemands(prev => prev.map(d =>
       d.id === demandId
@@ -24,18 +31,15 @@ export function AuthProvider({ children }) {
     ));
   };
 
-  // Auto-detect role from credentials
-  const login = (email, password) => {
-    const emp = employees.find(e => e.email === email && e.password === password);
+  const login = async (email, password) => {
+    const emp = await loginEmployee(email, password);
     if (emp) { setUser({ role: 'employee', ...emp }); return { success: true, role: 'employee' }; }
 
-    const co = companies.find(c => c.email === email && c.password === password);
+    const co = await loginCompany(email, password);
     if (co) { setUser({ role: 'company', ...co }); return { success: true, role: 'company' }; }
 
-    if (ADMIN_USER.email === email && ADMIN_USER.password === password) {
-      setUser({ role: 'admin', ...ADMIN_USER });
-      return { success: true, role: 'admin' };
-    }
+    const admin = await loginAdmin(email, password);
+    if (admin) { setUser({ role: 'admin', ...admin }); return { success: true, role: 'admin' }; }
 
     return { success: false, error: 'E-mail ou senha inválidos' };
   };
@@ -44,7 +48,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, login, logout,
+      user, login, logout, loading,
       employees, setEmployees,
       companies, setCompanies,
       demands, addDemand, updateDemandStatus,

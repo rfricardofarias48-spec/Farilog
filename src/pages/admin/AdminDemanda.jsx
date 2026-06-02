@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { EMPLOYEES } from '../../data/mockData';
 import {
   Building2, Calendar, Clock, ChevronDown, CheckCircle2,
   Send, ClipboardList, Search, AlertCircle, Briefcase, ChevronRight,
@@ -93,7 +92,7 @@ function StatusBadge({ status, onChangeStatus }) {
 }
 
 // ── Card de demanda ────────────────────────────────────────────────────────
-function DemandCard({ demand, onChangeStatus }) {
+function DemandCard({ demand, employees, onChangeStatus }) {
   const counts = ADMIN_STATUS_OPTIONS.reduce((acc, s) => {
     acc[s] = demand.employees.filter(e => e.status === s).length;
     return acc;
@@ -169,11 +168,11 @@ function DemandCard({ demand, onChangeStatus }) {
 
 // ── Página principal ───────────────────────────────────────────────────────
 export default function AdminDemanda() {
-  const { companies, demands, addDemand, updateDemandStatus } = useAuth();
-  const activeEmployees = EMPLOYEES.filter(e => e.status === 'active');
+  const { employees, companies, demands, addDemand, updateDemandStatus } = useAuth();
+  const activeEmployees = employees.filter(e => e.status === 'active');
 
   const [form, setForm] = useState({
-    companyId: '', date: '2026-05-26', time: '07:30', service: '', selectedEmployees: [],
+    companyId: '', date: new Date().toISOString().slice(0,10), time: '07:30', service: '', selectedEmployees: [],
   });
   const [search,  setSearch]  = useState('');
   const [success, setSuccess] = useState(false);
@@ -210,7 +209,7 @@ export default function AdminDemanda() {
       createdAt:   new Date().toISOString(),
     });
 
-    setForm({ companyId: '', date: '2026-05-26', time: '07:30', service: '', selectedEmployees: [] });
+    setForm({ companyId: '', date: new Date().toISOString().slice(0,10), time: '07:30', service: '', selectedEmployees: [] });
     setSearch('');
     setSuccess(true);
     setTimeout(() => setSuccess(false), 3000);
@@ -381,6 +380,7 @@ export default function AdminDemanda() {
             <DemandCard
               key={d.id}
               demand={d}
+              employees={employees}
               onChangeStatus={updateDemandStatus}
             />
           ))}

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { PAYMENTS, COMPANIES, MONTHLY_REVENUE, WORK_RECORDS, fmtCurrency, fmtDate } from '../../data/mockData';
+import { PAYMENTS, MONTHLY_REVENUE, WORK_RECORDS, fmtCurrency, fmtDate } from '../../data/mockData';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -15,8 +15,8 @@ const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
 
-const TODAY      = '2026-05-26';
-const TODAY_DATE = new Date(2026, 4, 26);
+const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+const TODAY_DATE = new Date(TODAY + 'T12:00:00-03:00');
 
 const PIE_COLORS = ['#FF4D0C', '#7C3AED', '#059669', '#0EA5E9', '#F59E0B'];
 

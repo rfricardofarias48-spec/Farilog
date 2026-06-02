@@ -17,8 +17,8 @@ import {
 } from 'recharts';
 import { TrendingUp, Users, Building2, DollarSign, Activity } from 'lucide-react';
 
-const TODAY      = '2026-05-26';
-const TODAY_DATE = new Date(2026, 4, 26);
+const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+const TODAY_DATE = new Date(TODAY + 'T12:00:00-03:00');
 const PIE_COLORS = ['#FF4D0C', '#7C3AED', '#059669'];
 
 const T  = { color: '#0F172A' };
