@@ -24,8 +24,8 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const addDemand = async ({ companyId, date, time, service, employeeIds, adminId }) => {
-    const saved = await createDemand({ companyId, date, time, service, employeeIds, adminId });
+  const addDemand = async ({ companyId, date, time, service, employeeIds }) => {
+    const saved = await createDemand({ companyId, date, time, service, employeeIds, adminId: user?.id ?? null });
     if (saved) {
       // attach companyName for display
       const company = companies.find(c => c.id === companyId);
