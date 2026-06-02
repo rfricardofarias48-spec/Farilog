@@ -9,7 +9,7 @@ function mapRecord(r) {
     employeeId:  r.funcionario_id,
     companyId:   r.empresa_id,
     escalaId:    r.escala_id,
-    date:        r.date,
+    date:        r.data,
     service:     r.servico,
     checkIn:     r.entrada,
     lunchOut:    r.saida_almoco,
@@ -26,13 +26,13 @@ function mapEmployee(r) {
   if (!r) return null;
   return {
     id:           r.id,
-    name:         r.name,
+    name:         r.nome,
     cargo:        r.cargo,
-    phone:        r.phone,
+    phone:        r.telefone,
     email:        r.email,
-    password:     r.password,
-    initials:     r.initials,
-    color:        r.color,
+    password:     r.senha,
+    initials:     r.iniciais,
+    color:        r.cor,
     status:       r.status,
     dailyRate:    Number(r.diaria),
     overtimeRate: Number(r.hora_extra ?? 50),
@@ -43,14 +43,14 @@ function mapCompany(r) {
   if (!r) return null;
   return {
     id:        r.id,
-    name:      r.name,
+    name:      r.nome,
     cnpj:      r.cnpj,
     email:     r.email,
-    password:  r.password,
-    phone:     r.phone,
+    password:  r.senha,
+    phone:     r.telefone,
     contact:   r.responsavel,
-    address:   r.address,
-    location:  r.location,
+    address:   r.endereco,
+    location:  r.localizacao,
     dailyRate: Number(r.diaria ?? 150),
     isActive:  r.ativo,
   };
@@ -58,16 +58,16 @@ function mapCompany(r) {
 
 function mapDemand(escala) {
   return {
-    id:          escala.id,
-    companyId:   escala.empresa_id,
-    date:        escala.date,
-    time:        escala.horario,
-    service:     escala.servico,
-    employees:   (escala.work_records || []).map(wr => ({
+    id:        escala.id,
+    companyId: escala.empresa_id,
+    date:      escala.data,
+    time:      escala.horario,
+    service:   escala.servico,
+    employees: (escala.registros || []).map(wr => ({
       employeeId: wr.funcionario_id,
       status:     wr.confirmacao || 'aguardando',
     })),
-    createdAt:   escala.created_at,
+    createdAt: escala.criado_em,
   };
 }
 
@@ -75,23 +75,23 @@ function mapDemand(escala) {
 
 export async function loginAdmin(email, password) {
   const { data, error } = await supabase
-    .from('admin_users')
+    .from('usuarios_admin')
     .select('*')
     .eq('email', email)
-    .eq('password', password)
+    .eq('senha', password)
     .maybeSingle();
   if (error) { console.error('[db] loginAdmin:', error.message); return null; }
   if (!data) return null;
-  return { ...data, initials: data.iniciais };
+  return { ...data, initials: data.iniciais, name: data.nome, password: data.senha };
 }
 
 export async function loginEmployee(phoneOrEmail, password) {
-  const field = phoneOrEmail.includes('@') ? 'email' : 'phone';
+  const field = phoneOrEmail.includes('@') ? 'email' : 'telefone';
   const { data, error } = await supabase
-    .from('employees')
+    .from('funcionarios')
     .select('*')
     .eq(field, phoneOrEmail)
-    .eq('password', password)
+    .eq('senha', password)
     .maybeSingle();
   if (error) { console.error('[db] loginEmployee:', error.message); return null; }
   return mapEmployee(data);
@@ -99,42 +99,41 @@ export async function loginEmployee(phoneOrEmail, password) {
 
 export async function loginCompany(email, password) {
   const { data, error } = await supabase
-    .from('companies')
+    .from('empresas')
     .select('*')
     .eq('email', email)
-    .eq('password', password)
+    .eq('senha', password)
     .maybeSingle();
   if (error) { console.error('[db] loginCompany:', error.message); return null; }
   return mapCompany(data);
 }
 
-// ── Employees ──────────────────────────────────────────────────────────────
+// ── Funcionários ───────────────────────────────────────────────────────────
 
 export async function fetchEmployees() {
   const { data, error } = await supabase
-    .from('employees')
+    .from('funcionarios')
     .select('*')
-    .order('name');
+    .order('nome');
   if (error) { console.error('[db] fetchEmployees:', error.message); return []; }
   return data.map(mapEmployee);
 }
 
 export async function createEmployee(emp) {
   const { data, error } = await supabase
-    .from('employees')
+    .from('funcionarios')
     .insert({
-      id:                emp.id,
-      name:              emp.name,
-      cargo:             emp.cargo || 'Ajudante de Logística',
-      phone:             emp.phone || null,
-      email:             emp.email || null,
-      password:          emp.password,
-      initials:          emp.initials,
-      color:             emp.color,
-      status:            emp.status || 'active',
-      diaria:            emp.dailyRate,
-      hora_extra:        emp.overtimeRate ?? 50,
-      data_contratacao:  null,
+      id:       emp.id,
+      nome:     emp.name,
+      cargo:    emp.cargo || 'Ajudante de Logística',
+      telefone: emp.phone || null,
+      email:    emp.email || null,
+      senha:    emp.password,
+      iniciais: emp.initials,
+      cor:      emp.color,
+      status:   emp.status || 'active',
+      diaria:   emp.dailyRate,
+      hora_extra: emp.overtimeRate ?? 50,
     })
     .select()
     .single();
@@ -144,19 +143,19 @@ export async function createEmployee(emp) {
 
 export async function updateEmployee(id, emp) {
   const patch = {};
-  if (emp.name         !== undefined) patch.name             = emp.name;
-  if (emp.cargo        !== undefined) patch.cargo            = emp.cargo;
-  if (emp.phone        !== undefined) patch.phone            = emp.phone;
-  if (emp.email        !== undefined) patch.email            = emp.email;
-  if (emp.password     !== undefined) patch.password         = emp.password;
-  if (emp.initials     !== undefined) patch.initials         = emp.initials;
-  if (emp.color        !== undefined) patch.color            = emp.color;
-  if (emp.status       !== undefined) patch.status           = emp.status;
-  if (emp.dailyRate    !== undefined) patch.diaria           = emp.dailyRate;
-  if (emp.overtimeRate !== undefined) patch.hora_extra       = emp.overtimeRate;
+  if (emp.name         !== undefined) patch.nome       = emp.name;
+  if (emp.cargo        !== undefined) patch.cargo      = emp.cargo;
+  if (emp.phone        !== undefined) patch.telefone   = emp.phone;
+  if (emp.email        !== undefined) patch.email      = emp.email;
+  if (emp.password     !== undefined) patch.senha      = emp.password;
+  if (emp.initials     !== undefined) patch.iniciais   = emp.initials;
+  if (emp.color        !== undefined) patch.cor        = emp.color;
+  if (emp.status       !== undefined) patch.status     = emp.status;
+  if (emp.dailyRate    !== undefined) patch.diaria     = emp.dailyRate;
+  if (emp.overtimeRate !== undefined) patch.hora_extra = emp.overtimeRate;
 
   const { data, error } = await supabase
-    .from('employees')
+    .from('funcionarios')
     .update(patch)
     .eq('id', id)
     .select()
@@ -166,35 +165,35 @@ export async function updateEmployee(id, emp) {
 }
 
 export async function deleteEmployee(id) {
-  const { error } = await supabase.from('employees').delete().eq('id', id);
+  const { error } = await supabase.from('funcionarios').delete().eq('id', id);
   if (error) { console.error('[db] deleteEmployee:', error.message); return false; }
   return true;
 }
 
-// ── Companies ──────────────────────────────────────────────────────────────
+// ── Empresas ───────────────────────────────────────────────────────────────
 
 export async function fetchCompanies() {
   const { data, error } = await supabase
-    .from('companies')
+    .from('empresas')
     .select('*')
-    .order('name');
+    .order('nome');
   if (error) { console.error('[db] fetchCompanies:', error.message); return []; }
   return data.map(mapCompany);
 }
 
 export async function createCompany(co) {
   const { data, error } = await supabase
-    .from('companies')
+    .from('empresas')
     .insert({
       id:          co.id,
-      name:        co.name,
+      nome:        co.name,
       cnpj:        co.cnpj || null,
       email:       co.email,
-      password:    co.password,
-      phone:       co.phone || null,
+      senha:       co.password,
+      telefone:    co.phone || null,
       responsavel: co.contact || null,
-      address:     co.address || null,
-      location:    co.location || null,
+      endereco:    co.address || null,
+      localizacao: co.location || null,
       diaria:      co.dailyRate ?? 150,
     })
     .select()
@@ -205,18 +204,18 @@ export async function createCompany(co) {
 
 export async function updateCompany(id, co) {
   const patch = {};
-  if (co.name      !== undefined) patch.name        = co.name;
+  if (co.name      !== undefined) patch.nome        = co.name;
   if (co.cnpj      !== undefined) patch.cnpj        = co.cnpj;
   if (co.email     !== undefined) patch.email       = co.email;
-  if (co.password  !== undefined) patch.password    = co.password;
-  if (co.phone     !== undefined) patch.phone       = co.phone;
+  if (co.password  !== undefined) patch.senha       = co.password;
+  if (co.phone     !== undefined) patch.telefone    = co.phone;
   if (co.contact   !== undefined) patch.responsavel = co.contact;
-  if (co.address   !== undefined) patch.address     = co.address;
-  if (co.location  !== undefined) patch.location    = co.location;
+  if (co.address   !== undefined) patch.endereco    = co.address;
+  if (co.location  !== undefined) patch.localizacao = co.location;
   if (co.dailyRate !== undefined) patch.diaria      = co.dailyRate;
 
   const { data, error } = await supabase
-    .from('companies')
+    .from('empresas')
     .update(patch)
     .eq('id', id)
     .select()
@@ -226,18 +225,18 @@ export async function updateCompany(id, co) {
 }
 
 export async function deleteCompany(id) {
-  const { error } = await supabase.from('companies').delete().eq('id', id);
+  const { error } = await supabase.from('empresas').delete().eq('id', id);
   if (error) { console.error('[db] deleteCompany:', error.message); return false; }
   return true;
 }
 
-// ── Demands (Escalas) ──────────────────────────────────────────────────────
+// ── Demandas (Escalas) ─────────────────────────────────────────────────────
 
 export async function fetchDemands() {
   const { data, error } = await supabase
     .from('escalas')
-    .select('*, work_records(*)')
-    .order('date', { ascending: false });
+    .select('*, registros(*)')
+    .order('data', { ascending: false });
   if (error) { console.error('[db] fetchDemands:', error.message); return []; }
   return data.map(mapDemand);
 }
@@ -250,7 +249,7 @@ export async function createDemand({ companyId, date, time, service, employeeIds
     .insert({
       id:         escalaId,
       empresa_id: companyId,
-      date,
+      data:       date,
       horario:    time || null,
       servico:    service || null,
       status:     'scheduled',
@@ -262,40 +261,40 @@ export async function createDemand({ companyId, date, time, service, employeeIds
   if (escErr) { console.error('[db] createDemand escala:', escErr.message); return null; }
 
   const workRecords = employeeIds.map(empId => ({
-    id:           crypto.randomUUID(),
-    escala_id:    escalaId,
+    id:             crypto.randomUUID(),
+    escala_id:      escalaId,
     funcionario_id: empId,
-    empresa_id:   companyId,
-    date,
-    servico:      service || null,
-    status:       'scheduled',
-    confirmacao:  'aguardando',
-    valor:        150,
+    empresa_id:     companyId,
+    data:           date,
+    servico:        service || null,
+    status:         'scheduled',
+    confirmacao:    'aguardando',
+    valor:          150,
   }));
 
-  const { error: wrErr } = await supabase.from('work_records').insert(workRecords);
-  if (wrErr) { console.error('[db] createDemand work_records:', wrErr.message); return null; }
+  const { error: wrErr } = await supabase.from('registros').insert(workRecords);
+  if (wrErr) { console.error('[db] createDemand registros:', wrErr.message); return null; }
 
-  return mapDemand({ ...escala, work_records: workRecords });
+  return mapDemand({ ...escala, registros: workRecords });
 }
 
 export async function updateDemandEmployeeStatus(escalaId, employeeId, confirmacao) {
   const { error } = await supabase
-    .from('work_records')
+    .from('registros')
     .update({ confirmacao })
     .eq('escala_id', escalaId)
     .eq('funcionario_id', employeeId);
   if (error) { console.error('[db] updateDemandEmployeeStatus:', error.message); }
 }
 
-// ── Work Records ───────────────────────────────────────────────────────────
+// ── Registros de trabalho ──────────────────────────────────────────────────
 
 export async function fetchTodayRecord(employeeId, today) {
   const { data, error } = await supabase
-    .from('work_records')
+    .from('registros')
     .select('*')
     .eq('funcionario_id', employeeId)
-    .eq('date', today)
+    .eq('data', today)
     .maybeSingle();
   if (error) { console.error('[db] fetchTodayRecord:', error.message); return null; }
   return mapRecord(data);
@@ -303,23 +302,23 @@ export async function fetchTodayRecord(employeeId, today) {
 
 export async function fetchEmployeeRecords(employeeId) {
   const { data, error } = await supabase
-    .from('work_records')
+    .from('registros')
     .select('*')
     .eq('funcionario_id', employeeId)
-    .order('date', { ascending: false });
+    .order('data', { ascending: false });
   if (error) { console.error('[db] fetchEmployeeRecords:', error.message); return []; }
   return data.map(mapRecord);
 }
 
 export function subscribeToRecord(employeeId, today, onChange) {
   const channel = supabase
-    .channel(`wr_${employeeId}_${today}`)
+    .channel(`reg_${employeeId}_${today}`)
     .on(
       'postgres_changes',
       {
         event:  '*',
         schema: 'public',
-        table:  'work_records',
+        table:  'registros',
         filter: `funcionario_id=eq.${employeeId}`,
       },
       (payload) => {
