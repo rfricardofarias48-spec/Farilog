@@ -23,18 +23,16 @@ function mapRecord(r) {
 function mapEmployee(r) {
   if (!r) return null;
   return {
-    id:        r.id,
-    name:      r.name,
-    cargo:     r.cargo,
-    cpf:       r.cpf,
-    phone:     r.phone,
-    email:     r.email,
-    password:  r.password,
-    initials:  r.initials,
-    color:     r.color,
-    status:    r.status,
-    dailyRate: Number(r.daily_rate),
-    hireDate:  r.hire_date,
+    id:           r.id,
+    name:         r.name,
+    cargo:        r.cargo,
+    phone:        r.phone,
+    password:     r.password,
+    initials:     r.initials,
+    color:        r.color,
+    status:       r.status,
+    dailyRate:    Number(r.daily_rate),
+    overtimeRate: Number(r.overtime_rate ?? 50),
   };
 }
 
@@ -67,11 +65,12 @@ export async function loginAdmin(email, password) {
   return data;
 }
 
-export async function loginEmployee(email, password) {
+export async function loginEmployee(phoneOrEmail, password) {
+  const field = phoneOrEmail.includes('@') ? 'email' : 'phone';
   const { data, error } = await supabase
     .from('employees')
     .select('*')
-    .eq('email', email)
+    .eq(field, phoneOrEmail)
     .eq('password', password)
     .maybeSingle();
   if (error) { console.error('[db] loginEmployee:', error.message); return null; }
@@ -104,18 +103,16 @@ export async function createEmployee(emp) {
   const { data, error } = await supabase
     .from('employees')
     .insert({
-      id:         emp.id,
-      name:       emp.name,
-      cargo:      emp.cargo || 'Ajudante de Logística',
-      cpf:        emp.cpf || null,
-      phone:      emp.phone || null,
-      email:      emp.email,
-      password:   emp.password,
-      initials:   emp.initials,
-      color:      emp.color,
-      status:     emp.status,
-      daily_rate: emp.dailyRate,
-      hire_date:  emp.hireDate || null,
+      id:           emp.id,
+      name:         emp.name,
+      cargo:        emp.cargo || 'Ajudante de Logística',
+      phone:        emp.phone || null,
+      password:     emp.password,
+      initials:     emp.initials,
+      color:        emp.color,
+      status:       emp.status || 'active',
+      daily_rate:   emp.dailyRate,
+      overtime_rate: emp.overtimeRate ?? 50,
     })
     .select()
     .single();
@@ -125,17 +122,15 @@ export async function createEmployee(emp) {
 
 export async function updateEmployee(id, emp) {
   const patch = {};
-  if (emp.name      !== undefined) patch.name       = emp.name;
-  if (emp.cargo     !== undefined) patch.cargo      = emp.cargo;
-  if (emp.cpf       !== undefined) patch.cpf        = emp.cpf;
-  if (emp.phone     !== undefined) patch.phone      = emp.phone;
-  if (emp.email     !== undefined) patch.email      = emp.email;
-  if (emp.password  !== undefined) patch.password   = emp.password;
-  if (emp.initials  !== undefined) patch.initials   = emp.initials;
-  if (emp.color     !== undefined) patch.color      = emp.color;
-  if (emp.status    !== undefined) patch.status     = emp.status;
-  if (emp.dailyRate !== undefined) patch.daily_rate = emp.dailyRate;
-  if (emp.hireDate  !== undefined) patch.hire_date  = emp.hireDate || null;
+  if (emp.name         !== undefined) patch.name          = emp.name;
+  if (emp.cargo        !== undefined) patch.cargo         = emp.cargo;
+  if (emp.phone        !== undefined) patch.phone         = emp.phone;
+  if (emp.password     !== undefined) patch.password      = emp.password;
+  if (emp.initials     !== undefined) patch.initials      = emp.initials;
+  if (emp.color        !== undefined) patch.color         = emp.color;
+  if (emp.status       !== undefined) patch.status        = emp.status;
+  if (emp.dailyRate    !== undefined) patch.daily_rate    = emp.dailyRate;
+  if (emp.overtimeRate !== undefined) patch.overtime_rate = emp.overtimeRate;
 
   const { data, error } = await supabase
     .from('employees')

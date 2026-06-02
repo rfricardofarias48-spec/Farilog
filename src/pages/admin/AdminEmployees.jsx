@@ -4,7 +4,7 @@ import { fmtDate } from '../../data/mockData';
 import { createEmployee, updateEmployee, deleteEmployee } from '../../lib/db';
 import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight } from 'lucide-react';
 
-const EMPTY = { name: '', cpf: '', phone: '', email: '', password: '', dailyRate: 150, hireDate: '', status: 'active' };
+const EMPTY = { name: '', phone: '', dailyRate: 150, overtimeRate: 50, password: '' };
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
@@ -13,13 +13,11 @@ function Modal({ employee, onSave, onClose }) {
   const [form, setForm] = useState(employee ? { ...employee } : { ...EMPTY });
 
   const fields = [
-    { key: 'name',       label: 'Nome completo',    required: true, col: 2 },
-    { key: 'cpf',        label: 'CPF',              required: true, placeholder: '000.000.000-00' },
-    { key: 'phone',      label: 'Telefone',          placeholder: '(00) 00000-0000' },
-    { key: 'email',      label: 'E-mail de acesso', required: true, type: 'email', col: 2 },
-    { key: 'password',   label: employee ? 'Nova senha (opcional)' : 'Senha', type: 'password' },
-    { key: 'dailyRate',  label: 'Valor da diária (R$)', type: 'number', required: true },
-    { key: 'hireDate',   label: 'Data de contratação',  type: 'date' },
+    { key: 'name',        label: 'Nome completo',      required: true, col: 2 },
+    { key: 'phone',       label: 'Telefone',            required: true, placeholder: '(00) 00000-0000', col: 2 },
+    { key: 'dailyRate',   label: 'Valor da diária (R$)', type: 'number', required: true },
+    { key: 'overtimeRate',label: 'Hora extra (R$)',      type: 'number', required: true },
+    { key: 'password',    label: employee ? 'Nova senha (opcional)' : 'Senha', type: 'password', col: 2, required: !employee },
   ];
 
   return (
@@ -37,25 +35,9 @@ function Modal({ employee, onSave, onClose }) {
               <div key={key} className={col === 2 ? 'col-span-2' : ''}>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
                 <input type={type || 'text'} placeholder={placeholder} required={required}
-                  value={form[key] || ''} onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
+                  value={form[key] ?? ''} onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
               </div>
             ))}
-            <div className="col-span-2">
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Status</label>
-              <div className="flex gap-2">
-                {['active','inactive'].map(s => (
-                  <button key={s} type="button" onClick={() => setForm({ ...form, status: s })}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all"
-                    style={{
-                      background: form.status === s ? (s === 'active' ? '#ECFDF5' : '#FEF2F2') : '#F8FAFC',
-                      borderColor: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : 'rgba(0,0,0,0.08)',
-                      color: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : '#94A3B8',
-                    }}>
-                    {s === 'active' ? 'Ativo' : 'Inativo'}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
           <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
             <button type="submit" className="btn-primary flex-1">{employee ? 'Salvar' : 'Cadastrar funcionário'}</button>
@@ -87,15 +69,17 @@ export default function AdminEmployees() {
       const colors   = ['#FF4D0C','#7C3AED','#059669','#D97706','#DC2626','#0891B2','#BE185D'];
       const saved = await createEmployee({
         ...form,
-        id:        crypto.randomUUID(),
+        id:           crypto.randomUUID(),
         initials,
-        color:     colors[employees.length % colors.length],
-        dailyRate: Number(form.dailyRate),
-        cargo:     'Ajudante de Logística',
+        color:        colors[employees.length % colors.length],
+        dailyRate:    Number(form.dailyRate),
+        overtimeRate: Number(form.overtimeRate),
+        cargo:        'Ajudante de Logística',
+        status:       'active',
       });
       if (saved) setEmployees(prev => [...prev, saved]);
     } else {
-      const patch = { ...form, dailyRate: Number(form.dailyRate) };
+      const patch = { ...form, dailyRate: Number(form.dailyRate), overtimeRate: Number(form.overtimeRate) };
       if (!patch.password) delete patch.password;
       const saved = await updateEmployee(modal.id, patch);
       if (saved) setEmployees(prev => prev.map(e => e.id === modal.id ? saved : e));
