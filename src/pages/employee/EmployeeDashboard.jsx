@@ -147,6 +147,63 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
         );
       })}
 
+      {/* Demandas confirmadas — card de destaque */}
+      {upcomingDemands.map(d => {
+        const company = findCompany(d.companyId);
+        return (
+          <div key={d.id} className="card p-4" style={{ borderLeft: '4px solid #059669' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-2 h-2 rounded-full" style={{ background: '#059669', boxShadow: '0 0 0 3px rgba(5,150,105,0.2)' }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#059669', letterSpacing: '0.06em' }}>SERVIÇO CONFIRMADO</span>
+            </div>
+
+            {/* Serviço em destaque */}
+            <div style={{ background: '#F0FDF4', borderRadius: '10px', padding: '10px 14px', marginBottom: '12px' }}>
+              <p style={{ fontSize: '11px', color: '#059669', fontWeight: 600, marginBottom: '2px' }}>Serviço</p>
+              <p style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>{d.service}</p>
+            </div>
+
+            <div className="space-y-2">
+              {/* Empresa */}
+              <div className="flex items-center gap-2">
+                <Briefcase size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{company?.name ?? d.companyName}</p>
+              </div>
+
+              {/* Horário */}
+              <div className="flex items-center gap-2">
+                <Clock size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
+                <p style={{ fontSize: '12px', color: '#475569' }}>{fmtISO(d.date)} · <span style={{ fontWeight: 700, color: '#0F172A' }}>{d.time}</span></p>
+              </div>
+
+              {/* Responsável */}
+              {company?.contact && (
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
+                  <p style={{ fontSize: '12px', color: '#475569' }}>Receber com: <span style={{ fontWeight: 600, color: '#0F172A' }}>{company.contact}</span></p>
+                </div>
+              )}
+
+              {/* Endereço */}
+              {company?.address && (
+                <div className="flex items-start gap-2">
+                  <AlertCircle size={12} style={{ color: '#94A3B8', flexShrink: 0, marginTop: '2px' }} />
+                  <p style={{ fontSize: '12px', color: '#475569', lineHeight: 1.4 }}>{company.address}</p>
+                </div>
+              )}
+
+              {/* Localização */}
+              {company?.location && (
+                <a href={company.location} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, color: '#FF4D0C', textDecoration: 'none' }}>
+                  📍 Ver localização no mapa
+                </a>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
       {/* Caixa de trabalho — estado dinâmico */}
       {derivedState === 'active' ? (
         /* ── TRABALHANDO AGORA ── */
@@ -284,29 +341,6 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
         </div>
       </div>
 
-      {/* Escalas confirmadas */}
-      {upcomingDemands.length > 0 && (
-        <div className="card overflow-hidden">
-          <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-            <p className="text-xs font-bold" style={{ color: '#059669', letterSpacing: '0.06em' }}>
-              {upcomingDemands.length} ESCALA{upcomingDemands.length !== 1 ? 'S' : ''} CONFIRMADA{upcomingDemands.length !== 1 ? 'S' : ''}
-            </p>
-          </div>
-          {upcomingDemands.map((d, idx) => {
-            const company = getCompany(d.companyId);
-            return (
-              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 16px', borderBottom: idx < upcomingDemands.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#059669', flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A' }}>{company?.name}</p>
-                  <p style={{ fontSize: '11px', color: '#94A3B8' }}>{fmtISO(d.date)} · {d.time}</p>
-                </div>
-                <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '5px', background: '#DCFCE7', color: '#059669' }}>Confirmado</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
