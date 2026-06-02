@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import {
   loginAdmin, loginEmployee, loginCompany,
   fetchEmployees, fetchCompanies, fetchDemands,
-  createDemand, updateDemandEmployeeStatus,
+  createDemand, updateDemandEmployeeStatus, deleteDemand, editDemand,
 } from '../lib/db';
 
 const AuthContext = createContext(null);
@@ -35,7 +35,6 @@ export function AuthProvider({ children }) {
   };
 
   const updateDemandStatus = async (demandId, employeeId, status) => {
-    // Optimistic update
     setDemands(prev => prev.map(d =>
       d.id === demandId
         ? { ...d, employees: d.employees.map(e =>
@@ -44,6 +43,39 @@ export function AuthProvider({ children }) {
         : d
     ));
     await updateDemandEmployeeStatus(demandId, employeeId, status);
+  };
+
+  const removeDemand = async (id) => {
+    setDemands(prev => prev.filter(d => d.id !== id));
+    return await deleteDemand(id);
+  };
+
+  const changeDemand = async (id, form) => {
+    const ok = await editDemand(id, form);
+    if (ok) {
+      const company = companies.find(c => c.id === form.companyId);
+      setDemands(prev => prev.map(d =>
+        d.id === id
+          ? {
+              ...d,
+              companyId:   form.companyId,
+              companyName: company?.name ?? d.companyName,
+              date:        form.date,
+              time:        form.time,
+              service:     form.service,
+              employees:   form.selectedEmployees.map(eId => ({
+                employeeId: eId,
+                status: d.employees.find(e => e.employeeId === eId)?.status ?? 'aguardando',
+                entrada: d.employees.find(e => e.employeeId === eId)?.entrada ?? null,
+                saidaAlmoco: d.employees.find(e => e.employeeId === eId)?.saidaAlmoco ?? null,
+                retornoAlmoco: d.employees.find(e => e.employeeId === eId)?.retornoAlmoco ?? null,
+                saida: d.employees.find(e => e.employeeId === eId)?.saida ?? null,
+              })),
+            }
+          : d
+      ));
+    }
+    return ok;
   };
 
   const login = async (email, password) => {
@@ -66,7 +98,7 @@ export function AuthProvider({ children }) {
       user, login, logout, loading,
       employees, setEmployees,
       companies, setCompanies,
-      demands, addDemand, updateDemandStatus,
+      demands, addDemand, updateDemandStatus, removeDemand, changeDemand,
     }}>
       {children}
     </AuthContext.Provider>

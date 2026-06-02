@@ -64,8 +64,12 @@ function mapDemand(escala) {
     time:      escala.horario,
     service:   escala.servico,
     employees: (escala.registros || []).map(wr => ({
-      employeeId: wr.funcionario_id,
-      status:     wr.confirmacao || 'aguardando',
+      employeeId:    wr.funcionario_id,
+      status:        wr.confirmacao || 'aguardando',
+      entrada:       wr.entrada       || null,
+      saidaAlmoco:   wr.saida_almoco  || null,
+      retornoAlmoco: wr.retorno_almoco|| null,
+      saida:         wr.saida         || null,
     })),
     createdAt: escala.criado_em,
   };
@@ -285,6 +289,43 @@ export async function updateDemandEmployeeStatus(escalaId, employeeId, confirmac
     .eq('escala_id', escalaId)
     .eq('funcionario_id', employeeId);
   if (error) { console.error('[db] updateDemandEmployeeStatus:', error.message); }
+}
+
+export async function deleteDemand(id) {
+  await supabase.from('registros').delete().eq('escala_id', id);
+  const { error } = await supabase.from('escalas').delete().eq('id', id);
+  if (error) { console.error('[db] deleteDemand:', error.message); return false; }
+  return true;
+}
+
+export async function editDemand(id, { companyId, date, time, service, selectedEmployees }) {
+  const { error: escErr } = await supabase
+    .from('escalas')
+    .update({ empresa_id: companyId, data: date, horario: time, servico: service })
+    .eq('id', id);
+  if (escErr) { console.error('[db] editDemand escala:', escErr.message); return false; }
+
+  const { data: existing } = await supabase
+    .from('registros')
+    .select('funcionario_id')
+    .eq('escala_id', id);
+
+  const existingIds = (existing || []).map(r => r.funcionario_id);
+  const toRemove = existingIds.filter(eId => !selectedEmployees.includes(eId));
+  const toAdd    = selectedEmployees.filter(eId => !existingIds.includes(eId));
+
+  if (toRemove.length > 0) {
+    await supabase.from('registros').delete().eq('escala_id', id).in('funcionario_id', toRemove);
+  }
+  if (toAdd.length > 0) {
+    await supabase.from('registros').insert(toAdd.map(empId => ({
+      id: crypto.randomUUID(),
+      escala_id: id, funcionario_id: empId, empresa_id: companyId,
+      data: date, servico: service || null, status: 'scheduled',
+      confirmacao: 'aguardando', valor: 150,
+    })));
+  }
+  return true;
 }
 
 // ── Consultas de registros (admin) ────────────────────────────────────────
