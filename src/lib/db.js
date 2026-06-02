@@ -355,6 +355,28 @@ export async function fetchWorkRecordsByPeriod(companyId, employeeId, start, end
 
 // ── Registros de trabalho ──────────────────────────────────────────────────
 
+export async function fetchCompanyRecords(companyId) {
+  const { data, error } = await supabase
+    .from('registros')
+    .select('*')
+    .eq('empresa_id', companyId)
+    .order('data', { ascending: false });
+  if (error) { console.error('[db] fetchCompanyRecords:', error.message); return []; }
+  return data.map(mapRecord);
+}
+
+export function subscribeToCompanyRecords(companyId, onChange) {
+  const reload = () => fetchCompanyRecords(companyId).then(onChange);
+  const channel = supabase
+    .channel(`co_recs_${companyId}`)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'registros',
+      filter: `empresa_id=eq.${companyId}`,
+    }, reload)
+    .subscribe();
+  return () => supabase.removeChannel(channel);
+}
+
 export async function fetchTodayRecord(employeeId, today) {
   const { data, error } = await supabase
     .from('registros')

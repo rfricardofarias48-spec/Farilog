@@ -1,11 +1,16 @@
 ﻿import { useOutletContext } from 'react-router-dom';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, createContext, useContext, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { STATUS_CONFIG } from '../admin/AdminDemanda';
+import { fetchCompanyRecords, subscribeToCompanyRecords } from '../../lib/db';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { WORK_RECORDS, EMPLOYEES, PAYMENTS, fmtCurrency, fmtDate, WEEKDAYS, MONTHS } from '../../data/mockData';
+import { PAYMENTS, fmtCurrency, fmtDate, WEEKDAYS, MONTHS } from '../../data/mockData';
+
+// ── Contexto interno de dados da empresa ──────────────────────────────────
+const CompanyDataCtx = createContext({ records: [], employees: [] });
+const useCompanyData = () => useContext(CompanyDataCtx);
 import {
   Clock, DollarSign, Users, CheckCircle2, Calendar,
   Phone, Mail, MapPin, Save, AlertTriangle, TrendingUp,
@@ -24,7 +29,7 @@ const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
 
-function getEmployee(id) { return EMPLOYEES.find(e => e.id === id); }
+function findEmp(employees, id) { return employees.find(e => e.id === id); }
 
 // Garante formato HH:MM com zeros à esquerda
 const fmtTime = (t) => {
@@ -102,28 +107,28 @@ function getQuinzenaInfo() {
   }
 }
 
-function buildPeriodChartData(companyId, startIso, endIso) {
+function buildPeriodChartData(records, companyId, startIso, endIso) {
   const [sy, sm, sd] = startIso.split('-').map(Number);
   const [,  ,  ed]   = endIso.split('-').map(Number);
   const days = [];
   for (let d = sd; d <= ed; d++) {
     const date = `${sy}-${String(sm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dow  = new Date(`${date}T12:00:00`).getDay();
-    const recs = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === date);
+    const recs = records.filter(r => r.date === date && r.status !== 'absent');
     const isWeekend = dow === 0 || dow === 6;
     days.push({
       date,
       label: `${String(d).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
-      count: recs.filter(r => r.status !== 'absent').length,
-      value: recs.filter(r => r.status !== 'absent').length * 150,
+      count: recs.length,
+      value: recs.reduce((s, r) => s + (r.value || 150), 0),
       isWeekend,
     });
   }
   return days;
 }
 
-function buildQuinzenaData(companyId) {
+function buildQuinzenaData(records) {
   const { startDay, endDay, month, year } = getQuinzenaInfo();
   const days = [];
   for (let d = startDay; d <= endDay; d++) {
@@ -131,7 +136,7 @@ function buildQuinzenaData(companyId) {
     const dd   = String(d).padStart(2, '0');
     const date = `${year}-${mm}-${dd}`;
     const dow  = new Date(year, month, d).getDay();
-    const recs = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === date);
+    const recs = records.filter(r => r.date === date && r.status !== 'absent');
     const isToday   = date === TODAY;
     const isWeekend = dow === 0 || dow === 6;
     days.push({
@@ -139,7 +144,7 @@ function buildQuinzenaData(companyId) {
       label: `${String(d).padStart(2,'0')}/${String(month + 1).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.length,
-      value: recs.length * 150,
+      value: recs.reduce((s, r) => s + (r.value || 150), 0),
       isToday,
       isWeekend,
     });
@@ -173,6 +178,7 @@ const QuinzenaTooltip = ({ active, payload, label }) => {
 
 // ── Modal: todos os ajudantes ──────────────────────────────────────────────
 function AjudantesModal({ records, escala, faltas, atrasos, date, onClose }) {
+  const { employees } = useCompanyData();
   const dateLabel = date ? (() => {
     const [, m, d] = date.split('-');
     const dow = DOW_FULL[new Date(`${date}T12:00:00`).getDay()];
@@ -219,7 +225,7 @@ function AjudantesModal({ records, escala, faltas, atrasos, date, onClose }) {
             <div className="py-10 text-center text-sm" style={{ color: '#94A3B8' }}>Nenhum ajudante alocado hoje</div>
           ) : (
             records.map(rec => {
-              const emp = getEmployee(rec.employeeId);
+              const emp = findEmp(employees, rec.employeeId);
               return (
                 <div key={rec.id} className="table-row" style={{ gridTemplateColumns: 'auto 160px 1fr 1fr 1fr 1fr 1fr auto' }}>
                   <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
@@ -312,6 +318,7 @@ function fmtDateShort(iso) {
 }
 
 function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday, onVerMais }) {
+  const { employees } = useCompanyData();
   const [showModal, setShowModal] = useState(false);
   const [popupEmp, setPopupEmp] = useState(null);
   const [notes, setNotes] = useNotes();
@@ -401,7 +408,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                     {service}
                   </p>
                   {recs.map(rec => {
-                    const emp = getEmployee(rec.employeeId);
+                    const emp = findEmp(employees, rec.employeeId);
                     const isAbsent = rec.status === 'absent';
                     return (
                       <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 8px', borderRadius: '8px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
@@ -457,10 +464,11 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
 }
 
 function Panel({ companyId, setTab, companyName }) {
+  const { records } = useCompanyData();
 
-  const todayRecords = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === TODAY);
+  const todayRecords = records.filter(r => r.date === TODAY);
 
-  const futureRecords = WORK_RECORDS.filter(r => r.companyId === companyId && r.date > TODAY && r.status === 'scheduled');
+  const futureRecords = records.filter(r => r.date > TODAY && r.status === 'scheduled');
   const nextDate = futureRecords.length > 0
     ? futureRecords.reduce((min, r) => r.date < min ? r.date : min, futureRecords[0].date)
     : null;
@@ -501,6 +509,7 @@ function Panel({ companyId, setTab, companyName }) {
 
 // ── Modal: detalhe de um dia ───────────────────────────────────────────────
 function DiaModal({ date, records, onClose }) {
+  const { employees } = useCompanyData();
   const escala    = records.length;
   const faltas    = records.filter(r => r.status === 'absent').length;
   const atrasos   = records.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
@@ -558,7 +567,7 @@ function DiaModal({ date, records, onClose }) {
           {records.length === 0 ? (
             <div className="py-10 text-center text-sm" style={{ color:'#94A3B8' }}>Nenhum registro neste dia</div>
           ) : records.map(rec => {
-            const emp = getEmployee(rec.employeeId);
+            const emp = findEmp(employees, rec.employeeId);
             return (
               <div key={rec.id} className="table-row" style={{ gridTemplateColumns:'auto 160px 1fr 1fr 1fr 1fr 1fr auto' }}>
                 <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
@@ -800,7 +809,8 @@ function HistoryTab({ companyId }) {
   // Reset offset when switching period
   const handlePeriod = (p) => { setPeriod(p); setOffset(0); setShowCal(false); };
 
-  const allRecords = WORK_RECORDS.filter(r => r.companyId === companyId);
+  const { records, employees } = useCompanyData();
+  const allRecords = records;
   const { start, end, label } = getPeriodBounds(period, offset);
 
   const filtered   = allRecords.filter(r => r.date >= start && r.date <= end);
@@ -873,7 +883,7 @@ function HistoryTab({ companyId }) {
         startY: yPos + 9,
         head: [['Nome', 'Função', 'Entrada', 'Status']],
         body: recs.map(rec => {
-          const emp = getEmployee(rec.employeeId);
+          const emp = findEmp(employees, rec.employeeId);
           return [
             emp?.name || '—',
             rec.service || '—',
@@ -1073,21 +1083,23 @@ const VALOR_DIARIA   = 150;
 const VALOR_HORA_EXTRA = 50;
 
 // Calcula o valor total da fatura a partir dos registros do período:
-// total = (diárias presentes × 150) + (horas extras × 50)
-function calcPaymentTotal(payment, companyId) {
+// total = soma(rec.value) + (horas extras × VALOR_HORA_EXTRA)
+function calcPaymentTotal(payment, records) {
   const pStart = parsePeriodStart(payment.period);
   const pEnd   = parsePeriodEnd(payment.period);
   if (!pStart || !pEnd) return { total: 0, diarias: 0, heCount: 0, valorDiarias: 0, valorHE: 0 };
-  const recs = WORK_RECORDS.filter(r => r.companyId === companyId && r.date >= pStart && r.date <= pEnd);
-  const diarias = recs.filter(r => r.status !== 'absent').length;
-  const heCount = recs.filter(r => r.overtime).length;
-  const valorDiarias = diarias * VALOR_DIARIA;
+  const recs     = records.filter(r => r.date >= pStart && r.date <= pEnd);
+  const presentes = recs.filter(r => r.status !== 'absent');
+  const diarias  = presentes.length;
+  const heCount  = presentes.filter(r => r.overtime).length;
+  const valorDiarias = presentes.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0);
   const valorHE      = heCount * VALOR_HORA_EXTRA;
   return { total: valorDiarias + valorHE, diarias, heCount, valorDiarias, valorHE };
 }
 
 // ── Modal de detalhe de um período de pagamento ────────────────────────────
 function FinPeriodModal({ payment, companyId, onClose }) {
+  const { records } = useCompanyData();
   const [selectedDay, setSelectedDay] = useState(null);
 
   const pStart = parsePeriodStart(payment.period);
@@ -1095,9 +1107,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
   const label  = formatPeriod(payment.period);
 
   // Todos os registros da empresa no período
-  const allRecs = WORK_RECORDS.filter(r =>
-    r.companyId === companyId && r.date >= pStart && r.date <= pEnd
-  );
+  const allRecs = records.filter(r => r.date >= pStart && r.date <= pEnd);
 
   // Agrupar por data
   const byDate = allRecs.reduce((acc, r) => {
@@ -1218,7 +1228,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
       {selectedDay && (
         <DiaModal
           date={selectedDay}
-          records={WORK_RECORDS.filter(r => r.companyId === companyId && r.date === selectedDay)}
+          records={records.filter(r => r.date === selectedDay)}
           onClose={() => setSelectedDay(null)}
         />
       )}
@@ -1244,15 +1254,16 @@ function Financial({ companyId }) {
 
   const handlePeriod = (p) => { setPeriod(p); setOffset(0); setShowCal(false); };
 
+  const { records } = useCompanyData();
   const myPayments  = PAYMENTS.filter(p => p.companyId === companyId).sort((a,b) => b.dueDate.localeCompare(a.dueDate));
   const nextPayment = myPayments.find(p => p.status === 'pending');
   const daysLeft    = nextPayment ? Math.ceil((new Date(nextPayment.dueDate) - TODAY_DATE) / 86400000) : null;
 
   // Quinzena atual (sub-aba Período Atual)
   const quinzenaInfo  = getQuinzenaInfo();
-  const quinzenaData  = buildQuinzenaData(companyId);
+  const quinzenaData  = buildQuinzenaData(records);
   const quinzenaTotal = quinzenaData.reduce((s, d) => s + d.count, 0);
-  const quinzenaValue = quinzenaTotal * 150;
+  const quinzenaValue = quinzenaData.reduce((s, d) => s + d.value, 0);
   const maxValue      = Math.max(...quinzenaData.map(d => d.value), 1);
 
   // Histórico filtrado
@@ -1261,8 +1272,8 @@ function Financial({ companyId }) {
     const s = parsePeriodStart(p.period);
     return s && s >= hStart && s <= hEnd;
   });
-  const totalFiltered = filteredPayments.reduce((s, p) => s + calcPaymentTotal(p, companyId).total, 0);
-  const paidFiltered  = filteredPayments.filter(p => p.status === 'paid').reduce((s, p) => s + calcPaymentTotal(p, companyId).total, 0);
+  const totalFiltered = filteredPayments.reduce((s, p) => s + calcPaymentTotal(p, records).total, 0);
+  const paidFiltered  = filteredPayments.filter(p => p.status === 'paid').reduce((s, p) => s + calcPaymentTotal(p, records).total, 0);
 
   const FIN_PERIODS = [['quinzena','Quinzena'],['mes','Mês']];
   const navBtn = (icon, fn) => (
@@ -1304,7 +1315,7 @@ function Financial({ companyId }) {
               </div>
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="font-bold text-2xl" style={T}>{fmtCurrency(calcPaymentTotal(nextPayment, companyId).total)}</p>
+                  <p className="font-bold text-2xl" style={T}>{fmtCurrency(calcPaymentTotal(nextPayment, records).total)}</p>
                   <p className="text-xs mt-1" style={TM}>Período: {formatPeriod(nextPayment.period)}</p>
                 </div>
                 <div className="text-right">
@@ -1392,7 +1403,7 @@ function Financial({ companyId }) {
               <AlertTriangle size={18} style={{ color: '#DC2626' }} />
               <div>
                 <p className="text-sm font-semibold" style={{ color: '#DC2626' }}>Pagamento em atraso</p>
-                <p className="text-xs" style={TM}>{fmtCurrency(calcPaymentTotal(p, companyId).total)} · venceu em {fmtDate(p.dueDate)}</p>
+                <p className="text-xs" style={TM}>{fmtCurrency(calcPaymentTotal(p, records).total)} · venceu em {fmtDate(p.dueDate)}</p>
               </div>
             </div>
           ))}
@@ -1441,7 +1452,7 @@ function Financial({ companyId }) {
             {filteredPayments.length === 0 ? (
               <div className="p-10 text-center text-sm" style={TM}>Nenhum pagamento neste período</div>
             ) : filteredPayments.map((p, idx) => {
-              const { total: totalFatura, diarias, heCount, valorDiarias, valorHE } = calcPaymentTotal(p, companyId);
+              const { total: totalFatura, diarias, heCount, valorDiarias, valorHE } = calcPaymentTotal(p, records);
               const sColor = p.status === 'paid' ? '#059669' : p.status === 'overdue' ? '#E11D48' : '#D97706';
               const sBg    = p.status === 'paid' ? '#DCFCE7' : p.status === 'overdue' ? '#FFE4E6' : '#FEF3C7';
               const sLabel = p.status === 'paid' ? 'Pago' : p.status === 'pending' ? 'Pendente' : 'Atrasado';
@@ -1508,7 +1519,7 @@ function Financial({ companyId }) {
                     const pStart = parsePeriodStart(p.period);
                     const pEnd   = parsePeriodEnd(p.period);
                     if (!pStart || !pEnd) return null;
-                    const chartData = buildPeriodChartData(companyId, pStart, pEnd);
+                    const chartData = buildPeriodChartData(records, companyId, pStart, pEnd);
                     const maxVal    = Math.max(...chartData.map(d => d.value), 1);
                     return (
                       <div style={{ marginBottom: '12px' }}>
@@ -1563,9 +1574,10 @@ function Financial({ companyId }) {
 // ── Escalas ────────────────────────────────────────────────────────────────
 
 function EscalasHoje({ companyId }) {
+  const { records, employees } = useCompanyData();
   const [showModal, setShowModal] = useState(false);
   const [notes, setNotes] = useNotes();
-  const todayRecords  = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === TODAY);
+  const todayRecords  = records.filter(r => r.date === TODAY);
   const escala        = todayRecords.length;
   const faltas        = todayRecords.filter(r => r.status === 'absent').length;
   const atrasos       = todayRecords.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
@@ -1651,7 +1663,7 @@ function EscalasHoje({ companyId }) {
                   {service}
                 </p>
                 {recs.map(rec => {
-                  const emp = getEmployee(rec.employeeId);
+                  const emp = findEmp(employees, rec.employeeId);
                   const isAbsent = rec.status === 'absent';
                   return (
                     <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
@@ -1699,9 +1711,10 @@ function EscalasHoje({ companyId }) {
 }
 
 function EscalasProximas({ companyId }) {
+  const { records, employees } = useCompanyData();
   const futureDates = [...new Set(
-    WORK_RECORDS
-      .filter(r => r.companyId === companyId && r.date > TODAY && r.status === 'scheduled')
+    records
+      .filter(r => r.date > TODAY && r.status === 'scheduled')
       .map(r => r.date)
   )].sort();
 
@@ -1719,7 +1732,7 @@ function EscalasProximas({ companyId }) {
   return (
     <div className="card overflow-hidden">
       {futureDates.map((date, idx) => {
-        const records = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === date && r.status === 'scheduled');
+        const dateRecs = records.filter(r => r.date === date && r.status === 'scheduled');
         const [y, m, d] = date.split('-').map(Number);
         const dow = DOW_FULL[new Date(y, m - 1, d).getDay()];
         const isOpen = openDate === date;
@@ -1741,7 +1754,7 @@ function EscalasProximas({ companyId }) {
                 </div>
                 <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)' }} />
                 <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ background: '#FFF2EE', color: '#FF4D0C' }}>
-                  {records.length} escalado{records.length !== 1 ? 's' : ''}
+                  {dateRecs.length} escalado{dateRecs.length !== 1 ? 's' : ''}
                 </span>
               </div>
               <ChevronRight size={15} style={{ color: '#94A3B8', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
@@ -1750,8 +1763,8 @@ function EscalasProximas({ companyId }) {
             {/* Detalhe expandido */}
             {isOpen && (
               <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)', background: '#FAFBFC' }}>
-                {records.map((rec, rIdx) => {
-                  const emp = getEmployee(rec.employeeId);
+                {dateRecs.map((rec, rIdx) => {
+                  const emp = findEmp(employees, rec.employeeId);
                   const times = [
                     { label: 'Entrada',   value: rec.checkIn },
                     { label: 'S. Almoço', value: rec.lunchOut },
@@ -1762,7 +1775,7 @@ function EscalasProximas({ companyId }) {
                   return (
                     <div key={rec.id} className="table-row" style={{
                       gridTemplateColumns: 'auto 1fr 1fr auto',
-                      borderBottom: rIdx < records.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                      borderBottom: rIdx < dateRecs.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                       background: 'transparent',
                     }}>
                       <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
@@ -1940,6 +1953,7 @@ function SettingsTab({ company }) {
 
 // ── Modal: ajudantes do dia no relatório ──────────────────────────────────
 function DiaDetalheRelModal({ date, records, onClose }) {
+  const { employees } = useCompanyData();
   const ativos   = records.filter(r => r.status !== 'absent');
   const ausentes = records.filter(r => r.status === 'absent');
   const heCount  = ativos.filter(r => r.overtime).length;
@@ -1990,7 +2004,7 @@ function DiaDetalheRelModal({ date, records, onClose }) {
                   {service}
                 </p>
                 {recs.map(rec => {
-                  const emp = getEmployee(rec.employeeId);
+                  const emp = findEmp(employees, rec.employeeId);
                   return (
                     <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
                       <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
@@ -2035,6 +2049,7 @@ function DiaDetalheRelModal({ date, records, onClose }) {
 
 // ── Relatório ──────────────────────────────────────────────────────────────
 function RelatorioTab({ companyId }) {
+  const { records } = useCompanyData();
   const [offset, setOffset]           = useState(0);
   const [selectedDay, setSelectedDay] = useState(null);
 
@@ -2047,11 +2062,11 @@ function RelatorioTab({ companyId }) {
   for (let day = sday; day <= eday; day++) {
     const iso  = `${sy}-${String(sm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     const dow  = new Date(`${iso}T12:00:00`).getDay();
-    const recs = WORK_RECORDS.filter(r => r.companyId === companyId && r.date === iso);
+    const recs = records.filter(r => r.date === iso);
     const presentes   = recs.filter(r => r.status !== 'absent');
     const diarias     = presentes.length;
     const heCount     = presentes.filter(r => r.overtime).length;
-    const valorDiarias = diarias  * VALOR_DIARIA;
+    const valorDiarias = presentes.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0);
     const valorHE     = heCount  * VALOR_HORA_EXTRA;
     allDays.push({
       date: iso, dow, dayNum: day,
@@ -2072,7 +2087,7 @@ function RelatorioTab({ companyId }) {
   const payment = PAYMENTS.find(p => {
     const ps = parsePeriodStart(p.period);
     return p.companyId === companyId && ps === start;
-  });
+  }) || null;
 
   const rangeStr = `${String(sday).padStart(2,'0')}/${String(sm).padStart(2,'0')} — ${String(eday).padStart(2,'0')}/${String(sm).padStart(2,'0')}/${sy}`;
 
@@ -2399,7 +2414,7 @@ function RelatorioTab({ companyId }) {
       {selectedDay && (
         <DiaDetalheRelModal
           date={selectedDay}
-          records={WORK_RECORDS.filter(r => r.companyId === companyId && r.date === selectedDay)}
+          records={records.filter(r => r.date === selectedDay)}
           onClose={() => setSelectedDay(null)}
         />
       )}
@@ -2409,16 +2424,28 @@ function RelatorioTab({ companyId }) {
 
 // ── Main ───────────────────────────────────────────────────────────────────
 export default function CompanyDashboard() {
-  const { user }  = useAuth();
+  const { user, employees } = useAuth();
   const { tab, setTab } = useOutletContext();
+  const [records, setRecords] = useState([]);
+
+  const companyId = user?.id;
+
+  useEffect(() => {
+    if (!companyId) return;
+    fetchCompanyRecords(companyId).then(setRecords);
+    const unsub = subscribeToCompanyRecords(companyId, setRecords);
+    return unsub;
+  }, [companyId]);
 
   return (
-    <div className="animate-fade-up">
-      {tab === 'panel'     && <Panel       companyId={user.id} setTab={setTab} companyName={user.name} />}
-      {tab === 'escalas'   && <EscalasTab  companyId={user.id} />}
-      {tab === 'financial' && <Financial   companyId={user.id} />}
-      {tab === 'relatorio' && <RelatorioTab companyId={user.id} />}
-      {tab === 'settings'  && <SettingsTab company={user} />}
-    </div>
+    <CompanyDataCtx.Provider value={{ records, employees }}>
+      <div className="animate-fade-up">
+        {tab === 'panel'     && <Panel       companyId={companyId} setTab={setTab} companyName={user.name} />}
+        {tab === 'escalas'   && <EscalasTab  companyId={companyId} />}
+        {tab === 'financial' && <Financial   companyId={companyId} />}
+        {tab === 'relatorio' && <RelatorioTab companyId={companyId} />}
+        {tab === 'settings'  && <SettingsTab company={user} />}
+      </div>
+    </CompanyDataCtx.Provider>
   );
 }
