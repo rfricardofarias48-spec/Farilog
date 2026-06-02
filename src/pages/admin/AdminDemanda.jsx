@@ -292,114 +292,103 @@ function DemandModal({ demand, employees, onChangeStatus, onEdit, onDelete, onCl
         padding: '24px',
       }}
     >
-      <div
-        style={{
-          background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '480px',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
-          overflow: 'hidden', display: 'flex', flexDirection: 'column',
-          maxHeight: '90vh',
-        }}
-      >
-        {/* ── Cabeçalho do modal ── */}
-        <div style={{
-          padding: '20px 20px 16px',
-          borderBottom: '1px solid rgba(0,0,0,0.06)',
-        }}>
-          {/* Linha topo: empresa + fechar */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '44px', height: '44px', borderRadius: '13px',
-                background: '#FFF2EE', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', flexShrink: 0,
-              }}>
-                <Building2 size={20} style={{ color: '#FF4D0C' }} />
-              </div>
-              <div>
-                <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
-                  {demand.companyName}
-                </p>
-                <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '3px' }}>
-                  {demand.service || 'Serviço geral'}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              style={{
-                width: '30px', height: '30px', borderRadius: '8px', flexShrink: 0,
-                background: '#F1F5F9', border: 'none', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#64748B',
-              }}
-            >
-              <X size={15} />
-            </button>
-          </div>
+      <div style={{
+        background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '560px',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.22)',
+        display: 'flex', flexDirection: 'column', maxHeight: '88vh',
+        overflow: 'hidden',
+      }}>
 
-          {/* Pills de info */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{
-              display: 'flex', alignItems: 'center', gap: '5px',
-              fontSize: '12px', fontWeight: 700, padding: '5px 11px',
-              borderRadius: '8px', background: '#FFF2EE', color: '#FF4D0C',
-            }}>
-              <Clock size={12} /> {demand.time || '—'}
-            </span>
-            <span style={{
-              display: 'flex', alignItems: 'center', gap: '5px',
-              fontSize: '12px', fontWeight: 600, padding: '5px 11px',
-              borderRadius: '8px', background: '#F1F5F9', color: '#475569',
-            }}>
-              <Calendar size={12} /> {formatDate(demand.date)}
-            </span>
-            <span style={{
-              display: 'flex', alignItems: 'center', gap: '5px',
-              fontSize: '12px', fontWeight: 600, padding: '5px 11px',
-              borderRadius: '8px', background: '#F1F5F9', color: '#475569',
-            }}>
-              <Users size={12} /> {demand.employees.length} ajudante{demand.employees.length !== 1 ? 's' : ''}
-            </span>
+        {/* ── Topo escuro com empresa + horário ── */}
+        <div style={{
+          background: 'linear-gradient(135deg,#111827 0%,#1E293B 100%)',
+          padding: '24px 24px 20px',
+          position: 'relative',
+        }}>
+          {/* Fechar */}
+          <button onClick={onClose} style={{
+            position: 'absolute', top: '16px', right: '16px',
+            width: '32px', height: '32px', borderRadius: '8px',
+            background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8',
+          }}>
+            <X size={15} />
+          </button>
+
+          {/* Empresa */}
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
+            Empresa
+          </p>
+          <p style={{ fontSize: '22px', fontWeight: 800, color: '#fff', lineHeight: 1.15, marginBottom: '18px' }}>
+            {demand.companyName}
+          </p>
+
+          {/* Três métricas em linha */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {/* Horário entrada */}
+            <div style={{ flex: 1, background: 'rgba(255,77,12,0.15)', borderRadius: '12px', padding: '10px 14px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 600, color: '#FF7043', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Entrada</p>
+              <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', lineHeight: 1 }}>{demand.time || '—'}</p>
+            </div>
+            {/* Ajudantes */}
+            <div style={{ flex: 1, background: 'rgba(255,255,255,0.06)', borderRadius: '12px', padding: '10px 14px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Ajudantes</p>
+              <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', lineHeight: 1 }}>{demand.employees.length}</p>
+            </div>
+            {/* Data */}
+            <div style={{ flex: 1, background: 'rgba(255,255,255,0.06)', borderRadius: '12px', padding: '10px 14px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Data</p>
+              <p style={{ fontSize: '15px', fontWeight: 800, color: '#fff', lineHeight: 1 }}>{formatDate(demand.date).split(',')[0]}<br/><span style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8' }}>{formatDate(demand.date).split(', ')[1]}</span></p>
+            </div>
           </div>
         </div>
 
         {/* ── Lista de ajudantes ── */}
-        <div style={{ overflowY: 'auto', flex: 1 }}>
+        <div style={{ overflowY: 'auto', flex: 1, padding: '8px 0' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '12px 24px 8px' }}>
+            Escala
+          </p>
+
           {demand.employees.length === 0 ? (
             <p style={{ textAlign: 'center', padding: '32px 0', fontSize: '13px', color: '#94A3B8' }}>
               Nenhum ajudante escalado
             </p>
           ) : demand.employees.map(({ employeeId, status, entrada, saida, saidaAlmoco, retornoAlmoco }, idx) => {
             const emp = employees.find(e => e.id === employeeId);
-            const hasTime = entrada || saida || saidaAlmoco || retornoAlmoco;
             const isLast = idx === demand.employees.length - 1;
+            const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.aguardando;
             return (
               <div key={employeeId} style={{
-                display: 'flex', alignItems: 'flex-start', gap: '12px',
-                padding: '14px 20px',
+                display: 'flex', alignItems: 'center', gap: '14px',
+                padding: '12px 24px',
                 borderBottom: isLast ? 'none' : '1px solid rgba(0,0,0,0.05)',
               }}>
+                {/* Avatar */}
                 <div style={{
-                  width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+                  width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
                   background: emp?.color || '#94A3B8',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '11px', fontWeight: 700, color: 'white',
+                  fontSize: '12px', fontWeight: 700, color: 'white',
                 }}>
                   {emp?.initials}
                 </div>
+
+                {/* Nome + horários */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
-                  {hasTime ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '4px' }}>
-                      {entrada       && <span style={{ fontSize: '11px', color: '#64748B' }}>Entrada: <b style={{ color: '#0F172A' }}>{entrada}</b></span>}
-                      {saidaAlmoco   && <span style={{ fontSize: '11px', color: '#64748B' }}>S. almoço: <b style={{ color: '#0F172A' }}>{saidaAlmoco}</b></span>}
-                      {retornoAlmoco && <span style={{ fontSize: '11px', color: '#64748B' }}>Retorno: <b style={{ color: '#0F172A' }}>{retornoAlmoco}</b></span>}
-                      {saida         && <span style={{ fontSize: '11px', color: '#64748B' }}>Saída: <b style={{ color: '#0F172A' }}>{saida}</b></span>}
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
+                  {(entrada || saida) ? (
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '3px' }}>
+                      {entrada && <span style={{ fontSize: '11px', color: '#64748B' }}>Entrada <b style={{ color: '#0F172A' }}>{entrada}</b></span>}
+                      {saidaAlmoco && <span style={{ fontSize: '11px', color: '#64748B' }}>Almoço <b style={{ color: '#0F172A' }}>{saidaAlmoco}</b></span>}
+                      {retornoAlmoco && <span style={{ fontSize: '11px', color: '#64748B' }}>Retorno <b style={{ color: '#0F172A' }}>{retornoAlmoco}</b></span>}
+                      {saida && <span style={{ fontSize: '11px', color: '#64748B' }}>Saída <b style={{ color: '#0F172A' }}>{saida}</b></span>}
                     </div>
                   ) : (
-                    <p style={{ fontSize: '11px', color: '#CBD5E1', marginTop: '2px' }}>Sem horários registrados</p>
+                    <p style={{ fontSize: '11px', color: '#CBD5E1', marginTop: '2px' }}>Aguardando início</p>
                   )}
                 </div>
+
+                {/* Status badge */}
                 <StatusBadge
                   status={status}
                   onChangeStatus={(s) => onChangeStatus(demand.id, employeeId, s)}
@@ -409,38 +398,30 @@ function DemandModal({ demand, employees, onChangeStatus, onEdit, onDelete, onCl
           })}
         </div>
 
-        {/* ── Rodapé: ações ── */}
-        <div style={{
-          display: 'flex', gap: '8px', padding: '14px 20px',
-          borderTop: '1px solid rgba(0,0,0,0.06)',
-        }}>
+        {/* ── Rodapé ── */}
+        <div style={{ display: 'flex', gap: '8px', padding: '16px 24px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
           <button onClick={onEdit} style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-            padding: '9px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+            padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
             background: '#F1F5F9', color: '#374151', border: 'none', cursor: 'pointer',
           }}>
             <Edit2 size={13} /> Editar
           </button>
-
           {confirmDelete ? (
             <>
               <button onClick={() => onDelete(demand.id)} style={{
-                flex: 2, padding: '9px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
+                flex: 2, padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
                 background: '#E11D48', color: 'white', border: 'none', cursor: 'pointer',
-              }}>
-                Confirmar exclusão
-              </button>
+              }}>Confirmar exclusão</button>
               <button onClick={() => setConfirmDelete(false)} style={{
-                flex: 1, padding: '9px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+                flex: 1, padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
                 background: '#F1F5F9', color: '#374151', border: 'none', cursor: 'pointer',
-              }}>
-                Cancelar
-              </button>
+              }}>Cancelar</button>
             </>
           ) : (
             <button onClick={() => setConfirmDelete(true)} style={{
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              padding: '9px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+              padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
               background: '#FFF1F2', color: '#E11D48', border: 'none', cursor: 'pointer',
             }}>
               <Trash2 size={13} /> Deletar
@@ -514,85 +495,51 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onD
       )}
 
       {/* Lista */}
-      <div className="card overflow-hidden" style={{ maxWidth: '600px' }}>
-      {demands.length === 0 ? (
-        <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Nenhuma demanda ativa</p>
-          <p style={{ fontSize: '11px', color: '#CBD5E1', marginTop: '4px' }}>Use "Nova Demanda" para escalar ajudantes</p>
-        </div>
-      ) : demands.map((d, i) => {
-        const confirmed  = d.employees.filter(e => e.status === 'confirmado').length;
-        const finalized  = d.employees.filter(e => e.status === 'finalizado').length;
-        const total      = d.employees.length;
-        const [, m, day] = d.date.split('-');
-        const mes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][Number(m) - 1];
-        const allDone = total > 0 && finalized === total;
+      <div style={{ maxWidth: '560px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {demands.length === 0 ? (
+          <div className="card" style={{ padding: '48px 24px', textAlign: 'center' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Nenhuma demanda ativa</p>
+            <p style={{ fontSize: '11px', color: '#CBD5E1', marginTop: '4px' }}>Use "Nova Demanda" para escalar ajudantes</p>
+          </div>
+        ) : demands.map((d) => {
+          const total      = d.employees.length;
+          const [y, m, day] = d.date.split('-');
+          const mes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][Number(m) - 1];
 
-        return (
-          <button
-            key={d.id}
-            onClick={() => setSelectedId(d.id)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: '0',
-              padding: '0', border: 'none', background: 'transparent',
-              borderBottom: i < demands.length - 1 ? '1px solid rgba(0,0,0,0.06)' : 'none',
-              cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-          >
-            {/* Bloco de data */}
-            <div style={{
-              width: '52px', flexShrink: 0, padding: '14px 0',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              borderRight: '1px solid rgba(0,0,0,0.06)',
-            }}>
-              <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{day}</p>
-              <p style={{ fontSize: '9px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '2px' }}>{mes}</p>
-            </div>
-
-            {/* Conteúdo principal */}
-            <div style={{ flex: 1, minWidth: 0, padding: '12px 14px' }}>
-              {/* Empresa — destaque máximo */}
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '5px' }}>
+          return (
+            <button
+              key={d.id}
+              onClick={() => setSelectedId(d.id)}
+              className="card"
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center',
+                padding: '14px 18px', border: 'none', background: 'white',
+                cursor: 'pointer', textAlign: 'left', gap: '16px',
+                transition: 'box-shadow 0.15s, background 0.12s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#FAFBFC'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.boxShadow = ''; }}
+            >
+              {/* Empresa */}
+              <p style={{ flex: 1, fontSize: '14px', fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {d.companyName}
               </p>
 
-              {/* Linha de detalhes: horário + ajudantes */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                {/* Horário de entrada */}
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: '#FF4D0C' }}>
-                  <Clock size={11} style={{ flexShrink: 0 }} />
-                  {d.time || '—'}
-                </span>
+              {/* Ajudantes */}
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: '#64748B', flexShrink: 0 }}>
+                <Users size={13} style={{ color: '#94A3B8' }} />
+                {total}
+              </span>
 
-                {/* Separador */}
-                <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#CBD5E1', flexShrink: 0 }} />
+              {/* Data */}
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', flexShrink: 0 }}>
+                {day}/{m}/{y.slice(2)}
+              </span>
 
-                {/* Quantidade de ajudantes */}
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-                  <Users size={11} style={{ flexShrink: 0 }} />
-                  {total} ajudante{total !== 1 ? 's' : ''}
-                </span>
-
-                {/* Status confirmados */}
-                {confirmed > 0 && (
-                  <span style={{ fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '4px', background: '#DCFCE7', color: '#059669' }}>
-                    {confirmed}/{total} confirmado{confirmed !== 1 ? 's' : ''}
-                  </span>
-                )}
-                {allDone && (
-                  <span style={{ fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '4px', background: '#F1F5F9', color: '#64748B' }}>
-                    Finalizado
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <ChevronRight size={14} style={{ color: '#CBD5E1', flexShrink: 0, marginRight: '12px' }} />
-          </button>
-        );
-      })}
+              <ChevronRight size={14} style={{ color: '#CBD5E1', flexShrink: 0 }} />
+            </button>
+          );
+        })}
       </div>
     </>
   );
