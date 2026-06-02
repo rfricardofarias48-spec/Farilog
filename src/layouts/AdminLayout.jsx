@@ -1,22 +1,23 @@
 ﻿import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, Building2, Users, ChevronLeft, ChevronRight, DollarSign, ClipboardList, Search, Bell } from 'lucide-react';
+import { LogOut, LayoutDashboard, Building2, Users, ChevronLeft, ChevronRight, DollarSign, ClipboardList, Search, Bell, Briefcase } from 'lucide-react';
 
 const PAGE_TITLES = {
-  '/admin':            'Visão Geral',
-  '/admin/companies':  'Empresas',
-  '/admin/employees':  'Funcionários',
-  '/admin/financeiro': 'Financeiro',
-  '/admin/demanda':    'Lançar Demanda',
+  '/admin':              'Visão Geral',
+  '/admin/companies':    'Empresas',
+  '/admin/employees':    'Funcionários',
+  '/admin/financeiro':   'Financeiro',
+  '/admin/demanda':      'Lançar Demanda',
+  '/admin/operacional':  'Operacional',
 };
 
 const NAV = [
-  { path: '/admin',            label: 'Visão Geral',    icon: LayoutDashboard, exact: true },
-  { path: '/admin/companies',  label: 'Empresas',        icon: Building2 },
-  { path: '/admin/employees',  label: 'Funcionários',    icon: Users },
-  { path: '/admin/financeiro', label: 'Financeiro',      icon: DollarSign },
-  { path: '/admin/demanda',    label: 'Lançar Demanda',  icon: ClipboardList },
+  { path: '/admin',              label: 'Visão Geral',   icon: LayoutDashboard, exact: true },
+  { path: '/admin/companies',    label: 'Empresas',       icon: Building2 },
+  { path: '/admin/employees',    label: 'Funcionários',   icon: Users },
+  { path: '/admin/financeiro',   label: 'Financeiro',     icon: DollarSign },
+  { path: '/admin/operacional',  label: 'Operacional',    icon: Briefcase },
 ];
 
 export default function AdminLayout() {

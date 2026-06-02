@@ -11,6 +11,7 @@ import AdminCompanies from './pages/admin/AdminCompanies';
 import AdminEmployees from './pages/admin/AdminEmployees';
 import AdminFinanceiro from './pages/admin/AdminFinanceiro';
 import AdminDemanda from './pages/admin/AdminDemanda';
+import AdminOperacional from './pages/admin/AdminOperacional';
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user } = useAuth();
@@ -39,8 +40,9 @@ function AppRoutes() {
         <Route index element={<AdminDashboard />} />
         <Route path="companies" element={<AdminCompanies />} />
         <Route path="employees" element={<AdminEmployees />} />
-        <Route path="financeiro" element={<AdminFinanceiro />} />
-        <Route path="demanda"    element={<AdminDemanda />} />
+        <Route path="financeiro"   element={<AdminFinanceiro />} />
+        <Route path="demanda"     element={<AdminDemanda />} />
+        <Route path="operacional" element={<AdminOperacional />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

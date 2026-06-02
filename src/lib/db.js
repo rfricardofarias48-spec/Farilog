@@ -287,6 +287,30 @@ export async function updateDemandEmployeeStatus(escalaId, employeeId, confirmac
   if (error) { console.error('[db] updateDemandEmployeeStatus:', error.message); }
 }
 
+// ── Consultas de registros (admin) ────────────────────────────────────────
+
+export async function fetchTodayAllRecords(today) {
+  const { data, error } = await supabase
+    .from('registros')
+    .select('*')
+    .eq('data', today);
+  if (error) { console.error('[db] fetchTodayAllRecords:', error.message); return []; }
+  return data.map(mapRecord);
+}
+
+export async function fetchWorkRecordsByPeriod(companyId, start, end) {
+  const query = supabase
+    .from('registros')
+    .select('*')
+    .gte('data', start)
+    .lte('data', end)
+    .order('data');
+  if (companyId) query.eq('empresa_id', companyId);
+  const { data, error } = await query;
+  if (error) { console.error('[db] fetchWorkRecordsByPeriod:', error.message); return []; }
+  return data.map(mapRecord);
+}
+
 // ── Registros de trabalho ──────────────────────────────────────────────────
 
 export async function fetchTodayRecord(employeeId, today) {
