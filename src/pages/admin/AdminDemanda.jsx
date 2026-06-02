@@ -455,52 +455,74 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onD
         </div>
       ) : demands.map((d, i) => {
         const confirmed  = d.employees.filter(e => e.status === 'confirmado').length;
+        const finalized  = d.employees.filter(e => e.status === 'finalizado').length;
         const total      = d.employees.length;
         const [, m, day] = d.date.split('-');
+        const mes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][Number(m) - 1];
+        const allDone = total > 0 && finalized === total;
 
         return (
           <button
             key={d.id}
             onClick={() => setSelectedId(d.id)}
             style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: '14px',
-              padding: '11px 16px', border: 'none', background: 'transparent',
-              borderBottom: i < demands.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
+              width: '100%', display: 'flex', alignItems: 'center', gap: '0',
+              padding: '0', border: 'none', background: 'transparent',
+              borderBottom: i < demands.length - 1 ? '1px solid rgba(0,0,0,0.06)' : 'none',
               cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s',
             }}
             onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
           >
-            {/* Data */}
-            <div style={{ textAlign: 'center', width: '32px', flexShrink: 0 }}>
-              <p style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{day}</p>
-              <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][Number(m) - 1]}
-              </p>
+            {/* Bloco de data */}
+            <div style={{
+              width: '52px', flexShrink: 0, padding: '14px 0',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              borderRight: '1px solid rgba(0,0,0,0.06)',
+            }}>
+              <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{day}</p>
+              <p style={{ fontSize: '9px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '2px' }}>{mes}</p>
             </div>
 
-            {/* Divisor */}
-            <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.07)', flexShrink: 0 }} />
-
-            {/* Empresa + serviço */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {/* Conteúdo principal */}
+            <div style={{ flex: 1, minWidth: 0, padding: '12px 14px' }}>
+              {/* Empresa — destaque máximo */}
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '5px' }}>
                 {d.companyName}
               </p>
-              <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {d.time || '—'} · {d.service || 'Serviço geral'}
-              </p>
+
+              {/* Linha de detalhes: horário + ajudantes */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                {/* Horário de entrada */}
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: '#FF4D0C' }}>
+                  <Clock size={11} style={{ flexShrink: 0 }} />
+                  {d.time || '—'}
+                </span>
+
+                {/* Separador */}
+                <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#CBD5E1', flexShrink: 0 }} />
+
+                {/* Quantidade de ajudantes */}
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                  <Users size={11} style={{ flexShrink: 0 }} />
+                  {total} ajudante{total !== 1 ? 's' : ''}
+                </span>
+
+                {/* Status confirmados */}
+                {confirmed > 0 && (
+                  <span style={{ fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '4px', background: '#DCFCE7', color: '#059669' }}>
+                    {confirmed}/{total} confirmado{confirmed !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {allDone && (
+                  <span style={{ fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '4px', background: '#F1F5F9', color: '#64748B' }}>
+                    Finalizado
+                  </span>
+                )}
+              </div>
             </div>
 
-            {/* Ajudantes */}
-            <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', flexShrink: 0 }}>
-              {total} <span style={{ fontWeight: 400, color: '#CBD5E1' }}>aj.</span>
-              {confirmed > 0 && (
-                <span style={{ marginLeft: '4px', color: '#059669' }}>· {confirmed} ✓</span>
-              )}
-            </span>
-
-            <ChevronRight size={13} style={{ color: '#CBD5E1', flexShrink: 0 }} />
+            <ChevronRight size={14} style={{ color: '#CBD5E1', flexShrink: 0, marginRight: '12px' }} />
           </button>
         );
       })}
