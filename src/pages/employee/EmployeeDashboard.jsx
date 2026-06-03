@@ -147,14 +147,29 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
         );
       })}
 
-      {/* Demandas confirmadas — card de destaque */}
+      {/* Card unificado: serviço confirmado + horários batidos (quando disponíveis) */}
       {upcomingDemands.map(d => {
-        const company = findCompany(d.companyId);
+        const company   = findCompany(d.companyId);
+        const isToday   = d.date === TODAY;
+        const rec       = isToday ? todayRecord : null;
+        const hasPunch  = rec?.checkIn;
+        const isDone    = rec?.checkOut;
+
+        const accent    = isDone ? '#475569' : hasPunch ? '#059669' : '#059669';
+        const statusLabel = isDone ? 'SERVIÇO CONCLUÍDO'
+          : hasPunch ? 'TRABALHANDO AGORA'
+          : 'SERVIÇO CONFIRMADO';
+
         return (
-          <div key={d.id} className="card p-4" style={{ borderLeft: '4px solid #059669' }}>
+          <div key={d.id} className="card p-4" style={{ borderLeft: `4px solid ${accent}` }}>
+
+            {/* Status pill */}
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-2 h-2 rounded-full" style={{ background: '#059669', boxShadow: '0 0 0 3px rgba(5,150,105,0.2)' }} />
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#059669', letterSpacing: '0.06em' }}>SERVIÇO CONFIRMADO</span>
+              {isDone
+                ? <CheckCircle2 size={13} style={{ color: accent }} />
+                : <span className="w-2 h-2 rounded-full" style={{ background: accent, boxShadow: `0 0 0 3px ${accent}33` }} />
+              }
+              <span style={{ fontSize: '10px', fontWeight: 700, color: accent, letterSpacing: '0.06em' }}>{statusLabel}</span>
             </div>
 
             {/* Serviço em destaque */}
@@ -163,36 +178,30 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
               <p style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>{d.service}</p>
             </div>
 
+            {/* Detalhes */}
             <div className="space-y-2">
-              {/* Empresa */}
               <div className="flex items-center gap-2">
                 <Briefcase size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
                 <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{company?.name ?? d.companyName}</p>
               </div>
-
-              {/* Horário */}
               <div className="flex items-center gap-2">
                 <Clock size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
-                <p style={{ fontSize: '12px', color: '#475569' }}>{fmtISO(d.date)} · <span style={{ fontWeight: 700, color: '#0F172A' }}>{d.time}</span></p>
+                <p style={{ fontSize: '12px', color: '#475569' }}>
+                  {fmtISO(d.date)} · <span style={{ fontWeight: 700, color: '#0F172A' }}>{d.time}</span>
+                </p>
               </div>
-
-              {/* Responsável */}
               {company?.contact && (
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
                   <p style={{ fontSize: '12px', color: '#475569' }}>Receber com: <span style={{ fontWeight: 600, color: '#0F172A' }}>{company.contact}</span></p>
                 </div>
               )}
-
-              {/* Endereço */}
               {company?.address && (
                 <div className="flex items-start gap-2">
                   <AlertCircle size={12} style={{ color: '#94A3B8', flexShrink: 0, marginTop: '2px' }} />
                   <p style={{ fontSize: '12px', color: '#475569', lineHeight: 1.4 }}>{company.address}</p>
                 </div>
               )}
-
-              {/* Localização */}
               {company?.location && (
                 <a href={company.location} target="_blank" rel="noopener noreferrer"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, color: '#FF4D0C', textDecoration: 'none' }}>
@@ -200,20 +209,52 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
                 </a>
               )}
             </div>
+
+            {/* Horários batidos — aparece apenas quando há ponto registrado */}
+            {hasPunch && (
+              <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid rgba(0,0,0,0.07)' }}>
+                <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  Horários registrados
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { label: 'Entrada',   value: rec.checkIn },
+                    { label: 'S. Almoço', value: rec.lunchOut },
+                    { label: 'Retorno',   value: rec.lunchReturn },
+                    { label: 'Saída',     value: rec.checkOut },
+                  ].map(t => (
+                    <div key={t.label} className="card-inner text-center" style={{ padding: '6px 8px' }}>
+                      <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
+                      <p style={{ fontSize: '13px', fontWeight: 700, color: t.value ? '#0F172A' : '#CBD5E1' }}>{t.value ?? '—'}</p>
+                    </div>
+                  ))}
+                </div>
+                {rec.overtime && (
+                  <div style={{ marginTop: '8px', padding: '7px 12px', borderRadius: '8px', background: '#F0FDF4', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Clock size={12} style={{ color: '#059669' }} />
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#059669' }}>Hora extra · {rec.overtime}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
       })}
 
-      {/* Caixa de trabalho — estado dinâmico */}
-      {derivedState === 'active' ? (
-        /* ── TRABALHANDO AGORA ── */
-        <div className="card p-5" style={{ borderLeft: '4px solid #059669' }}>
+      {/* Sem demandas confirmadas mas com ponto hoje (fallback) */}
+      {upcomingDemands.length === 0 && derivedState && derivedState !== 'scheduled' && todayRecord && (
+        <div className="card p-5" style={{ borderLeft: `4px solid ${derivedState === 'completed' ? '#475569' : '#059669'}` }}>
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-2 h-2 rounded-full" style={{ background: '#059669', boxShadow: '0 0 0 3px rgba(5,150,105,0.2)' }} />
-            <span style={{ fontSize: '10px', fontWeight: 700, color: '#059669', letterSpacing: '0.06em' }}>TRABALHANDO AGORA</span>
+            {derivedState === 'completed'
+              ? <CheckCircle2 size={13} style={{ color: '#475569' }} />
+              : <span className="w-2 h-2 rounded-full" style={{ background: '#059669', boxShadow: '0 0 0 3px rgba(5,150,105,0.2)' }} />
+            }
+            <span style={{ fontSize: '10px', fontWeight: 700, color: derivedState === 'completed' ? '#475569' : '#059669', letterSpacing: '0.06em' }}>
+              {derivedState === 'completed' ? 'SERVIÇO CONCLUÍDO' : 'TRABALHANDO AGORA'}
+            </span>
           </div>
-          <p className="text-base font-bold" style={T}>{getCompany(todayRecord.companyId)?.name}</p>
-          <div className="grid grid-cols-4 gap-2 mt-3">
+          <p className="text-base font-bold mb-3" style={T}>{getCompany(todayRecord.companyId)?.name}</p>
+          <div className="grid grid-cols-4 gap-2">
             {[
               { label: 'Entrada',   value: todayRecord.checkIn },
               { label: 'S. Almoço', value: todayRecord.lunchOut },
@@ -227,87 +268,20 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
             ))}
           </div>
         </div>
+      )}
 
-      ) : derivedState === 'completed' ? (
-        /* ── SERVIÇO CONCLUÍDO ── */
-        <div className="card p-5" style={{ borderLeft: '4px solid #475569' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <CheckCircle2 size={13} style={{ color: '#475569' }} />
-            <span style={{ fontSize: '10px', fontWeight: 700, color: '#475569', letterSpacing: '0.06em' }}>SERVIÇO CONCLUÍDO</span>
+      {/* Sem nenhuma alocação */}
+      {upcomingDemands.length === 0 && pendingDemands.length === 0 && !derivedState && (
+        <div className="card p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F1F5F9' }}>
+            <AlertCircle size={18} style={{ color: '#94A3B8' }} />
           </div>
-          <p className="text-base font-bold" style={T}>{getCompany(todayRecord.companyId)?.name}</p>
-          <div className="grid grid-cols-4 gap-2 mt-3">
-            {[
-              { label: 'Entrada',   value: todayRecord.checkIn },
-              { label: 'S. Almoço', value: todayRecord.lunchOut },
-              { label: 'Retorno',   value: todayRecord.lunchReturn },
-              { label: 'Saída',     value: todayRecord.checkOut },
-            ].map(t => (
-              <div key={t.label} className="card-inner text-center" style={{ padding: '6px 8px' }}>
-                <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: t.value ? '#0F172A' : '#CBD5E1' }}>{t.value ?? '—'}</p>
-              </div>
-            ))}
+          <div>
+            <p className="text-sm font-semibold" style={T}>Sem alocação</p>
+            <p className="text-xs" style={TM}>Nenhum serviço agendado</p>
           </div>
-          {todayRecord.overtime && (
-            <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '8px', background: '#F0FDF4', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Clock size={12} style={{ color: '#059669' }} />
-              <p style={{ fontSize: '12px', fontWeight: 600, color: '#059669' }}>
-                Hora extra · {todayRecord.overtime}
-              </p>
-            </div>
-          )}
         </div>
-
-      ) : (() => {
-        /* ── PRÓXIMA ESCALA (hoje agendado ou próximo dia) ── */
-        const rec     = derivedState === 'scheduled' ? todayRecord : nextRecord;
-        const demand  = rec ? findDemand(rec.date) : null;
-        const company = rec ? getCompany(rec.companyId) : null;
-        const isToday = rec?.date === TODAY;
-
-        if (!rec) return (
-          <div className="card p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F1F5F9' }}>
-              <AlertCircle size={18} style={{ color: '#94A3B8' }} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold" style={T}>Sem alocação</p>
-              <p className="text-xs" style={TM}>Nenhum serviço agendado</p>
-            </div>
-          </div>
-        );
-
-        return (
-          <div className="card p-5" style={{ borderLeft: '4px solid #2563EB' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar size={13} style={{ color: '#2563EB' }} />
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#2563EB', letterSpacing: '0.06em' }}>
-                {isToday ? 'ESCALA DE HOJE' : 'PRÓXIMA ESCALA'}
-              </span>
-            </div>
-            <p className="text-base font-bold" style={T}>{company?.name}</p>
-            {!isToday && (
-              <p className="text-xs mt-0.5" style={TM}>{fmtISO(rec.date)}</p>
-            )}
-            <p className="text-xs mt-0.5 mb-3" style={TM}>{rec.service}</p>
-            <div className="flex items-start gap-3">
-              {demand?.time && (
-                <div className="card-inner text-center" style={{ padding: '6px 14px', flexShrink: 0 }}>
-                  <p style={{ fontSize: '9px', color: '#94A3B8', marginBottom: '2px' }}>Horário</p>
-                  <p style={{ fontSize: '16px', fontWeight: 800, color: '#2563EB' }}>{demand.time}</p>
-                </div>
-              )}
-              {company?.address && (
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '9px', color: '#94A3B8', marginBottom: '2px' }}>Endereço</p>
-                  <p style={{ fontSize: '11px', color: '#475569', lineHeight: 1.4 }}>{company.address}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })()}
+      )}
 
       {/* Próximo pagamento */}
       <div className="card p-5">
