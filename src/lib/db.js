@@ -1,5 +1,14 @@
 import { supabase } from './supabase';
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+// Normaliza qualquer string de hora para HH:MM (descarta segundos se presentes)
+function fmtHHMM(t) {
+  if (!t) return null;
+  const parts = String(t).split(':');
+  return `${parts[0].padStart(2,'0')}:${(parts[1] ?? '00').padStart(2,'0')}`;
+}
+
 // ── Mappers ────────────────────────────────────────────────────────────────
 
 function mapRecord(r) {
@@ -11,10 +20,10 @@ function mapRecord(r) {
     escalaId:    r.escala_id,
     date:        r.data,
     service:     r.servico,
-    checkIn:     r.entrada,
-    lunchOut:    r.saida_almoco,
-    lunchReturn: r.retorno_almoco,
-    checkOut:    r.saida,
+    checkIn:     fmtHHMM(r.entrada),
+    lunchOut:    fmtHHMM(r.saida_almoco),
+    lunchReturn: fmtHHMM(r.retorno_almoco),
+    checkOut:    fmtHHMM(r.saida),
     overtime:    r.hora_extra,
     status:      r.status,
     value:       r.valor,
@@ -61,7 +70,7 @@ function mapDemand(escala) {
     id:        escala.id,
     companyId: escala.empresa_id,
     date:      escala.data,
-    time:      escala.horario,
+    time:      fmtHHMM(escala.horario),
     service:   escala.servico,
     employees: (escala.registros || []).map(wr => ({
       employeeId:    wr.funcionario_id,

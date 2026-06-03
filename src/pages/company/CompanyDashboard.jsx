@@ -31,11 +31,11 @@ const TM = { color: '#94A3B8' };
 
 function findEmp(employees, id) { return employees.find(e => e.id === id); }
 
-// Garante formato HH:MM com zeros à esquerda
+// Normaliza para HH:MM (descarta segundos se presentes)
 const fmtTime = (t) => {
   if (!t) return null;
-  const [h, m] = t.split(':');
-  return `${String(h).padStart(2,'0')}:${String(m ?? '00').padStart(2,'0')}`;
+  const parts = String(t).split(':');
+  return `${String(parts[0]).padStart(2,'0')}:${String(parts[1] ?? '00').padStart(2,'0')}`;
 };
 
 // ── Observações persistidas no localStorage ───────────────────────────────
