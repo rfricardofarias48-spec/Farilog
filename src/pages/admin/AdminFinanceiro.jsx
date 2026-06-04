@@ -1,499 +1,352 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { PAYMENTS, MONTHLY_REVENUE, WORK_RECORDS, fmtCurrency, fmtDate } from '../../data/mockData';
+import { fetchWorkRecordsByPeriod } from '../../lib/db';
+import { fmtCurrency } from '../../data/mockData';
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
 } from 'recharts';
 import {
-  DollarSign, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2,
-  Clock, Building2, ArrowUpRight, ArrowDownRight, FileDown, Download, Calendar,
-  Filter, Search, ChevronRight, Receipt,
+  DollarSign, TrendingUp, Users, Building2, ChevronLeft, ChevronRight,
+  Percent, Minus,
 } from 'lucide-react';
 
 const T  = { color: '#0F172A' };
-const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
 
-const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-const TODAY_DATE = new Date(TODAY + 'T12:00:00-03:00');
+const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-const PIE_COLORS = ['#FF4D0C', '#7C3AED', '#059669', '#0EA5E9', '#F59E0B'];
+// ── helpers de período ────────────────────────────────────────────────────
+function getBounds(period, offset) {
+  const [y, m] = TODAY.split('-').map(Number);
 
-// Parse "01/05 - 15/05/2026" → ISO dates
-function parsePeriodStart(period) {
-  const m = period.match(/^(\d{2})\/(\d{2}) - \d{2}\/\d{2}\/(\d{4})/);
-  return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
+  if (period === 'mes') {
+    let mo = m - 1 + offset, yr = y;
+    while (mo < 0) { mo += 12; yr--; }
+    while (mo > 11) { mo -= 12; yr++; }
+    const mm = String(mo + 1).padStart(2, '0');
+    const last = new Date(yr, mo + 1, 0).getDate();
+    return {
+      start: `${yr}-${mm}-01`,
+      end:   `${yr}-${mm}-${String(last).padStart(2,'0')}`,
+      label: `${MONTH_FULL[mo]} ${yr}`,
+    };
+  }
+
+  if (period === 'trimestre') {
+    const curQ = Math.floor((m - 1) / 3);
+    let q = curQ + offset, yr = y;
+    while (q < 0) { q += 4; yr--; }
+    while (q > 3) { q -= 4; yr++; }
+    const startM = q * 3;
+    const endM   = startM + 2;
+    const last   = new Date(yr, endM + 1, 0).getDate();
+    return {
+      start: `${yr}-${String(startM + 1).padStart(2,'0')}-01`,
+      end:   `${yr}-${String(endM + 1).padStart(2,'0')}-${String(last).padStart(2,'0')}`,
+      label: `T${q + 1} ${yr}`,
+    };
+  }
+
+  // ano
+  const yr = y + offset;
+  return { start: `${yr}-01-01`, end: `${yr}-12-31`, label: `${yr}` };
 }
-function parsePeriodEnd(period) {
-  const m = period.match(/^(\d{2})\/(\d{2}) - (\d{2})\/(\d{2})\/(\d{4})/);
-  return m ? `${m[5]}-${m[4]}-${m[3]}` : null;
-}
 
-// Calcula fatura: diárias × company.dailyRate + HE × (dailyRate/8 × 1.5)
-function calcPaymentTotal(payment, companies = []) {
-  const pStart = parsePeriodStart(payment.period_label ?? payment.period);
-  const pEnd   = parsePeriodEnd(payment.period_label ?? payment.period);
-  if (!pStart || !pEnd) return { total: 0, diarias: 0, heCount: 0 };
-
-  const company   = companies.find(c => c.id === payment.companyId);
-  const dailyRate = company?.dailyRate ?? 150;
-  const he50Rate  = dailyRate / 8 * 1.5;
-
-  const recs    = WORK_RECORDS.filter(r => r.companyId === payment.companyId && r.date >= pStart && r.date <= pEnd);
-  const diarias = recs.filter(r => r.status !== 'absent').length;
-  const heCount = recs.filter(r => r.overtime).length;
-  return { total: diarias * dailyRate + heCount * he50Rate, diarias, heCount, dailyRate, he50Rate };
-}
-
-function payAmount(p, companies) { return calcPaymentTotal(p, companies).total; }
-
-const ChartTooltip = ({ active, payload, label }) => {
+// ── tooltip customizado ───────────────────────────────────────────────────
+function ChartTip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#1E293B', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
-      <p style={{ color: '#F1F5F9', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>{label}</p>
+    <div style={{ background: '#1E293B', borderRadius: '10px', padding: '10px 14px', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <p style={{ color: '#94A3B8', fontSize: '11px', marginBottom: '6px' }}>{label}</p>
       {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color, fontSize: '12px' }}>
-          {p.name}: {typeof p.value === 'number' && p.name.toLowerCase().includes('receita') ? fmtCurrency(p.value) : (p.name === 'Pago' || p.name === 'Pendente' || p.name === 'Atrasado' ? fmtCurrency(p.value) : p.value)}
+        <p key={i} style={{ color: '#F1F5F9', fontSize: '12px', fontWeight: 600 }}>
+          {p.name}: {fmtCurrency(p.value)}
         </p>
       ))}
     </div>
   );
-};
+}
+
+// ── card KPI neutro ───────────────────────────────────────────────────────
+function KpiCard({ label, value, sub, icon: Icon }) {
+  return (
+    <div className="stat-card" style={{ border: '1px solid rgba(0,0,0,0.18)' }}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#F1F5F9' }}>
+          <Icon size={17} style={{ color: '#64748B' }} />
+        </div>
+      </div>
+      <p className="text-xs mb-1" style={TM}>{label}</p>
+      <p className="text-2xl font-black leading-none" style={T}>{value}</p>
+      {sub && <p className="text-xs mt-1.5" style={TM}>{sub}</p>}
+    </div>
+  );
+}
+
+// ── barra de progresso neutra ─────────────────────────────────────────────
+function ProgressBar({ pct }) {
+  return (
+    <div style={{ height: '4px', borderRadius: '4px', background: 'rgba(0,0,0,0.07)', overflow: 'hidden' }}>
+      <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: '#0F172A', borderRadius: '4px', transition: 'width 0.4s ease' }} />
+    </div>
+  );
+}
 
 export default function AdminFinanceiro() {
-  const { companies } = useAuth();
-  const [period, setPeriod]         = useState('mes');    // mes | trimestre | ano
-  const [statusFilter, setStatus]   = useState('todos');  // todos | paid | pending | overdue
-  const [search, setSearch]         = useState('');
+  const { employees, companies } = useAuth();
+  const [period, setPeriod] = useState('mes');
+  const [offset, setOffset] = useState(0);
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // ── Calculos gerais ───────────────────────────────────────────────────────
-  const totals = useMemo(() => {
-    const paid     = PAYMENTS.filter(p => p.status === 'paid');
-    const pending  = PAYMENTS.filter(p => p.status === 'pending');
-    const overdue  = PAYMENTS.filter(p => p.status === 'overdue');
-    return {
-      totalRevenue:  paid.reduce((s, p) => s + payAmount(p, companies), 0),
-      totalPending:  pending.reduce((s, p) => s + payAmount(p, companies), 0),
-      totalOverdue:  overdue.reduce((s, p) => s + payAmount(p, companies), 0),
-      totalInvoiced: PAYMENTS.reduce((s, p) => s + payAmount(p, companies), 0),
-      countPaid:     paid.length,
-      countPending:  pending.length,
-      countOverdue:  overdue.length,
-    };
-  }, []);
+  const bounds = getBounds(period, offset);
 
-  // Variação vs mês anterior
-  const lastTwo = MONTHLY_REVENUE.slice(-2);
-  const growth  = lastTwo.length === 2 ? ((lastTwo[1].revenue - lastTwo[0].revenue) / lastTwo[0].revenue) * 100 : 0;
+  useEffect(() => {
+    setLoading(true);
+    fetchWorkRecordsByPeriod(null, null, bounds.start, bounds.end)
+      .then(recs => { setRecords(recs); setLoading(false); });
+  }, [bounds.start, bounds.end]);
 
-  // ── Receita por empresa (pie) ─────────────────────────────────────────────
-  const revenueByCompany = useMemo(() => {
-    return companies.map(c => ({
-      name:  c.name.split(' ')[0],
-      fullName: c.name,
-      value: PAYMENTS.filter(p => p.companyId === c.id && p.status === 'paid').reduce((s, p) => s + payAmount(p, companies), 0),
-      pending: PAYMENTS.filter(p => p.companyId === c.id && p.status !== 'paid').reduce((s, p) => s + payAmount(p, companies), 0),
-    })).filter(d => d.value > 0 || d.pending > 0);
-  }, [companies]);
+  // ── registros válidos (excluindo ausências) ───────────────────────────
+  const active = useMemo(() => records.filter(r => r.status !== 'absent'), [records]);
 
-  const totalForPct = revenueByCompany.reduce((s, c) => s + c.value, 0);
+  // ── KPIs globais ──────────────────────────────────────────────────────
+  const kpis = useMemo(() => {
+    const fat  = active.reduce((s, r) => s + (r.value || 150), 0);
+    const cost = active.reduce((s, r) => {
+      const emp = employees.find(e => e.id === r.employeeId);
+      return s + (emp?.dailyRate ?? 0);
+    }, 0);
+    const lucro  = fat - cost;
+    const margem = fat > 0 ? (lucro / fat) * 100 : 0;
+    return { fat, cost, lucro, margem, diarias: active.length };
+  }, [active, employees]);
 
-  // ── Status breakdown (bar) ────────────────────────────────────────────────
-  const statusBreakdown = [
-    { name: 'Pago',     value: totals.totalRevenue, color: '#059669' },
-    { name: 'Pendente', value: totals.totalPending, color: '#D97706' },
-    { name: 'Atrasado', value: totals.totalOverdue, color: '#E11D48' },
-  ];
+  // ── por empresa ───────────────────────────────────────────────────────
+  const byCompany = useMemo(() => {
+    return companies.map(c => {
+      const recs = active.filter(r => r.companyId === c.id);
+      const fat  = recs.reduce((s, r) => s + (r.value || 150), 0);
+      const cost = recs.reduce((s, r) => {
+        const emp = employees.find(e => e.id === r.employeeId);
+        return s + (emp?.dailyRate ?? 0);
+      }, 0);
+      const lucro  = fat - cost;
+      const margem = fat > 0 ? (lucro / fat) * 100 : 0;
+      return { id: c.id, name: c.name, fat, cost, lucro, margem, diarias: recs.length };
+    }).filter(c => c.fat > 0).sort((a, b) => b.fat - a.fat);
+  }, [active, companies, employees]);
 
-  // ── Faturas filtradas ─────────────────────────────────────────────────────
-  const filteredPayments = useMemo(() => {
-    return PAYMENTS
-      .filter(p => statusFilter === 'todos' || p.status === statusFilter)
-      .filter(p => {
-        if (!search) return true;
-        const c = companies.find(c => c.id === p.companyId);
-        return c?.name.toLowerCase().includes(search.toLowerCase()) ||
-               p.period.toLowerCase().includes(search.toLowerCase());
-      })
-      .sort((a, b) => b.dueDate.localeCompare(a.dueDate));
-  }, [statusFilter, search, companies]);
+  // ── por ajudante ──────────────────────────────────────────────────────
+  const byEmployee = useMemo(() => {
+    return employees.map(e => {
+      const recs = active.filter(r => r.employeeId === e.id);
+      const fat  = recs.reduce((s, r) => s + (r.value || 150), 0);
+      const cost = recs.length * (e.dailyRate ?? 0);
+      const lucro  = fat - cost;
+      const margem = fat > 0 ? (lucro / fat) * 100 : 0;
+      return { ...e, fat, cost, lucro, margem, diarias: recs.length };
+    }).filter(e => e.fat > 0).sort((a, b) => b.lucro - a.lucro).slice(0, 8);
+  }, [active, employees]);
 
-  // ── Top empresas (ranking) ────────────────────────────────────────────────
-  const topCompanies = [...revenueByCompany].sort((a, b) => b.value - a.value).slice(0, 5);
+  // ── evolução mensal (só no modo ano) ──────────────────────────────────
+  const monthlyChart = useMemo(() => {
+    if (period !== 'ano') return [];
+    return MONTH_SHORT.map((m, i) => {
+      const mo   = String(i + 1).padStart(2, '0');
+      const yr   = bounds.start.slice(0, 4);
+      const recs = active.filter(r => r.date.startsWith(`${yr}-${mo}`));
+      const fat  = recs.reduce((s, r) => s + (r.value || 150), 0);
+      const cost = recs.reduce((s, r) => {
+        const emp = employees.find(e => e.id === r.employeeId);
+        return s + (emp?.dailyRate ?? 0);
+      }, 0);
+      return { month: m, fat, lucro: fat - cost };
+    });
+  }, [period, active, employees, bounds.start]);
 
-  // ── Próximos vencimentos ──────────────────────────────────────────────────
-  const upcomingPayments = PAYMENTS
-    .filter(p => p.status !== 'paid')
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-    .slice(0, 5);
-
-  // ── Ticket médio ──────────────────────────────────────────────────────────
-  const ticketMedio = totals.countPaid > 0 ? totals.totalRevenue / totals.countPaid : 0;
+  const maxFat = byCompany[0]?.fat || 1;
 
   return (
     <div className="space-y-6">
-      {/* ─── Header ─── */}
-      <div className="flex items-end justify-between animate-fade-up">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between animate-fade-up">
         <div>
-          <h1 className="text-2xl font-bold" style={T}>Financeiro</h1>
-          <p className="text-sm mt-0.5" style={TM}>Visão consolidada de receita, faturas e empresas</p>
+          <h1 className="text-xl font-bold" style={T}>Financeiro</h1>
+          <p className="text-xs mt-0.5" style={TM}>Faturamento, lucro e margem por período</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex gap-1 p-1 rounded-xl" style={{ background:'#F1F5F9', border:'1px solid rgba(0,0,0,0.06)' }}>
+
+        {/* Seletor de período */}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)' }}>
             {[['mes','Mês'],['trimestre','Trimestre'],['ano','Ano']].map(([val, lbl]) => (
-              <button key={val} onClick={() => setPeriod(val)}
-                className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{ background: period===val ? '#FF4D0C' : 'transparent', color: period===val ? 'white' : '#64748B', border:'none', cursor:'pointer' }}>
+              <button key={val} onClick={() => { setPeriod(val); setOffset(0); }}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                style={{ background: period === val ? '#FF4D0C' : 'transparent', color: period === val ? 'white' : '#64748B', border: 'none', cursor: 'pointer' }}>
                 {lbl}
               </button>
             ))}
           </div>
-          <button className="btn-primary" style={{ display:'flex', alignItems:'center', gap:'8px', padding:'10px 18px' }}>
-            <FileDown size={14} /> Exportar
-          </button>
+
+          <div className="flex items-center gap-1">
+            <button onClick={() => setOffset(o => o - 1)}
+              className="p-1.5 rounded-lg"
+              style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex' }}>
+              <ChevronLeft size={15} />
+            </button>
+            <span className="text-sm font-semibold px-2" style={T}>{bounds.label}</span>
+            <button onClick={() => setOffset(o => Math.min(o + 1, 0))}
+              className="p-1.5 rounded-lg"
+              style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex' }}>
+              <ChevronRight size={15} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ─── KPIs ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-fade-up delay-1">
-        {/* Receita Total */}
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#DCFCE7' }}>
-              <DollarSign size={17} style={{ color: '#059669' }} />
-            </div>
-            <span style={{ display:'inline-flex', alignItems:'center', gap:'3px', fontSize:'11px', fontWeight:700, padding:'3px 8px', borderRadius:'6px', background: growth >= 0 ? '#DCFCE7' : '#FFE4E6', color: growth >= 0 ? '#15803D' : '#BE123C' }}>
-              {growth >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-              {Math.abs(growth).toFixed(1)}%
-            </span>
-          </div>
-          <p className="text-xs mb-1" style={TM}>Receita Total</p>
-          <p className="text-2xl font-black leading-none" style={T}>{fmtCurrency(totals.totalRevenue)}</p>
-          <p className="text-xs mt-2" style={TM}>{totals.countPaid} faturas pagas</p>
-        </div>
+      {loading ? (
+        <div className="text-center py-16" style={TM}>Carregando dados...</div>
+      ) : (
+        <>
 
-        {/* Pendente */}
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#FEF3C7' }}>
-              <Clock size={17} style={{ color: '#D97706' }} />
-            </div>
-            <span className="badge badge-pending">{totals.countPending}</span>
+          {/* ── KPIs ── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up delay-1">
+            <KpiCard label="Faturamento"   value={fmtCurrency(kpis.fat)}    sub={`${kpis.diarias} diária${kpis.diarias !== 1 ? 's' : ''}`} icon={DollarSign} />
+            <KpiCard label="Custo (ajud.)" value={fmtCurrency(kpis.cost)}   sub="Soma das diárias pagas"  icon={Users} />
+            <KpiCard label="Lucro"         value={fmtCurrency(kpis.lucro)}  sub="Faturamento − Custo"    icon={TrendingUp} />
+            <KpiCard label="Margem"        value={`${kpis.margem.toFixed(1)}%`} sub="Lucro / Faturamento" icon={Percent} />
           </div>
-          <p className="text-xs mb-1" style={TM}>A Receber</p>
-          <p className="text-2xl font-black leading-none" style={{ color: '#D97706' }}>{fmtCurrency(totals.totalPending)}</p>
-          <p className="text-xs mt-2" style={TM}>Próximos vencimentos</p>
-        </div>
 
-        {/* Atrasado */}
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#FFE4E6' }}>
-              <AlertTriangle size={17} style={{ color: '#E11D48' }} />
+          {/* ── Evolução mensal (só no modo ano) ── */}
+          {period === 'ano' && monthlyChart.some(m => m.fat > 0) && (
+            <div className="card p-5 animate-fade-up delay-2">
+              <h3 className="text-sm font-semibold mb-1" style={T}>Evolução Mensal — {bounds.label}</h3>
+              <p className="text-xs mb-4" style={TM}>Faturamento e lucro mês a mês</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={monthlyChart} margin={{ top: 0, right: 0, bottom: 0, left: -10 }} barGap={4}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fill: '#94A3B8', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => v === 0 ? '' : `R$${(v/1000).toFixed(0)}k`} />
+                  <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+                  <Bar dataKey="fat"   name="Faturamento" fill="#0F172A" radius={[4,4,0,0]} barSize={14} />
+                  <Bar dataKey="lucro" name="Lucro"       fill="#94A3B8" radius={[4,4,0,0]} barSize={14} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-            <span className="badge badge-overdue">{totals.countOverdue}</span>
-          </div>
-          <p className="text-xs mb-1" style={TM}>Em Atraso</p>
-          <p className="text-2xl font-black leading-none" style={{ color: '#E11D48' }}>{fmtCurrency(totals.totalOverdue)}</p>
-          <p className="text-xs mt-2" style={TM}>Requer ação</p>
-        </div>
+          )}
 
-        {/* Ticket médio */}
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#EDE9FE' }}>
-              <Receipt size={17} style={{ color: '#7C3AED' }} />
+          {/* ── Por Empresa ── */}
+          <div className="animate-fade-up delay-2">
+            <div className="flex items-center gap-2 mb-3">
+              <Building2 size={14} style={{ color: '#94A3B8' }} />
+              <h2 className="text-sm font-bold" style={T}>Por Empresa</h2>
             </div>
-            <TrendingUp size={14} style={{ color: '#7C3AED' }} />
-          </div>
-          <p className="text-xs mb-1" style={TM}>Ticket Médio</p>
-          <p className="text-2xl font-black leading-none" style={{ color: '#7C3AED' }}>{fmtCurrency(ticketMedio)}</p>
-          <p className="text-xs mt-2" style={TM}>Por fatura paga</p>
-        </div>
-      </div>
 
-      {/* ─── Gráficos principais ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-fade-up delay-2">
-        {/* Faturamento mensal (Area chart) */}
-        <div className="card p-5 lg:col-span-2">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h3 className="text-sm font-semibold" style={T}>Evolução do Faturamento</h3>
-              <p className="text-xs" style={TM}>Últimos 6 meses</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs" style={TM}>Total no período</p>
-              <p className="font-bold text-base" style={{ color:'#059669' }}>
-                {fmtCurrency(MONTHLY_REVENUE.reduce((s, m) => s + m.revenue, 0))}
-              </p>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={MONTHLY_REVENUE} margin={{ top: 0, right: 0, bottom: 0, left: -10 }}>
-              <defs>
-                <linearGradient id="adminRevGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#FF4D0C" stopOpacity={0.22} />
-                  <stop offset="95%" stopColor="#FF4D0C" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
-              <XAxis dataKey="month" tick={{ fill: '#94A3B8', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false}
-                tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
-              <Tooltip content={<ChartTooltip />} />
-              <Area type="monotone" dataKey="revenue" name="Receita" stroke="#FF4D0C" strokeWidth={2.5}
-                fill="url(#adminRevGrad)" dot={{ fill: '#FF4D0C', strokeWidth: 0, r: 4 }}
-                activeDot={{ r: 6, fill: '#FF4D0C' }} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Status breakdown */}
-        <div className="card p-5">
-          <h3 className="text-sm font-semibold mb-1" style={T}>Status de Faturas</h3>
-          <p className="text-xs mb-4" style={TM}>Distribuição por situação</p>
-          <div className="space-y-3.5">
-            {statusBreakdown.map((s, i) => {
-              const pct = totals.totalInvoiced > 0 ? (s.value / totals.totalInvoiced) * 100 : 0;
-              return (
-                <div key={i}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color, display: 'inline-block' }} />
-                      <span className="text-xs font-semibold" style={T}>{s.name}</span>
-                    </div>
-                    <span className="text-xs font-bold" style={{ color: s.color }}>{fmtCurrency(s.value)}</span>
-                  </div>
-                  <div style={{ height: '6px', borderRadius: '4px', background: 'rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: s.color, borderRadius: '4px', transition: 'width 0.5s ease' }} />
-                  </div>
-                  <p className="text-xs mt-1" style={TM}>{pct.toFixed(1)}%</p>
+            {byCompany.length === 0 ? (
+              <div className="card p-10 text-center" style={TM}>Sem dados no período</div>
+            ) : (
+              <div className="card overflow-hidden">
+                {/* Cabeçalho */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px 60px', padding: '10px 20px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <span>Empresa</span>
+                  <span style={{ textAlign: 'right' }}>Faturamento</span>
+                  <span style={{ textAlign: 'right' }}>Custo</span>
+                  <span style={{ textAlign: 'right' }}>Lucro</span>
+                  <span style={{ textAlign: 'right' }}>Margem</span>
+                  <span style={{ textAlign: 'right' }}>Diárias</span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
 
-      {/* ─── Receita por Empresa + Top Empresas ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fade-up delay-3">
-        {/* Pie chart */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="text-sm font-semibold" style={T}>Receita por Empresa</h3>
-              <p className="text-xs" style={TM}>Total recebido</p>
-            </div>
-            <Building2 size={16} style={{ color:'#94A3B8' }} />
-          </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={revenueByCompany} cx="50%" cy="50%" innerRadius={50} outerRadius={78}
-                paddingAngle={3} dataKey="value">
-                {revenueByCompany.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-              </Pie>
-              <Tooltip content={<ChartTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="space-y-2 mt-2">
-            {revenueByCompany.map((d, i) => {
-              const pct = totalForPct > 0 ? (d.value / totalForPct) * 100 : 0;
-              return (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span style={{ width:'9px', height:'9px', borderRadius:'2px', background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                    <span className="text-xs" style={T2}>{d.fullName}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold" style={T}>{fmtCurrency(d.value)}</span>
-                    <span className="text-xs" style={TM}>{pct.toFixed(0)}%</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Top Empresas */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-semibold" style={T}>Top Empresas</h3>
-              <p className="text-xs" style={TM}>Ranking por faturamento</p>
-            </div>
-            <TrendingUp size={16} style={{ color:'#94A3B8' }} />
-          </div>
-          <div className="space-y-2.5">
-            {topCompanies.map((c, i) => {
-              const pct = topCompanies[0]?.value > 0 ? (c.value / topCompanies[0].value) * 100 : 0;
-              return (
-                <div key={i} className="p-3 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.04)' }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2.5">
-                      <div style={{
-                        width:'26px', height:'26px', borderRadius:'8px',
-                        display:'flex', alignItems:'center', justifyContent:'center',
-                        background: i === 0 ? '#FFEDD5' : i === 1 ? '#EDE9FE' : '#F1F5F9',
-                        color: i === 0 ? '#EA580C' : i === 1 ? '#7C3AED' : '#64748B',
-                        fontWeight:800, fontSize:'11px',
-                      }}>
-                        #{i + 1}
-                      </div>
+                {byCompany.map((c, i) => (
+                  <div key={c.id} style={{ borderBottom: i < byCompany.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px 60px', padding: '13px 20px', alignItems: 'center', fontSize: '13px' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <div>
-                        <p className="text-xs font-semibold" style={T}>{c.fullName}</p>
-                        {c.pending > 0 && <p className="text-xs" style={{ color:'#D97706' }}>{fmtCurrency(c.pending)} a receber</p>}
+                        <p style={{ fontWeight: 600, color: '#0F172A' }}>{c.name}</p>
+                        <div style={{ marginTop: '5px' }}>
+                          <ProgressBar pct={(c.fat / maxFat) * 100} />
+                        </div>
+                      </div>
+                      <p style={{ textAlign: 'right', fontWeight: 600, color: '#0F172A' }}>{fmtCurrency(c.fat)}</p>
+                      <p style={{ textAlign: 'right', color: '#64748B' }}>{fmtCurrency(c.cost)}</p>
+                      <p style={{ textAlign: 'right', fontWeight: 700, color: c.lucro >= 0 ? '#0F172A' : '#E11D48' }}>{fmtCurrency(c.lucro)}</p>
+                      <p style={{ textAlign: 'right', fontWeight: 700, color: c.margem >= 20 ? '#0F172A' : '#94A3B8' }}>{c.margem.toFixed(1)}%</p>
+                      <p style={{ textAlign: 'right', color: '#94A3B8' }}>{c.diarias}</p>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Totais */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px 60px', padding: '13px 20px', background: '#F8FAFC', borderTop: '2px solid rgba(0,0,0,0.08)', fontSize: '13px', fontWeight: 700 }}>
+                  <p style={{ color: '#64748B', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total</p>
+                  <p style={{ textAlign: 'right', color: '#0F172A' }}>{fmtCurrency(kpis.fat)}</p>
+                  <p style={{ textAlign: 'right', color: '#64748B' }}>{fmtCurrency(kpis.cost)}</p>
+                  <p style={{ textAlign: 'right', color: kpis.lucro >= 0 ? '#0F172A' : '#E11D48' }}>{fmtCurrency(kpis.lucro)}</p>
+                  <p style={{ textAlign: 'right', color: '#0F172A' }}>{kpis.margem.toFixed(1)}%</p>
+                  <p style={{ textAlign: 'right', color: '#94A3B8' }}>{kpis.diarias}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Ajudantes mais rentáveis ── */}
+          <div className="animate-fade-up delay-3">
+            <div className="flex items-center gap-2 mb-3">
+              <Users size={14} style={{ color: '#94A3B8' }} />
+              <h2 className="text-sm font-bold" style={T}>Ajudantes Mais Rentáveis</h2>
+              <span style={{ fontSize: '11px', color: '#94A3B8' }}>— lucro gerado no período</span>
+            </div>
+
+            {byEmployee.length === 0 ? (
+              <div className="card p-10 text-center" style={TM}>Sem dados no período</div>
+            ) : (
+              <div className="card overflow-hidden">
+                {/* Cabeçalho */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px 60px', padding: '10px 20px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <span>Ajudante</span>
+                  <span style={{ textAlign: 'right' }}>Faturado</span>
+                  <span style={{ textAlign: 'right' }}>Custo</span>
+                  <span style={{ textAlign: 'right' }}>Lucro</span>
+                  <span style={{ textAlign: 'right' }}>Margem</span>
+                  <span style={{ textAlign: 'right' }}>Diárias</span>
+                </div>
+
+                {byEmployee.map((e, i) => {
+                  const maxLucro = byEmployee[0]?.lucro || 1;
+                  return (
+                    <div key={e.id} style={{ borderBottom: i < byEmployee.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px 60px', padding: '12px 20px', alignItems: 'center' }}
+                        onMouseEnter={ev => ev.currentTarget.style.background = '#F8FAFC'}
+                        onMouseLeave={ev => ev.currentTarget.style.background = 'transparent'}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: e.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                            {e.initials}
+                          </div>
+                          <div>
+                            <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{e.name}</p>
+                            <div style={{ marginTop: '4px' }}>
+                              <ProgressBar pct={(e.lucro / maxLucro) * 100} />
+                            </div>
+                          </div>
+                        </div>
+                        <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{fmtCurrency(e.fat)}</p>
+                        <p style={{ textAlign: 'right', fontSize: '13px', color: '#64748B' }}>{fmtCurrency(e.cost)}</p>
+                        <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: e.lucro >= 0 ? '#0F172A' : '#E11D48' }}>{fmtCurrency(e.lucro)}</p>
+                        <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: e.margem >= 20 ? '#0F172A' : '#94A3B8' }}>{e.margem.toFixed(1)}%</p>
+                        <p style={{ textAlign: 'right', fontSize: '13px', color: '#94A3B8' }}>{e.diarias}</p>
                       </div>
                     </div>
-                    <span className="text-sm font-bold" style={{ color:'#059669' }}>{fmtCurrency(c.value)}</span>
-                  </div>
-                  <div style={{ height:'4px', borderRadius:'4px', background:'rgba(0,0,0,0.05)', overflow:'hidden' }}>
-                    <div style={{ height:'100%', width:`${pct}%`, background:'linear-gradient(90deg, #FF4D0C, #FB923C)', borderRadius:'4px', transition:'width 0.4s ease' }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Próximos Vencimentos ─── */}
-      <div className="card p-5 animate-fade-up delay-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-sm font-semibold" style={T}>Próximos Vencimentos</h3>
-            <p className="text-xs" style={TM}>Faturas pendentes e em atraso</p>
-          </div>
-          <Calendar size={16} style={{ color:'#94A3B8' }} />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-          {upcomingPayments.map(p => {
-            const c = companies.find(c => c.id === p.companyId);
-            const due = new Date(p.dueDate);
-            const days = Math.ceil((due - TODAY_DATE) / 86400000);
-            const isOverdue = p.status === 'overdue';
-            return (
-              <div key={p.id} className="card-inner" style={{ padding:'14px', borderLeft:`3px solid ${isOverdue ? '#E11D48' : '#D97706'}` }}>
-                <p className="text-xs font-semibold mb-1" style={T}>{c?.name}</p>
-                <p className="text-xs mb-2" style={TM}>{p.period}</p>
-                <p className="text-base font-black" style={{ color: isOverdue ? '#E11D48' : '#D97706' }}>{fmtCurrency(payAmount(p, companies))}</p>
-                <p className="text-xs mt-1" style={TM}>
-                  {isOverdue ? `Atrasado ${Math.abs(days)} dias` : days === 0 ? 'Vence hoje' : `Vence em ${days} dias`}
-                </p>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ─── Tabela de Faturas ─── */}
-      <div className="card overflow-hidden animate-fade-up delay-5">
-        {/* Header + filtros */}
-        <div className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3" style={{ borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
-          <div>
-            <h3 className="text-sm font-semibold" style={T}>Todas as Faturas</h3>
-            <p className="text-xs" style={TM}>{filteredPayments.length} {filteredPayments.length === 1 ? 'fatura' : 'faturas'}</p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <div style={{ position:'relative' }}>
-              <Search size={13} style={{ position:'absolute', left:'12px', top:'50%', transform:'translateY(-50%)', color:'#94A3B8' }} />
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Buscar empresa ou período…"
-                className="input-field"
-                style={{ paddingLeft:'34px', minWidth:'220px' }}
-              />
-            </div>
-            <div className="flex gap-1 p-1 rounded-xl" style={{ background:'#F1F5F9', border:'1px solid rgba(0,0,0,0.06)' }}>
-              {[['todos','Todos'],['paid','Pagos'],['pending','Pendentes'],['overdue','Atrasados']].map(([val, lbl]) => (
-                <button key={val} onClick={() => setStatus(val)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                  style={{ background: statusFilter===val ? '#FF4D0C' : 'transparent', color: statusFilter===val ? 'white' : '#64748B', border:'none', cursor:'pointer', whiteSpace:'nowrap' }}>
-                  {lbl}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Lista de faturas */}
-        <div>
-          {/* Cabeçalho */}
-          <div className="hidden md:grid" style={{
-            gridTemplateColumns: '1fr 1fr 1fr 120px 120px 50px',
-            padding: '10px 20px',
-            fontSize: '10px',
-            fontWeight: 700,
-            color: '#94A3B8',
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            background: '#F8FAFC',
-            borderBottom: '1px solid rgba(0,0,0,0.05)',
-          }}>
-            <span>Empresa</span>
-            <span>Período</span>
-            <span>Vencimento</span>
-            <span style={{ textAlign:'right' }}>Valor</span>
-            <span style={{ textAlign:'center' }}>Status</span>
-            <span />
+            )}
           </div>
 
-          {filteredPayments.length === 0 ? (
-            <div className="py-10 text-center text-sm" style={TM}>Nenhuma fatura encontrada</div>
-          ) : filteredPayments.map((p, idx) => {
-            const c = companies.find(c => c.id === p.companyId);
-            const sColor = p.status === 'paid' ? '#059669' : p.status === 'overdue' ? '#E11D48' : '#D97706';
-            const sBg    = p.status === 'paid' ? '#DCFCE7' : p.status === 'overdue' ? '#FFE4E6' : '#FEF3C7';
-            const sLabel = p.status === 'paid' ? 'Pago' : p.status === 'pending' ? 'Pendente' : 'Atrasado';
-            return (
-              <div key={p.id} className="grid items-center md:items-center transition-colors"
-                style={{
-                  gridTemplateColumns: '1fr 1fr 1fr 120px 120px 50px',
-                  padding: '14px 20px',
-                  borderBottom: idx < filteredPayments.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                {/* Empresa */}
-                <div className="flex items-center gap-2.5">
-                  <div style={{ width:'32px', height:'32px', borderRadius:'10px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background: sBg }}>
-                    <DollarSign size={14} style={{ color: sColor }} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold" style={T}>{c?.name}</p>
-                    <p className="text-xs" style={TM}>{c?.sector}</p>
-                  </div>
-                </div>
-                {/* Período */}
-                <div>
-                  <p className="text-xs" style={T2}>{p.period}</p>
-                </div>
-                {/* Vencimento */}
-                <div>
-                  <p className="text-xs" style={T2}>{fmtDate(p.dueDate)}</p>
-                  {p.paidDate && <p className="text-xs" style={{ color:'#059669' }}>Pago em {fmtDate(p.paidDate)}</p>}
-                </div>
-                {/* Valor */}
-                <div style={{ textAlign:'right' }}>
-                  <p className="text-sm font-bold" style={T}>{fmtCurrency(payAmount(p, companies))}</p>
-                </div>
-                {/* Status */}
-                <div style={{ textAlign:'center' }}>
-                  <span className={`badge badge-${p.status}`}>{sLabel}</span>
-                </div>
-                {/* Action */}
-                <div style={{ textAlign:'right' }}>
-                  <ChevronRight size={14} style={{ color:'#CBD5E1' }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
