@@ -1581,48 +1581,37 @@ function EscalasHoje({ companyId }) {
 
   return (
     <div className="space-y-4">
-      {/* KPI cards — Escala, Frequência, Presença */}
+      {/* KPI cards — Escala, Faltas/Atrasos, Presença */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="stat-card flex flex-col justify-between" style={{ minHeight: '110px' }}>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#FFF2EE' }}>
-              <CalendarCheck size={15} style={{ color: '#FF4D0C' }} />
-            </div>
-            <span className="text-sm font-bold" style={T}>Escala</span>
-          </div>
-          <p className="text-4xl font-black leading-none" style={{ color: '#FF4D0C' }}>{escala}</p>
+        {/* Escala */}
+        <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Escala</p>
+          <p style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
         </div>
 
-        <div className="stat-card flex flex-col justify-center" style={{ minHeight: '110px' }}>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium" style={T2}>Faltas</span>
-              <span className="text-sm font-black" style={{ color: faltas > 0 ? '#E11D48' : '#94A3B8' }}>{faltas}</span>
-            </div>
-            <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)' }} />
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium" style={T2}>Atrasos</span>
-              <span className="text-sm font-black" style={{ color: atrasos > 0 ? '#D97706' : '#94A3B8' }}>{atrasos}</span>
-            </div>
+        {/* Faltas + Atrasos */}
+        <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px', minHeight: '80px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Faltas</span>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: faltas > 0 ? '#E11D48' : '#CBD5E1' }}>{faltas}</span>
+          </div>
+          <div style={{ height: '1px', background: 'rgba(0,0,0,0.07)' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Atrasos</span>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: atrasos > 0 ? '#D97706' : '#CBD5E1' }}>{atrasos}</span>
           </div>
         </div>
 
-        <div className="stat-card flex flex-col justify-between" style={{ minHeight: '110px' }}>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: pctBg }}>
-              <Users size={15} style={{ color: pctColor }} />
+        {/* Presença */}
+        <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Presença</p>
+          <p style={{ fontSize: '24px', fontWeight: 800, color: escala > 0 ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
+          <p style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8' }}>{escala > 0 ? `${presenteCount}/${escala}` : '0/0'}</p>
+          {escala > 0 && (
+            <div style={{ height: '3px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)', marginTop: '2px' }}>
+              <div style={{ height: '100%', borderRadius: '4px', background: '#0F172A', width: `${pct}%`, transition: 'width 0.4s ease' }} />
             </div>
-            <span className="text-sm font-bold" style={T}>Presença</span>
-          </div>
-          <div>
-            <div className="flex items-end gap-1.5 mb-2">
-              <p className="text-3xl font-black leading-none" style={{ color: pctColor }}>{pct}%</p>
-              <p className="text-xs mb-1" style={TM}>{presenteCount}/{escala}</p>
-            </div>
-            <div style={{ height: '4px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)' }}>
-              <div style={{ height: '100%', borderRadius: '4px', background: pctColor, width: `${pct}%`, transition: 'width 0.4s ease' }} />
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -1633,7 +1622,7 @@ function EscalasHoje({ companyId }) {
           {todayRecords.length > 0 && (
             <button onClick={() => setShowModal(true)}
               className="flex items-center gap-1 text-xs font-semibold"
-              style={{ color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer' }}>
+              style={{ color: '#64748B', background: 'none', border: 'none', cursor: 'pointer' }}>
               Ver mais <ChevronRight size={13} />
             </button>
           )}
