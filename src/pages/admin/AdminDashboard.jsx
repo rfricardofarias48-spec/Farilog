@@ -207,24 +207,24 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up delay-1">
         {[
           { label: `Faturamento (${period === 'ano' ? label : period === 'mes' ? MONTH_SHORT[tMonth] : 'Quinzena'})`,
-            value: fmtCurrency(periodRevenue), icon: DollarSign, color: '#059669', bg: '#ECFDF5', small: true },
+            value: fmtCurrency(periodRevenue), icon: DollarSign, small: true },
           { label: 'Func. ativos',
-            value: activeEmployees,            icon: Users,      color: '#FF4D0C', bg: '#FFF2EE' },
+            value: activeEmployees,            icon: Users },
           { label: 'Empresas',
-            value: companies.length,           icon: Building2,  color: '#7C3AED', bg: '#F5F3FF' },
+            value: companies.length,           icon: Building2 },
           { label: 'Diárias no período',
-            value: periodDiarias,              icon: Activity,   color: '#D97706', bg: '#FFFBEB' },
+            value: periodDiarias,              icon: Activity },
         ].map((k, i) => (
-          <div key={i} className="stat-card">
+          <div key={i} className="stat-card" style={{ border: '1px solid rgba(0,0,0,0.18)' }}>
             <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: k.bg }}>
-                <k.icon size={18} style={{ color: k.color }} />
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#F1F5F9' }}>
+                <k.icon size={17} style={{ color: '#64748B' }} />
               </div>
             </div>
-            <p className={`font-bold leading-none ${k.small ? 'text-base' : 'text-2xl'}`} style={{ color: k.color }}>
+            <p className={`font-bold leading-none ${k.small ? 'text-base' : 'text-2xl'}`} style={{ color: '#0F172A' }}>
               {k.value}
             </p>
-            <p className="text-xs mt-2" style={TM}>{k.label}</p>
+            <p className="text-xs mt-2" style={{ color: '#94A3B8' }}>{k.label}</p>
           </div>
         ))}
       </div>
