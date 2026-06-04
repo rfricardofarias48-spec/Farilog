@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   fetchEscalasByLider, fetchAjudantesDisponiveis,
@@ -532,16 +533,9 @@ function TabRelatorio({ user, escalas, employees }) {
 }
 
 // ── Principal ─────────────────────────────────────────────────────────────
-const TABS = [
-  { key: 'hoje',       label: 'Hoje',       icon: Calendar },
-  { key: 'escala',     label: 'Escala',     icon: Users },
-  { key: 'ocorrencias',label: 'Ocorrências',icon: AlertCircle },
-  { key: 'relatorio',  label: 'Relatório',  icon: FileText },
-];
-
 export default function LiderDashboard() {
   const { user, employees } = useAuth();
-  const [tab, setTab]       = useState('hoje');
+  const { tab } = useOutletContext();
   const [escalas, setEscalas] = useState([]);
 
   const load = useCallback(() => {
@@ -550,37 +544,29 @@ export default function LiderDashboard() {
 
   useEffect(() => { load(); }, [load]);
 
+  const TAB_TITLES = {
+    hoje:        'Hoje',
+    escala:      'Escala',
+    ocorrencias: 'Ocorrências',
+    relatorio:   'Relatório Diário',
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Header */}
       <div className="animate-fade-up">
-        <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Líder de Equipe</p>
-        <h1 style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', marginTop: '2px' }}>
-          Olá, {user?.name?.split(' ')[0]}
+        <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          {TAB_TITLES[tab] || 'Painel'}
+        </p>
+        <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A', marginTop: '2px' }}>
+          {tab === 'hoje' ? `Olá, ${user?.name?.split(' ')[0]}` : TAB_TITLES[tab]}
         </h1>
-        {user?.companyName && (
+        {tab === 'hoje' && user?.companyName && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px' }}>
             <Building2 size={12} style={{ color: '#94A3B8' }} />
             <p style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>{user.companyName}</p>
           </div>
         )}
-      </div>
-
-      {/* Tab bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-        {TABS.map(({ key, label, icon: Icon }) => (
-          <button key={key} onClick={() => setTab(key)} style={{
-            padding: '10px 6px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-            background: tab === key ? '#111827' : 'white',
-            color: tab === key ? 'white' : '#64748B',
-            fontSize: '11px', fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-            boxShadow: tab === key ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.06)',
-            transition: 'all 0.15s',
-          }}>
-            <Icon size={16} />
-            {label}
-          </button>
-        ))}
       </div>
 
       {/* Content */}
