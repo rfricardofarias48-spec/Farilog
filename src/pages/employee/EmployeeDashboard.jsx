@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { WORK_RECORDS, COMPANIES, fmtCurrency, fmtDate, WEEKDAYS, MONTHS } from '../../data/mockData';
-import { fetchTodayRecord, subscribeToRecord } from '../../lib/db';
+import { fetchTodayRecord, subscribeToRecord, createOcorrencia } from '../../lib/db';
 import { STATUS_CONFIG } from '../admin/AdminDemanda';
 import {
   Clock, DollarSign, Calendar, CheckCircle2, AlertCircle,
@@ -517,10 +517,79 @@ function Historico({ myRecords }) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { key: 'visao',      label: 'Visão Geral' },
-  { key: 'pagamentos', label: 'Pagamentos' },
-  { key: 'historico',  label: 'Histórico' },
+  { key: 'visao',       label: 'Visão Geral' },
+  { key: 'pagamentos',  label: 'Pagamentos' },
+  { key: 'historico',   label: 'Histórico' },
+  { key: 'ocorrencia',  label: 'Ocorrência' },
 ];
+
+// ── Tab: Ocorrência ────────────────────────────────────────────────────────
+function TabOcorrencia({ user, todayRecord }) {
+  const [form, setForm]       = useState({ descricao: '', fotoUrl: '', data: TODAY });
+  const [saving, setSaving]   = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.descricao.trim()) return;
+    setSaving(true);
+    await createOcorrencia({
+      ajudanteId: user.id,
+      empresaId:  todayRecord?.companyId  || null,
+      escalaId:   todayRecord?.escalaId   || null,
+      liderId:    null,
+      data:       form.data,
+      descricao:  form.descricao,
+      fotoUrl:    form.fotoUrl || null,
+    });
+    setSaving(false);
+    setSuccess(true);
+    setForm({ descricao: '', fotoUrl: '', data: TODAY });
+    setTimeout(() => setSuccess(false), 4000);
+  };
+
+  return (
+    <div className="space-y-4">
+      <p style={{ fontSize: '13px', color: '#64748B' }}>
+        Registre qualquer ocorrência para o seu líder de equipe.
+      </p>
+
+      {success && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderRadius: '12px', background: '#DCFCE7', border: '1px solid #BBF7D0' }}>
+          <CheckCircle2 size={16} style={{ color: '#059669' }} />
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#059669' }}>Ocorrência registrada com sucesso!</p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="card p-4 space-y-3">
+        <div>
+          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Data</label>
+          <input type="date" className="input-field" value={form.data}
+            onChange={e => setForm(f => ({ ...f, data: e.target.value }))} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Descrição *</label>
+          <textarea className="input-field" rows={4} required
+            placeholder="Descreva o que aconteceu — produto danificado, atraso, acidente, problema com motorista..."
+            value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))}
+            style={{ resize: 'none' }} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Link da foto (opcional)</label>
+          <input type="url" className="input-field" placeholder="https://..."
+            value={form.fotoUrl} onChange={e => setForm(f => ({ ...f, fotoUrl: e.target.value }))} />
+        </div>
+        <button type="submit" disabled={saving} style={{
+          width: '100%', padding: '12px', borderRadius: '12px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
+          fontSize: '13px', fontWeight: 700, background: saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+        }}>
+          {saving ? 'Enviando...' : 'Registrar ocorrência'}
+        </button>
+      </form>
+    </div>
+  );
+}
 
 export default function EmployeeDashboard() {
   const { user, demands, updateDemandStatus, companies } = useAuth();
@@ -588,9 +657,10 @@ export default function EmployeeDashboard() {
         ))}
       </div>
 
-      {tab === 'visao'      && <VisaoGeral user={user} myRecords={myRecords} demands={demands} updateDemandStatus={updateDemandStatus} todayOverride={effectiveTodayRecord} companies={companies} />}
-      {tab === 'pagamentos' && <Pagamentos user={user} myRecords={myRecords} />}
-      {tab === 'historico'  && <Historico  myRecords={myRecords} />}
+      {tab === 'visao'      && <VisaoGeral    user={user} myRecords={myRecords} demands={demands} updateDemandStatus={updateDemandStatus} todayOverride={effectiveTodayRecord} companies={companies} />}
+      {tab === 'pagamentos' && <Pagamentos    user={user} myRecords={myRecords} />}
+      {tab === 'historico'  && <Historico     myRecords={myRecords} />}
+      {tab === 'ocorrencia' && <TabOcorrencia user={user} todayRecord={effectiveTodayRecord} />}
     </div>
   );
 }

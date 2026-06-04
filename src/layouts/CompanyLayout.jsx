@@ -1,11 +1,12 @@
 ﻿import { useState } from 'react';
 import { Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, Calendar, DollarSign, Settings, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { LogOut, LayoutDashboard, Calendar, DollarSign, Settings, ChevronLeft, ChevronRight, FileText, Users } from 'lucide-react';
 
 const TABS = [
   { id: 'panel',     label: 'Painel Inicial',  icon: LayoutDashboard },
   { id: 'escalas',   label: 'Escalas',         icon: Calendar },
+  { id: 'equipe',    label: 'Equipe',          icon: Users },
   { id: 'financial', label: 'Financeiro',      icon: DollarSign },
   { id: 'relatorio', label: 'Relatório',       icon: FileText },
   { id: 'settings',  label: 'Configurações',   icon: Settings },

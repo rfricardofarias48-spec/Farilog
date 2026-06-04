@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import {
-  loginAdmin, loginEmployee, loginCompany,
+  loginAdmin, loginEmployee, loginCompany, loginLider, loginRH,
   fetchEmployees, fetchCompanies, fetchDemands,
   createDemand, updateDemandEmployeeStatus, deleteDemand, editDemand,
+  fetchTarefasRH, createTarefaRH, concluirTarefaRH,
 } from '../lib/db';
 
 const AuthContext = createContext(null);
@@ -88,6 +89,12 @@ export function AuthProvider({ children }) {
     const admin = await loginAdmin(email, password);
     if (admin) { setUser({ role: 'admin', ...admin }); return { success: true, role: 'admin' }; }
 
+    const lider = await loginLider(email, password);
+    if (lider) { setUser({ role: 'lider', ...lider }); return { success: true, role: 'lider' }; }
+
+    const rh = await loginRH(email, password);
+    if (rh) { setUser({ role: 'rh', ...rh }); return { success: true, role: 'rh' }; }
+
     return { success: false, error: 'E-mail ou senha inválidos' };
   };
 
@@ -99,6 +106,7 @@ export function AuthProvider({ children }) {
       employees, setEmployees,
       companies, setCompanies,
       demands, addDemand, updateDemandStatus, removeDemand, changeDemand,
+      createTarefaRH, concluirTarefaRH, fetchTarefasRH,
     }}>
       {children}
     </AuthContext.Provider>

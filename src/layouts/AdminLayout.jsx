@@ -1,7 +1,7 @@
 ﻿import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, Building2, Users, ChevronLeft, ChevronRight, DollarSign, ClipboardList, Search, Bell, Briefcase, Activity, Send, BarChart2, ChevronDown } from 'lucide-react';
+import { LogOut, LayoutDashboard, Building2, Users, ChevronLeft, ChevronRight, DollarSign, ClipboardList, Search, Bell, Briefcase, Activity, Send, BarChart2, ChevronDown, UserCog, UserCheck, AlertTriangle } from 'lucide-react';
 
 const OP_TABS = [
   { key: 'resumo',     label: 'Resumo do Dia',   icon: Activity },
@@ -18,12 +18,18 @@ const PAGE_TITLES = {
   '/admin/employees':    'Funcionários',
   '/admin/financeiro':   'Financeiro',
   '/admin/operacional':  'Operacional',
+  '/admin/lideres':      'Líderes',
+  '/admin/rh-users':     'Usuários RH',
+  '/admin/ocorrencias':  'Ocorrências',
 };
 
 const NAV = [
   { path: '/admin',              label: 'Visão Geral',   icon: LayoutDashboard, exact: true },
   { path: '/admin/companies',    label: 'Empresas',       icon: Building2 },
   { path: '/admin/employees',    label: 'Funcionários',   icon: Users },
+  { path: '/admin/lideres',      label: 'Líderes',        icon: UserCog },
+  { path: '/admin/rh-users',     label: 'Usuários RH',    icon: UserCheck },
+  { path: '/admin/ocorrencias',  label: 'Ocorrências',    icon: AlertTriangle },
   { path: '/admin/financeiro',   label: 'Financeiro',     icon: DollarSign },
 ];
 

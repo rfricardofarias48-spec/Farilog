@@ -4,6 +4,8 @@ import Login from './pages/Login';
 import EmployeeLayout from './layouts/EmployeeLayout';
 import CompanyLayout from './layouts/CompanyLayout';
 import AdminLayout from './layouts/AdminLayout';
+import LiderLayout from './layouts/LiderLayout';
+import RHLayout from './layouts/RHLayout';
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import CompanyDashboard from './pages/company/CompanyDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -12,6 +14,14 @@ import AdminEmployees from './pages/admin/AdminEmployees';
 import AdminFinanceiro from './pages/admin/AdminFinanceiro';
 import AdminDemanda from './pages/admin/AdminDemanda';
 import AdminOperacional from './pages/admin/AdminOperacional';
+import LiderDashboard from './pages/lider/LiderDashboard';
+import RHTarefas from './pages/rh/RHTarefas';
+import RHBanco from './pages/rh/RHBanco';
+import RHAdmissao from './pages/rh/RHAdmissao';
+import RHBeneficios from './pages/rh/RHBeneficios';
+import AdminLideres from './pages/admin/AdminLideres';
+import AdminRHUsers from './pages/admin/AdminRHUsers';
+import AdminOcorrencias from './pages/admin/AdminOcorrencias';
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user } = useAuth();
@@ -43,6 +53,22 @@ function AppRoutes() {
         <Route path="financeiro"   element={<AdminFinanceiro />} />
         <Route path="demanda"     element={<AdminDemanda />} />
         <Route path="operacional" element={<AdminOperacional />} />
+        <Route path="lideres"      element={<AdminLideres />} />
+        <Route path="rh-users"    element={<AdminRHUsers />} />
+        <Route path="ocorrencias" element={<AdminOcorrencias />} />
+      </Route>
+      <Route path="/lider" element={
+        <ProtectedRoute allowedRole="lider"><LiderLayout /></ProtectedRoute>
+      }>
+        <Route index element={<LiderDashboard />} />
+      </Route>
+      <Route path="/rh" element={
+        <ProtectedRoute allowedRole="rh"><RHLayout /></ProtectedRoute>
+      }>
+        <Route index element={<RHTarefas />} />
+        <Route path="banco"      element={<RHBanco />} />
+        <Route path="admissao"   element={<RHAdmissao />} />
+        <Route path="beneficios" element={<RHBeneficios />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

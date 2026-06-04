@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, createContext, useContext, useCallback } f
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { STATUS_CONFIG } from '../admin/AdminDemanda';
-import { fetchCompanyRecords, subscribeToCompanyRecords } from '../../lib/db';
+import { fetchCompanyRecords, subscribeToCompanyRecords, fetchEscalaHojeByEmpresa, fetchRelatoriosByEmpresa } from '../../lib/db';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { PAYMENTS, fmtCurrency, fmtDate, WEEKDAYS, MONTHS } from '../../data/mockData';
@@ -2404,6 +2404,110 @@ function RelatorioTab({ companyId }) {
   );
 }
 
+// ── Aba: Equipe (Líder + Relatórios do Líder) ─────────────────────────────
+function EquipeTab({ companyId }) {
+  const [escalaHoje, setEscalaHoje]     = useState(null);
+  const [relatorios, setRelatorios]     = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [openId, setOpenId]             = useState(null);
+
+  const DOW = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const fmtD = (iso) => {
+    if (!iso) return '—';
+    const [y,m,d] = iso.split('-');
+    return `${DOW[new Date(`${iso}T12:00:00`).getDay()]}, ${d}/${m}/${y}`;
+  };
+
+  useEffect(() => {
+    Promise.all([
+      fetchEscalaHojeByEmpresa(companyId, TODAY),
+      fetchRelatoriosByEmpresa(companyId),
+    ]).then(([esc, rels]) => {
+      setEscalaHoje(esc);
+      setRelatorios(rels);
+      setLoading(false);
+    });
+  }, [companyId]);
+
+  if (loading) return <div className="card p-10 text-center text-sm" style={{ color: '#94A3B8' }}>Carregando...</div>;
+
+  return (
+    <div className="space-y-5">
+      {/* Líder de hoje */}
+      <div>
+        <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#0F172A', marginBottom: '12px' }}>Líder de equipe — hoje</h2>
+        {escalaHoje?.lider ? (
+          <div className="card p-4">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: escalaHoje.lider.cor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+                {escalaHoje.lider.iniciais}
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>{escalaHoje.lider.nome}</p>
+                <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>Líder de Equipe · Farilog</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+              {escalaHoje.lider.telefone && (
+                <a href={`tel:${escalaHoje.lider.telefone}`}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', background: '#F1F5F9', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>
+                  <Phone size={14} /> {escalaHoje.lider.telefone}
+                </a>
+              )}
+              {escalaHoje.lider.email && (
+                <a href={`mailto:${escalaHoje.lider.email}`}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', background: '#F1F5F9', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>
+                  <Mail size={14} /> E-mail
+                </a>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="card p-6 text-center">
+            <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhuma escala com líder designado para hoje</p>
+          </div>
+        )}
+      </div>
+
+      {/* Relatórios do líder */}
+      <div>
+        <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#0F172A', marginBottom: '12px' }}>
+          Relatórios diários — {relatorios.length > 0 ? `${relatorios.length} registros` : 'nenhum'}
+        </h2>
+        {relatorios.length === 0 ? (
+          <div className="card p-6 text-center">
+            <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhum relatório disponível</p>
+          </div>
+        ) : relatorios.map(r => (
+          <div key={r.id} className="card overflow-hidden" style={{ marginBottom: '8px' }}>
+            <button onClick={() => setOpenId(openId === r.id ? null : r.id)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: r.liderCor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                {r.liderIni}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{fmtD(r.data)}</p>
+                <p style={{ fontSize: '11px', color: '#64748B', marginTop: '1px' }}>
+                  {r.presentes} presentes · {r.ausentes} falta{r.ausentes !== 1 ? 's' : ''} · Líder: {r.liderNome}
+                </p>
+              </div>
+              <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: r.finalizado ? '#DCFCE7' : '#FEF3C7', color: r.finalizado ? '#059669' : '#D97706', flexShrink: 0 }}>
+                {r.finalizado ? 'Finalizado' : 'Em aberto'}
+              </span>
+            </button>
+            {openId === r.id && r.observacoes && (
+              <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFBFC' }}>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '6px' }}>Observações do líder</p>
+                <p style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6 }}>{r.observacoes}</p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 export default function CompanyDashboard() {
   const { user, employees } = useAuth();
@@ -2426,6 +2530,7 @@ export default function CompanyDashboard() {
         {tab === 'escalas'   && <EscalasTab  companyId={companyId} />}
         {tab === 'financial' && <Financial   companyId={companyId} />}
         {tab === 'relatorio' && <RelatorioTab companyId={companyId} />}
+        {tab === 'equipe'    && <EquipeTab    companyId={companyId} />}
         {tab === 'settings'  && <SettingsTab company={user} />}
       </div>
     </CompanyDataCtx.Provider>

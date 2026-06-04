@@ -87,6 +87,36 @@ function mapDemand(escala) {
 
 // ── Auth / Login ───────────────────────────────────────────────────────────
 
+export async function loginLider(email, password) {
+  const { data, error } = await supabase
+    .from('lideres_equipe')
+    .select('*, empresas(nome, endereco, localizacao, responsavel, telefone)')
+    .eq('email', email)
+    .eq('senha', password)
+    .maybeSingle();
+  if (error) { console.error('[db] loginLider:', error.message); return null; }
+  if (!data) return null;
+  return {
+    ...data,
+    name: data.nome,
+    initials: data.iniciais,
+    color: data.cor,
+    companyName: data.empresas?.nome || null,
+  };
+}
+
+export async function loginRH(email, password) {
+  const { data, error } = await supabase
+    .from('usuarios_rh')
+    .select('*')
+    .eq('email', email)
+    .eq('senha', password)
+    .maybeSingle();
+  if (error) { console.error('[db] loginRH:', error.message); return null; }
+  if (!data) return null;
+  return { ...data, name: data.nome, initials: data.iniciais };
+}
+
 export async function loginAdmin(email, password) {
   const { data, error } = await supabase
     .from('usuarios_admin')
@@ -140,6 +170,7 @@ export async function createEmployee(emp) {
       id:       emp.id,
       nome:     emp.name,
       cargo:    emp.cargo || 'Ajudante de Logística',
+      cpf:      emp.cpf || null,
       telefone: emp.phone || null,
       email:    emp.email || null,
       senha:    emp.password,
@@ -148,6 +179,7 @@ export async function createEmployee(emp) {
       status:   emp.status || 'active',
       diaria:   emp.dailyRate,
       hora_extra: emp.overtimeRate ?? 50,
+      data_contratacao: emp.dataContratacao || null,
     })
     .select()
     .single();
@@ -426,4 +458,346 @@ export function subscribeToRecord(employeeId, today, onChange) {
     )
     .subscribe();
   return () => supabase.removeChannel(channel);
+}
+
+// ── Líderes de Equipe ─────────────────────────────────────────────────────
+
+export async function fetchLideres() {
+  const { data, error } = await supabase
+    .from('lideres_equipe')
+    .select('*, empresas(nome)')
+    .order('nome');
+  if (error) { console.error('[db] fetchLideres:', error.message); return []; }
+  return data.map(l => ({ ...l, name: l.nome, initials: l.iniciais, color: l.cor, companyName: l.empresas?.nome }));
+}
+
+export async function createLider(lider) {
+  const { data, error } = await supabase
+    .from('lideres_equipe')
+    .insert({ id: crypto.randomUUID(), nome: lider.name, email: lider.email, telefone: lider.phone, senha: lider.password, iniciais: lider.initials, cor: lider.color || '#FF4D0C', empresa_id: lider.companyId || null })
+    .select('*, empresas(nome)')
+    .single();
+  if (error) { console.error('[db] createLider:', error.message); return null; }
+  return { ...data, name: data.nome, initials: data.iniciais, color: data.cor, companyName: data.empresas?.nome };
+}
+
+export async function updateLider(id, patch) {
+  const p = {};
+  if (patch.name      !== undefined) p.nome       = patch.name;
+  if (patch.email     !== undefined) p.email      = patch.email;
+  if (patch.phone     !== undefined) p.telefone   = patch.phone;
+  if (patch.password  !== undefined) p.senha      = patch.password;
+  if (patch.initials  !== undefined) p.iniciais   = patch.initials;
+  if (patch.companyId !== undefined) p.empresa_id = patch.companyId;
+  if (patch.status    !== undefined) p.status     = patch.status;
+  const { error } = await supabase.from('lideres_equipe').update(p).eq('id', id);
+  if (error) { console.error('[db] updateLider:', error.message); return false; }
+  return true;
+}
+
+export async function deleteLider(id) {
+  const { error } = await supabase.from('lideres_equipe').delete().eq('id', id);
+  if (error) { console.error('[db] deleteLider:', error.message); return false; }
+  return true;
+}
+
+// ── Usuários RH ───────────────────────────────────────────────────────────
+
+export async function fetchRHUsers() {
+  const { data, error } = await supabase.from('usuarios_rh').select('*').order('nome');
+  if (error) { console.error('[db] fetchRHUsers:', error.message); return []; }
+  return data.map(r => ({ ...r, name: r.nome, initials: r.iniciais }));
+}
+
+export async function createRHUser(rh) {
+  const { data, error } = await supabase
+    .from('usuarios_rh')
+    .insert({ id: crypto.randomUUID(), nome: rh.name, email: rh.email, senha: rh.password, iniciais: rh.initials })
+    .select().single();
+  if (error) { console.error('[db] createRHUser:', error.message); return null; }
+  return { ...data, name: data.nome, initials: data.iniciais };
+}
+
+export async function updateRHUser(id, patch) {
+  const p = {};
+  if (patch.name     !== undefined) p.nome     = patch.name;
+  if (patch.email    !== undefined) p.email    = patch.email;
+  if (patch.password !== undefined) p.senha    = patch.password;
+  if (patch.initials !== undefined) p.iniciais = patch.initials;
+  const { error } = await supabase.from('usuarios_rh').update(p).eq('id', id);
+  if (error) { console.error('[db] updateRHUser:', error.message); return false; }
+  return true;
+}
+
+export async function deleteRHUser(id) {
+  const { error } = await supabase.from('usuarios_rh').delete().eq('id', id);
+  if (error) { console.error('[db] deleteRHUser:', error.message); return false; }
+  return true;
+}
+
+// ── Ocorrências ───────────────────────────────────────────────────────────
+
+export async function fetchOcorrencias(filters = {}) {
+  let q = supabase.from('ocorrencias').select('*').order('criado_em', { ascending: false });
+  if (filters.liderId)    q = q.eq('lider_id', filters.liderId);
+  if (filters.empresaId)  q = q.eq('empresa_id', filters.empresaId);
+  if (filters.data)       q = q.eq('data', filters.data);
+  const { data, error } = await q;
+  if (error) { console.error('[db] fetchOcorrencias:', error.message); return []; }
+  return data;
+}
+
+export async function createOcorrencia(oc) {
+  const { data, error } = await supabase
+    .from('ocorrencias')
+    .insert({ id: crypto.randomUUID(), escala_id: oc.escalaId, lider_id: oc.liderId, ajudante_id: oc.ajudanteId, empresa_id: oc.empresaId, data: oc.data, descricao: oc.descricao, foto_url: oc.fotoUrl || null })
+    .select().single();
+  if (error) { console.error('[db] createOcorrencia:', error.message); return null; }
+  return data;
+}
+
+export async function updateOcorrenciaStatus(id, status) {
+  const { error } = await supabase.from('ocorrencias').update({ status }).eq('id', id);
+  if (error) { console.error('[db] updateOcorrenciaStatus:', error.message); }
+}
+
+// ── Relatórios Diários ────────────────────────────────────────────────────
+
+export async function fetchRelatoriosDiarios(liderId) {
+  const { data, error } = await supabase
+    .from('relatorios_diarios')
+    .select('*')
+    .eq('lider_id', liderId)
+    .order('data', { ascending: false });
+  if (error) { console.error('[db] fetchRelatoriosDiarios:', error.message); return []; }
+  return data;
+}
+
+export async function upsertRelatorioDiario(rel) {
+  const { data, error } = await supabase
+    .from('relatorios_diarios')
+    .upsert({ id: rel.id || crypto.randomUUID(), lider_id: rel.liderId, empresa_id: rel.empresaId, data: rel.data, presentes: rel.presentes, ausentes: rel.ausentes, ocorrencias_count: rel.ocorrenciasCount, observacoes: rel.observacoes, finalizado: rel.finalizado }, { onConflict: 'lider_id,data' })
+    .select().single();
+  if (error) { console.error('[db] upsertRelatorioDiario:', error.message); return null; }
+  return data;
+}
+
+// ── Tarefas RH ────────────────────────────────────────────────────────────
+
+export async function fetchTarefasRH() {
+  const { data, error } = await supabase
+    .from('tarefas_rh')
+    .select('*')
+    .order('criado_em', { ascending: false });
+  if (error) { console.error('[db] fetchTarefasRH:', error.message); return []; }
+  return data;
+}
+
+export async function createTarefaRH(tarefa) {
+  const { error } = await supabase
+    .from('tarefas_rh')
+    .insert({ id: crypto.randomUUID(), tipo: tarefa.tipo, descricao: tarefa.descricao, referencia_id: tarefa.referenciaId || null, prioridade: tarefa.prioridade || 'normal' });
+  if (error) { console.error('[db] createTarefaRH:', error.message); }
+}
+
+export async function concluirTarefaRH(id) {
+  const { error } = await supabase.from('tarefas_rh').update({ status: 'concluido' }).eq('id', id);
+  if (error) { console.error('[db] concluirTarefaRH:', error.message); }
+}
+
+// ── Checklist Diário ──────────────────────────────────────────────────────
+
+export async function fetchChecklist(funcionarioId, data) {
+  const { data: row, error } = await supabase
+    .from('checklist_diario')
+    .select('*')
+    .eq('funcionario_id', funcionarioId)
+    .eq('data', data)
+    .maybeSingle();
+  if (error) { console.error('[db] fetchChecklist:', error.message); return null; }
+  return row;
+}
+
+export async function saveChecklist(check) {
+  const { data, error } = await supabase
+    .from('checklist_diario')
+    .upsert({ id: check.id || crypto.randomUUID(), funcionario_id: check.funcionarioId, data: check.data, uniforme: check.uniforme, cracha: check.cracha, celular: check.celular, apto: check.apto, respondido_em: new Date().toISOString() }, { onConflict: 'funcionario_id,data' })
+    .select().single();
+  if (error) { console.error('[db] saveChecklist:', error.message); return null; }
+  return data;
+}
+
+// ── Escalas por Líder ─────────────────────────────────────────────────────
+
+export async function fetchEscalasByLider(liderId) {
+  const { data, error } = await supabase
+    .from('escalas')
+    .select('*, registros(*), empresas(nome)')
+    .eq('lider_id', liderId)
+    .order('data', { ascending: false });
+  if (error) { console.error('[db] fetchEscalasByLider:', error.message); return []; }
+  return data.map(mapDemand);
+}
+
+export async function assignLiderToEscala(escalaId, liderId) {
+  const { error } = await supabase.from('escalas').update({ lider_id: liderId }).eq('id', escalaId);
+  if (error) { console.error('[db] assignLiderToEscala:', error.message); }
+}
+
+export async function createEscalaByLider({ liderId, companyId, date, time, service, employeeIds }) {
+  const escalaId = crypto.randomUUID();
+  const { data: escala, error: escErr } = await supabase
+    .from('escalas')
+    .insert({ id: escalaId, empresa_id: companyId, data: date, horario: time || null, servico: service || null, status: 'scheduled', lider_id: liderId })
+    .select()
+    .single();
+  if (escErr) { console.error('[db] createEscalaByLider:', escErr.message); return null; }
+
+  if (employeeIds.length > 0) {
+    const registros = employeeIds.map(empId => ({
+      id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: empId, empresa_id: companyId,
+      data: date, servico: service || null, status: 'scheduled', confirmacao: 'aguardando', valor: 150,
+    }));
+    const { error: rErr } = await supabase.from('registros').insert(registros);
+    if (rErr) { console.error('[db] createEscalaByLider registros:', rErr.message); return null; }
+    return mapDemand({ ...escala, registros });
+  }
+  return mapDemand({ ...escala, registros: [] });
+}
+
+export async function addRegistroToEscala(escalaId, employeeId, companyId, date, service) {
+  const { error } = await supabase.from('registros').insert({
+    id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: employeeId, empresa_id: companyId,
+    data: date, servico: service || null, status: 'scheduled', confirmacao: 'aguardando', valor: 150,
+  });
+  if (error) { console.error('[db] addRegistroToEscala:', error.message); return false; }
+  return true;
+}
+
+// ── Banco de Ajudantes (ajudantes disponíveis) ────────────────────────────
+
+export async function fetchAjudantesDisponiveis(data) {
+  const { data: escalados, error: eErr } = await supabase
+    .from('registros')
+    .select('funcionario_id')
+    .eq('data', data);
+  if (eErr) { console.error('[db] fetchAjudantesDisponiveis:', eErr.message); return []; }
+
+  const escaladosIds = (escalados || []).map(r => r.funcionario_id);
+
+  let q = supabase.from('funcionarios').select('*').eq('status', 'active');
+  if (escaladosIds.length > 0) q = q.not('id', 'in', `(${escaladosIds.join(',')})`);
+
+  const { data: rows, error } = await q.order('nome');
+  if (error) { console.error('[db] fetchAjudantesDisponiveis rows:', error.message); return []; }
+  return rows.map(r => ({ ...r, name: r.nome, initials: r.iniciais, color: r.cor, dailyRate: Number(r.diaria) }));
+}
+
+// ── Presença por equipe (hoje) ─────────────────────────────────────────────
+
+export async function fetchPresencaEquipeHoje(today) {
+  const { data, error } = await supabase
+    .from('escalas')
+    .select('id, lider_id, lideres_equipe(nome, iniciais, cor), registros(confirmacao)')
+    .eq('data', today)
+    .not('lider_id', 'is', null);
+  if (error) { console.error('[db] fetchPresencaEquipeHoje:', error.message); return []; }
+  return (data || []).map(e => {
+    const regs      = e.registros || [];
+    const total     = regs.length;
+    const presentes = regs.filter(r => ['confirmado','finalizado'].includes(r.confirmacao)).length;
+    const ausentes  = regs.filter(r => r.confirmacao === 'falta').length;
+    const atrasados = regs.filter(r => r.confirmacao === 'atrasado').length;
+    return {
+      escalaId:   e.id,
+      liderId:    e.lider_id,
+      liderNome:  e.lideres_equipe?.nome || '—',
+      liderIni:   e.lideres_equipe?.iniciais || '?',
+      liderCor:   e.lideres_equipe?.cor || '#FF4D0C',
+      total, presentes, ausentes, atrasados,
+      sla: total > 0 ? Math.round((presentes / total) * 100) : null,
+    };
+  });
+}
+
+// ── Ocorrências (admin — com nomes) ───────────────────────────────────────
+
+export async function fetchOcorrenciasAdmin() {
+  const { data, error } = await supabase
+    .from('ocorrencias')
+    .select('*, funcionarios(nome, iniciais, cor), lideres_equipe(nome), empresas(nome)')
+    .order('criado_em', { ascending: false });
+  if (error) { console.error('[db] fetchOcorrenciasAdmin:', error.message); return []; }
+  return (data || []).map(o => ({
+    ...o,
+    ajudanteNome: o.funcionarios?.nome || '—',
+    ajudanteIni:  o.funcionarios?.iniciais || '?',
+    ajudanteCor:  o.funcionarios?.cor || '#94A3B8',
+    liderNome:    o.lideres_equipe?.nome || '—',
+    empresaNome:  o.empresas?.nome || '—',
+  }));
+}
+
+export async function updateOcorrenciaStatusAdmin(id, status) {
+  const { error } = await supabase.from('ocorrencias').update({ status }).eq('id', id);
+  if (error) { console.error('[db] updateOcorrenciaStatusAdmin:', error.message); }
+}
+
+// ── Escala de hoje por empresa (com líder) ────────────────────────────────
+
+export async function fetchEscalaHojeByEmpresa(empresaId, today) {
+  const { data, error } = await supabase
+    .from('escalas')
+    .select('*, lideres_equipe(nome, telefone, email, cor, iniciais)')
+    .eq('empresa_id', empresaId)
+    .eq('data', today)
+    .maybeSingle();
+  if (error) { console.error('[db] fetchEscalaHojeByEmpresa:', error.message); return null; }
+  if (!data) return null;
+  return {
+    ...data,
+    lider: data.lideres_equipe ? {
+      nome:     data.lideres_equipe.nome,
+      telefone: data.lideres_equipe.telefone,
+      email:    data.lideres_equipe.email,
+      cor:      data.lideres_equipe.cor,
+      iniciais: data.lideres_equipe.iniciais,
+    } : null,
+  };
+}
+
+// ── Relatórios do líder por empresa ───────────────────────────────────────
+
+export async function fetchRelatoriosByEmpresa(empresaId) {
+  const { data, error } = await supabase
+    .from('relatorios_diarios')
+    .select('*, lideres_equipe(nome, iniciais, cor)')
+    .eq('empresa_id', empresaId)
+    .order('data', { ascending: false })
+    .limit(30);
+  if (error) { console.error('[db] fetchRelatoriosByEmpresa:', error.message); return []; }
+  return (data || []).map(r => ({
+    ...r,
+    liderNome: r.lideres_equipe?.nome || '—',
+    liderIni:  r.lideres_equipe?.iniciais || '?',
+    liderCor:  r.lideres_equipe?.cor || '#FF4D0C',
+  }));
+}
+
+// ── Ajudantes sem ponto hoje ───────────────────────────────────────────────
+
+export async function fetchAjudantesSemPontoHoje(today) {
+  const { data, error } = await supabase
+    .from('registros')
+    .select('*, funcionarios(nome, iniciais, cor)')
+    .eq('data', today)
+    .is('entrada', null)
+    .neq('confirmacao', 'falta');
+  if (error) { console.error('[db] fetchAjudantesSemPontoHoje:', error.message); return []; }
+  return (data || []).map(r => ({
+    ...r,
+    funcionarioNome: r.funcionarios?.nome || '—',
+    funcionarioIni:  r.funcionarios?.iniciais || '?',
+    funcionarioCor:  r.funcionarios?.cor || '#94A3B8',
+  }));
 }
