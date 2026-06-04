@@ -5,7 +5,7 @@ import {
   fetchEscalasByLider, fetchAjudantesDisponiveis,
   upsertRelatorioDiario, fetchOcorrencias, createOcorrencia,
   updateDemandEmployeeStatus, createEscalaByLider, addRegistroToEscala,
-  createTarefaRH,
+  createTarefaRH, fetchEmpresasDoLider,
 } from '../../lib/db';
 import {
   Users, Calendar, CheckCircle2, AlertCircle, AlertTriangle,
@@ -315,11 +315,20 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
 
 // ── Tab: Escala ───────────────────────────────────────────────────────────
 function NovaEscalaForm({ user, onSaved, onCancel }) {
-  const [form, setForm]         = useState({ date: TODAY, time: '07:00', service: '' });
-  const [disponiveis, setDisp]  = useState([]);
-  const [selected, setSelected] = useState([]);
-  const [loadingDisp, setLD]    = useState(false);
-  const [saving, setSaving]     = useState(false);
+  const [form, setForm]             = useState({ date: TODAY, time: '07:00', service: '', companyId: '' });
+  const [empresas, setEmpresas]     = useState([]);
+  const [disponiveis, setDisp]      = useState([]);
+  const [selected, setSelected]     = useState([]);
+  const [loadingDisp, setLD]        = useState(false);
+  const [saving, setSaving]         = useState(false);
+
+  // Carrega empresas do líder ao montar
+  useEffect(() => {
+    fetchEmpresasDoLider(user.id).then(list => {
+      setEmpresas(list);
+      if (list.length === 1) setForm(f => ({ ...f, companyId: list[0].id }));
+    });
+  }, [user.id]);
 
   const loadDisp = async (date) => {
     setLD(true);
@@ -334,12 +343,15 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.companyId) return alert('Selecione a empresa para esta escala.');
     if (selected.length === 0) return alert('Selecione ao menos um ajudante.');
     setSaving(true);
-    await createEscalaByLider({ liderId: user.id, companyId: user.empresa_id, date: form.date, time: form.time, service: form.service, employeeIds: selected });
+    await createEscalaByLider({ liderId: user.id, companyId: form.companyId, date: form.date, time: form.time, service: form.service, employeeIds: selected });
     setSaving(false);
     onSaved();
   };
+
+  const empresaSel = empresas.find(e => e.id === form.companyId);
 
   return (
     <form onSubmit={handleSubmit} className="card p-5 space-y-4 animate-fade-up">
@@ -347,6 +359,35 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
         <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Nova Escala</p>
         <button type="button" onClick={onCancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
       </div>
+
+      {/* Seletor de empresa */}
+      <div>
+        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '8px' }}>
+          Para qual empresa? *
+        </label>
+        {empresas.length === 0 ? (
+          <p style={{ fontSize: '12px', color: '#94A3B8' }}>Nenhuma empresa vinculada ao seu perfil. Fale com o administrador.</p>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {empresas.map(emp => {
+              const sel = form.companyId === emp.id;
+              return (
+                <button key={emp.id} type="button" onClick={() => setForm(f => ({ ...f, companyId: emp.id }))}
+                  style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '8px 14px', borderRadius: '10px', border: `2px solid ${sel ? '#FF4D0C' : 'rgba(0,0,0,0.1)'}`, background: sel ? '#FFF5F2' : 'white', cursor: 'pointer' }}>
+                  <Building2 size={13} style={{ color: sel ? '#FF4D0C' : '#94A3B8' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: sel ? '#FF4D0C' : '#0F172A' }}>{emp.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {empresaSel?.responsavel && (
+          <p style={{ fontSize: '11px', color: '#64748B', marginTop: '6px' }}>
+            Responsável: {empresaSel.responsavel}{empresaSel.telefone ? ` · ${empresaSel.telefone}` : ''}
+          </p>
+        )}
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '12px' }}>
         <div>
           <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Data *</label>

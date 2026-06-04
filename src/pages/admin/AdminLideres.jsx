@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { fetchLideres, createLider, updateLider, deleteLider } from '../../lib/db';
-import { Plus, Edit2, Trash2, X, Search, UserCog } from 'lucide-react';
+import {
+  fetchLideres, createLider, updateLider, deleteLider,
+  fetchLiderEmpresasIds, upsertLiderEmpresas,
+} from '../../lib/db';
+import { Plus, Edit2, Trash2, X, Search, UserCog, Building2, CheckCircle2 } from 'lucide-react';
 
 const COLORS = ['#FF4D0C','#7C3AED','#059669','#0891B2','#D97706','#E11D48','#0F172A'];
 
@@ -9,30 +12,46 @@ function initials(name) {
   return name.trim().split(' ').filter(Boolean).slice(0,2).map(w => w[0].toUpperCase()).join('');
 }
 
-const EMPTY = { name: '', email: '', phone: '', password: '', companyId: '', color: '#FF4D0C', status: 'active' };
-
 function Modal({ lider, companies, onSave, onClose }) {
-  const [form, setForm] = useState(lider ? {
-    name: lider.nome || lider.name || '',
-    email: lider.email || '',
-    phone: lider.telefone || lider.phone || '',
+  const [form, setForm] = useState({
+    name:     lider?.nome     || lider?.name  || '',
+    email:    lider?.email    || '',
+    phone:    lider?.telefone || lider?.phone || '',
     password: '',
-    companyId: lider.empresa_id || lider.companyId || '',
-    color: lider.cor || lider.color || '#FF4D0C',
-    status: lider.status || 'active',
-  } : { ...EMPTY });
+    color:    lider?.cor      || lider?.color || '#FF4D0C',
+    status:   lider?.status   || 'active',
+  });
+  const [selectedCompanies, setSelectedCompanies] = useState([]);
   const [saving, setSaving] = useState(false);
+
+  // Carrega empresas atuais do líder (edição)
+  useEffect(() => {
+    if (lider?.id) {
+      fetchLiderEmpresasIds(lider.id).then(setSelectedCompanies);
+    } else if (lider?.companyIds) {
+      setSelectedCompanies(lider.companyIds);
+    }
+  }, [lider?.id]);
+
+  const toggleCompany = (id) =>
+    setSelectedCompanies(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (selectedCompanies.length === 0) {
+      alert('Selecione ao menos uma empresa para este líder.');
+      return;
+    }
     setSaving(true);
-    await onSave({ ...form, initials: initials(form.name) });
+    const saved = await onSave({ ...form, initials: initials(form.name) }, selectedCompanies);
     setSaving(false);
   };
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-box animate-fade-up">
+      <div className="modal-box animate-fade-up" style={{ maxWidth: '520px' }}>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-bold" style={{ color: '#0F172A' }}>
             {lider ? 'Editar Líder' : 'Novo Líder'}
@@ -41,7 +60,9 @@ function Modal({ lider, companies, onSave, onClose }) {
             <X size={15} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-3">
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Dados básicos */}
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Nome completo *</label>
@@ -58,21 +79,45 @@ function Modal({ lider, companies, onSave, onClose }) {
               <input className="input-field" placeholder="(00) 00000-0000" value={form.phone}
                 onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
             </div>
-            <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{lider ? 'Nova senha' : 'Senha *'}</label>
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>
+                {lider ? 'Nova senha (deixe em branco para manter)' : 'Senha *'}
+              </label>
               <input type="password" className="input-field" required={!lider} autoComplete="new-password"
                 value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
             </div>
-            <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Empresa</label>
-              <select className="input-field" value={form.companyId}
-                onChange={e => setForm(f => ({ ...f, companyId: e.target.value }))}>
-                <option value="">Sem empresa</option>
-                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+          </div>
+
+          {/* Empresas (multi-select) */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold" style={{ color: '#64748B' }}>
+                Empresas clientes *
+              </label>
+              {selectedCompanies.length > 0 && (
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C' }}>
+                  {selectedCompanies.length} selecionada{selectedCompanies.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto', padding: '2px' }}>
+              {companies.length === 0 ? (
+                <p style={{ fontSize: '12px', color: '#94A3B8' }}>Nenhuma empresa cadastrada</p>
+              ) : companies.map(c => {
+                const sel = selectedCompanies.includes(c.id);
+                return (
+                  <button key={c.id} type="button" onClick={() => toggleCompany(c.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', border: `2px solid ${sel ? '#FF4D0C' : 'rgba(0,0,0,0.08)'}`, background: sel ? '#FFF5F2' : 'white', cursor: 'pointer', textAlign: 'left' }}>
+                    <Building2 size={14} style={{ color: sel ? '#FF4D0C' : '#94A3B8', flexShrink: 0 }} />
+                    <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: sel ? '#FF4D0C' : '#0F172A' }}>{c.name}</p>
+                    {sel && <CheckCircle2 size={14} style={{ color: '#FF4D0C', flexShrink: 0 }} />}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
+          {/* Cor */}
           <div>
             <label className="block text-xs font-semibold mb-2" style={{ color: '#64748B' }}>Cor</label>
             <div className="flex gap-2">
@@ -83,6 +128,7 @@ function Modal({ lider, companies, onSave, onClose }) {
             </div>
           </div>
 
+          {/* Status */}
           <div>
             <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Status</label>
             <div className="flex gap-2">
@@ -98,14 +144,15 @@ function Modal({ lider, companies, onSave, onClose }) {
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: '#F1F5F9', color: '#64748B' }}>Cancelar</button>
+              style={{ background: '#F1F5F9', color: '#64748B', border: 'none', cursor: 'pointer' }}>
+              Cancelar
+            </button>
             <button type="submit" disabled={saving}
-              className="flex-2 py-2.5 rounded-xl text-sm font-bold"
-              style={{ flex: 2, background: saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', borderRadius: '12px', padding: '10px' }}>
-              {saving ? 'Salvando...' : lider ? 'Salvar' : 'Criar líder'}
+              style={{ flex: 2, background: saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', borderRadius: '12px', padding: '10px', fontSize: '13px', fontWeight: 700 }}>
+              {saving ? 'Salvando...' : lider ? 'Salvar alterações' : 'Criar líder'}
             </button>
           </div>
         </form>
@@ -116,21 +163,27 @@ function Modal({ lider, companies, onSave, onClose }) {
 
 export default function AdminLideres() {
   const { companies } = useAuth();
-  const [lideres, setLideres]   = useState([]);
-  const [search, setSearch]     = useState('');
-  const [modal, setModal]       = useState(null);
-  const [loading, setLoading]   = useState(true);
+  const [lideres, setLideres] = useState([]);
+  const [search, setSearch]   = useState('');
+  const [modal, setModal]     = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const load = () => fetchLideres().then(l => { setLideres(l); setLoading(false); });
   useEffect(() => { load(); }, []);
 
-  const handleSave = async (form) => {
+  const handleSave = async (form, companyIds) => {
+    let liderId;
     if (modal === 'new') {
-      await createLider(form);
+      const created = await createLider({ ...form, companyId: companyIds[0] || null });
+      liderId = created?.id;
     } else {
       const patch = { ...form };
       if (!patch.password) delete patch.password;
       await updateLider(modal.id, patch);
+      liderId = modal.id;
+    }
+    if (liderId) {
+      await upsertLiderEmpresas(liderId, companyIds);
     }
     setModal(null);
     load();
@@ -153,7 +206,9 @@ export default function AdminLideres() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold" style={{ color: '#0F172A' }}>Líderes de Equipe</h1>
-          <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>{lideres.length} líder{lideres.length !== 1 ? 'es' : ''} cadastrado{lideres.length !== 1 ? 's' : ''}</p>
+          <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>
+            {lideres.length} líder{lideres.length !== 1 ? 'es' : ''} cadastrado{lideres.length !== 1 ? 's' : ''}
+          </p>
         </div>
         <button onClick={() => setModal('new')}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold"
@@ -180,7 +235,7 @@ export default function AdminLideres() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
-                {['Líder','Empresa','Contato','Status',''].map(h => (
+                {['Líder','Empresas','Contato','Status',''].map(h => (
                   <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -199,8 +254,25 @@ export default function AdminLideres() {
                       </div>
                     </div>
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#475569' }}>{l.companyName || '—'}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#475569' }}>{l.telefone || l.phone || '—'}</td>
+                  <td style={{ padding: '12px 16px' }}>
+                    {l.companyIds?.length > 0 ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {l.companyIds.map((cid, i) => {
+                          const co = companies.find(c => c.id === cid);
+                          return co ? (
+                            <span key={cid} style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', background: '#F1F5F9', color: '#475569' }}>
+                              {co.name}
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '13px', color: '#94A3B8' }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#475569' }}>
+                    {l.telefone || l.phone || '—'}
+                  </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: l.status === 'active' ? '#DCFCE7' : '#F1F5F9', color: l.status === 'active' ? '#059669' : '#64748B' }}>
                       {l.status === 'active' ? 'Ativo' : 'Inativo'}

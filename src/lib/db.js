@@ -465,10 +465,17 @@ export function subscribeToRecord(employeeId, today, onChange) {
 export async function fetchLideres() {
   const { data, error } = await supabase
     .from('lideres_equipe')
-    .select('*, empresas(nome)')
+    .select('*, lider_empresas(empresa_id, empresas(nome))')
     .order('nome');
   if (error) { console.error('[db] fetchLideres:', error.message); return []; }
-  return data.map(l => ({ ...l, name: l.nome, initials: l.iniciais, color: l.cor, companyName: l.empresas?.nome }));
+  return data.map(l => ({
+    ...l,
+    name:      l.nome,
+    initials:  l.iniciais,
+    color:     l.cor,
+    companyName: l.lider_empresas?.map(le => le.empresas?.nome).filter(Boolean).join(', ') || '—',
+    companyIds:  l.lider_empresas?.map(le => le.empresa_id) || [],
+  }));
 }
 
 export async function createLider(lider) {
@@ -499,6 +506,37 @@ export async function deleteLider(id) {
   const { error } = await supabase.from('lideres_equipe').delete().eq('id', id);
   if (error) { console.error('[db] deleteLider:', error.message); return false; }
   return true;
+}
+
+// ── Empresas do Líder (N:N) ───────────────────────────────────────────────
+
+export async function fetchEmpresasDoLider(liderId) {
+  const { data, error } = await supabase
+    .from('lider_empresas')
+    .select('empresa_id, empresas(id, nome, telefone, responsavel)')
+    .eq('lider_id', liderId);
+  if (error) { console.error('[db] fetchEmpresasDoLider:', error.message); return []; }
+  return (data || []).map(r => ({
+    id:          r.empresa_id,
+    name:        r.empresas?.nome        || '—',
+    telefone:    r.empresas?.telefone    || null,
+    responsavel: r.empresas?.responsavel || null,
+  }));
+}
+
+export async function fetchLiderEmpresasIds(liderId) {
+  const { data, error } = await supabase
+    .from('lider_empresas').select('empresa_id').eq('lider_id', liderId);
+  if (error) { console.error('[db] fetchLiderEmpresasIds:', error.message); return []; }
+  return (data || []).map(r => r.empresa_id);
+}
+
+export async function upsertLiderEmpresas(liderId, empresaIds) {
+  await supabase.from('lider_empresas').delete().eq('lider_id', liderId);
+  if (!empresaIds.length) return;
+  const rows = empresaIds.map(id => ({ lider_id: liderId, empresa_id: id }));
+  const { error } = await supabase.from('lider_empresas').insert(rows);
+  if (error) { console.error('[db] upsertLiderEmpresas:', error.message); }
 }
 
 // ── Usuários RH ───────────────────────────────────────────────────────────
