@@ -327,60 +327,53 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
   const atrasos   = isToday ? records.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length : 0;
   const presentes = escala - faltas;
   const pct       = escala > 0 ? Math.round((presentes / escala) * 100) : 0;
-  const pctColor  = !isToday ? '#059669' : pct >= 80 ? '#059669' : pct >= 50 ? '#D97706' : '#E11D48';
 
   return (
-    <div className="card p-5" style={{
-      display: 'flex', flexDirection: 'column', gap: '14px',
-      ...(isToday ? {
-        borderTop: '3px solid #FF4D0C',
-        boxShadow: '0 4px 24px rgba(255,77,12,0.13)',
-      } : {}),
-    }}>
+    <div className="card p-5" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
       {/* Header */}
       <div>
-        <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', color: accentColor, textTransform: 'uppercase' }}>{title}</span>
+        <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', color: '#94A3B8', textTransform: 'uppercase' }}>{title}</span>
         <p className="text-sm font-bold mt-0.5" style={T}>{date ? fmtDateShort(date) : 'Sem agendamento'}</p>
       </div>
 
       {/* Stats */}
       {isToday ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#EEF2F7', textAlign: 'center' }}>
-            <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>Escala</p>
-            <p style={{ fontSize: '24px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{escala}</p>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', marginBottom: '4px' }}>Escala</p>
+            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
           </div>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#EEF2F7' }}>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#475569' }}>Faltas</span>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: faltas > 0 ? '#E11D48' : '#94A3B8' }}>{faltas}</span>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Faltas</span>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: faltas > 0 ? '#E11D48' : '#CBD5E1' }}>{faltas}</span>
               </div>
-              <div style={{ height: '1px', background: 'rgba(0,0,0,0.12)' }} />
+              <div style={{ height: '1px', background: 'rgba(0,0,0,0.07)' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#475569' }}>Atrasos</span>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: atrasos > 0 ? '#D97706' : '#94A3B8' }}>{atrasos}</span>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Atrasos</span>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: atrasos > 0 ? '#D97706' : '#CBD5E1' }}>{atrasos}</span>
               </div>
             </div>
           </div>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#EEF2F7', textAlign: 'center' }}>
-            <p style={{ fontSize: '10px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>Presença</p>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: escala > 0 ? pctColor : '#94A3B8', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', marginTop: '2px' }}>{escala > 0 ? `${presentes}/${escala}` : '0/0'}</p>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', marginBottom: '4px' }}>Presença</p>
+            <p style={{ fontSize: '20px', fontWeight: 800, color: escala > 0 ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
+            <p style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', marginTop: '2px' }}>{escala > 0 ? `${presentes}/${escala}` : '0/0'}</p>
           </div>
         </div>
       ) : (
-        <div style={{ padding: '10px 16px', borderRadius: '10px', background: '#EEF2F7', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{escala}</span>
-          <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>ajudante{escala !== 1 ? 's' : ''} agendado{escala !== 1 ? 's' : ''}</span>
+        <div style={{ padding: '10px 16px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '28px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</span>
+          <span style={{ fontSize: '11px', fontWeight: 500, color: '#94A3B8' }}>ajudante{escala !== 1 ? 's' : ''} agendado{escala !== 1 ? 's' : ''}</span>
         </div>
       )}
 
       {/* Barra de presença */}
       {isToday && escala > 0 && (
-        <div style={{ height: '4px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)' }}>
-          <div style={{ height: '100%', borderRadius: '4px', background: pctColor, width: `${pct}%`, transition: 'width 0.4s ease' }} />
+        <div style={{ height: '3px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)' }}>
+          <div style={{ height: '100%', borderRadius: '4px', background: '#0F172A', width: `${pct}%`, transition: 'width 0.4s ease' }} />
         </div>
       )}
 
@@ -388,7 +381,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '4px' }}>
           {records.length > 0 && (
-            <button onClick={() => onVerMais ? onVerMais() : setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', fontWeight: 600, color: accentColor, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            <button onClick={() => onVerMais ? onVerMais() : setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', fontWeight: 600, color: '#64748B', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
               Ver mais <ChevronRight size={12} />
             </button>
           )}
@@ -486,9 +479,9 @@ function Panel({ companyId, setTab, companyName }) {
         <EscalaCard
           title="Escala do Dia"
           date={TODAY}
-          accentColor="#FF4D0C"
+          accentColor="#64748B"
           badgeLabel="Hoje"
-          badgeBg="#FFF2EE"
+          badgeBg="#F1F5F9"
           records={todayRecords}
           isToday={true}
           onVerMais={() => setTab('escalas')}
@@ -496,9 +489,9 @@ function Panel({ companyId, setTab, companyName }) {
         <EscalaCard
           title="Próxima Escala"
           date={nextDate}
-          accentColor="#2563EB"
+          accentColor="#64748B"
           badgeLabel={nextDate ? fmtDateShort(nextDate) : 'Sem agend.'}
-          badgeBg="#EFF6FF"
+          badgeBg="#F1F5F9"
           records={nextRecords}
           isToday={false}
         />
