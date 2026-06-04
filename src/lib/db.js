@@ -495,6 +495,7 @@ export async function updateLider(id, patch) {
   if (patch.phone     !== undefined) p.telefone   = patch.phone;
   if (patch.password  !== undefined) p.senha      = patch.password;
   if (patch.initials  !== undefined) p.iniciais   = patch.initials;
+  if (patch.color     !== undefined) p.cor        = patch.color;
   if (patch.companyId !== undefined) p.empresa_id = patch.companyId;
   if (patch.status    !== undefined) p.status     = patch.status;
   const { error } = await supabase.from('lideres_equipe').update(p).eq('id', id);
