@@ -538,10 +538,14 @@ export async function deleteRHUser(id) {
 // ── Ocorrências ───────────────────────────────────────────────────────────
 
 export async function fetchOcorrencias(filters = {}) {
-  let q = supabase.from('ocorrencias').select('*').order('criado_em', { ascending: false });
+  let q = supabase.from('ocorrencias')
+    .select('*, funcionarios(nome, iniciais, cor)')
+    .order('criado_em', { ascending: false });
   if (filters.liderId)    q = q.eq('lider_id', filters.liderId);
   if (filters.empresaId)  q = q.eq('empresa_id', filters.empresaId);
   if (filters.data)       q = q.eq('data', filters.data);
+  if (filters.escalaId)   q = q.eq('escala_id', filters.escalaId);
+  if (filters.ajudanteId) q = q.eq('ajudante_id', filters.ajudanteId);
   const { data, error } = await q;
   if (error) { console.error('[db] fetchOcorrencias:', error.message); return []; }
   return data;
