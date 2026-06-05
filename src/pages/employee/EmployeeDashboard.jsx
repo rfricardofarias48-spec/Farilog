@@ -200,10 +200,10 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
                   {fmtISO(d.date)} · <span style={{ fontWeight: 700, color: '#0F172A' }}>{d.time}</span>
                 </p>
               </div>
-              {company?.contact && (
+              {(d.liderNome || company?.contact) && (
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
-                  <p style={{ fontSize: '12px', color: '#475569' }}>Receber com: <span style={{ fontWeight: 600, color: '#0F172A' }}>{company.contact}</span></p>
+                  <p style={{ fontSize: '12px', color: '#475569' }}>Líder: <span style={{ fontWeight: 600, color: '#0F172A' }}>{d.liderNome || company?.contact || '—'}</span></p>
                 </div>
               )}
               {company?.address && (
@@ -275,10 +275,10 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
                   {fmtISO(nextDemand.date)} · <span style={{ fontWeight: 700, color: '#0F172A' }}>{nextDemand.time}</span>
                 </p>
               </div>
-              {company?.contact && (
+              {(d.liderNome || company?.contact) && (
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
-                  <p style={{ fontSize: '12px', color: '#475569' }}>Receber com: <span style={{ fontWeight: 600, color: '#0F172A' }}>{company.contact}</span></p>
+                  <p style={{ fontSize: '12px', color: '#475569' }}>Líder: <span style={{ fontWeight: 600, color: '#0F172A' }}>{d.liderNome || company?.contact || '—'}</span></p>
                 </div>
               )}
             </div>

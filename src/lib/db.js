@@ -77,6 +77,7 @@ function mapDemand(escala) {
     service:         escala.servico,
     responsavelDia:  escala.responsavel_dia || '',
     contatoDia:      escala.contato_dia     || '',
+    liderNome:       escala.lideres_equipe?.nome || escala.liderNome || null,
     employees: (escala.registros || []).map(wr => ({
       employeeId:    wr.funcionario_id,
       status:        wr.confirmacao || 'aguardando',
@@ -300,7 +301,7 @@ export async function deleteCompany(id) {
 export async function fetchDemands() {
   const { data, error } = await supabase
     .from('escalas')
-    .select('*, registros(*), empresas(nome)')
+    .select('*, registros(*), empresas(nome), lideres_equipe(nome)')
     .order('data', { ascending: false });
   if (error) { console.error('[db] fetchDemands:', error.message); return []; }
   return data.map(mapDemand);
