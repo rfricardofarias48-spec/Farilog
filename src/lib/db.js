@@ -786,6 +786,25 @@ export async function updateOcorrenciaStatusAdmin(id, status) {
   if (error) { console.error('[db] updateOcorrenciaStatusAdmin:', error.message); }
 }
 
+// ── Todas as escalas de uma empresa (com líder) ───────────────────────────
+
+export async function fetchEscalasComLiderByEmpresa(companyId) {
+  const { data, error } = await supabase
+    .from('escalas')
+    .select('id, data, horario, servico, status, lider_id, lideres_equipe(id, nome, telefone, iniciais, cor)')
+    .eq('empresa_id', companyId)
+    .order('data', { ascending: false });
+  if (error) { console.error('[db] fetchEscalasComLiderByEmpresa:', error.message); return []; }
+  return (data || []).map(e => ({
+    id:      e.id,
+    date:    e.data,
+    time:    e.horario,
+    service: e.servico,
+    status:  e.status,
+    lider:   e.lideres_equipe || null,
+  }));
+}
+
 // ── Escala de hoje por empresa (com líder) ────────────────────────────────
 
 export async function fetchEscalaHojeByEmpresa(empresaId, today) {

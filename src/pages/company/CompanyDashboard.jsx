@@ -3,14 +3,55 @@ import { useState, useRef, useEffect, createContext, useContext, useCallback } f
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { STATUS_CONFIG } from '../admin/AdminDemanda';
-import { fetchCompanyRecords, subscribeToCompanyRecords, fetchEscalaHojeByEmpresa, fetchRelatoriosByEmpresa } from '../../lib/db';
+import { fetchCompanyRecords, subscribeToCompanyRecords, fetchEscalaHojeByEmpresa, fetchRelatoriosByEmpresa, fetchEscalasComLiderByEmpresa } from '../../lib/db';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { PAYMENTS, fmtCurrency, fmtDate, WEEKDAYS, MONTHS } from '../../data/mockData';
 
 // ── Contexto interno de dados da empresa ──────────────────────────────────
-const CompanyDataCtx = createContext({ records: [], employees: [] });
+const CompanyDataCtx = createContext({ records: [], employees: [], escalas: [] });
 const useCompanyData = () => useContext(CompanyDataCtx);
+
+// ── Helper WhatsApp ────────────────────────────────────────────────────────
+function whatsappLink(telefone) {
+  if (!telefone) return null;
+  const digits = telefone.replace(/\D/g, '');
+  const full   = digits.startsWith('55') ? digits : `55${digits}`;
+  return `https://wa.me/${full}`;
+}
+
+// ── Componente: Badge discreto do Líder com botão WhatsApp ────────────────
+function LiderBadge({ lider }) {
+  if (!lider) return null;
+  const waLink = whatsappLink(lider.telefone);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
+      <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: lider.cor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+        {lider.iniciais}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lider.nome}</p>
+        <p style={{ fontSize: '10px', color: '#94A3B8' }}>Líder de Equipe</p>
+      </div>
+      {waLink ? (
+        <a href={waLink} target="_blank" rel="noopener noreferrer"
+          title={`WhatsApp de ${lider.nome}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '8px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '11px', fontWeight: 700, flexShrink: 0, transition: 'opacity 0.15s' }}
+          onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+          onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+          {/* WhatsApp SVG icon */}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.855L.057 23.884a.5.5 0 0 0 .606.634l6.193-1.623A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.944 9.944 0 0 1-5.127-1.415l-.368-.218-3.812 1 1.02-3.718-.24-.382A9.944 9.944 0 0 1 2 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/>
+          </svg>
+          WhatsApp
+        </a>
+      ) : (
+        <span style={{ fontSize: '10px', color: '#CBD5E1', fontStyle: 'italic' }}>sem telefone</span>
+      )}
+    </div>
+  );
+}
 import {
   Clock, DollarSign, Users, CheckCircle2, Calendar,
   Phone, Mail, MapPin, Save, AlertTriangle, TrendingUp,
@@ -457,7 +498,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
 }
 
 function Panel({ companyId, setTab, companyName }) {
-  const { records } = useCompanyData();
+  const { records, escalas } = useCompanyData();
 
   const todayRecords = records.filter(r => r.date === TODAY);
 
@@ -466,6 +507,9 @@ function Panel({ companyId, setTab, companyName }) {
     ? futureRecords.reduce((min, r) => r.date < min ? r.date : min, futureRecords[0].date)
     : null;
   const nextRecords = nextDate ? futureRecords.filter(r => r.date === nextDate) : [];
+
+  const todayLider = escalas.find(e => e.date === TODAY)?.lider || null;
+  const nextLider  = nextDate ? (escalas.find(e => e.date === nextDate)?.lider || null) : null;
 
   return (
     <div className="space-y-5">
@@ -476,25 +520,31 @@ function Panel({ companyId, setTab, companyName }) {
 
       {/* Duas caixas lado a lado */}
       <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '16px', alignItems: 'start' }}>
-        <EscalaCard
-          title="Escala do Dia"
-          date={TODAY}
-          accentColor="#64748B"
-          badgeLabel="Hoje"
-          badgeBg="#F1F5F9"
-          records={todayRecords}
-          isToday={true}
-          onVerMais={() => setTab('escalas')}
-        />
-        <EscalaCard
-          title="Próxima Escala"
-          date={nextDate}
-          accentColor="#64748B"
-          badgeLabel={nextDate ? fmtDateShort(nextDate) : 'Sem agend.'}
-          badgeBg="#F1F5F9"
-          records={nextRecords}
-          isToday={false}
-        />
+        <div className="space-y-2">
+          {todayLider && <LiderBadge lider={todayLider} />}
+          <EscalaCard
+            title="Escala do Dia"
+            date={TODAY}
+            accentColor="#64748B"
+            badgeLabel="Hoje"
+            badgeBg="#F1F5F9"
+            records={todayRecords}
+            isToday={true}
+            onVerMais={() => setTab('escalas')}
+          />
+        </div>
+        <div className="space-y-2">
+          {nextLider && <LiderBadge lider={nextLider} />}
+          <EscalaCard
+            title="Próxima Escala"
+            date={nextDate}
+            accentColor="#64748B"
+            badgeLabel={nextDate ? fmtDateShort(nextDate) : 'Sem agend.'}
+            badgeBg="#F1F5F9"
+            records={nextRecords}
+            isToday={false}
+          />
+        </div>
       </div>
     </div>
   );
@@ -1567,10 +1617,11 @@ function Financial({ companyId }) {
 // ── Escalas ────────────────────────────────────────────────────────────────
 
 function EscalasHoje({ companyId }) {
-  const { records, employees } = useCompanyData();
+  const { records, employees, escalas } = useCompanyData();
   const [showModal, setShowModal] = useState(false);
   const [notes, setNotes] = useNotes();
   const todayRecords  = records.filter(r => r.date === TODAY);
+  const todayLider    = escalas.find(e => e.date === TODAY)?.lider || null;
   const escala        = todayRecords.length;
   const faltas        = todayRecords.filter(r => r.status === 'absent').length;
   const atrasos       = todayRecords.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
@@ -1581,6 +1632,9 @@ function EscalasHoje({ companyId }) {
 
   return (
     <div className="space-y-4">
+      {/* Líder responsável */}
+      {todayLider && <LiderBadge lider={todayLider} />}
+
       {/* KPI cards — Escala, Faltas/Atrasos, Presença */}
       <div className="grid grid-cols-3 gap-4">
         {/* Escala */}
@@ -1693,7 +1747,7 @@ function EscalasHoje({ companyId }) {
 }
 
 function EscalasProximas({ companyId }) {
-  const { records, employees } = useCompanyData();
+  const { records, employees, escalas } = useCompanyData();
   const futureDates = [...new Set(
     records
       .filter(r => r.date > TODAY && r.status === 'scheduled')
@@ -1718,6 +1772,7 @@ function EscalasProximas({ companyId }) {
         const [y, m, d] = date.split('-').map(Number);
         const dow = DOW_FULL[new Date(y, m - 1, d).getDay()];
         const isOpen = openDate === date;
+        const dateLider = escalas.find(e => e.date === date)?.lider || null;
 
         return (
           <div key={date} style={{ borderBottom: idx < futureDates.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
@@ -1738,6 +1793,26 @@ function EscalasProximas({ companyId }) {
                 <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ background: '#FFF2EE', color: '#FF4D0C' }}>
                   {dateRecs.length} escalado{dateRecs.length !== 1 ? 's' : ''}
                 </span>
+                {/* Líder inline no header */}
+                {dateLider && (() => {
+                  const waLink = whatsappLink(dateLider.telefone);
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '8px' }}>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: dateLider.cor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+                        {dateLider.iniciais}
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569' }}>{dateLider.nome}</span>
+                      {waLink && (
+                        <a href={waLink} target="_blank" rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '3px 7px', borderRadius: '6px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '10px', fontWeight: 700 }}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.855L.057 23.884a.5.5 0 0 0 .606.634l6.193-1.623A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.944 9.944 0 0 1-5.127-1.415l-.368-.218-3.812 1 1.02-3.718-.24-.382A9.944 9.944 0 0 1 2 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/></svg>
+                          WhatsApp
+                        </a>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <ChevronRight size={15} style={{ color: '#94A3B8', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
             </button>
@@ -2512,25 +2587,29 @@ function EquipeTab({ companyId }) {
 export default function CompanyDashboard() {
   const { user, employees } = useAuth();
   const { tab, setTab } = useOutletContext();
-  const [records, setRecords] = useState([]);
+  const [records, setRecords]   = useState([]);
+  const [escalas, setEscalas]   = useState([]);
 
   const companyId = user?.id;
 
   useEffect(() => {
     if (!companyId) return;
     fetchCompanyRecords(companyId).then(setRecords);
-    const unsub = subscribeToCompanyRecords(companyId, setRecords);
+    fetchEscalasComLiderByEmpresa(companyId).then(setEscalas);
+    const unsub = subscribeToCompanyRecords(companyId, r => {
+      setRecords(r);
+      fetchEscalasComLiderByEmpresa(companyId).then(setEscalas);
+    });
     return unsub;
   }, [companyId]);
 
   return (
-    <CompanyDataCtx.Provider value={{ records, employees }}>
+    <CompanyDataCtx.Provider value={{ records, employees, escalas }}>
       <div className="animate-fade-up">
         {tab === 'panel'     && <Panel       companyId={companyId} setTab={setTab} companyName={user.name} />}
         {tab === 'escalas'   && <EscalasTab  companyId={companyId} />}
         {tab === 'financial' && <Financial   companyId={companyId} />}
         {tab === 'relatorio' && <RelatorioTab companyId={companyId} />}
-        {tab === 'equipe'    && <EquipeTab    companyId={companyId} />}
         {tab === 'settings'  && <SettingsTab company={user} />}
       </div>
     </CompanyDataCtx.Provider>
