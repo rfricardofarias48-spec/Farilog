@@ -7,6 +7,7 @@ import {
   createEscalaByLider, addRegistroToEscala, updateEscalaByLider,
   createTarefaRH, fetchEmpresasDoLider, fetchRelatoriosDiarios,
   uploadFotoRelatorio, fetchTodosAjudantes, createSolicitacaoAjudantes,
+  fetchTarefasParaLider, concluirTarefaAdmin,
 } from '../../lib/db';
 import {
   Users, Calendar, CheckCircle2, AlertCircle, AlertTriangle,
@@ -1442,6 +1443,100 @@ function TabAjudantes({ user }) {
   );
 }
 
+// ── Tab: Tarefas ──────────────────────────────────────────────────────────
+const PRIO_CFG = {
+  alta:   { label: 'Alta',   color: '#E11D48', bg: '#FFE4E6' },
+  normal: { label: 'Normal', color: '#D97706', bg: '#FEF3C7' },
+  baixa:  { label: 'Baixa',  color: '#64748B', bg: '#F1F5F9' },
+};
+
+function TabTarefas({ user }) {
+  const [tarefas, setTarefas] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = () => {
+    fetchTarefasParaLider(user.id).then(data => { setTarefas(data); setLoading(false); });
+  };
+
+  useEffect(() => { load(); }, [user.id]);
+
+  const handleConcluir = async (id) => {
+    await concluirTarefaAdmin(id);
+    load();
+  };
+
+  const pendentes  = tarefas.filter(t => t.status !== 'concluido');
+  const concluidas = tarefas.filter(t => t.status === 'concluido');
+
+  if (loading) {
+    return <div className="card" style={{ padding: '48px', textAlign: 'center' }}><p style={{ color: '#94A3B8', fontSize: '13px' }}>Carregando...</p></div>;
+  }
+
+  return (
+    <div className="space-y-5">
+      {tarefas.length === 0 ? (
+        <div className="card" style={{ padding: '64px 24px', textAlign: 'center' }}>
+          <CheckCircle2 size={32} style={{ color: '#CBD5E1', margin: '0 auto 12px' }} />
+          <p style={{ fontSize: '14px', color: '#94A3B8' }}>Nenhuma tarefa atribuída pelo admin</p>
+        </div>
+      ) : (
+        <>
+          {pendentes.length > 0 && (
+            <div>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>
+                Pendentes ({pendentes.length})
+              </p>
+              <div className="card overflow-hidden">
+                {pendentes.map((t, idx) => {
+                  const pri = PRIO_CFG[t.prioridade] || PRIO_CFG.normal;
+                  return (
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px 16px', borderBottom: idx < pendentes.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                      <button onClick={() => handleConcluir(t.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CBD5E1', paddingTop: '1px', flexShrink: 0 }}>
+                        <AlertCircle size={18} style={{ color: '#CBD5E1' }} />
+                      </button>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{t.titulo}</p>
+                        {t.descricao && <p style={{ fontSize: '12px', color: '#64748B', marginTop: '3px', lineHeight: 1.5 }}>{t.descricao}</p>}
+                        <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>
+                          {new Date(t.criado_em).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: pri.bg, color: pri.color }}>{pri.label}</span>
+                        <button onClick={() => handleConcluir(t.id)}
+                          style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '7px', background: '#DCFCE7', color: '#059669', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle2 size={11} /> Concluir
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {concluidas.length > 0 && (
+            <div>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>
+                Concluídas ({concluidas.length})
+              </p>
+              <div className="card overflow-hidden">
+                {concluidas.map((t, idx) => (
+                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderBottom: idx < concluidas.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none', opacity: 0.5 }}>
+                    <CheckCircle2 size={16} style={{ color: '#059669', flexShrink: 0 }} />
+                    <p style={{ fontSize: '13px', color: '#64748B', textDecoration: 'line-through' }}>{t.titulo}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Tab: Ocorrências ──────────────────────────────────────────────────────
 function TabOcorrencias({ user, escalas, employees }) {
   const [ocorrencias, setOcorrencias] = useState([]);
@@ -1769,6 +1864,7 @@ export default function LiderDashboard() {
     hoje:        { sub: 'Operação do dia', title: `Olá, ${user?.name?.split(' ')[0] || ''}` },
     escala:      { sub: 'Escala',          title: 'Gestão de Escalas' },
     ajudantes:   { sub: 'Equipe',          title: 'Ajudantes Disponíveis' },
+    tarefas:     { sub: 'Admin',           title: 'Minhas Tarefas' },
     ocorrencias: { sub: 'Ocorrências',     title: 'Incidentes e Reportes' },
   };
   const { sub, title } = TITLES[tab] || TITLES.hoje;
@@ -1798,6 +1894,7 @@ export default function LiderDashboard() {
       {tab === 'hoje'        && <TabHoje        user={user} escalas={escalas} employees={employees} onRefresh={load} onStatsChange={setHojeStats} />}
       {tab === 'escala'      && <TabEscala      user={user} escalas={escalas} employees={employees} onRefresh={load} />}
       {tab === 'ajudantes'   && <TabAjudantes user={user} />}
+      {tab === 'tarefas'     && <TabTarefas user={user} />}
       {tab === 'ocorrencias' && <TabOcorrencias user={user} escalas={escalas} employees={employees} />}
 
       {modalFinalizar && (

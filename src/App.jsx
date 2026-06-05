@@ -23,6 +23,7 @@ import RHSolicitacoes from './pages/rh/RHSolicitacoes';
 import AdminLideres from './pages/admin/AdminLideres';
 import AdminRHUsers from './pages/admin/AdminRHUsers';
 import AdminOcorrencias from './pages/admin/AdminOcorrencias';
+import AdminTarefas from './pages/admin/AdminTarefas';
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user } = useAuth();
@@ -57,6 +58,7 @@ function AppRoutes() {
         <Route path="lideres"      element={<AdminLideres />} />
         <Route path="rh-users"    element={<AdminRHUsers />} />
         <Route path="ocorrencias" element={<AdminOcorrencias />} />
+        <Route path="tarefas"     element={<AdminTarefas />} />
       </Route>
       <Route path="/lider" element={
         <ProtectedRoute allowedRole="lider"><LiderLayout /></ProtectedRoute>

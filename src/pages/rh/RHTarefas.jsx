@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { fetchAjudantesSemPontoHoje } from '../../lib/db';
-import { CheckCircle2, Circle, Plus, X, AlertTriangle, Clock } from 'lucide-react';
+import { fetchAjudantesSemPontoHoje, fetchTarefasParaRH, concluirTarefaAdmin } from '../../lib/db';
+import { CheckCircle2, Circle, Plus, X, AlertTriangle, Clock, Star } from 'lucide-react';
+
+const PRIO_CFG = {
+  alta:   { label: 'Alta',   color: '#E11D48', bg: '#FFE4E6' },
+  normal: { label: 'Normal', color: '#D97706', bg: '#FEF3C7' },
+  baixa:  { label: 'Baixa',  color: '#64748B', bg: '#F1F5F9' },
+};
 
 const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 
@@ -14,6 +20,7 @@ const PRIORIDADE = {
 export default function RHTarefas() {
   const { user, fetchTarefasRH, createTarefaRH, concluirTarefaRH } = useAuth();
   const [tarefas, setTarefas]         = useState([]);
+  const [tarefasAdmin, setTarefasAdmin] = useState([]);
   const [semPonto, setSemPonto]       = useState([]);
   const [showForm, setShowForm]       = useState(false);
   const [form, setForm]               = useState({ tipo: '', descricao: '', prioridade: 'normal' });
@@ -23,6 +30,7 @@ export default function RHTarefas() {
     Promise.all([
       fetchTarefasRH().then(t => setTarefas(t || [])),
       fetchAjudantesSemPontoHoje(TODAY).then(s => setSemPonto(s || [])),
+      fetchTarefasParaRH().then(t => setTarefasAdmin(t || [])),
     ]).then(() => setLoading(false));
 
   useEffect(() => { load(); }, []);
@@ -110,6 +118,41 @@ export default function RHTarefas() {
         </div>
       ) : (
         <>
+          {/* ── Tarefas do Admin ── */}
+          {tarefasAdmin.filter(t => t.status !== 'concluido').length > 0 && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <Star size={13} style={{ color: '#FF4D0C' }} />
+                <p style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                  Do Admin ({tarefasAdmin.filter(t => t.status !== 'concluido').length})
+                </p>
+              </div>
+              <div className="card overflow-hidden" style={{ border: '1px solid rgba(255,77,12,0.2)' }}>
+                {tarefasAdmin.filter(t => t.status !== 'concluido').map((t, idx, arr) => {
+                  const pri = PRIO_CFG[t.prioridade] || PRIO_CFG.normal;
+                  return (
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px 16px', borderBottom: idx < arr.length - 1 ? '1px solid rgba(0,0,0,0.06)' : 'none' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{t.titulo}</p>
+                        {t.descricao && <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>{t.descricao}</p>}
+                        <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>
+                          {new Date(t.criado_em).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: pri.bg, color: pri.color }}>{pri.label}</span>
+                        <button onClick={async () => { await concluirTarefaAdmin(t.id); load(); }}
+                          style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '7px', background: '#DCFCE7', color: '#059669', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle2 size={11} /> Concluir
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Alertas automáticos — ajudantes sem ponto */}
           {semPonto.length > 0 && (
             <div style={{ borderRadius: '14px', border: '1px solid #FDE68A', background: '#FFFBEB', overflow: 'hidden' }}>

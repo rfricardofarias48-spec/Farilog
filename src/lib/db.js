@@ -676,6 +676,64 @@ export async function concluirTarefaRH(id) {
   if (error) { console.error('[db] concluirTarefaRH:', error.message); }
 }
 
+// ── Tarefas do Admin → Líder / RH ────────────────────────────────────────
+
+export async function createTarefaAdmin({ titulo, descricao, prioridade, destinatarioTipo, destinatarioId }) {
+  const { error } = await supabase.from('tarefas').insert({
+    titulo, descricao: descricao || '', prioridade: prioridade || 'normal',
+    destinatario_tipo: destinatarioTipo, destinatario_id: destinatarioId || null,
+  });
+  if (error) { console.error('[db] createTarefaAdmin:', error.message); return false; }
+  return true;
+}
+
+export async function fetchTarefasParaLider(liderId) {
+  const { data, error } = await supabase
+    .from('tarefas')
+    .select('*')
+    .or(`destinatario_tipo.eq.todos_lideres,and(destinatario_tipo.eq.lider,destinatario_id.eq.${liderId})`)
+    .order('criado_em', { ascending: false });
+  if (error) { console.error('[db] fetchTarefasParaLider:', error.message); return []; }
+  return data || [];
+}
+
+export async function fetchTarefasParaRH() {
+  const { data, error } = await supabase
+    .from('tarefas')
+    .select('*')
+    .eq('destinatario_tipo', 'rh')
+    .order('criado_em', { ascending: false });
+  if (error) { console.error('[db] fetchTarefasParaRH:', error.message); return []; }
+  return data || [];
+}
+
+export async function fetchTodasTarefasAdmin() {
+  const { data, error } = await supabase
+    .from('tarefas')
+    .select('*, lideres_equipe:destinatario_id(nome)')
+    .order('criado_em', { ascending: false });
+  if (error) { console.error('[db] fetchTodasTarefasAdmin:', error.message); return []; }
+  return (data || []).map(t => ({
+    ...t,
+    destinatarioNome: t.destinatario_tipo === 'rh' ? 'RH'
+      : t.destinatario_tipo === 'todos_lideres' ? 'Todos os Líderes'
+      : t['lideres_equipe']?.nome || '—',
+  }));
+}
+
+export async function concluirTarefaAdmin(id) {
+  const { error } = await supabase.from('tarefas')
+    .update({ status: 'concluido', concluido_em: new Date().toISOString() })
+    .eq('id', id);
+  if (error) { console.error('[db] concluirTarefaAdmin:', error.message); }
+}
+
+export async function fetchLideres() {
+  const { data, error } = await supabase.from('lideres_equipe').select('id, nome').order('nome');
+  if (error) { console.error('[db] fetchLideres:', error.message); return []; }
+  return data || [];
+}
+
 // ── Solicitações de Ajudantes (Líder → RH) ───────────────────────────────
 
 export async function createSolicitacaoAjudantes({ liderId, cidade, funcao, quantidade, observacoes }) {

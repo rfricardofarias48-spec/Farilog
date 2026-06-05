@@ -29,6 +29,7 @@ const NAV = [
   { path: '/admin/employees',    label: 'Funcionários',   icon: Users },
   { path: '/admin/lideres',      label: 'Líderes',        icon: UserCog },
   { path: '/admin/rh-users',     label: 'Usuários RH',    icon: UserCheck },
+  { path: '/admin/tarefas',      label: 'Tarefas',        icon: ClipboardList },
   { path: '/admin/ocorrencias',  label: 'Ocorrências',    icon: AlertTriangle },
   { path: '/admin/financeiro',   label: 'Financeiro',     icon: DollarSign },
 ];

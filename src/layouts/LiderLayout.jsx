@@ -10,6 +10,7 @@ const TABS = [
   { id: 'hoje',        label: 'Hoje',        icon: Calendar    },
   { id: 'escala',      label: 'Escala',      icon: FileText    },
   { id: 'ajudantes',   label: 'Ajudantes',   icon: Users       },
+  { id: 'tarefas',     label: 'Tarefas',     icon: Clock       },
   { id: 'ocorrencias', label: 'Ocorrências', icon: AlertCircle },
 ];
 
