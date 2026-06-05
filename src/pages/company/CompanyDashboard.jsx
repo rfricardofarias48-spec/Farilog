@@ -182,8 +182,35 @@ function buildPeriodChartData(records, companyId, startIso, endIso) {
   return days;
 }
 
-function buildQuinzenaData(records) {
-  const { startDay, endDay, month, year } = getQuinzenaInfo();
+function getQuinzenaInfoByOffset(offset) {
+  const base = getQuinzenaInfo();
+  let { num, month, year } = base;
+  const steps = Math.abs(offset);
+  const dir   = offset < 0 ? -1 : 1;
+  for (let i = 0; i < steps; i++) {
+    if (dir < 0) {
+      if (num === 1) { num = 2; month -= 1; if (month < 0) { month = 11; year -= 1; } }
+      else           { num = 1; }
+    } else {
+      if (num === 2) { num = 1; month += 1; if (month > 11) { month = 0; year += 1; } }
+      else           { num = 2; }
+    }
+  }
+  const mm      = String(month + 1).padStart(2, '0');
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const startDay = num === 1 ? 1 : 16;
+  const endDay   = num === 1 ? 15 : lastDay;
+  return {
+    num, startDay, endDay, month, year,
+    badgeLabel: `${MONTH_FULL[month]}/${year} - Quinzena ${num}`,
+    rangeLabel: num === 1
+      ? `01/${mm} a 15/${mm}`
+      : `16/${mm} a ${String(endDay).padStart(2,'0')}/${mm}`,
+  };
+}
+
+function buildQuinzenaData(records, offset = 0) {
+  const { startDay, endDay, month, year } = offset === 0 ? getQuinzenaInfo() : getQuinzenaInfoByOffset(offset);
   const days = [];
   for (let d = startDay; d <= endDay; d++) {
     const mm   = String(month + 1).padStart(2, '0');
@@ -1325,92 +1352,71 @@ function FinPeriodModal({ payment, companyId, onClose }) {
 
 // ── Financial ──────────────────────────────────────────────────────────────
 function Financial({ companyId }) {
-  const [finTab,          setFinTab]          = useState('atual');
-  const [period,          setPeriod]          = useState('quinzena');
-  const [offset,          setOffset]          = useState(0);
-  const [showCal,         setShowCal]         = useState(false);
+  const [qOffset,         setQOffset]         = useState(0);
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const calRef = useRef(null);
-
-  useEffect(() => {
-    const handler = (e) => { if (calRef.current && !calRef.current.contains(e.target)) setShowCal(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const handlePeriod = (p) => { setPeriod(p); setOffset(0); setShowCal(false); };
 
   const { records } = useCompanyData();
   const myPayments  = PAYMENTS.filter(p => p.companyId === companyId).sort((a,b) => b.dueDate.localeCompare(a.dueDate));
   const nextPayment = myPayments.find(p => p.status === 'pending');
   const daysLeft    = nextPayment ? Math.ceil((new Date(nextPayment.dueDate) - TODAY_DATE) / 86400000) : null;
 
-  // Quinzena atual (sub-aba Período Atual)
-  const quinzenaInfo  = getQuinzenaInfo();
-  const quinzenaData  = buildQuinzenaData(records);
+  const quinzenaInfo  = qOffset === 0 ? getQuinzenaInfo() : getQuinzenaInfoByOffset(qOffset);
+  const quinzenaData  = buildQuinzenaData(records, qOffset);
   const quinzenaTotal = quinzenaData.reduce((s, d) => s + d.count, 0);
   const quinzenaValue = quinzenaData.reduce((s, d) => s + d.value, 0);
   const maxValue      = Math.max(...quinzenaData.map(d => d.value), 1);
 
-  // Histórico filtrado
-  const { start: hStart, end: hEnd, label: hLabel } = getPeriodBounds(period, offset);
-  const filteredPayments = myPayments.filter(p => {
-    const s = parsePeriodStart(p.period);
-    return s && s >= hStart && s <= hEnd;
-  });
-  const totalFiltered = filteredPayments.reduce((s, p) => s + calcPaymentTotal(p, records).total, 0);
-  const paidFiltered  = filteredPayments.filter(p => p.status === 'paid').reduce((s, p) => s + calcPaymentTotal(p, records).total, 0);
-
-  const FIN_PERIODS = [['quinzena','Quinzena'],['mes','Mês']];
-  const navBtn = (icon, fn) => (
-    <button onClick={fn} className="p-1.5 rounded-lg"
-      style={{ background:'#F1F5F9', border:'none', cursor:'pointer', color:'#64748B', display:'flex' }}>
-      {icon}
-    </button>
-  );
-
   return (
     <div className="space-y-5">
 
-      {/* Header + sub-abas */}
-      <div className="flex items-start justify-between">
+      {/* Header + navegação de quinzena */}
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold" style={T}>Financeiro</h2>
           <p className="text-sm mt-0.5" style={TM}>Pagamentos quinzenais nos dias 5 e 20</p>
         </div>
-        <div className="flex gap-1 p-1 rounded-xl" style={{ background:'#F1F5F9', border:'1px solid rgba(0,0,0,0.06)' }}>
-          {[['atual','Período Atual'],['historico','Histórico']].map(([val, lbl]) => (
-            <button key={val} onClick={() => setFinTab(val)}
-              className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all"
-              style={{ background: finTab===val ? '#FF4D0C' : 'transparent', color: finTab===val ? 'white' : '#64748B', border:'none', cursor:'pointer', whiteSpace:'nowrap' }}>
-              {lbl}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <button onClick={() => setQOffset(o => o - 1)}
+            style={{ width: '32px', height: '32px', borderRadius: '9px', background: '#F1F5F9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+            <ChevronLeft size={16} />
+          </button>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', minWidth: '160px', textAlign: 'center' }}>
+            {quinzenaInfo.badgeLabel}
+          </span>
+          <button onClick={() => setQOffset(o => Math.min(o + 1, 0))} disabled={qOffset >= 0}
+            style={{ width: '32px', height: '32px', borderRadius: '9px', background: qOffset < 0 ? '#F1F5F9' : 'transparent', border: 'none', cursor: qOffset < 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: qOffset < 0 ? '#64748B' : '#CBD5E1' }}>
+            <ChevronRight size={16} />
+          </button>
+          {qOffset < 0 && (
+            <button onClick={() => setQOffset(0)}
+              style={{ padding: '6px 14px', borderRadius: '9px', background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+              Período Atual
             </button>
-          ))}
+          )}
         </div>
       </div>
 
-      {/* ══ SUB-ABA: Período Atual ══════════════════════════════════════════ */}
-      {finTab === 'atual' && (
-        <>
-          {/* Próximo pagamento */}
-          {nextPayment && (
-            <div className="card p-5" style={{ borderLeft: '4px solid #D97706' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Calendar size={14} style={{ color: '#D97706' }} />
-                <span className="text-sm font-semibold" style={{ color: '#D97706' }}>Próximo Pagamento</span>
+      {/* ══ Quinzena ════════════════════════════════════════════════════════ */}
+      <>
+        {/* Próximo pagamento — só na quinzena atual */}
+        {qOffset === 0 && nextPayment && (
+          <div className="card p-5" style={{ borderLeft: '4px solid #D97706' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar size={14} style={{ color: '#D97706' }} />
+              <span className="text-sm font-semibold" style={{ color: '#D97706' }}>Próximo Pagamento</span>
+            </div>
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="font-bold text-2xl" style={T}>{fmtCurrency(calcPaymentTotal(nextPayment, records).total)}</p>
+                <p className="text-xs mt-1" style={TM}>Período: {formatPeriod(nextPayment.period)}</p>
               </div>
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="font-bold text-2xl" style={T}>{fmtCurrency(calcPaymentTotal(nextPayment, records).total)}</p>
-                  <p className="text-xs mt-1" style={TM}>Período: {formatPeriod(nextPayment.period)}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-lg" style={{ color: '#D97706' }}>{fmtDate(nextPayment.dueDate)}</p>
-                  {daysLeft !== null && <p className="text-xs" style={TM}>{daysLeft > 0 ? `em ${daysLeft} dias` : 'Hoje'}</p>}
-                </div>
+              <div className="text-right">
+                <p className="font-bold text-lg" style={{ color: '#D97706' }}>{fmtDate(nextPayment.dueDate)}</p>
+                {daysLeft !== null && <p className="text-xs" style={TM}>{daysLeft > 0 ? `em ${daysLeft} dias` : 'Hoje'}</p>}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
           {/* Gráfico quinzena atual */}
           <div className="card p-5">
@@ -1482,169 +1488,19 @@ function Financial({ companyId }) {
             </div>
           </div>
 
-          {/* Alertas de atraso */}
-          {myPayments.filter(p => p.status === 'overdue').map(p => (
-            <div key={p.id} className="card p-4 flex items-center gap-3"
-              style={{ border: '1px solid rgba(220,38,38,0.2)', borderLeft: '4px solid #DC2626' }}>
-              <AlertTriangle size={18} style={{ color: '#DC2626' }} />
-              <div>
-                <p className="text-sm font-semibold" style={{ color: '#DC2626' }}>Pagamento em atraso</p>
-                <p className="text-xs" style={TM}>{fmtCurrency(calcPaymentTotal(p, records).total)} · venceu em {fmtDate(p.dueDate)}</p>
-              </div>
+        {/* Alertas de atraso — só na quinzena atual */}
+        {qOffset === 0 && myPayments.filter(p => p.status === 'overdue').map(p => (
+          <div key={p.id} className="card p-4 flex items-center gap-3"
+            style={{ border: '1px solid rgba(220,38,38,0.2)', borderLeft: '4px solid #DC2626' }}>
+            <AlertTriangle size={18} style={{ color: '#DC2626' }} />
+            <div>
+              <p className="text-sm font-semibold" style={{ color: '#DC2626' }}>Pagamento em atraso</p>
+              <p className="text-xs" style={TM}>{fmtCurrency(calcPaymentTotal(p, records).total)} · venceu em {fmtDate(p.dueDate)}</p>
             </div>
-          ))}
-        </>
-      )}
-
-      {/* ══ SUB-ABA: Histórico ══════════════════════════════════════════════ */}
-      {finTab === 'historico' && (
-        <>
-          {/* Tipo de período */}
-          <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background:'#F1F5F9', border:'1px solid rgba(0,0,0,0.06)' }}>
-            {FIN_PERIODS.map(([val, lbl]) => (
-              <button key={val} onClick={() => handlePeriod(val)}
-                className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{ background: period===val ? '#FF4D0C' : 'transparent', color: period===val ? 'white' : '#64748B', border:'none', cursor:'pointer' }}>
-                {lbl}
-              </button>
-            ))}
           </div>
+        ))}
+      </>
 
-          {/* Navegação de período */}
-          <div style={{ position:'relative' }} ref={calRef}>
-            <div className="flex items-center justify-between p-3 rounded-xl"
-              style={{ background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.05)' }}>
-              {navBtn(<ChevronLeft size={15}/>, () => setOffset(o => o - 1))}
-              <button onClick={() => setShowCal(v => !v)}
-                className="flex items-center gap-2"
-                style={{ background:'none', border:'none', cursor:'pointer', fontSize:'13px', fontWeight:700, color:'#0F172A' }}>
-                <Calendar size={14} style={{ color:'#FF4D0C' }} />
-                {hLabel}
-              </button>
-              {navBtn(<ChevronRight size={15}/>, () => setOffset(o => Math.min(o + 1, 0)))}
-            </div>
-            {showCal && (
-              <CalendarPicker
-                period={period}
-                offset={offset}
-                onSelect={setOffset}
-                onClose={() => setShowCal(false)}
-              />
-            )}
-          </div>
-
-          {/* Lista de pagamentos filtrados */}
-          <div className="card overflow-hidden">
-            {filteredPayments.length === 0 ? (
-              <div className="p-10 text-center text-sm" style={TM}>Nenhum pagamento neste período</div>
-            ) : filteredPayments.map((p, idx) => {
-              const { total: totalFatura, diarias, heCount, valorDiarias, valorHE } = calcPaymentTotal(p, records);
-              const sColor = p.status === 'paid' ? '#059669' : p.status === 'overdue' ? '#E11D48' : '#D97706';
-              const sBg    = p.status === 'paid' ? '#DCFCE7' : p.status === 'overdue' ? '#FFE4E6' : '#FEF3C7';
-              const sLabel = p.status === 'paid' ? 'Pago' : p.status === 'pending' ? 'Pendente' : 'Atrasado';
-              const dataPagto = p.status === 'paid' && p.paidDate ? fmtDate(p.paidDate) : fmtDate(p.dueDate);
-
-              return (
-                <div key={p.id} style={{
-                  padding: '18px 20px',
-                  borderBottom: idx < filteredPayments.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
-                }}>
-                  {/* Cabeçalho */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div style={{ width:'36px', height:'36px', borderRadius:'10px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background: sBg }}>
-                        <DollarSign size={15} style={{ color: sColor }} />
-                      </div>
-                      <p className="text-sm font-bold" style={T}>{formatPeriod(p.period)}</p>
-                    </div>
-                    {p.status !== 'pending' && (
-                      <span className={`badge badge-${p.status}`}>{sLabel}</span>
-                    )}
-                  </div>
-
-                  {/* Grid de informações — ordem: Diárias, H.Extra, Vencimento, Valor fatura */}
-                  <div className="grid grid-cols-4 gap-3 mb-4">
-                    {/* Diárias */}
-                    <div className="card-inner" style={{ padding:'12px 14px' }}>
-                      <div className="flex items-baseline gap-1.5 mb-1">
-                        <span style={{ fontSize:'10px', color:'#94A3B8', fontWeight:500 }}>Diárias:</span>
-                        <span style={{ fontSize:'13px', fontWeight:700, color:'#0F172A' }}>{diarias}</span>
-                      </div>
-                      <div className="flex items-baseline gap-1.5">
-                        <span style={{ fontSize:'10px', color:'#64748B', fontWeight:500 }}>Valor:</span>
-                        <span style={{ fontSize:'12px', fontWeight:700, color:'#059669' }}>{fmtCurrency(valorDiarias)}</span>
-                      </div>
-                    </div>
-                    {/* Horas Extras */}
-                    <div className="card-inner" style={{ padding:'12px 14px' }}>
-                      <div className="flex items-baseline gap-1.5 mb-1">
-                        <span style={{ fontSize:'10px', color:'#94A3B8', fontWeight:500 }}>Horas Extras:</span>
-                        <span style={{ fontSize:'13px', fontWeight:700, color:'#0F172A' }}>{heCount}</span>
-                      </div>
-                      <div className="flex items-baseline gap-1.5">
-                        <span style={{ fontSize:'10px', color:'#64748B', fontWeight:500 }}>Valor:</span>
-                        <span style={{ fontSize:'12px', fontWeight:700, color:'#7C3AED' }}>{fmtCurrency(valorHE)}</span>
-                      </div>
-                    </div>
-                    {/* Vencimento */}
-                    <div className="card-inner" style={{ padding:'12px 14px' }}>
-                      <p style={{ fontSize:'10px', color:'#94A3B8', fontWeight:500, marginBottom:'6px' }}>
-                        {p.status === 'paid' ? 'Pago em' : 'Vencimento'}
-                      </p>
-                      <span style={{ fontSize:'13px', fontWeight:700, color:'#0F172A' }}>{dataPagto}</span>
-                    </div>
-                    {/* Valor da fatura */}
-                    <div className="card-inner" style={{ padding:'12px 14px' }}>
-                      <p style={{ fontSize:'10px', color:'#94A3B8', fontWeight:500, marginBottom:'6px' }}>Valor da fatura</p>
-                      <span style={{ fontSize:'15px', fontWeight:800, color: sColor, lineHeight:1 }}>{fmtCurrency(totalFatura)}</span>
-                    </div>
-                  </div>
-
-                  {/* Gráfico diário do período */}
-                  {(() => {
-                    const pStart = parsePeriodStart(p.period);
-                    const pEnd   = parsePeriodEnd(p.period);
-                    if (!pStart || !pEnd) return null;
-                    const chartData = buildPeriodChartData(records, companyId, pStart, pEnd);
-                    const maxVal    = Math.max(...chartData.map(d => d.value), 1);
-                    return (
-                      <div style={{ marginBottom: '12px' }}>
-                        <ResponsiveContainer width="100%" height={140}>
-                          <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: 8 }} barSize={12} barCategoryGap="25%">
-                            <defs>
-                              <linearGradient id={`bar-${p.id}`} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%"   stopColor="#059669" stopOpacity={1} />
-                                <stop offset="100%" stopColor="#059669" stopOpacity={0.6} />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
-                            <XAxis dataKey="label" tick={{ fill: '#64748B', fontSize: 9, fontFamily: 'Inter' }} axisLine={{ stroke: 'rgba(0,0,0,0.08)' }} tickLine={false} interval={0} />
-                            <YAxis width={50} tick={{ fill: '#64748B', fontSize: 9, fontFamily: 'Inter' }} axisLine={false} tickLine={false} allowDecimals={false} domain={[0, maxVal + 150]} tickFormatter={v => v === 0 ? '' : `R$${v}`} />
-                            <Tooltip content={<FinTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
-                            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                              {chartData.map((d, i) => (
-                                <Cell key={i} fill={d.isWeekend || d.count === 0 ? '#E2E8F0' : `url(#bar-${p.id})`} />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Botão */}
-                  <button
-                    onClick={() => setSelectedPayment(p)}
-                    className="btn-ghost"
-                    style={{ width:'100%', textAlign:'center', padding:'9px', fontSize:'12px', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px' }}>
-                    Ver mais detalhes <ChevronRight size={13} />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
 
       {selectedPayment && (
         <FinPeriodModal
