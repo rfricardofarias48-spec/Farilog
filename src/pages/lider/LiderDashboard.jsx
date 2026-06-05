@@ -4,13 +4,13 @@ import { useAuth } from '../../context/AuthContext';
 import {
   fetchEscalasByLider, fetchAjudantesDisponiveis,
   upsertRelatorioDiario, fetchOcorrencias, createOcorrencia,
-  updateDemandEmployeeStatus, createEscalaByLider, addRegistroToEscala,
-  createTarefaRH, fetchEmpresasDoLider,
+  createEscalaByLider, addRegistroToEscala,
+  createTarefaRH, fetchEmpresasDoLider, fetchRelatoriosDiarios,
 } from '../../lib/db';
 import {
   Users, Calendar, CheckCircle2, AlertCircle, AlertTriangle,
   Plus, ChevronRight, X, Building2, FileText, RefreshCw,
-  Search, Send, Clock, MessageSquare, PhoneCall,
+  Search, Send, Clock, MessageSquare, ClipboardCheck,
 } from 'lucide-react';
 
 const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -98,20 +98,18 @@ function ModalSubstituto({ escala, onClose, onRefresh }) {
   );
 }
 
-// ── Tab: Hoje ─────────────────────────────────────────────────────────────
+// ── Tab: Hoje — monitoramento (read-only) ─────────────────────────────────
 function TabHoje({ user, escalas, employees, onRefresh }) {
   const todayEscala = escalas.find(e => e.date === TODAY);
   const ajudantes   = todayEscala?.employees || [];
 
-  const [updating, setUpdating]     = useState(null);
-  const [modalSubst, setModalSubst] = useState(false);
-  const [ocorrencias, setOcorrencias] = useState([]);
-  const [solicitandoRH, setSolicitandoRH] = useState(false);
-  const [rhOk, setRhOk]             = useState(false);
+  const [modalSubst, setModalSubst]         = useState(false);
+  const [ocorrencias, setOcorrencias]       = useState([]);
+  const [solicitandoRH, setSolicitandoRH]   = useState(false);
+  const [rhOk, setRhOk]                     = useState(false);
 
-  const confirmados = ajudantes.filter(a => a.status === 'confirmado' || a.status === 'finalizado').length;
+  const confirmados = ajudantes.filter(a => ['confirmado','finalizado'].includes(a.status)).length;
   const ausentes    = ajudantes.filter(a => a.status === 'falta').length;
-  const atrasados   = ajudantes.filter(a => a.status === 'atrasado').length;
   const total       = ajudantes.length;
   const sla         = total > 0 ? Math.round((confirmados / total) * 100) : null;
 
@@ -121,19 +119,11 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
     }
   }, [todayEscala?.id]);
 
-  const handleStatus = async (employeeId, novoStatus) => {
-    if (!todayEscala) return;
-    setUpdating(employeeId);
-    await updateDemandEmployeeStatus(todayEscala.id, employeeId, novoStatus);
-    await onRefresh();
-    setUpdating(null);
-  };
-
   const handleSolicitarRH = async () => {
     setSolicitandoRH(true);
     await createTarefaRH({
       tipo: `Solicitação urgente de ajudante — ${user.companyName || 'operação'}`,
-      descricao: `Líder ${user.name} reportou banco insuficiente em ${fmtDate(TODAY)}. ${ausentes} falta(s) na escala. Acionar substituto imediatamente.`,
+      descricao: `Líder ${user.name} reportou banco insuficiente em ${fmtDate(TODAY)}. ${ausentes} falta(s) na escala.`,
       prioridade: 'alta',
     });
     setSolicitandoRH(false);
@@ -144,7 +134,15 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
   return (
     <div className="space-y-5">
 
-      {/* Banner alerta de ausências */}
+      {/* Info: ponto vem do app dos ajudantes */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '12px', background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+        <Clock size={14} style={{ color: '#3B82F6', flexShrink: 0 }} />
+        <p style={{ fontSize: '12px', color: '#1D4ED8', fontWeight: 500 }}>
+          A confirmação de presença é registrada automaticamente pelo <strong>app de ponto dos ajudantes</strong>. Esta tela é somente leitura.
+        </p>
+      </div>
+
+      {/* Banner falta → acionar substituto */}
       {ausentes > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '14px', background: '#FEF2F2', border: '1px solid #FECACA' }}>
           <AlertTriangle size={18} style={{ color: '#E11D48', flexShrink: 0 }} />
@@ -152,15 +150,15 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
             <p style={{ fontSize: '13px', fontWeight: 700, color: '#E11D48' }}>
               {ausentes} falta{ausentes !== 1 ? 's' : ''} detectada{ausentes !== 1 ? 's' : ''}
             </p>
-            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px' }}>Acione substituto ou solicite ao RH</p>
+            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px' }}>Acione substituto ou avise o RH</p>
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button onClick={() => setModalSubst(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer' }}>
               <RefreshCw size={11} /> Substituto
             </button>
             <button onClick={handleSolicitarRH} disabled={solicitandoRH || rhOk}
-              style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: rhOk ? '#059669' : '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', opacity: solicitandoRH ? 0.6 : 1 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: rhOk ? '#059669' : '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', opacity: solicitandoRH ? 0.6 : 1 }}>
               <Send size={11} /> {rhOk ? 'Enviado!' : 'Avisar RH'}
             </button>
           </div>
@@ -171,7 +169,7 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
         {[
           { label: 'Escalados',   value: total,       color: '#0F172A' },
-          { label: 'Confirmados', value: confirmados, color: '#059669' },
+          { label: 'Presentes',   value: confirmados, color: '#059669' },
           { label: 'Ausentes',    value: ausentes,    color: ausentes > 0 ? '#E11D48' : '#CBD5E1' },
           { label: 'SLA',         value: sla !== null ? `${sla}%` : '—', color: sla === null ? '#CBD5E1' : sla >= 80 ? '#059669' : sla >= 60 ? '#D97706' : '#E11D48' },
         ].map((k, i) => (
@@ -182,133 +180,237 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
         ))}
       </div>
 
-      {/* Equipe + Ocorrências lado a lado no desktop */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }} className="md:grid-cols-2-custom">
-        {/* Lista da equipe */}
-        <div className="card overflow-hidden">
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Equipe — {fmtDate(TODAY)}</p>
-              {todayEscala?.time && (
-                <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Clock size={10} /> Início: {todayEscala.time}
+      {/* Lista da equipe — read-only */}
+      <div className="card overflow-hidden">
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Equipe — {fmtDate(TODAY)}</p>
+            {todayEscala?.time && (
+              <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Clock size={10} /> Início: {todayEscala.time}
+              </p>
+            )}
+          </div>
+          {todayEscala && (
+            <button onClick={() => setModalSubst(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#F1F5F9', color: '#64748B', border: 'none', cursor: 'pointer' }}>
+              <RefreshCw size={11} /> Substituto
+            </button>
+          )}
+        </div>
+
+        {ajudantes.length === 0 ? (
+          <div style={{ padding: '40px 16px', textAlign: 'center' }}>
+            <Users size={28} style={{ color: '#CBD5E1', margin: '0 auto 10px' }} />
+            <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhuma escala para hoje</p>
+          </div>
+        ) : ajudantes.map(({ employeeId, status, entrada, saida, saidaAlmoco, retornoAlmoco }) => {
+          const emp = employees.find(e => e.id === employeeId);
+          const batidas = [
+            { label: 'Entrada',   value: entrada        },
+            { label: 'Saída alm.', value: saidaAlmoco  },
+            { label: 'Retorno',   value: retornoAlmoco  },
+            { label: 'Saída',     value: saida          },
+          ];
+          return (
+            <div key={employeeId} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+              {/* Linha principal: avatar + nome + status badge */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px 8px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                  {emp?.initials}
+                </div>
+                <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
+                <StatusBadge status={status} />
+              </div>
+              {/* Linha de batidas de ponto */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0', paddingBottom: '10px', paddingLeft: '62px', paddingRight: '16px' }}>
+                {batidas.map(({ label, value }) => (
+                  <div key={label} style={{ textAlign: 'center', padding: '6px 4px', background: value ? '#F0FDF4' : '#F8FAFC', borderRadius: '8px', margin: '0 3px' }}>
+                    <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>{label}</p>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: value ? '#059669' : '#CBD5E1', lineHeight: 1 }}>
+                      {value || '—'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Reportes dos ajudantes */}
+      <div className="card overflow-hidden">
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <MessageSquare size={14} style={{ color: '#94A3B8' }} />
+          <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Reportes da equipe hoje</p>
+          {ocorrencias.length > 0 && (
+            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', background: '#FEF3C7', color: '#D97706' }}>
+              {ocorrencias.length}
+            </span>
+          )}
+        </div>
+        {ocorrencias.length === 0 ? (
+          <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+            <CheckCircle2 size={24} style={{ color: '#CBD5E1', margin: '0 auto 8px' }} />
+            <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhum reporte hoje</p>
+          </div>
+        ) : ocorrencias.map(oc => {
+          const ajNome = oc.funcionarios?.nome || '—';
+          const ajIni  = oc.funcionarios?.iniciais || '?';
+          const ajCor  = oc.funcionarios?.cor || '#94A3B8';
+          return (
+            <div key={oc.id} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                {oc.ajudante_id ? (
+                  <div style={{ width: '24px', height: '24px', borderRadius: '7px', background: ajCor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                    {ajIni}
+                  </div>
+                ) : (
+                  <AlertCircle size={16} style={{ color: '#D97706', flexShrink: 0 }} />
+                )}
+                <p style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>
+                  {oc.ajudante_id ? ajNome : 'Líder'} · {oc.criado_em ? new Date(oc.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—'}
                 </p>
-              )}
-            </div>
-            {todayEscala && !ausentes && (
-              <button onClick={() => setModalSubst(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#F1F5F9', color: '#64748B', border: 'none', cursor: 'pointer' }}>
-                <RefreshCw size={11} /> Substituto
-              </button>
-            )}
-          </div>
-
-          {ajudantes.length === 0 ? (
-            <div style={{ padding: '40px 16px', textAlign: 'center' }}>
-              <Users size={28} style={{ color: '#CBD5E1', margin: '0 auto 10px' }} />
-              <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhuma escala para hoje</p>
-            </div>
-          ) : ajudantes.map(({ employeeId, status, entrada, saida, saidaAlmoco, retornoAlmoco }) => {
-            const emp = employees.find(e => e.id === employeeId);
-            const isUpd = updating === employeeId;
-            return (
-              <div key={employeeId} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                    {emp?.initials}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
-                    {entrada ? (
-                      <p style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
-                        ↳ {entrada}{saidaAlmoco ? ` · almoço ${saidaAlmoco}` : ''}{retornoAlmoco ? `→${retornoAlmoco}` : ''}{saida ? ` · saída ${saida}` : ''}
-                      </p>
-                    ) : (
-                      <p style={{ fontSize: '11px', color: '#CBD5E1', marginTop: '2px' }}>Sem ponto registrado</p>
-                    )}
-                  </div>
-                  <StatusBadge status={status} />
-                </div>
-                {/* Botões de ação */}
-                <div style={{ display: 'flex', gap: '5px', marginTop: '8px', paddingLeft: '50px' }}>
-                  {[
-                    { key: 'confirmado', label: 'Presente' },
-                    { key: 'falta',      label: 'Falta' },
-                    { key: 'atrasado',   label: 'Atrasado' },
-                    { key: 'finalizado', label: 'Finalizado' },
-                  ].map(({ key, label }) => {
-                    const cfg = STATUS_CFG[key];
-                    const active = status === key;
-                    return (
-                      <button key={key} disabled={isUpd || active}
-                        onClick={() => handleStatus(employeeId, key)}
-                        style={{
-                          flex: 1, padding: '5px 2px', borderRadius: '7px', border: 'none',
-                          cursor: active ? 'default' : 'pointer',
-                          fontSize: '9px', fontWeight: 700,
-                          background: active ? cfg.bg : '#F8FAFC',
-                          color: active ? cfg.color : '#94A3B8',
-                          opacity: isUpd && !active ? 0.4 : 1,
-                        }}>
-                        {isUpd && !active ? '·' : label}
-                      </button>
-                    );
-                  })}
-                </div>
+                <span style={{ marginLeft: 'auto', fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', background: oc.status === 'resolvido' ? '#DCFCE7' : '#FEF3C7', color: oc.status === 'resolvido' ? '#059669' : '#D97706' }}>
+                  {oc.status === 'resolvido' ? 'Resolvido' : 'Aberto'}
+                </span>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Reportes dos ajudantes */}
-        <div className="card overflow-hidden">
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <MessageSquare size={14} style={{ color: '#94A3B8' }} />
-            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
-              Reportes da equipe hoje
-            </p>
-            {ocorrencias.length > 0 && (
-              <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', background: '#FEF3C7', color: '#D97706' }}>
-                {ocorrencias.length}
-              </span>
-            )}
-          </div>
-          {ocorrencias.length === 0 ? (
-            <div style={{ padding: '32px 16px', textAlign: 'center' }}>
-              <CheckCircle2 size={24} style={{ color: '#CBD5E1', margin: '0 auto 8px' }} />
-              <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhum reporte hoje</p>
+              <p style={{ fontSize: '13px', color: '#0F172A', lineHeight: 1.5, paddingLeft: '32px' }}>{oc.descricao}</p>
             </div>
-          ) : ocorrencias.map(oc => {
-            const ajNome = oc.funcionarios?.nome || '—';
-            const ajIni  = oc.funcionarios?.iniciais || '?';
-            const ajCor  = oc.funcionarios?.cor || '#94A3B8';
-            return (
-              <div key={oc.id} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  {oc.ajudante_id ? (
-                    <div style={{ width: '24px', height: '24px', borderRadius: '7px', background: ajCor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                      {ajIni}
-                    </div>
-                  ) : (
-                    <AlertCircle size={16} style={{ color: '#D97706', flexShrink: 0 }} />
-                  )}
-                  <p style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>
-                    {oc.ajudante_id ? ajNome : 'Líder'} · {oc.criado_em ? new Date(oc.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—'}
-                  </p>
-                  <span style={{ marginLeft: 'auto', fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', background: oc.status === 'resolvido' ? '#DCFCE7' : '#FEF3C7', color: oc.status === 'resolvido' ? '#059669' : '#D97706' }}>
-                    {oc.status === 'resolvido' ? 'Resolvido' : 'Aberto'}
-                  </span>
-                </div>
-                <p style={{ fontSize: '13px', color: '#0F172A', lineHeight: 1.5, paddingLeft: '32px' }}>{oc.descricao}</p>
-              </div>
-            );
-          })}
-        </div>
+          );
+        })}
       </div>
 
       {modalSubst && todayEscala && (
         <ModalSubstituto escala={todayEscala} onClose={() => setModalSubst(false)} onRefresh={onRefresh} />
       )}
+    </div>
+  );
+}
+
+// ── Tab: Histórico ────────────────────────────────────────────────────────
+function TabHistorico({ user, escalas, employees }) {
+  const [openId, setOpenId]       = useState(null);
+  const [relatorios, setRelatorios] = useState([]);
+
+  useEffect(() => {
+    fetchRelatoriosDiarios(user.id).then(setRelatorios);
+  }, [user.id]);
+
+  const passadas = escalas
+    .filter(e => e.date < TODAY)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  if (passadas.length === 0) {
+    return (
+      <div className="card" style={{ padding: '64px 24px', textAlign: 'center' }}>
+        <Clock size={32} style={{ color: '#CBD5E1', margin: '0 auto 12px' }} />
+        <p style={{ fontSize: '14px', color: '#94A3B8' }}>Nenhuma operação anterior registrada</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>
+        {passadas.length} operaç{passadas.length !== 1 ? 'ões' : 'ão'} anterior{passadas.length !== 1 ? 'es' : ''}
+      </p>
+
+      {passadas.map(escala => {
+        const isOpen      = openId === escala.id;
+        const presentes   = escala.employees.filter(e => ['confirmado','finalizado'].includes(e.status)).length;
+        const ausentes    = escala.employees.filter(e => e.status === 'falta').length;
+        const total       = escala.employees.length;
+        const sla         = total > 0 ? Math.round((presentes / total) * 100) : null;
+        const relatorio   = relatorios.find(r => r.data === escala.date);
+        const [y, m, d]   = escala.date.split('-');
+        const dow         = DOW[new Date(`${escala.date}T12:00:00`).getDay()];
+
+        return (
+          <div key={escala.id} className="card overflow-hidden">
+            {/* Header */}
+            <button onClick={() => setOpenId(isOpen ? null : escala.id)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+              <div style={{ textAlign: 'center', width: '40px', flexShrink: 0 }}>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>{dow}</p>
+                <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{d}/{m}</p>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{escala.companyName || '—'}</p>
+                <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                  {escala.time || '—'} · {escala.service || '—'} · {total} ajudante{total !== 1 ? 's' : ''}
+                </p>
+              </div>
+              {/* SLA badge */}
+              {sla !== null && (
+                <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                  <p style={{ fontSize: '17px', fontWeight: 800, color: sla === 100 ? '#059669' : sla >= 75 ? '#D97706' : '#E11D48', lineHeight: 1 }}>{sla}%</p>
+                  <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 600 }}>presença</p>
+                </div>
+              )}
+              {/* Relatório badge */}
+              {relatorio && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '6px', background: '#DCFCE7', flexShrink: 0 }}>
+                  <ClipboardCheck size={11} style={{ color: '#059669' }} />
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#059669' }}>Relatório</span>
+                </div>
+              )}
+              <ChevronRight size={14} style={{ color: '#CBD5E1', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
+            </button>
+
+            {/* Detalhe expandido */}
+            {isOpen && (
+              <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFBFC' }}>
+                {/* Equipe */}
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Equipe</p>
+                  {escala.employees.map(({ employeeId, status, entrada, saida }) => {
+                    const emp = employees.find(e => e.id === employeeId);
+                    return (
+                      <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                          {emp?.initials}
+                        </div>
+                        <p style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
+                        {entrada && <p style={{ fontSize: '11px', color: '#64748B' }}>{entrada}{saida ? ` → ${saida}` : ''}</p>}
+                        <StatusBadge status={status} />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Relatório do líder */}
+                {relatorio ? (
+                  <div style={{ padding: '12px 16px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Relatório do dia</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px', marginBottom: '10px' }}>
+                      {[
+                        { label: 'Presentes',   value: relatorio.presentes,       color: '#059669' },
+                        { label: 'Ausentes',    value: relatorio.ausentes,        color: relatorio.ausentes > 0 ? '#E11D48' : '#CBD5E1' },
+                        { label: 'Ocorrências', value: relatorio.ocorrencias_count, color: relatorio.ocorrencias_count > 0 ? '#D97706' : '#CBD5E1' },
+                      ].map((k, i) => (
+                        <div key={i} style={{ padding: '8px', borderRadius: '8px', background: 'white', textAlign: 'center', border: '1px solid rgba(0,0,0,0.07)' }}>
+                          <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 600, marginBottom: '4px' }}>{k.label}</p>
+                          <p style={{ fontSize: '18px', fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {relatorio.observacoes && (
+                      <p style={{ fontSize: '12px', color: '#334155', lineHeight: 1.6, background: 'white', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.07)' }}>
+                        {relatorio.observacoes}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ padding: '12px 16px', textAlign: 'center' }}>
+                    <p style={{ fontSize: '12px', color: '#94A3B8' }}>Relatório não finalizado</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -892,6 +994,7 @@ export default function LiderDashboard() {
   const TITLES = {
     hoje:        { sub: 'Operação do dia', title: `Olá, ${user?.name?.split(' ')[0] || ''}` },
     escala:      { sub: 'Escala',          title: 'Gestão de Escalas' },
+    historico:   { sub: 'Histórico',       title: 'Operações Anteriores' },
     ocorrencias: { sub: 'Ocorrências',     title: 'Incidentes e Reportes' },
     relatorio:   { sub: 'Encerramento',    title: 'Relatório Diário' },
   };
@@ -913,6 +1016,7 @@ export default function LiderDashboard() {
 
       {tab === 'hoje'        && <TabHoje        user={user} escalas={escalas} employees={employees} onRefresh={load} />}
       {tab === 'escala'      && <TabEscala      user={user} escalas={escalas} employees={employees} onRefresh={load} />}
+      {tab === 'historico'   && <TabHistorico   user={user} escalas={escalas} employees={employees} />}
       {tab === 'ocorrencias' && <TabOcorrencias user={user} escalas={escalas} employees={employees} />}
       {tab === 'relatorio'   && <TabRelatorio   user={user} escalas={escalas} employees={employees} />}
     </div>
