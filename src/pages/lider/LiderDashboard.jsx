@@ -1340,12 +1340,13 @@ function TabAjudantes() {
                 {aj.initials}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{aj.name}</p>
-                <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>{aj.cargo}</p>
-              </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>{aj.cidade || '—'}</p>
-                <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px' }}>{tempoEmpresa(aj.dataContratacao)}</p>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
+                  {aj.name}
+                  {aj.cidade && <span style={{ fontSize: '13px', fontWeight: 400, color: '#94A3B8' }}> ({aj.cidade})</span>}
+                </p>
+                <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                  {aj.cargo}{aj.dataContratacao ? ` · ${tempoEmpresa(aj.dataContratacao)}` : ''}
+                </p>
               </div>
             </div>
           ))}
