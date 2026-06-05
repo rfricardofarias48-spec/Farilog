@@ -677,6 +677,80 @@ export async function concluirTarefaRH(id) {
   if (error) { console.error('[db] concluirTarefaRH:', error.message); }
 }
 
+// ── Candidatos (Recrutamento) ─────────────────────────────────────────────
+
+export async function fetchCandidatos() {
+  const { data, error } = await supabase.from('candidatos').select('*').order('criado_em', { ascending: false });
+  if (error) { console.error('[db] fetchCandidatos:', error.message); return []; }
+  return data || [];
+}
+
+export async function createCandidato(c) {
+  const { error } = await supabase.from('candidatos').insert({ nome: c.nome, telefone: c.telefone || '', cidade: c.cidade || '', funcao: c.funcao || '', observacoes: c.observacoes || '' });
+  if (error) { console.error('[db] createCandidato:', error.message); return false; }
+  return true;
+}
+
+export async function updateCandidatoStatus(id, status, obs) {
+  const patch = { status };
+  if (obs !== undefined) patch.observacoes = obs;
+  const { error } = await supabase.from('candidatos').update(patch).eq('id', id);
+  if (error) { console.error('[db] updateCandidatoStatus:', error.message); }
+}
+
+// ── Banco melhorado ───────────────────────────────────────────────────────
+
+export async function fetchEmployeesRH() {
+  const { data, error } = await supabase
+    .from('funcionarios')
+    .select('id, nome, iniciais, cor, status, cargo, cidade, data_contratacao, diaria, hora_extra, vr, vt, uniforme_entregue, cracha_entregue, motivo_afastamento')
+    .order('nome');
+  if (error) { console.error('[db] fetchEmployeesRH:', error.message); return []; }
+  return (data || []).map(r => ({
+    id: r.id, name: r.nome, initials: r.iniciais, color: r.cor, status: r.status,
+    cargo: r.cargo, cidade: r.cidade || '', dataContratacao: r.data_contratacao,
+    dailyRate: Number(r.diaria), overtimeRate: Number(r.hora_extra),
+    vr: Number(r.vr || 0), vt: Number(r.vt || 0),
+    uniformeEntregue: r.uniforme_entregue, crachaEntregue: r.cracha_entregue,
+    motivoAfastamento: r.motivo_afastamento || '',
+  }));
+}
+
+export async function toggleEmployeeStatus(id, status, motivo) {
+  const patch = { status };
+  if (motivo !== undefined) patch.motivo_afastamento = motivo;
+  const { error } = await supabase.from('funcionarios').update(patch).eq('id', id);
+  if (error) { console.error('[db] toggleEmployeeStatus:', error.message); }
+}
+
+export async function updateEmployeeChecklist(id, field, value) {
+  const { error } = await supabase.from('funcionarios').update({ [field]: value }).eq('id', id);
+  if (error) { console.error('[db] updateEmployeeChecklist:', error.message); }
+}
+
+// ── Folha ─────────────────────────────────────────────────────────────────
+
+export async function fetchFechamentosfolha() {
+  const { data, error } = await supabase.from('fechamentos_folha').select('*').order('criado_em', { ascending: false });
+  if (error) { console.error('[db] fetchFechamentosfolha:', error.message); return []; }
+  return data || [];
+}
+
+export async function createFechamentoFolha(f) {
+  const { error } = await supabase.from('fechamentos_folha').insert({
+    periodo: f.periodo, total_diarias: f.totalDiarias, total_he: f.totalHe, valor_total: f.valorTotal,
+  });
+  if (error) { console.error('[db] createFechamentoFolha:', error.message); return false; }
+  return true;
+}
+
+export async function aprovarFechamento(id) {
+  const { error } = await supabase.from('fechamentos_folha')
+    .update({ ok_rh: true, status: 'aprovado', fechado_em: new Date().toISOString() })
+    .eq('id', id);
+  if (error) { console.error('[db] aprovarFechamento:', error.message); }
+}
+
 // ── Tarefas do Admin → Líder / RH ────────────────────────────────────────
 
 export async function createTarefaAdmin({ titulo, descricao, prioridade, destinatarioTipo, destinatarioId }) {

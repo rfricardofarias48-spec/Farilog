@@ -1,13 +1,15 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Users, ClipboardList, UserPlus, DollarSign, Bell } from 'lucide-react';
+import { LogOut, Users, ClipboardList, UserPlus, DollarSign, Bell, UserSearch, Banknote } from 'lucide-react';
 
 const NAV = [
   { path: '/rh',               label: 'Tarefas',       icon: ClipboardList, exact: true },
   { path: '/rh/solicitacoes',  label: 'Solicitações',  icon: Bell },
+  { path: '/rh/recrutamento',  label: 'Recrutamento',  icon: UserSearch },
   { path: '/rh/banco',         label: 'Banco',         icon: Users },
   { path: '/rh/admissao',      label: 'Admissão',      icon: UserPlus },
   { path: '/rh/beneficios',    label: 'Benefícios',    icon: DollarSign },
+  { path: '/rh/folha',         label: 'Folha',         icon: Banknote },
 ];
 
 export default function RHLayout() {
@@ -71,7 +73,7 @@ export default function RHLayout() {
 
       {/* Bottom nav mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40"
-        style={{ background: 'white', borderTop: '1px solid rgba(0,0,0,0.08)', display: 'grid', gridTemplateColumns: 'repeat(5,1fr)' }}>
+        style={{ background: 'white', borderTop: '1px solid rgba(0,0,0,0.08)', display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
         {NAV.map(({ path, label, icon: Icon, exact }) => (
           <NavLink key={path} to={path} end={exact}
             style={({ isActive }) => ({
