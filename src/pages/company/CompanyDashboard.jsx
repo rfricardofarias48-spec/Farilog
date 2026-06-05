@@ -2212,7 +2212,7 @@ function RelatorioTab({ companyId }) {
         105, 290, { align: 'center' }
       );
     }
-    doc.save(`relatorio-${label.replace(/[\/\s—]+/g, '-')}.pdf`);
+    doc.save(`Relatorio ${label}.pdf`);
   };
 
   const navBtn = (icon, fn) => (
