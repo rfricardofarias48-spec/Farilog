@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   fetchEscalasByLider, fetchAjudantesDisponiveis,
   upsertRelatorioDiario, fetchOcorrencias, createOcorrencia,
-  createEscalaByLider, addRegistroToEscala,
+  createEscalaByLider, addRegistroToEscala, updateEscalaByLider,
   createTarefaRH, fetchEmpresasDoLider, fetchRelatoriosDiarios,
   uploadFotoRelatorio, fetchTodosAjudantes,
 } from '../../lib/db';
@@ -840,11 +840,189 @@ function EscalaDetalhe({ escala, employees, flat = false }) {
   );
 }
 
+// ── Modal Editar Escala ───────────────────────────────────────────────────
+function ModalEditarEscala({ escala, employees, onClose, onSaved }) {
+  const [time, setTime]               = useState(escala.time || '07:00');
+  const [service, setService]         = useState(escala.service || '');
+  const [responsavelDia, setResp]     = useState(escala.responsavelDia || '');
+  const [contatoDia, setContato]      = useState(escala.contatoDia || '');
+  const [disponiveis, setDisp]        = useState([]);
+  const [novosSel, setNovosSel]       = useState([]); // [{ id, name, initials, color, observacoes }]
+  const [search, setSearch]           = useState('');
+  const [saving, setSaving]           = useState(false);
+
+  const existingIds = (escala.employees || []).map(e => e.employeeId);
+
+  useEffect(() => {
+    fetchAjudantesDisponiveis(escala.date).then(list =>
+      setDisp(list.filter(e => !existingIds.includes(e.id)))
+    );
+  }, []);
+
+  const toggleNovo = (emp) =>
+    setNovosSel(s =>
+      s.find(x => x.id === emp.id)
+        ? s.filter(x => x.id !== emp.id)
+        : [...s, { id: emp.id, name: emp.name, initials: emp.initials, color: emp.color, observacoes: '' }]
+    );
+
+  const setObs = (id, obs) =>
+    setNovosSel(s => s.map(x => x.id === id ? { ...x, observacoes: obs } : x));
+
+  const handleSave = async () => {
+    setSaving(true);
+    await updateEscalaByLider({
+      escalaId: escala.id,
+      companyId: escala.companyId,
+      date: escala.date,
+      time, service, responsavelDia, contatoDia,
+      newEmployees: novosSel,
+    });
+    setSaving(false);
+    onSaved();
+    onClose();
+  };
+
+  const filtrados = disponiveis.filter(e =>
+    e.name?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '40px' }}>
+      <div style={{ width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', margin: '0 16px' }}>
+        <div className="card p-5 space-y-4 animate-fade-up">
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Editar Escala</p>
+              <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px' }}>
+                {escala.companyName} — {fmtDate(escala.date)}
+              </p>
+            </div>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}>
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Responsável + Contato */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Responsável do dia</label>
+              <input className="input-field" placeholder="Nome do responsável..."
+                value={responsavelDia} onChange={e => setResp(e.target.value)} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Contato</label>
+              <input className="input-field" placeholder="Telefone ou e-mail..."
+                value={contatoDia} onChange={e => setContato(e.target.value)} />
+            </div>
+          </div>
+
+          {/* Horário + Serviço */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Início</label>
+              <input type="time" className="input-field" value={time} onChange={e => setTime(e.target.value)} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Serviço</label>
+              <input className="input-field" placeholder="Ex: Separação, Entrega, Carga..."
+                value={service} onChange={e => setService(e.target.value)} />
+            </div>
+          </div>
+
+          {/* Ajudantes atuais (read-only) */}
+          <div>
+            <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '8px' }}>
+              Equipe atual ({existingIds.length} ajudante{existingIds.length !== 1 ? 's' : ''})
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {(escala.employees || []).map(({ employeeId }) => {
+                const emp = employees.find(e => e.id === employeeId);
+                return (
+                  <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 10px', borderRadius: '8px', background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.07)' }}>
+                    <div style={{ width: '20px', height: '20px', borderRadius: '5px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 700, color: 'white' }}>
+                      {emp?.initials}
+                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Adicionar mais ajudantes */}
+          {disponiveis.length > 0 && (
+            <div>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '8px' }}>
+                Adicionar ajudantes disponíveis
+                {novosSel.length > 0 && <span style={{ color: '#FF4D0C', marginLeft: '6px' }}>+{novosSel.length}</span>}
+              </p>
+              <div style={{ position: 'relative', marginBottom: '8px' }}>
+                <Search size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <input className="input-field" style={{ paddingLeft: '30px' }} placeholder="Buscar pelo nome..."
+                  value={search} onChange={e => setSearch(e.target.value)} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px,1fr))', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                {filtrados.map(emp => {
+                  const sel = !!novosSel.find(x => x.id === emp.id);
+                  return (
+                    <button key={emp.id} type="button" onClick={() => toggleNovo(emp)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 10px', borderRadius: '9px', border: `2px solid ${sel ? '#FF4D0C' : 'rgba(0,0,0,0.08)'}`, background: sel ? '#FFF5F2' : 'white', cursor: 'pointer', textAlign: 'left' }}>
+                      <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                        {emp.initials}
+                      </div>
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: sel ? '#FF4D0C' : '#0F172A', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.name}</p>
+                      {sel && <CheckCircle2 size={12} style={{ color: '#FF4D0C', flexShrink: 0 }} />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Observações dos novos */}
+              {novosSel.length > 0 && (
+                <div style={{ marginTop: '10px' }} className="space-y-2">
+                  {novosSel.map(emp => (
+                    <div key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                        {emp.initials}
+                      </div>
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A', minWidth: '90px' }}>{emp.name}</p>
+                      <input className="input-field" style={{ flex: 1, padding: '5px 8px', fontSize: '12px' }}
+                        placeholder="Observação (opcional)"
+                        value={emp.observacoes}
+                        onChange={e => setObs(emp.id, e.target.value)} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Botões */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={onClose}
+              style={{ flex: 1, padding: '11px', borderRadius: '10px', background: '#F1F5F9', color: '#64748B', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+              Cancelar
+            </button>
+            <button onClick={handleSave} disabled={saving}
+              style={{ flex: 2, padding: '11px', borderRadius: '10px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              {saving ? 'Salvando...' : <><CheckCircle2 size={14} /> Salvar alterações</>}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TabEscala({ user, escalas, employees, onRefresh }) {
   const [sub, setSub]               = useState('hoje');
   const [showForm, setShowForm]     = useState(false);
   const [openId, setOpenId]         = useState(null);
-  const [detalheEscala, setDetalhe] = useState(null); // escala aberta em detalhe (Agendadas)
+  const [detalheEscala, setDetalhe] = useState(null);
+  const [editandoEscala, setEditar] = useState(null);
   const [qOffset, setQOffset]       = useState(-1);
 
   const today    = escalas.find(e => e.date === TODAY);
@@ -935,10 +1113,16 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
       {sub === 'agendadas' && detalheEscala && (
         <div className="space-y-4 animate-fade-up">
           {/* Header do detalhe */}
-          <button onClick={() => setDetalhe(null)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#64748B', padding: 0 }}>
-            <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} /> Voltar às agendadas
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <button onClick={() => setDetalhe(null)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#64748B', padding: 0 }}>
+              <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} /> Voltar às agendadas
+            </button>
+            <button onClick={() => setEditar(detalheEscala)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '9px', background: '#F1F5F9', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>
+              <RefreshCw size={13} /> Editar escala
+            </button>
+          </div>
 
           {/* Info da escala */}
           <div className="card p-5 space-y-3">
@@ -1071,6 +1255,20 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
             </div>
           )}
         </div>
+      )}
+
+      {/* Modal de edição */}
+      {editandoEscala && (
+        <ModalEditarEscala
+          escala={editandoEscala}
+          employees={employees}
+          onClose={() => setEditar(null)}
+          onSaved={() => {
+            setEditar(null);
+            setDetalhe(null);
+            onRefresh();
+          }}
+        />
       )}
     </div>
   );

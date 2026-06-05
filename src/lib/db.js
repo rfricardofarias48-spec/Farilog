@@ -735,6 +735,25 @@ export async function createEscalaByLider({ liderId, companyId, date, time, serv
   return mapDemand({ ...escala, registros: [] });
 }
 
+export async function updateEscalaByLider({ escalaId, time, service, responsavelDia, contatoDia, newEmployees, companyId, date }) {
+  const { error: upErr } = await supabase
+    .from('escalas')
+    .update({ horario: time || null, servico: service || null, responsavel_dia: responsavelDia || null, contato_dia: contatoDia || null })
+    .eq('id', escalaId);
+  if (upErr) { console.error('[db] updateEscalaByLider:', upErr.message); return false; }
+
+  if (newEmployees && newEmployees.length > 0) {
+    const registros = newEmployees.map(({ id: empId, observacoes }) => ({
+      id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: empId, empresa_id: companyId,
+      data: date, servico: service || null, status: 'scheduled', confirmacao: 'aguardando', valor: 150,
+      observacoes: observacoes || null,
+    }));
+    const { error: rErr } = await supabase.from('registros').insert(registros);
+    if (rErr) { console.error('[db] updateEscalaByLider registros:', rErr.message); return false; }
+  }
+  return true;
+}
+
 export async function addRegistroToEscala(escalaId, employeeId, companyId, date, service) {
   const { error } = await supabase.from('registros').insert({
     id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: employeeId, empresa_id: companyId,
