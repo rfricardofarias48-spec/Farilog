@@ -30,24 +30,37 @@ const WaSVG = ({ size = 13 }) => (
 
 // ── Faixa do Líder — colada à escala, sem card separado ───────────────────
 function LiderBadge({ lider }) {
-  if (!lider) return null;
-  const waLink = whatsappLink(lider.telefone);
+  const waLink = lider ? whatsappLink(lider.telefone) : null;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-      <div style={{ width: '24px', height: '24px', borderRadius: '7px', background: lider.cor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
-        {lider.iniciais}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>{lider.nome}</span>
-        <span style={{ fontSize: '11px', color: '#94A3B8', marginLeft: '6px' }}>Líder de Equipe</span>
-      </div>
-      {waLink ? (
-        <a href={waLink} target="_blank" rel="noopener noreferrer"
-          style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '8px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
-          <WaSVG size={12} /> WhatsApp
-        </a>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)', marginBottom: '12px' }}>
+      {lider ? (
+        <>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: lider.cor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+            {lider.iniciais}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+            <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lider.nome}</p>
+          </div>
+          {waLink ? (
+            <a href={waLink} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
+              <WaSVG size={13} /> WhatsApp
+            </a>
+          ) : (
+            <span style={{ fontSize: '10px', color: '#CBD5E1', flexShrink: 0 }}>sem telefone</span>
+          )}
+        </>
       ) : (
-        <span style={{ fontSize: '10px', color: '#CBD5E1' }}>sem telefone</span>
+        <>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: '18px', color: '#94A3B8' }}>👤</span>
+          </div>
+          <div>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#D97706' }}>Não atribuído</p>
+          </div>
+        </>
       )}
     </div>
   );
