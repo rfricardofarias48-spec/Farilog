@@ -69,12 +69,14 @@ function mapCompany(r) {
 
 function mapDemand(escala) {
   return {
-    id:          escala.id,
-    companyId:   escala.empresa_id,
-    companyName: escala.empresas?.nome || escala.companyName || null,
-    date:        escala.data,
-    time:        fmtHHMM(escala.horario),
-    service:     escala.servico,
+    id:              escala.id,
+    companyId:       escala.empresa_id,
+    companyName:     escala.empresas?.nome || escala.companyName || null,
+    date:            escala.data,
+    time:            fmtHHMM(escala.horario),
+    service:         escala.servico,
+    responsavelDia:  escala.responsavel_dia || '',
+    contatoDia:      escala.contato_dia     || '',
     employees: (escala.registros || []).map(wr => ({
       employeeId:    wr.funcionario_id,
       status:        wr.confirmacao || 'aguardando',
@@ -711,11 +713,11 @@ export async function assignLiderToEscala(escalaId, liderId) {
   if (error) { console.error('[db] assignLiderToEscala:', error.message); }
 }
 
-export async function createEscalaByLider({ liderId, companyId, date, time, service, employees }) {
+export async function createEscalaByLider({ liderId, companyId, date, time, service, employees, responsavelDia, contatoDia }) {
   const escalaId = crypto.randomUUID();
   const { data: escala, error: escErr } = await supabase
     .from('escalas')
-    .insert({ id: escalaId, empresa_id: companyId, data: date, horario: time || null, servico: service || null, status: 'scheduled', lider_id: liderId })
+    .insert({ id: escalaId, empresa_id: companyId, data: date, horario: time || null, servico: service || null, status: 'scheduled', lider_id: liderId, responsavel_dia: responsavelDia || null, contato_dia: contatoDia || null })
     .select()
     .single();
   if (escErr) { console.error('[db] createEscalaByLider:', escErr.message); return null; }

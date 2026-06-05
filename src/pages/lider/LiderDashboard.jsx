@@ -575,21 +575,25 @@ function getQuinzenaOffset(offset) {
 
 // ── Tab: Escala (com sub-abas Hoje / Agendadas / Histórico) ───────────────
 function NovaEscalaForm({ user, onSaved, onCancel }) {
-  const [form, setForm]         = useState({ date: TODAY, time: '07:00', service: '', companyId: '' });
-  const [empresas, setEmpresas] = useState([]);
-  const [disponiveis, setDisp]  = useState([]);
-  // selected: [{ id, name, initials, color, observacoes }]
-  const [selected, setSelected] = useState([]);
-  const [search, setSearch]     = useState('');
-  const [loadingDisp, setLD]    = useState(false);
-  const [saving, setSaving]     = useState(false);
-  // etapa: 'selecionar' | 'observacoes'
-  const [etapa, setEtapa]       = useState('selecionar');
+  const [form, setForm]             = useState({ date: TODAY, time: '07:00', service: '', companyId: '' });
+  const [responsavelDia, setResp]   = useState('');
+  const [contatoDia, setContato]    = useState('');
+  const [empresas, setEmpresas]     = useState([]);
+  const [disponiveis, setDisp]      = useState([]);
+  const [selected, setSelected]     = useState([]);
+  const [search, setSearch]         = useState('');
+  const [loadingDisp, setLD]        = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [etapa, setEtapa]           = useState('selecionar');
 
   useEffect(() => {
     fetchEmpresasDoLider(user.id).then(list => {
       setEmpresas(list);
-      if (list.length === 1) setForm(f => ({ ...f, companyId: list[0].id }));
+      if (list.length === 1) {
+        setForm(f => ({ ...f, companyId: list[0].id }));
+        setResp(list[0].responsavel || '');
+        setContato(list[0].telefone || '');
+      }
     });
   }, [user.id]);
 
@@ -617,6 +621,7 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
     await createEscalaByLider({
       liderId: user.id, companyId: form.companyId, date: form.date,
       time: form.time, service: form.service, employees: selected,
+      responsavelDia, contatoDia,
     });
     setSaving(false);
     onSaved();
@@ -642,7 +647,11 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
             {empresas.map(emp => {
               const sel = form.companyId === emp.id;
               return (
-                <button key={emp.id} type="button" onClick={() => setForm(f => ({ ...f, companyId: emp.id }))}
+                <button key={emp.id} type="button" onClick={() => {
+                  setForm(f => ({ ...f, companyId: emp.id }));
+                  setResp(emp.responsavel || '');
+                  setContato(emp.telefone || '');
+                }}
                   style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '8px 14px', borderRadius: '10px', border: `2px solid ${sel ? '#FF4D0C' : 'rgba(0,0,0,0.1)'}`, background: sel ? '#FFF5F2' : 'white', cursor: 'pointer' }}>
                   <Building2 size={13} style={{ color: sel ? '#FF4D0C' : '#94A3B8' }} />
                   <span style={{ fontSize: '13px', fontWeight: 700, color: sel ? '#FF4D0C' : '#0F172A' }}>{emp.name}</span>
@@ -651,11 +660,24 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
             })}
           </div>
         )}
-        {empresaSel?.responsavel && (
-          <p style={{ fontSize: '11px', color: '#64748B', marginTop: '6px' }}>
-            Responsável: {empresaSel.responsavel}{empresaSel.telefone ? ` · ${empresaSel.telefone}` : ''}
-          </p>
-        )}
+      </div>
+
+      {/* Responsável do dia + Contato */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>
+            Responsável do dia (cliente)
+          </label>
+          <input className="input-field" placeholder="Nome do responsável..."
+            value={responsavelDia} onChange={e => setResp(e.target.value)} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>
+            Contato
+          </label>
+          <input className="input-field" placeholder="Telefone ou e-mail..."
+            value={contatoDia} onChange={e => setContato(e.target.value)} />
+        </div>
       </div>
 
       {/* Data / Horário / Serviço */}
@@ -919,11 +941,30 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
           </button>
 
           {/* Info da escala */}
-          <div className="card p-5">
-            <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>{detalheEscala.companyName || '—'}</p>
-            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '4px' }}>
-              {fmtDate(detalheEscala.date)}{detalheEscala.time ? ` · Início ${detalheEscala.time}` : ''}{detalheEscala.service ? ` · ${detalheEscala.service}` : ''}
-            </p>
+          <div className="card p-5 space-y-3">
+            <div>
+              <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>{detalheEscala.companyName || '—'}</p>
+              <p style={{ fontSize: '13px', color: '#64748B', marginTop: '4px' }}>
+                {fmtDate(detalheEscala.date)}{detalheEscala.time ? ` · Início ${detalheEscala.time}` : ''}{detalheEscala.service ? ` · ${detalheEscala.service}` : ''}
+              </p>
+            </div>
+            {(detalheEscala.responsavelDia || detalheEscala.contatoDia) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Responsável do dia</p>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{detalheEscala.responsavelDia || '—'}</p>
+                </div>
+                {detalheEscala.contatoDia && (
+                  <>
+                    <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)' }} />
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Contato</p>
+                      <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{detalheEscala.contatoDia}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Lista de ajudantes com status + observações */}
