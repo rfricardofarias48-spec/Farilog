@@ -78,10 +78,11 @@ function mapDemand(escala) {
     employees: (escala.registros || []).map(wr => ({
       employeeId:    wr.funcionario_id,
       status:        wr.confirmacao || 'aguardando',
-      entrada:       wr.entrada       || null,
-      saidaAlmoco:   wr.saida_almoco  || null,
-      retornoAlmoco: wr.retorno_almoco|| null,
-      saida:         wr.saida         || null,
+      entrada:       wr.entrada        || null,
+      saidaAlmoco:   wr.saida_almoco   || null,
+      retornoAlmoco: wr.retorno_almoco || null,
+      saida:         wr.saida          || null,
+      observacoes:   wr.observacoes    || '',
     })),
     createdAt: escala.criado_em,
   };
@@ -710,7 +711,7 @@ export async function assignLiderToEscala(escalaId, liderId) {
   if (error) { console.error('[db] assignLiderToEscala:', error.message); }
 }
 
-export async function createEscalaByLider({ liderId, companyId, date, time, service, employeeIds }) {
+export async function createEscalaByLider({ liderId, companyId, date, time, service, employees }) {
   const escalaId = crypto.randomUUID();
   const { data: escala, error: escErr } = await supabase
     .from('escalas')
@@ -719,10 +720,11 @@ export async function createEscalaByLider({ liderId, companyId, date, time, serv
     .single();
   if (escErr) { console.error('[db] createEscalaByLider:', escErr.message); return null; }
 
-  if (employeeIds.length > 0) {
-    const registros = employeeIds.map(empId => ({
+  if (employees.length > 0) {
+    const registros = employees.map(({ id: empId, observacoes }) => ({
       id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: empId, empresa_id: companyId,
       data: date, servico: service || null, status: 'scheduled', confirmacao: 'aguardando', valor: 150,
+      observacoes: observacoes || null,
     }));
     const { error: rErr } = await supabase.from('registros').insert(registros);
     if (rErr) { console.error('[db] createEscalaByLider registros:', rErr.message); return null; }

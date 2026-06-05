@@ -575,14 +575,17 @@ function getQuinzenaOffset(offset) {
 
 // ── Tab: Escala (com sub-abas Hoje / Agendadas / Histórico) ───────────────
 function NovaEscalaForm({ user, onSaved, onCancel }) {
-  const [form, setForm]             = useState({ date: TODAY, time: '07:00', service: '', companyId: '' });
-  const [empresas, setEmpresas]     = useState([]);
-  const [disponiveis, setDisp]      = useState([]);
-  const [selected, setSelected]     = useState([]);
-  const [loadingDisp, setLD]        = useState(false);
-  const [saving, setSaving]         = useState(false);
+  const [form, setForm]         = useState({ date: TODAY, time: '07:00', service: '', companyId: '' });
+  const [empresas, setEmpresas] = useState([]);
+  const [disponiveis, setDisp]  = useState([]);
+  // selected: [{ id, name, initials, color, observacoes }]
+  const [selected, setSelected] = useState([]);
+  const [search, setSearch]     = useState('');
+  const [loadingDisp, setLD]    = useState(false);
+  const [saving, setSaving]     = useState(false);
+  // etapa: 'selecionar' | 'observacoes'
+  const [etapa, setEtapa]       = useState('selecionar');
 
-  // Carrega empresas do líder ao montar
   useEffect(() => {
     fetchEmpresasDoLider(user.id).then(list => {
       setEmpresas(list);
@@ -590,28 +593,37 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
     });
   }, [user.id]);
 
-  const loadDisp = async (date) => {
+  useEffect(() => {
     setLD(true);
-    setDisp(await fetchAjudantesDisponiveis(date));
-    setLD(false);
+    fetchAjudantesDisponiveis(form.date).then(list => { setDisp(list); setLD(false); });
+  }, [form.date]);
+
+  const toggle = (emp) => {
+    setSelected(s =>
+      s.find(x => x.id === emp.id)
+        ? s.filter(x => x.id !== emp.id)
+        : [...s, { id: emp.id, name: emp.name, initials: emp.initials, color: emp.color, observacoes: '' }]
+    );
   };
 
-  useEffect(() => { loadDisp(form.date); }, [form.date]);
-
-  const toggle = (id) =>
-    setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+  const setObs = (id, obs) =>
+    setSelected(s => s.map(x => x.id === id ? { ...x, observacoes: obs } : x));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.companyId) return alert('Selecione a empresa para esta escala.');
     if (selected.length === 0) return alert('Selecione ao menos um ajudante.');
     setSaving(true);
-    await createEscalaByLider({ liderId: user.id, companyId: form.companyId, date: form.date, time: form.time, service: form.service, employeeIds: selected });
+    await createEscalaByLider({
+      liderId: user.id, companyId: form.companyId, date: form.date,
+      time: form.time, service: form.service, employees: selected,
+    });
     setSaving(false);
     onSaved();
   };
 
-  const empresaSel = empresas.find(e => e.id === form.companyId);
+  const empresaSel  = empresas.find(e => e.id === form.companyId);
+  const filtrados   = disponiveis.filter(e => e.name?.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <form onSubmit={handleSubmit} className="card p-5 space-y-4 animate-fade-up">
@@ -620,13 +632,11 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
         <button type="button" onClick={onCancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
       </div>
 
-      {/* Seletor de empresa */}
+      {/* Empresa */}
       <div>
-        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '8px' }}>
-          Para qual empresa? *
-        </label>
+        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '8px' }}>Para qual empresa? *</label>
         {empresas.length === 0 ? (
-          <p style={{ fontSize: '12px', color: '#94A3B8' }}>Nenhuma empresa vinculada ao seu perfil. Fale com o administrador.</p>
+          <p style={{ fontSize: '12px', color: '#94A3B8' }}>Nenhuma empresa vinculada. Fale com o administrador.</p>
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {empresas.map(emp => {
@@ -648,6 +658,7 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
         )}
       </div>
 
+      {/* Data / Horário / Serviço */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '12px' }}>
         <div>
           <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Data *</label>
@@ -666,49 +677,94 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
         </div>
       </div>
 
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>
-            Ajudantes disponíveis em {new Date(`${form.date}T12:00:00`).toLocaleDateString('pt-BR')}
-          </p>
-          {selected.length > 0 && (
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C' }}>
-              {selected.length} selecionado{selected.length !== 1 ? 's' : ''}
-            </span>
+      {/* ── Etapa 1: Selecionar ajudantes ── */}
+      {etapa === 'selecionar' && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>
+              Ajudantes disponíveis em {new Date(`${form.date}T12:00:00`).toLocaleDateString('pt-BR')}
+            </p>
+            {selected.length > 0 && (
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C' }}>
+                {selected.length} selecionado{selected.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+
+          {/* Busca por nome */}
+          <div style={{ position: 'relative', marginBottom: '10px' }}>
+            <Search size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+            <input className="input-field" style={{ paddingLeft: '30px' }} placeholder="Buscar ajudante pelo nome..."
+              value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+
+          {loadingDisp ? (
+            <p style={{ fontSize: '12px', color: '#94A3B8' }}>Carregando...</p>
+          ) : filtrados.length === 0 ? (
+            <p style={{ fontSize: '12px', color: '#94A3B8' }}>Nenhum ajudante encontrado</p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '8px', maxHeight: '260px', overflowY: 'auto' }}>
+              {filtrados.map(emp => {
+                const sel = !!selected.find(x => x.id === emp.id);
+                return (
+                  <button key={emp.id} type="button" onClick={() => toggle(emp)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '10px', border: `2px solid ${sel ? '#FF4D0C' : 'rgba(0,0,0,0.08)'}`, background: sel ? '#FFF5F2' : 'white', cursor: 'pointer', textAlign: 'left' }}>
+                    <div style={{ width: '30px', height: '30px', borderRadius: '9px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                      {emp.initials}
+                    </div>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: sel ? '#FF4D0C' : '#0F172A', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.name}</p>
+                    {sel && <CheckCircle2 size={13} style={{ color: '#FF4D0C', flexShrink: 0 }} />}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
-        {loadingDisp ? (
-          <p style={{ fontSize: '12px', color: '#94A3B8' }}>Carregando...</p>
-        ) : disponiveis.length === 0 ? (
-          <p style={{ fontSize: '12px', color: '#94A3B8' }}>Nenhum ajudante disponível nessa data</p>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
-            {disponiveis.map(emp => {
-              const sel = selected.includes(emp.id);
-              return (
-                <button key={emp.id} type="button" onClick={() => toggle(emp.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '10px', border: `2px solid ${sel ? '#FF4D0C' : 'rgba(0,0,0,0.08)'}`, background: sel ? '#FFF5F2' : 'white', cursor: 'pointer', textAlign: 'left' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                    {emp.initials}
-                  </div>
-                  <p style={{ fontSize: '12px', fontWeight: 600, color: sel ? '#FF4D0C' : '#0F172A', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.name}</p>
-                  {sel && <CheckCircle2 size={13} style={{ color: '#FF4D0C', flexShrink: 0 }} />}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      )}
 
+      {/* ── Etapa 2: Observações por ajudante ── */}
+      {etapa === 'observacoes' && (
+        <div>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#64748B', marginBottom: '12px' }}>
+            Observações para cada ajudante <span style={{ fontWeight: 400, color: '#94A3B8' }}>(opcional)</span>
+          </p>
+          <div className="space-y-3">
+            {selected.map(emp => (
+              <div key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                  {emp.initials}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A', marginBottom: '6px' }}>{emp.name}</p>
+                  <input className="input-field" style={{ padding: '6px 10px', fontSize: '12px' }}
+                    placeholder="Ex: motorista, responsável pelo caminhão..."
+                    value={emp.observacoes}
+                    onChange={e => setObs(emp.id, e.target.value)} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Botões */}
       <div style={{ display: 'flex', gap: '10px' }}>
-        <button type="button" onClick={onCancel}
+        <button type="button" onClick={etapa === 'selecionar' ? onCancel : () => setEtapa('selecionar')}
           style={{ flex: 1, padding: '11px', borderRadius: '10px', background: '#F1F5F9', color: '#64748B', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-          Cancelar
+          {etapa === 'selecionar' ? 'Cancelar' : '← Voltar'}
         </button>
-        <button type="submit" disabled={saving}
-          style={{ flex: 2, padding: '11px', borderRadius: '10px', background: saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700 }}>
-          {saving ? 'Criando...' : `Criar escala (${selected.length} ajudante${selected.length !== 1 ? 's' : ''})`}
-        </button>
+        {etapa === 'selecionar' ? (
+          <button type="button" disabled={selected.length === 0}
+            onClick={() => setEtapa('observacoes')}
+            style={{ flex: 2, padding: '11px', borderRadius: '10px', border: 'none', cursor: selected.length === 0 ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: selected.length === 0 ? '#E2E8F0' : '#FF4D0C', color: selected.length === 0 ? '#94A3B8' : 'white' }}>
+            Próximo — {selected.length} ajudante{selected.length !== 1 ? 's' : ''} selecionado{selected.length !== 1 ? 's' : ''}
+          </button>
+        ) : (
+          <button type="submit" disabled={saving}
+            style={{ flex: 2, padding: '11px', borderRadius: '10px', background: saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700 }}>
+            {saving ? 'Criando...' : 'Criar escala e enviar confirmação'}
+          </button>
+        )}
       </div>
     </form>
   );
@@ -763,10 +819,11 @@ function EscalaDetalhe({ escala, employees, flat = false }) {
 }
 
 function TabEscala({ user, escalas, employees, onRefresh }) {
-  const [sub, setSub]           = useState('hoje');
-  const [showForm, setShowForm] = useState(false);
-  const [openId, setOpenId]     = useState(null);
-  const [qOffset, setQOffset]   = useState(-1); // histórico começa na quinzena anterior
+  const [sub, setSub]               = useState('hoje');
+  const [showForm, setShowForm]     = useState(false);
+  const [openId, setOpenId]         = useState(null);
+  const [detalheEscala, setDetalhe] = useState(null); // escala aberta em detalhe (Agendadas)
+  const [qOffset, setQOffset]       = useState(-1);
 
   const today    = escalas.find(e => e.date === TODAY);
   const upcoming = escalas.filter(e => e.date > TODAY).sort((a, b) => a.date.localeCompare(b.date));
@@ -815,7 +872,7 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
       )}
 
       {/* ── Sub-aba: Agendadas ── */}
-      {sub === 'agendadas' && (
+      {sub === 'agendadas' && !detalheEscala && (
         upcoming.length === 0
           ? <div className="card" style={{ padding: '48px 16px', textAlign: 'center' }}>
               <Calendar size={28} style={{ color: '#CBD5E1', margin: '0 auto 10px' }} />
@@ -823,44 +880,83 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
             </div>
           : <div className="space-y-3">
               {upcoming.map(escala => {
-                const total = escala.employees?.length || 0;
-                const isOpen = openId === escala.id;
-                const [, m, d] = escala.date.split('-');
+                const total     = escala.employees?.length || 0;
+                const confirmados = escala.employees?.filter(e => ['confirmado','aguardando'].includes(e.status) === false).length || 0;
+                const [, m, d]  = escala.date.split('-');
                 return (
-                  <div key={escala.id} className="card overflow-hidden">
-                    <button onClick={() => setOpenId(isOpen ? null : escala.id)}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
-                      <div style={{ textAlign: 'center', width: '38px', flexShrink: 0 }}>
-                        <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{d}</p>
-                        <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>{MONTHS_SHORT[Number(m)-1]}</p>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{escala.companyName || '—'}</p>
-                        <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
-                          {escala.time || '—'} · {total} ajudante{total !== 1 ? 's' : ''}{escala.service ? ` · ${escala.service}` : ''}
-                        </p>
-                      </div>
-                      <ChevronRight size={14} style={{ color: '#CBD5E1', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
-                    </button>
-                    {isOpen && (
-                      <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFBFC' }}>
-                        {(escala.employees || []).map(({ employeeId }) => {
-                          const emp = employees.find(e => e.id === employeeId);
-                          return (
-                            <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                                {emp?.initials}
-                              </div>
-                              <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  <button key={escala.id} onClick={() => setDetalhe(escala)}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', borderRadius: '14px', background: 'white', border: '1px solid rgba(0,0,0,0.08)', cursor: 'pointer', textAlign: 'left', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+                    <div style={{ textAlign: 'center', width: '42px', flexShrink: 0 }}>
+                      <p style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{d}</p>
+                      <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>{MONTHS_SHORT[Number(m)-1]}</p>
+                    </div>
+                    <div style={{ width: '1px', height: '32px', background: 'rgba(0,0,0,0.08)', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{escala.companyName || '—'}</p>
+                      <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px' }}>
+                        {escala.time || '—'} · {total} ajudante{total !== 1 ? 's' : ''}{escala.service ? ` · ${escala.service}` : ''}
+                      </p>
+                    </div>
+                    <ChevronRight size={16} style={{ color: '#CBD5E1', flexShrink: 0 }} />
+                  </button>
                 );
               })}
             </div>
+      )}
+
+      {/* ── Detalhe de escala agendada ── */}
+      {sub === 'agendadas' && detalheEscala && (
+        <div className="space-y-4 animate-fade-up">
+          {/* Header do detalhe */}
+          <button onClick={() => setDetalhe(null)}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#64748B', padding: 0 }}>
+            <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} /> Voltar às agendadas
+          </button>
+
+          {/* Info da escala */}
+          <div className="card p-5">
+            <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>{detalheEscala.companyName || '—'}</p>
+            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '4px' }}>
+              {fmtDate(detalheEscala.date)}{detalheEscala.time ? ` · Início ${detalheEscala.time}` : ''}{detalheEscala.service ? ` · ${detalheEscala.service}` : ''}
+            </p>
+          </div>
+
+          {/* Lista de ajudantes com status + observações */}
+          <div className="card overflow-hidden">
+            <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Equipe — {detalheEscala.employees?.length || 0} ajudante{(detalheEscala.employees?.length || 0) !== 1 ? 's' : ''}
+              </p>
+            </div>
+            {(detalheEscala.employees || []).map(({ employeeId, status, observacoes }) => {
+              const emp = employees.find(e => e.id === employeeId);
+              const CONF_CFG = {
+                confirmado: { label: 'Confirmado', color: '#059669', bg: '#DCFCE7' },
+                aguardando:  { label: 'Aguardando', color: '#D97706', bg: '#FEF3C7' },
+                recusado:    { label: 'Recusado',   color: '#E11D48', bg: '#FFE4E6' },
+              };
+              const cfg = CONF_CFG[status] || CONF_CFG.aguardando;
+              return (
+                <div key={employeeId} style={{ padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: observacoes ? '8px' : 0 }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                      {emp?.initials}
+                    </div>
+                    <p style={{ flex: 1, fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
+                    <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '8px', background: cfg.bg, color: cfg.color, flexShrink: 0 }}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                  {observacoes && (
+                    <p style={{ fontSize: '12px', color: '#64748B', marginLeft: '50px', fontStyle: 'italic' }}>
+                      "{observacoes}"
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* ── Sub-aba: Histórico por quinzena ── */}
