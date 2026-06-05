@@ -803,12 +803,6 @@ export async function concluirTarefaAdmin(id) {
   if (error) { console.error('[db] concluirTarefaAdmin:', error.message); }
 }
 
-export async function fetchLideres() {
-  const { data, error } = await supabase.from('lideres_equipe').select('id, nome').order('nome');
-  if (error) { console.error('[db] fetchLideres:', error.message); return []; }
-  return data || [];
-}
-
 // ── Solicitações de Ajudantes (Líder → RH) ───────────────────────────────
 
 export async function createSolicitacaoAjudantes({ liderId, cidade, funcao, quantidade, observacoes }) {
