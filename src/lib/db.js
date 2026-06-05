@@ -197,6 +197,7 @@ export async function createEmployee(emp) {
       diaria:   emp.dailyRate,
       hora_extra: emp.overtimeRate ?? 50,
       data_contratacao: emp.dataContratacao || null,
+      cidade: emp.cidade || null,
     })
     .select()
     .single();
@@ -216,6 +217,7 @@ export async function updateEmployee(id, emp) {
   if (emp.status       !== undefined) patch.status     = emp.status;
   if (emp.dailyRate    !== undefined) patch.diaria     = emp.dailyRate;
   if (emp.overtimeRate !== undefined) patch.hora_extra = emp.overtimeRate;
+  if (emp.cidade       !== undefined) patch.cidade     = emp.cidade;
 
   const { data, error } = await supabase
     .from('funcionarios')
