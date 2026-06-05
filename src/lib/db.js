@@ -90,18 +90,30 @@ function mapDemand(escala) {
 export async function loginLider(email, password) {
   const { data, error } = await supabase
     .from('lideres_equipe')
-    .select('*, empresas(nome, endereco, localizacao, responsavel, telefone)')
+    .select('*')
     .eq('email', email)
     .eq('senha', password)
     .maybeSingle();
   if (error) { console.error('[db] loginLider:', error.message); return null; }
   if (!data) return null;
+
+  // Busca o nome da empresa principal separadamente (evita falha por FK inválida)
+  let companyName = null;
+  if (data.empresa_id) {
+    const { data: emp } = await supabase
+      .from('empresas')
+      .select('nome')
+      .eq('id', data.empresa_id)
+      .maybeSingle();
+    companyName = emp?.nome || null;
+  }
+
   return {
     ...data,
-    name: data.nome,
-    initials: data.iniciais,
-    color: data.cor,
-    companyName: data.empresas?.nome || null,
+    name:        data.nome,
+    initials:    data.iniciais,
+    color:       data.cor,
+    companyName,
   };
 }
 

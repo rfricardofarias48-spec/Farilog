@@ -269,7 +269,6 @@ export default function AdminLideres() {
     let liderId;
 
     if (modal === 'new') {
-      // Cria líder
       const created = await createLider({
         name:      form.name,
         email:     form.email,
@@ -280,9 +279,14 @@ export default function AdminLideres() {
         status:    form.status,
         companyId: companyIds[0] || null,
       });
-      liderId = created?.id;
+
+      if (!created) {
+        alert('Erro ao criar líder. Verifique se o e-mail já está cadastrado e tente novamente.');
+        return; // Mantém o modal aberto
+      }
+
+      liderId = created.id;
     } else {
-      // Atualiza líder
       const patch = {
         name:     form.name,
         email:    form.email,
@@ -291,14 +295,16 @@ export default function AdminLideres() {
         color:    form.color,
         status:   form.status,
       };
-      // Só inclui senha se foi fornecida
       if (form.password) patch.password = form.password;
 
-      await updateLider(modal.id, patch);
+      const ok = await updateLider(modal.id, patch);
+      if (!ok) {
+        alert('Erro ao salvar alterações. Verifique os dados e tente novamente.');
+        return;
+      }
       liderId = modal.id;
     }
 
-    // Atualiza empresas vinculadas
     if (liderId && companyIds.length > 0) {
       await upsertLiderEmpresas(liderId, companyIds);
     }
