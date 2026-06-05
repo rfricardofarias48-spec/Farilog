@@ -263,14 +263,6 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
   return (
     <div className="space-y-5">
 
-      {/* Info: ponto vem do app dos ajudantes */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '12px', background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
-        <Clock size={14} style={{ color: '#3B82F6', flexShrink: 0 }} />
-        <p style={{ fontSize: '12px', color: '#1D4ED8', fontWeight: 500 }}>
-          A confirmação de presença é registrada automaticamente pelo <strong>app de ponto dos ajudantes</strong>. Esta tela é somente leitura.
-        </p>
-      </div>
-
       {/* Banner falta → acionar substituto */}
       {ausentes > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '14px', background: '#FEF2F2', border: '1px solid #FECACA' }}>
@@ -300,7 +292,7 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
           { label: 'Escalados',   value: total,       color: '#0F172A' },
           { label: 'Presentes',   value: confirmados, color: '#059669' },
           { label: 'Ausentes',    value: ausentes,    color: ausentes > 0 ? '#E11D48' : '#CBD5E1' },
-          { label: 'SLA',         value: sla !== null ? `${sla}%` : '—', color: sla === null ? '#CBD5E1' : sla >= 80 ? '#059669' : sla >= 60 ? '#D97706' : '#E11D48' },
+          { label: 'Presença',     value: sla !== null ? `${sla}%` : '—', color: sla === null ? '#CBD5E1' : sla >= 80 ? '#059669' : sla >= 60 ? '#D97706' : '#E11D48' },
         ].map((k, i) => (
           <div key={i} className="card" style={{ padding: '16px 12px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.08)' }}>
             <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{k.label}</p>

@@ -115,23 +115,6 @@ export default function LiderLayout() {
         </main>
       </div>
 
-      {/* Bottom nav mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40"
-        style={{ background: 'white', borderTop: '1px solid rgba(0,0,0,0.08)', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => setTab(id)}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
-              padding: '10px 4px', fontSize: '10px', fontWeight: 600, border: 'none',
-              background: 'none', cursor: 'pointer',
-              color: tab === id ? '#FF4D0C' : '#94A3B8',
-              borderTop: tab === id ? '2px solid #FF4D0C' : '2px solid transparent',
-            }}>
-            <Icon size={18} />
-            {label}
-          </button>
-        ))}
-      </nav>
     </div>
   );
 }
