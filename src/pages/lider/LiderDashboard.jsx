@@ -301,6 +301,12 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
         ))}
       </div>
 
+      {/* Botão finalizar dia — visível logo após KPIs */}
+      <button onClick={() => setModalFinalizar(true)}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', borderRadius: '14px', background: 'linear-gradient(135deg, #FF4D0C, #FF7A45)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: 800, boxShadow: '0 4px 14px rgba(255,77,12,0.35)', letterSpacing: '0.01em' }}>
+        <FileText size={18} /> Finalizar Dia e Enviar Relatório
+      </button>
+
       {/* Lista da equipe — read-only */}
       <div className="card overflow-hidden">
         <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -401,16 +407,6 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
           );
         })}
       </div>
-
-      {/* Botão finalizar dia */}
-      {todayEscala && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={() => setModalFinalizar(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '12px 20px', borderRadius: '12px', background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 700 }}>
-            <FileText size={15} /> Finalizar dia
-          </button>
-        </div>
-      )}
 
       {modalSubst && todayEscala && (
         <ModalSubstituto escala={todayEscala} onClose={() => setModalSubst(false)} onRefresh={onRefresh} />
