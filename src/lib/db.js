@@ -676,6 +676,39 @@ export async function concluirTarefaRH(id) {
   if (error) { console.error('[db] concluirTarefaRH:', error.message); }
 }
 
+// ── Solicitações de Ajudantes (Líder → RH) ───────────────────────────────
+
+export async function createSolicitacaoAjudantes({ liderId, cidade, funcao, quantidade, observacoes }) {
+  const { error } = await supabase.from('solicitacoes_ajudantes').insert({
+    lider_id: liderId, cidade, funcao, quantidade: Number(quantidade), observacoes: observacoes || '',
+  });
+  if (error) { console.error('[db] createSolicitacaoAjudantes:', error.message); return false; }
+  return true;
+}
+
+export async function fetchSolicitacoesAjudantes() {
+  const { data, error } = await supabase
+    .from('solicitacoes_ajudantes')
+    .select('*, lideres_equipe(nome)')
+    .order('criado_em', { ascending: false });
+  if (error) { console.error('[db] fetchSolicitacoesAjudantes:', error.message); return []; }
+  return (data || []).map(r => ({
+    id:          r.id,
+    liderNome:   r.lideres_equipe?.nome || '—',
+    cidade:      r.cidade,
+    funcao:      r.funcao,
+    quantidade:  r.quantidade,
+    observacoes: r.observacoes,
+    status:      r.status,
+    criadoEm:    r.criado_em,
+  }));
+}
+
+export async function updateStatusSolicitacao(id, status) {
+  const { error } = await supabase.from('solicitacoes_ajudantes').update({ status }).eq('id', id);
+  if (error) { console.error('[db] updateStatusSolicitacao:', error.message); }
+}
+
 // ── Checklist Diário ──────────────────────────────────────────────────────
 
 export async function fetchChecklist(funcionarioId, data) {

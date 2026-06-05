@@ -6,7 +6,7 @@ import {
   upsertRelatorioDiario, fetchOcorrencias, createOcorrencia,
   createEscalaByLider, addRegistroToEscala, updateEscalaByLider,
   createTarefaRH, fetchEmpresasDoLider, fetchRelatoriosDiarios,
-  uploadFotoRelatorio, fetchTodosAjudantes,
+  uploadFotoRelatorio, fetchTodosAjudantes, createSolicitacaoAjudantes,
 } from '../../lib/db';
 import {
   Users, Calendar, CheckCircle2, AlertCircle, AlertTriangle,
@@ -1283,21 +1283,99 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
 }
 
 // ── Tab: Ajudantes ────────────────────────────────────────────────────────
-function TabAjudantes() {
-  const [ajudantes, setAjudantes] = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState('');
+function ModalSolicitarAjudantes({ user, onClose }) {
+  const [form, setForm] = useState({ cidade: '', funcao: '', quantidade: 1, observacoes: '' });
+  const [saving, setSaving] = useState(false);
+  const [sent, setSent]     = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.cidade.trim() || !form.funcao.trim()) return;
+    setSaving(true);
+    await createSolicitacaoAjudantes({ liderId: user.id, ...form });
+    setSaving(false);
+    setSent(true);
+    setTimeout(onClose, 1800);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box animate-fade-up" style={{ maxWidth: '460px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>Solicitar Ajudantes ao RH</p>
+            <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px' }}>O RH receberá sua solicitação para recrutamento</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
+        </div>
+
+        {sent ? (
+          <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            <CheckCircle2 size={40} style={{ color: '#059669', margin: '0 auto 12px' }} />
+            <p style={{ fontSize: '15px', fontWeight: 700, color: '#059669' }}>Solicitação enviada!</p>
+            <p style={{ fontSize: '13px', color: '#94A3B8', marginTop: '4px' }}>O RH já pode ver seu pedido.</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Cidade *</label>
+                <input className="input-field" placeholder="Ex: Gravataí" required
+                  value={form.cidade} onChange={e => setForm(f => ({ ...f, cidade: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Função *</label>
+                <input className="input-field" placeholder="Ex: Ajudante, Conferente..." required
+                  value={form.funcao} onChange={e => setForm(f => ({ ...f, funcao: e.target.value }))} />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Quantidade necessária *</label>
+              <input type="number" min={1} max={50} className="input-field" required
+                value={form.quantidade} onChange={e => setForm(f => ({ ...f, quantidade: e.target.value }))} />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Observações (opcional)</label>
+              <textarea className="input-field" rows={3} style={{ resize: 'none' }}
+                placeholder="Horário preferencial, requisitos especiais, urgência..."
+                value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="button" onClick={onClose}
+                style={{ flex: 1, padding: '11px', borderRadius: '10px', background: '#F1F5F9', color: '#64748B', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                Cancelar
+              </button>
+              <button type="submit" disabled={saving}
+                style={{ flex: 2, padding: '11px', borderRadius: '10px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                {saving ? 'Enviando...' : <><Send size={14} /> Enviar ao RH</>}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TabAjudantes({ user }) {
+  const [ajudantes, setAjudantes]   = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
+  const [modalSolic, setModalSolic] = useState(false);
 
   useEffect(() => {
     fetchTodosAjudantes().then(data => { setAjudantes(data); setLoading(false); });
   }, []);
 
   function tempoEmpresa(dataContratacao) {
-    if (!dataContratacao) return '—';
+    if (!dataContratacao) return null;
     const inicio = new Date(dataContratacao + 'T12:00:00');
     const hoje   = new Date();
     const meses  = (hoje.getFullYear() - inicio.getFullYear()) * 12 + (hoje.getMonth() - inicio.getMonth());
-    if (meses < 1)  return 'Menos de 1 mês';
+    if (meses < 1)  return 'menos de 1 mês';
     if (meses < 12) return `${meses} mês${meses !== 1 ? 'es' : ''}`;
     const anos = Math.floor(meses / 12);
     const rest = meses % 12;
@@ -1306,16 +1384,22 @@ function TabAjudantes() {
 
   const filtrados = ajudantes.filter(a =>
     a.name.toLowerCase().includes(search.toLowerCase()) ||
-    a.cidade.toLowerCase().includes(search.toLowerCase())
+    (a.cidade || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div className="space-y-4">
-      {/* Busca */}
-      <div style={{ position: 'relative' }}>
-        <Search size={13} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-        <input className="input-field" style={{ paddingLeft: '34px' }} placeholder="Buscar por nome ou cidade..."
-          value={search} onChange={e => setSearch(e.target.value)} />
+      {/* Barra de busca + botão solicitar */}
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <Search size={13} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+          <input className="input-field" style={{ paddingLeft: '34px' }} placeholder="Buscar por nome ou cidade..."
+            value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <button onClick={() => setModalSolic(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '0 18px', borderRadius: '12px', background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          <Plus size={15} /> Pedir + Ajudantes ao RH
+        </button>
       </div>
 
       {loading ? (
@@ -1345,13 +1429,15 @@ function TabAjudantes() {
                   {aj.cidade && <span style={{ fontSize: '13px', fontWeight: 400, color: '#94A3B8' }}> ({aj.cidade})</span>}
                 </p>
                 <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
-                  {aj.cargo}{aj.dataContratacao ? ` · ${tempoEmpresa(aj.dataContratacao)}` : ''}
+                  {aj.cargo}{tempoEmpresa(aj.dataContratacao) ? ` · ${tempoEmpresa(aj.dataContratacao)}` : ''}
                 </p>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {modalSolic && <ModalSolicitarAjudantes user={user} onClose={() => setModalSolic(false)} />}
     </div>
   );
 }
@@ -1711,7 +1797,7 @@ export default function LiderDashboard() {
 
       {tab === 'hoje'        && <TabHoje        user={user} escalas={escalas} employees={employees} onRefresh={load} onStatsChange={setHojeStats} />}
       {tab === 'escala'      && <TabEscala      user={user} escalas={escalas} employees={employees} onRefresh={load} />}
-      {tab === 'ajudantes'   && <TabAjudantes />}
+      {tab === 'ajudantes'   && <TabAjudantes user={user} />}
       {tab === 'ocorrencias' && <TabOcorrencias user={user} escalas={escalas} employees={employees} />}
 
       {modalFinalizar && (

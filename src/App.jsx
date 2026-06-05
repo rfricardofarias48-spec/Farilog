@@ -19,6 +19,7 @@ import RHTarefas from './pages/rh/RHTarefas';
 import RHBanco from './pages/rh/RHBanco';
 import RHAdmissao from './pages/rh/RHAdmissao';
 import RHBeneficios from './pages/rh/RHBeneficios';
+import RHSolicitacoes from './pages/rh/RHSolicitacoes';
 import AdminLideres from './pages/admin/AdminLideres';
 import AdminRHUsers from './pages/admin/AdminRHUsers';
 import AdminOcorrencias from './pages/admin/AdminOcorrencias';
@@ -66,9 +67,10 @@ function AppRoutes() {
         <ProtectedRoute allowedRole="rh"><RHLayout /></ProtectedRoute>
       }>
         <Route index element={<RHTarefas />} />
-        <Route path="banco"      element={<RHBanco />} />
-        <Route path="admissao"   element={<RHAdmissao />} />
-        <Route path="beneficios" element={<RHBeneficios />} />
+        <Route path="solicitacoes" element={<RHSolicitacoes />} />
+        <Route path="banco"        element={<RHBanco />} />
+        <Route path="admissao"     element={<RHAdmissao />} />
+        <Route path="beneficios"   element={<RHBeneficios />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
