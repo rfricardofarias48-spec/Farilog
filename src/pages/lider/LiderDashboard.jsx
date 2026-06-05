@@ -227,15 +227,14 @@ function ModalFinalizarDia({ user, presentes, ausentes, ocCount, onClose, onSave
 }
 
 // ── Tab: Hoje — monitoramento (read-only) ─────────────────────────────────
-function TabHoje({ user, escalas, employees, onRefresh }) {
+function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
   const todayEscala = escalas.find(e => e.date === TODAY);
   const ajudantes   = todayEscala?.employees || [];
 
-  const [modalSubst, setModalSubst]         = useState(false);
-  const [modalFinalizar, setModalFinalizar] = useState(false);
-  const [ocorrencias, setOcorrencias]       = useState([]);
-  const [solicitandoRH, setSolicitandoRH]   = useState(false);
-  const [rhOk, setRhOk]                     = useState(false);
+  const [modalSubst, setModalSubst]   = useState(false);
+  const [ocorrencias, setOcorrencias] = useState([]);
+  const [solicitandoRH, setSolicitandoRH] = useState(false);
+  const [rhOk, setRhOk]               = useState(false);
 
   const confirmados = ajudantes.filter(a => ['confirmado','finalizado'].includes(a.status)).length;
   const ausentes    = ajudantes.filter(a => a.status === 'falta').length;
@@ -244,9 +243,14 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
 
   useEffect(() => {
     if (todayEscala?.id) {
-      fetchOcorrencias({ escalaId: todayEscala.id, data: TODAY }).then(setOcorrencias);
+      fetchOcorrencias({ escalaId: todayEscala.id, data: TODAY }).then(ocs => {
+        setOcorrencias(ocs);
+        onStatsChange?.({ presentes: confirmados, ausentes, ocCount: ocs.length });
+      });
+    } else {
+      onStatsChange?.({ presentes: confirmados, ausentes, ocCount: 0 });
     }
-  }, [todayEscala?.id]);
+  }, [todayEscala?.id, confirmados, ausentes]);
 
   const handleSolicitarRH = async () => {
     setSolicitandoRH(true);
@@ -300,12 +304,6 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
           </div>
         ))}
       </div>
-
-      {/* Botão finalizar dia — visível logo após KPIs */}
-      <button onClick={() => setModalFinalizar(true)}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', borderRadius: '14px', background: 'linear-gradient(135deg, #FF4D0C, #FF7A45)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: 800, boxShadow: '0 4px 14px rgba(255,77,12,0.35)', letterSpacing: '0.01em' }}>
-        <FileText size={18} /> Finalizar Dia e Enviar Relatório
-      </button>
 
       {/* Lista da equipe — read-only */}
       <div className="card overflow-hidden">
@@ -410,16 +408,6 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
 
       {modalSubst && todayEscala && (
         <ModalSubstituto escala={todayEscala} onClose={() => setModalSubst(false)} onRefresh={onRefresh} />
-      )}
-      {modalFinalizar && (
-        <ModalFinalizarDia
-          user={user}
-          presentes={confirmados}
-          ausentes={ausentes}
-          ocCount={ocorrencias.length}
-          onClose={() => setModalFinalizar(false)}
-          onSaved={onRefresh}
-        />
       )}
     </div>
   );
@@ -726,7 +714,7 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
   );
 }
 
-function EscalaDetalhe({ escala, employees }) {
+function EscalaDetalhe({ escala, employees, flat = false }) {
   const batidas = [
     { label: 'Entrada',    key: 'entrada'        },
     { label: 'Saída alm.', key: 'saidaAlmoco'   },
@@ -734,17 +722,19 @@ function EscalaDetalhe({ escala, employees }) {
     { label: 'Saída',      key: 'saida'          },
   ];
   return (
-    <div className="card overflow-hidden">
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-        <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
-          {escala.companyName || '—'} — {fmtDate(escala.date)}
-        </p>
-        {escala.time && (
-          <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Clock size={10} /> {escala.time}{escala.service ? ` · ${escala.service}` : ''}
+    <div className={flat ? '' : 'card overflow-hidden'}>
+      {!flat && (
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+            {escala.companyName || '—'} — {fmtDate(escala.date)}
           </p>
-        )}
-      </div>
+          {escala.time && (
+            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Clock size={10} /> {escala.time}{escala.service ? ` · ${escala.service}` : ''}
+            </p>
+          )}
+        </div>
+      )}
       {(escala.employees || []).map(({ employeeId, status, entrada, saida, saidaAlmoco, retornoAlmoco }) => {
         const emp  = employees.find(e => e.id === employeeId);
         const vals = { entrada, saidaAlmoco, retornoAlmoco, saida };
@@ -892,7 +882,7 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
             </button>
           </div>
 
-          {/* Lista de escalas da quinzena */}
+          {/* Lista de escalas da quinzena — colapsável */}
           {qEscalas.length === 0 ? (
             <div className="card" style={{ padding: '40px 16px', textAlign: 'center' }}>
               <Clock size={24} style={{ color: '#CBD5E1', margin: '0 auto 8px' }} />
@@ -900,9 +890,42 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
             </div>
           ) : (
             <div className="space-y-3">
-              {qEscalas.map(escala => (
-                <EscalaDetalhe key={escala.id} escala={escala} employees={employees} />
-              ))}
+              {qEscalas.map(escala => {
+                const isOpen    = openId === escala.id;
+                const total     = escala.employees?.length || 0;
+                const presentes = escala.employees?.filter(e => ['confirmado','finalizado'].includes(e.status)).length || 0;
+                const pct       = total > 0 ? Math.round((presentes / total) * 100) : null;
+                const [, m, d]  = escala.date.split('-');
+                return (
+                  <div key={escala.id} className="card overflow-hidden">
+                    <button onClick={() => setOpenId(isOpen ? null : escala.id)}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+                      <div style={{ textAlign: 'center', width: '38px', flexShrink: 0 }}>
+                        <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{d}</p>
+                        <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>{MONTHS_SHORT[Number(m)-1]}</p>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{escala.companyName || '—'}</p>
+                        <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                          {escala.time || '—'} · {total} ajudante{total !== 1 ? 's' : ''}{escala.service ? ` · ${escala.service}` : ''}
+                        </p>
+                      </div>
+                      {pct !== null && (
+                        <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                          <p style={{ fontSize: '16px', fontWeight: 800, color: pct === 100 ? '#059669' : pct >= 60 ? '#D97706' : '#E11D48', lineHeight: 1 }}>{pct}%</p>
+                          <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 600 }}>presença</p>
+                        </div>
+                      )}
+                      <ChevronRight size={14} style={{ color: '#CBD5E1', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
+                    </button>
+                    {isOpen && (
+                      <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                        <EscalaDetalhe escala={escala} employees={employees} flat />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -1297,7 +1320,9 @@ function TabRelatorio({ user, escalas, employees }) {
 export default function LiderDashboard() {
   const { user, employees } = useAuth();
   const { tab } = useOutletContext();
-  const [escalas, setEscalas] = useState([]);
+  const [escalas, setEscalas]           = useState([]);
+  const [modalFinalizar, setModalFinalizar] = useState(false);
+  const [hojeStats, setHojeStats]       = useState({ presentes: 0, ausentes: 0, ocCount: 0 });
 
   const load = useCallback(() => {
     if (user?.id) fetchEscalasByLider(user.id).then(setEscalas);
@@ -1316,21 +1341,40 @@ export default function LiderDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="animate-fade-up">
-        <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{sub}</p>
-        <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', marginTop: '2px' }}>{title}</h1>
-        {user?.companyName && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px' }}>
-            <Building2 size={12} style={{ color: '#94A3B8' }} />
-            <p style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>{user.companyName}</p>
-          </div>
+      <div className="animate-fade-up" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+        <div>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{sub}</p>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', marginTop: '2px' }}>{title}</h1>
+          {user?.companyName && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px' }}>
+              <Building2 size={12} style={{ color: '#94A3B8' }} />
+              <p style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>{user.companyName}</p>
+            </div>
+          )}
+        </div>
+        {tab === 'hoje' && (
+          <button onClick={() => setModalFinalizar(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 2px 10px rgba(255,77,12,0.30)' }}>
+            <FileText size={15} /> Finalizar dia
+          </button>
         )}
       </div>
 
-      {tab === 'hoje'        && <TabHoje        user={user} escalas={escalas} employees={employees} onRefresh={load} />}
+      {tab === 'hoje'        && <TabHoje        user={user} escalas={escalas} employees={employees} onRefresh={load} onStatsChange={setHojeStats} />}
       {tab === 'escala'      && <TabEscala      user={user} escalas={escalas} employees={employees} onRefresh={load} />}
       {tab === 'ajudantes'   && <TabAjudantes />}
       {tab === 'ocorrencias' && <TabOcorrencias user={user} escalas={escalas} employees={employees} />}
+
+      {modalFinalizar && (
+        <ModalFinalizarDia
+          user={user}
+          presentes={hojeStats.presentes}
+          ausentes={hojeStats.ausentes}
+          ocCount={hojeStats.ocCount}
+          onClose={() => setModalFinalizar(false)}
+          onSaved={load}
+        />
+      )}
     </div>
   );
 }
