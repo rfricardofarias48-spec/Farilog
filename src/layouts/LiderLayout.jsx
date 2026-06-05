@@ -8,8 +8,8 @@ import {
 
 const TABS = [
   { id: 'hoje',        label: 'Hoje',        icon: Calendar    },
-  { id: 'escala',      label: 'Escala',      icon: Users       },
-  { id: 'historico',   label: 'Histórico',   icon: Clock       },
+  { id: 'escala',      label: 'Escala',      icon: FileText    },
+  { id: 'ajudantes',   label: 'Ajudantes',   icon: Users       },
   { id: 'ocorrencias', label: 'Ocorrências', icon: AlertCircle },
 ];
 

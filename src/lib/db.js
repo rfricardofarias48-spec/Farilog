@@ -34,17 +34,19 @@ function mapRecord(r) {
 function mapEmployee(r) {
   if (!r) return null;
   return {
-    id:           r.id,
-    name:         r.nome,
-    cargo:        r.cargo,
-    phone:        r.telefone,
-    email:        r.email,
-    password:     r.senha,
-    initials:     r.iniciais,
-    color:        r.cor,
-    status:       r.status,
-    dailyRate:    Number(r.diaria),
-    overtimeRate: Number(r.hora_extra ?? 50),
+    id:              r.id,
+    name:            r.nome,
+    cargo:           r.cargo,
+    phone:           r.telefone,
+    email:           r.email,
+    password:        r.senha,
+    initials:        r.iniciais,
+    color:           r.cor,
+    status:          r.status,
+    dailyRate:       Number(r.diaria),
+    overtimeRate:    Number(r.hora_extra ?? 50),
+    cidade:          r.cidade || '',
+    dataContratacao: r.data_contratacao || null,
   };
 }
 
@@ -755,6 +757,24 @@ export async function fetchAjudantesDisponiveis(data) {
   const { data: rows, error } = await q.order('nome');
   if (error) { console.error('[db] fetchAjudantesDisponiveis rows:', error.message); return []; }
   return rows.map(r => ({ ...r, name: r.nome, initials: r.iniciais, color: r.cor, dailyRate: Number(r.diaria) }));
+}
+
+export async function fetchTodosAjudantes() {
+  const { data, error } = await supabase
+    .from('funcionarios')
+    .select('id, nome, iniciais, cor, status, cargo, cidade, data_contratacao')
+    .eq('status', 'active')
+    .order('nome');
+  if (error) { console.error('[db] fetchTodosAjudantes:', error.message); return []; }
+  return (data || []).map(r => ({
+    id:              r.id,
+    name:            r.nome,
+    initials:        r.iniciais,
+    color:           r.cor,
+    cargo:           r.cargo || '—',
+    cidade:          r.cidade || '—',
+    dataContratacao: r.data_contratacao || null,
+  }));
 }
 
 // ── Presença por equipe (hoje) ─────────────────────────────────────────────

@@ -6,7 +6,7 @@ import {
   upsertRelatorioDiario, fetchOcorrencias, createOcorrencia,
   createEscalaByLider, addRegistroToEscala,
   createTarefaRH, fetchEmpresasDoLider, fetchRelatoriosDiarios,
-  uploadFotoRelatorio,
+  uploadFotoRelatorio, fetchTodosAjudantes,
 } from '../../lib/db';
 import {
   Users, Calendar, CheckCircle2, AlertCircle, AlertTriangle,
@@ -552,7 +552,40 @@ function TabHistorico({ user, escalas, employees }) {
   );
 }
 
-// ── Tab: Escala ───────────────────────────────────────────────────────────
+// ── helpers de quinzena para histórico ───────────────────────────────────
+const MONTHS_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+function getQuinzenaOffset(offset) {
+  const now  = new Date();
+  const day  = now.getDate();
+  let num    = day <= 15 ? 1 : 2;
+  let month  = now.getMonth();
+  let year   = now.getFullYear();
+  const steps = Math.abs(offset);
+  for (let i = 0; i < steps; i++) {
+    if (offset < 0) {
+      if (num === 1) { num = 2; month -= 1; if (month < 0) { month = 11; year -= 1; } }
+      else           { num = 1; }
+    } else {
+      if (num === 2) { num = 1; month += 1; if (month > 11) { month = 0; year += 1; } }
+      else           { num = 2; }
+    }
+  }
+  const mm      = String(month + 1).padStart(2, '0');
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const start   = `${year}-${mm}-01`;
+  const mid     = `${year}-${mm}-15`;
+  const end     = `${year}-${mm}-${String(lastDay).padStart(2, '0')}`;
+  return {
+    num, month, year,
+    label:     `${MONTHS_FULL[month]}/${year} — Quinzena ${num}`,
+    rangeLabel: num === 1 ? `01/${mm} a 15/${mm}` : `16/${mm} a ${String(lastDay).padStart(2,'0')}/${mm}`,
+    startDate: num === 1 ? start : `${year}-${mm}-16`,
+    endDate:   num === 1 ? mid : end,
+  };
+}
+
+// ── Tab: Escala (com sub-abas Hoje / Agendadas / Histórico) ───────────────
 function NovaEscalaForm({ user, onSaved, onCancel }) {
   const [form, setForm]             = useState({ date: TODAY, time: '07:00', service: '', companyId: '' });
   const [empresas, setEmpresas]     = useState([]);
@@ -693,77 +726,86 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
   );
 }
 
+function EscalaDetalhe({ escala, employees }) {
+  const batidas = [
+    { label: 'Entrada',    key: 'entrada'        },
+    { label: 'Saída alm.', key: 'saidaAlmoco'   },
+    { label: 'Retorno',    key: 'retornoAlmoco'  },
+    { label: 'Saída',      key: 'saida'          },
+  ];
+  return (
+    <div className="card overflow-hidden">
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+        <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+          {escala.companyName || '—'} — {fmtDate(escala.date)}
+        </p>
+        {escala.time && (
+          <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Clock size={10} /> {escala.time}{escala.service ? ` · ${escala.service}` : ''}
+          </p>
+        )}
+      </div>
+      {(escala.employees || []).map(({ employeeId, status, entrada, saida, saidaAlmoco, retornoAlmoco }) => {
+        const emp  = employees.find(e => e.id === employeeId);
+        const vals = { entrada, saidaAlmoco, retornoAlmoco, saida };
+        return (
+          <div key={employeeId} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px 6px' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                {emp?.initials}
+              </div>
+              <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
+              <StatusBadge status={status} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0', padding: '0 16px 10px 62px' }}>
+              {batidas.map(({ label, key }) => (
+                <div key={key} style={{ textAlign: 'center', padding: '5px 3px', background: vals[key] ? '#F0FDF4' : '#F8FAFC', borderRadius: '7px', margin: '0 2px' }}>
+                  <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '2px' }}>{label}</p>
+                  <p style={{ fontSize: '12px', fontWeight: 700, color: vals[key] ? '#059669' : '#CBD5E1' }}>{vals[key] || '—'}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function TabEscala({ user, escalas, employees, onRefresh }) {
-  const [openId, setOpenId]     = useState(null);
+  const [sub, setSub]           = useState('hoje');
   const [showForm, setShowForm] = useState(false);
+  const [openId, setOpenId]     = useState(null);
+  const [qOffset, setQOffset]   = useState(-1); // histórico começa na quinzena anterior
 
   const today    = escalas.find(e => e.date === TODAY);
   const upcoming = escalas.filter(e => e.date > TODAY).sort((a, b) => a.date.localeCompare(b.date));
-  const past     = escalas.filter(e => e.date < TODAY).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+  const past     = escalas.filter(e => e.date < TODAY).sort((a, b) => b.date.localeCompare(a.date));
 
-  function EscalaCard({ escala, highlight }) {
-    const confirmados = escala.employees.filter(e => ['confirmado','finalizado'].includes(e.status)).length;
-    const total       = escala.employees.length;
-    const pct         = total > 0 ? Math.round((confirmados / total) * 100) : null;
-    const isOpen      = openId === escala.id;
-    return (
-      <div className="card overflow-hidden" style={{ border: highlight ? '2px solid #FF4D0C' : undefined }}>
-        <button onClick={() => setOpenId(isOpen ? null : escala.id)}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
-          <div style={{ textAlign: 'center', width: '38px', flexShrink: 0 }}>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala.date.split('-')[2]}</p>
-            <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>
-              {MONTHS_SHORT[Number(escala.date.split('-')[1]) - 1]}
-            </p>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{escala.companyName || '—'}</p>
-            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
-              {escala.time || '—'} · {total} ajudante{total !== 1 ? 's' : ''}
-              {escala.service ? ` · ${escala.service}` : ''}
-            </p>
-          </div>
-          {pct !== null && (
-            <div style={{ textAlign: 'center', flexShrink: 0 }}>
-              <p style={{ fontSize: '16px', fontWeight: 800, color: pct === 100 ? '#059669' : pct >= 60 ? '#D97706' : '#E11D48', lineHeight: 1 }}>
-                {pct}%
-              </p>
-              <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 600 }}>confirmado</p>
-            </div>
-          )}
-          <ChevronRight size={14} style={{ color: '#CBD5E1', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
-        </button>
-        {isOpen && (
-          <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFBFC' }}>
-            {escala.employees.map(({ employeeId, status, entrada, saida }) => {
-              const emp = employees.find(e => e.id === employeeId);
-              return (
-                <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                  <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                    {emp?.initials}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
-                    {entrada && <p style={{ fontSize: '10px', color: '#94A3B8' }}>{entrada}{saida ? ` → ${saida}` : ''}</p>}
-                  </div>
-                  <StatusBadge status={status} />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  }
+  // Escalas da quinzena selecionada no histórico
+  const qInfo      = getQuinzenaOffset(qOffset);
+  const qEscalas   = past.filter(e => e.date >= qInfo.startDate && e.date <= qInfo.endDate);
+
+  const SUB_TABS = [
+    { id: 'hoje',      label: 'Hoje'      },
+    { id: 'agendadas', label: 'Agendadas' },
+    { id: 'historico', label: 'Histórico' },
+  ];
 
   return (
     <div className="space-y-5">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>
-          {upcoming.length} próxima{upcoming.length !== 1 ? 's' : ''} · {past.length} recente{past.length !== 1 ? 's' : ''}
-        </p>
+      {/* Sub-abas + botão nova escala */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '4px', padding: '4px', borderRadius: '12px', background: '#F1F5F9' }}>
+          {SUB_TABS.map(t => (
+            <button key={t.id} onClick={() => { setSub(t.id); setShowForm(false); }}
+              style={{ padding: '6px 16px', borderRadius: '9px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, background: sub === t.id ? 'white' : 'transparent', color: sub === t.id ? '#0F172A' : '#94A3B8', boxShadow: sub === t.id ? '0 1px 4px rgba(0,0,0,0.10)' : 'none', transition: 'all 0.15s' }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
         <button onClick={() => setShowForm(s => !s)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
           <Plus size={14} /> Nova escala
         </button>
       </div>
@@ -772,35 +814,170 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
         <NovaEscalaForm user={user} onSaved={() => { setShowForm(false); onRefresh(); }} onCancel={() => setShowForm(false)} />
       )}
 
-      {today && (
-        <div>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Hoje</p>
-          <EscalaCard escala={today} highlight />
-        </div>
+      {/* ── Sub-aba: Hoje ── */}
+      {sub === 'hoje' && (
+        today
+          ? <EscalaDetalhe escala={today} employees={employees} />
+          : <div className="card" style={{ padding: '48px 16px', textAlign: 'center' }}>
+              <Calendar size={28} style={{ color: '#CBD5E1', margin: '0 auto 10px' }} />
+              <p style={{ color: '#94A3B8', fontSize: '13px' }}>Sem escala para hoje</p>
+            </div>
       )}
 
-      {upcoming.length > 0 && (
-        <div>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Próximas</p>
-          <div className="space-y-3">
-            {upcoming.map(e => <EscalaCard key={e.id} escala={e} />)}
+      {/* ── Sub-aba: Agendadas ── */}
+      {sub === 'agendadas' && (
+        upcoming.length === 0
+          ? <div className="card" style={{ padding: '48px 16px', textAlign: 'center' }}>
+              <Calendar size={28} style={{ color: '#CBD5E1', margin: '0 auto 10px' }} />
+              <p style={{ color: '#94A3B8', fontSize: '13px' }}>Nenhuma escala agendada</p>
+            </div>
+          : <div className="space-y-3">
+              {upcoming.map(escala => {
+                const total = escala.employees?.length || 0;
+                const isOpen = openId === escala.id;
+                const [, m, d] = escala.date.split('-');
+                return (
+                  <div key={escala.id} className="card overflow-hidden">
+                    <button onClick={() => setOpenId(isOpen ? null : escala.id)}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+                      <div style={{ textAlign: 'center', width: '38px', flexShrink: 0 }}>
+                        <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{d}</p>
+                        <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>{MONTHS_SHORT[Number(m)-1]}</p>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{escala.companyName || '—'}</p>
+                        <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                          {escala.time || '—'} · {total} ajudante{total !== 1 ? 's' : ''}{escala.service ? ` · ${escala.service}` : ''}
+                        </p>
+                      </div>
+                      <ChevronRight size={14} style={{ color: '#CBD5E1', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
+                    </button>
+                    {isOpen && (
+                      <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFBFC' }}>
+                        {(escala.employees || []).map(({ employeeId }) => {
+                          const emp = employees.find(e => e.id === employeeId);
+                          return (
+                            <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                                {emp?.initials}
+                              </div>
+                              <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+      )}
+
+      {/* ── Sub-aba: Histórico por quinzena ── */}
+      {sub === 'historico' && (
+        <div className="space-y-4">
+          {/* Navegação de quinzena */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
+            <button onClick={() => setQOffset(o => o - 1)}
+              style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', flexShrink: 0 }}>
+              <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} />
+            </button>
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{qInfo.label}</p>
+              <p style={{ fontSize: '11px', color: '#94A3B8' }}>{qInfo.rangeLabel}</p>
+            </div>
+            <button onClick={() => setQOffset(o => Math.min(o + 1, -1))} disabled={qOffset >= -1}
+              style={{ width: '30px', height: '30px', borderRadius: '8px', background: qOffset < -1 ? '#F1F5F9' : 'transparent', border: 'none', cursor: qOffset < -1 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: qOffset < -1 ? '#64748B' : '#CBD5E1', flexShrink: 0 }}>
+              <ChevronRight size={14} />
+            </button>
           </div>
+
+          {/* Lista de escalas da quinzena */}
+          {qEscalas.length === 0 ? (
+            <div className="card" style={{ padding: '40px 16px', textAlign: 'center' }}>
+              <Clock size={24} style={{ color: '#CBD5E1', margin: '0 auto 8px' }} />
+              <p style={{ color: '#94A3B8', fontSize: '13px' }}>Nenhuma escala nesta quinzena</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {qEscalas.map(escala => (
+                <EscalaDetalhe key={escala.id} escala={escala} employees={employees} />
+              ))}
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
 
-      {past.length > 0 && (
-        <div>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Recentes</p>
-          <div className="space-y-3">
-            {past.map(e => <EscalaCard key={e.id} escala={e} />)}
+// ── Tab: Ajudantes ────────────────────────────────────────────────────────
+function TabAjudantes() {
+  const [ajudantes, setAjudantes] = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
+
+  useEffect(() => {
+    fetchTodosAjudantes().then(data => { setAjudantes(data); setLoading(false); });
+  }, []);
+
+  function tempoEmpresa(dataContratacao) {
+    if (!dataContratacao) return '—';
+    const inicio = new Date(dataContratacao + 'T12:00:00');
+    const hoje   = new Date();
+    const meses  = (hoje.getFullYear() - inicio.getFullYear()) * 12 + (hoje.getMonth() - inicio.getMonth());
+    if (meses < 1)  return 'Menos de 1 mês';
+    if (meses < 12) return `${meses} mês${meses !== 1 ? 'es' : ''}`;
+    const anos = Math.floor(meses / 12);
+    const rest = meses % 12;
+    return rest === 0 ? `${anos} ano${anos !== 1 ? 's' : ''}` : `${anos} ano${anos !== 1 ? 's' : ''} e ${rest} mês${rest !== 1 ? 'es' : ''}`;
+  }
+
+  const filtrados = ajudantes.filter(a =>
+    a.name.toLowerCase().includes(search.toLowerCase()) ||
+    a.cidade.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* Busca */}
+      <div style={{ position: 'relative' }}>
+        <Search size={13} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+        <input className="input-field" style={{ paddingLeft: '34px' }} placeholder="Buscar por nome ou cidade..."
+          value={search} onChange={e => setSearch(e.target.value)} />
+      </div>
+
+      {loading ? (
+        <div className="card" style={{ padding: '40px 16px', textAlign: 'center' }}>
+          <p style={{ fontSize: '13px', color: '#94A3B8' }}>Carregando...</p>
+        </div>
+      ) : filtrados.length === 0 ? (
+        <div className="card" style={{ padding: '40px 16px', textAlign: 'center' }}>
+          <Users size={28} style={{ color: '#CBD5E1', margin: '0 auto 10px' }} />
+          <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhum ajudante encontrado</p>
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8' }}>
+              {filtrados.length} ajudante{filtrados.length !== 1 ? 's' : ''} disponíve{filtrados.length !== 1 ? 'is' : 'l'}
+            </p>
           </div>
-        </div>
-      )}
-
-      {!today && upcoming.length === 0 && !showForm && (
-        <div className="card" style={{ padding: '48px 16px', textAlign: 'center' }}>
-          <Calendar size={28} style={{ color: '#CBD5E1', margin: '0 auto 10px' }} />
-          <p style={{ color: '#94A3B8', fontSize: '13px' }}>Nenhuma escala agendada</p>
+          {filtrados.map((aj, idx) => (
+            <div key={aj.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', borderBottom: idx < filtrados.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: aj.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+                {aj.initials}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{aj.name}</p>
+                <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>{aj.cargo}</p>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>{aj.cidade || '—'}</p>
+                <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px' }}>{tempoEmpresa(aj.dataContratacao)}</p>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -1131,7 +1308,7 @@ export default function LiderDashboard() {
   const TITLES = {
     hoje:        { sub: 'Operação do dia', title: `Olá, ${user?.name?.split(' ')[0] || ''}` },
     escala:      { sub: 'Escala',          title: 'Gestão de Escalas' },
-    historico:   { sub: 'Histórico',       title: 'Operações Anteriores' },
+    ajudantes:   { sub: 'Equipe',          title: 'Ajudantes Disponíveis' },
     ocorrencias: { sub: 'Ocorrências',     title: 'Incidentes e Reportes' },
   };
   const { sub, title } = TITLES[tab] || TITLES.hoje;
@@ -1152,7 +1329,7 @@ export default function LiderDashboard() {
 
       {tab === 'hoje'        && <TabHoje        user={user} escalas={escalas} employees={employees} onRefresh={load} />}
       {tab === 'escala'      && <TabEscala      user={user} escalas={escalas} employees={employees} onRefresh={load} />}
-      {tab === 'historico'   && <TabHistorico   user={user} escalas={escalas} employees={employees} />}
+      {tab === 'ajudantes'   && <TabAjudantes />}
       {tab === 'ocorrencias' && <TabOcorrencias user={user} escalas={escalas} employees={employees} />}
     </div>
   );
