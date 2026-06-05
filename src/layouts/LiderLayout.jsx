@@ -110,7 +110,7 @@ export default function LiderLayout() {
 
       {/* Conteúdo */}
       <div className={`flex-1 flex flex-col transition-all duration-300 ${open ? 'md:ml-56' : 'md:ml-16'}`}>
-        <main className="flex-1 p-4 md:p-6 pt-20 md:pt-6 pb-24 md:pb-6">
+        <main className="flex-1 p-4 md:p-6 pt-20 md:pt-6 pb-6">
           <Outlet context={{ tab, setTab }} />
         </main>
       </div>
