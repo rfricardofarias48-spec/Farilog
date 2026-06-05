@@ -11,7 +11,6 @@ const TABS = [
   { id: 'escala',      label: 'Escala',      icon: Users       },
   { id: 'historico',   label: 'Histórico',   icon: Clock       },
   { id: 'ocorrencias', label: 'Ocorrências', icon: AlertCircle },
-  { id: 'relatorio',   label: 'Relatório',   icon: FileText    },
 ];
 
 export default function LiderLayout() {
@@ -118,7 +117,7 @@ export default function LiderLayout() {
 
       {/* Bottom nav mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40"
-        style={{ background: 'white', borderTop: '1px solid rgba(0,0,0,0.08)', display: 'grid', gridTemplateColumns: 'repeat(5,1fr)' }}>
+        style={{ background: 'white', borderTop: '1px solid rgba(0,0,0,0.08)', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
         {TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)}
             style={{

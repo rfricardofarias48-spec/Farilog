@@ -631,10 +631,19 @@ export async function fetchRelatoriosDiarios(liderId) {
 export async function upsertRelatorioDiario(rel) {
   const { data, error } = await supabase
     .from('relatorios_diarios')
-    .upsert({ id: rel.id || crypto.randomUUID(), lider_id: rel.liderId, empresa_id: rel.empresaId, data: rel.data, presentes: rel.presentes, ausentes: rel.ausentes, ocorrencias_count: rel.ocorrenciasCount, observacoes: rel.observacoes, finalizado: rel.finalizado }, { onConflict: 'lider_id,data' })
+    .upsert({ id: rel.id || crypto.randomUUID(), lider_id: rel.liderId, empresa_id: rel.empresaId, data: rel.data, presentes: rel.presentes, ausentes: rel.ausentes, ocorrencias_count: rel.ocorrenciasCount, observacoes: rel.observacoes, finalizado: rel.finalizado, fotos_urls: rel.fotosUrls || [] }, { onConflict: 'lider_id,data' })
     .select().single();
   if (error) { console.error('[db] upsertRelatorioDiario:', error.message); return null; }
   return data;
+}
+
+export async function uploadFotoRelatorio(file, liderId) {
+  const ext  = file.name.split('.').pop();
+  const path = `relatorios/${liderId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('relatorios').upload(path, file, { upsert: true });
+  if (error) { console.error('[db] uploadFotoRelatorio:', error.message); return null; }
+  const { data } = supabase.storage.from('relatorios').getPublicUrl(path);
+  return data.publicUrl;
 }
 
 // ── Tarefas RH ────────────────────────────────────────────────────────────

@@ -6,11 +6,13 @@ import {
   upsertRelatorioDiario, fetchOcorrencias, createOcorrencia,
   createEscalaByLider, addRegistroToEscala,
   createTarefaRH, fetchEmpresasDoLider, fetchRelatoriosDiarios,
+  uploadFotoRelatorio,
 } from '../../lib/db';
 import {
   Users, Calendar, CheckCircle2, AlertCircle, AlertTriangle,
   Plus, ChevronRight, X, Building2, FileText, RefreshCw,
   Search, Send, Clock, MessageSquare, ClipboardCheck,
+  Image, Trash2,
 } from 'lucide-react';
 
 const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -98,12 +100,139 @@ function ModalSubstituto({ escala, onClose, onRefresh }) {
   );
 }
 
+// ── Modal Finalizar Dia ───────────────────────────────────────────────────
+function ModalFinalizarDia({ user, presentes, ausentes, ocCount, onClose, onSaved }) {
+  const [obs, setObs]           = useState('');
+  const [fotos, setFotos]       = useState([]);   // [{ file, preview }]
+  const [saving, setSaving]     = useState(false);
+  const [saved, setSaved]       = useState(false);
+
+  const handleFiles = (e) => {
+    const files = Array.from(e.target.files);
+    const novos = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
+    setFotos(prev => [...prev, ...novos]);
+  };
+
+  const removerFoto = (idx) => {
+    setFotos(prev => { URL.revokeObjectURL(prev[idx].preview); return prev.filter((_, i) => i !== idx); });
+  };
+
+  const handleSubmit = async () => {
+    setSaving(true);
+    const urls = [];
+    for (const { file } of fotos) {
+      const url = await uploadFotoRelatorio(file, user.id);
+      if (url) urls.push(url);
+    }
+    await upsertRelatorioDiario({
+      liderId:          user.id,
+      empresaId:        user.empresa_id,
+      data:             TODAY,
+      presentes,
+      ausentes,
+      ocorrenciasCount: ocCount,
+      observacoes:      obs,
+      fotosUrls:        urls,
+      finalizado:       true,
+    });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => { onSaved(); onClose(); }, 1500);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box animate-fade-up" style={{ maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>Finalizar dia</p>
+            <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px' }}>{fmtDate(TODAY)}</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
+        </div>
+
+        {/* Resumo automático */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px', marginBottom: '20px' }}>
+          {[
+            { label: 'Presentes',   value: presentes, color: presentes > 0 ? '#059669' : '#CBD5E1' },
+            { label: 'Ausentes',    value: ausentes,  color: ausentes > 0 ? '#E11D48' : '#CBD5E1'  },
+            { label: 'Ocorrências', value: ocCount,   color: ocCount > 0 ? '#D97706' : '#CBD5E1'   },
+          ].map((k, i) => (
+            <div key={i} style={{ padding: '12px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.07)' }}>
+              <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>{k.label}</p>
+              <p style={{ fontSize: '22px', fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Observações */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
+            Observações do dia
+          </label>
+          <textarea
+            className="input-field"
+            rows={5}
+            placeholder="Como foi a operação? Destaques, problemas, comunicações com o cliente, situações fora do normal..."
+            value={obs}
+            onChange={e => setObs(e.target.value)}
+            style={{ resize: 'none' }}
+          />
+          <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '5px' }}>
+            Após finalizar, o relatório fica visível no portal do cliente.
+          </p>
+        </div>
+
+        {/* Upload de fotos */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
+            Fotos (opcional)
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', border: '2px dashed #E2E8F0', cursor: 'pointer', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>
+            <Image size={15} style={{ color: '#94A3B8' }} />
+            Selecionar fotos
+            <input type="file" accept="image/*" multiple onChange={handleFiles} style={{ display: 'none' }} />
+          </label>
+
+          {fotos.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px', marginTop: '10px' }}>
+              {fotos.map(({ preview }, idx) => (
+                <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', aspectRatio: '1', background: '#F1F5F9' }}>
+                  <img src={preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button onClick={() => removerFoto(idx)}
+                    style={{ position: 'absolute', top: '4px', right: '4px', width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Trash2 size={10} style={{ color: 'white' }} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Botões */}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={onClose}
+            style={{ flex: 1, padding: '12px', borderRadius: '10px', background: '#F1F5F9', color: '#64748B', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+            Cancelar
+          </button>
+          <button onClick={handleSubmit} disabled={saving || saved}
+            style={{ flex: 2, padding: '12px', borderRadius: '10px', border: 'none', cursor: saving || saved ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: saved ? '#059669' : saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'background 0.3s' }}>
+            {saved ? <><CheckCircle2 size={15} /> Relatório enviado!</> : saving ? 'Enviando...' : <><FileText size={15} /> Finalizar e enviar ao cliente</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Tab: Hoje — monitoramento (read-only) ─────────────────────────────────
 function TabHoje({ user, escalas, employees, onRefresh }) {
   const todayEscala = escalas.find(e => e.date === TODAY);
   const ajudantes   = todayEscala?.employees || [];
 
   const [modalSubst, setModalSubst]         = useState(false);
+  const [modalFinalizar, setModalFinalizar] = useState(false);
   const [ocorrencias, setOcorrencias]       = useState([]);
   const [solicitandoRH, setSolicitandoRH]   = useState(false);
   const [rhOk, setRhOk]                     = useState(false);
@@ -281,8 +410,28 @@ function TabHoje({ user, escalas, employees, onRefresh }) {
         })}
       </div>
 
+      {/* Botão finalizar dia */}
+      {todayEscala && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={() => setModalFinalizar(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '12px 20px', borderRadius: '12px', background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 700 }}>
+            <FileText size={15} /> Finalizar dia
+          </button>
+        </div>
+      )}
+
       {modalSubst && todayEscala && (
         <ModalSubstituto escala={todayEscala} onClose={() => setModalSubst(false)} onRefresh={onRefresh} />
+      )}
+      {modalFinalizar && (
+        <ModalFinalizarDia
+          user={user}
+          presentes={confirmados}
+          ausentes={ausentes}
+          ocCount={ocorrencias.length}
+          onClose={() => setModalFinalizar(false)}
+          onSaved={onRefresh}
+        />
       )}
     </div>
   );
@@ -996,7 +1145,6 @@ export default function LiderDashboard() {
     escala:      { sub: 'Escala',          title: 'Gestão de Escalas' },
     historico:   { sub: 'Histórico',       title: 'Operações Anteriores' },
     ocorrencias: { sub: 'Ocorrências',     title: 'Incidentes e Reportes' },
-    relatorio:   { sub: 'Encerramento',    title: 'Relatório Diário' },
   };
   const { sub, title } = TITLES[tab] || TITLES.hoje;
 
@@ -1018,7 +1166,6 @@ export default function LiderDashboard() {
       {tab === 'escala'      && <TabEscala      user={user} escalas={escalas} employees={employees} onRefresh={load} />}
       {tab === 'historico'   && <TabHistorico   user={user} escalas={escalas} employees={employees} />}
       {tab === 'ocorrencias' && <TabOcorrencias user={user} escalas={escalas} employees={employees} />}
-      {tab === 'relatorio'   && <TabRelatorio   user={user} escalas={escalas} employees={employees} />}
     </div>
   );
 }
