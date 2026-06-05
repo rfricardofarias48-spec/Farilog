@@ -20,34 +20,34 @@ function whatsappLink(telefone) {
   return `https://wa.me/${full}`;
 }
 
-// ── Componente: Badge discreto do Líder com botão WhatsApp ────────────────
+// ── WhatsApp SVG icon ─────────────────────────────────────────────────────
+const WaSVG = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.855L.057 23.884a.5.5 0 0 0 .606.634l6.193-1.623A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.944 9.944 0 0 1-5.127-1.415l-.368-.218-3.812 1 1.02-3.718-.24-.382A9.944 9.944 0 0 1 2 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/>
+  </svg>
+);
+
+// ── Faixa do Líder — colada à escala, sem card separado ───────────────────
 function LiderBadge({ lider }) {
   if (!lider) return null;
   const waLink = whatsappLink(lider.telefone);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-      <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: lider.cor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+      <div style={{ width: '24px', height: '24px', borderRadius: '7px', background: lider.cor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
         {lider.iniciais}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lider.nome}</p>
-        <p style={{ fontSize: '10px', color: '#94A3B8' }}>Líder de Equipe</p>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>{lider.nome}</span>
+        <span style={{ fontSize: '11px', color: '#94A3B8', marginLeft: '6px' }}>Líder de Equipe</span>
       </div>
       {waLink ? (
         <a href={waLink} target="_blank" rel="noopener noreferrer"
-          title={`WhatsApp de ${lider.nome}`}
-          style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '8px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '11px', fontWeight: 700, flexShrink: 0, transition: 'opacity 0.15s' }}
-          onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-          onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-          {/* WhatsApp SVG icon */}
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.855L.057 23.884a.5.5 0 0 0 .606.634l6.193-1.623A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.944 9.944 0 0 1-5.127-1.415l-.368-.218-3.812 1 1.02-3.718-.24-.382A9.944 9.944 0 0 1 2 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/>
-          </svg>
-          WhatsApp
+          style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '8px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
+          <WaSVG size={12} /> WhatsApp
         </a>
       ) : (
-        <span style={{ fontSize: '10px', color: '#CBD5E1', fontStyle: 'italic' }}>sem telefone</span>
+        <span style={{ fontSize: '10px', color: '#CBD5E1' }}>sem telefone</span>
       )}
     </div>
   );
@@ -358,7 +358,7 @@ function fmtDateShort(iso) {
   return `${dow}, ${d}/${m}`;
 }
 
-function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday, onVerMais }) {
+function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday, lider, onVerMais }) {
   const { employees } = useCompanyData();
   const [showModal, setShowModal] = useState(false);
   const [popupEmp, setPopupEmp] = useState(null);
@@ -372,10 +372,29 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
   return (
     <div className="card p-5" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-      {/* Header */}
-      <div>
-        <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', color: '#94A3B8', textTransform: 'uppercase' }}>{title}</span>
-        <p className="text-sm font-bold mt-0.5" style={T}>{date ? fmtDateShort(date) : 'Sem agendamento'}</p>
+      {/* Header + Líder */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+        <div>
+          <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', color: '#94A3B8', textTransform: 'uppercase' }}>{title}</span>
+          <p className="text-sm font-bold mt-0.5" style={T}>{date ? fmtDateShort(date) : 'Sem agendamento'}</p>
+        </div>
+        {lider && (() => {
+          const waLink = whatsappLink(lider.telefone);
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+              <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: lider.cor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 800, color: 'white' }}>
+                {lider.iniciais}
+              </div>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569' }}>{lider.nome}</span>
+              {waLink && (
+                <a href={waLink} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '6px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '10px', fontWeight: 700 }}>
+                  <WaSVG size={11} /> WA
+                </a>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Stats */}
@@ -520,31 +539,27 @@ function Panel({ companyId, setTab, companyName }) {
 
       {/* Duas caixas lado a lado */}
       <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '16px', alignItems: 'start' }}>
-        <div className="space-y-2">
-          {todayLider && <LiderBadge lider={todayLider} />}
-          <EscalaCard
-            title="Escala do Dia"
-            date={TODAY}
-            accentColor="#64748B"
-            badgeLabel="Hoje"
-            badgeBg="#F1F5F9"
-            records={todayRecords}
-            isToday={true}
-            onVerMais={() => setTab('escalas')}
-          />
-        </div>
-        <div className="space-y-2">
-          {nextLider && <LiderBadge lider={nextLider} />}
-          <EscalaCard
-            title="Próxima Escala"
-            date={nextDate}
-            accentColor="#64748B"
-            badgeLabel={nextDate ? fmtDateShort(nextDate) : 'Sem agend.'}
-            badgeBg="#F1F5F9"
-            records={nextRecords}
-            isToday={false}
-          />
-        </div>
+        <EscalaCard
+          title="Escala do Dia"
+          date={TODAY}
+          accentColor="#64748B"
+          badgeLabel="Hoje"
+          badgeBg="#F1F5F9"
+          records={todayRecords}
+          isToday={true}
+          lider={todayLider}
+          onVerMais={() => setTab('escalas')}
+        />
+        <EscalaCard
+          title="Próxima Escala"
+          date={nextDate}
+          accentColor="#64748B"
+          badgeLabel={nextDate ? fmtDateShort(nextDate) : 'Sem agend.'}
+          badgeBg="#F1F5F9"
+          records={nextRecords}
+          isToday={false}
+          lider={nextLider}
+        />
       </div>
     </div>
   );
@@ -1632,7 +1647,7 @@ function EscalasHoje({ companyId }) {
 
   return (
     <div className="space-y-4">
-      {/* Líder responsável */}
+      {/* Líder + KPIs */}
       {todayLider && <LiderBadge lider={todayLider} />}
 
       {/* KPI cards — Escala, Faltas/Atrasos, Presença */}
