@@ -85,8 +85,20 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
     .filter(d => d.myEntry)
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const pendingDemands  = myDemands.filter(d => d.myEntry.status === 'aguardando');
-  const upcomingDemands = myDemands.filter(d => d.myEntry.status === 'confirmado');
+  // Só mostra pendentes de hoje em diante (não exibe avisos de dias passados)
+  const pendingDemands = myDemands.filter(d => d.myEntry.status === 'aguardando' && d.date >= TODAY);
+
+  // Serviço de HOJE (somente o dia atual)
+  const todayDemands   = myDemands.filter(d => d.myEntry.status === 'confirmado' && d.date === TODAY);
+
+  // PRÓXIMO serviço — apenas o 1º dia futuro, 1 serviço só
+  const nextFutureDate = myDemands
+    .filter(d => d.myEntry.status === 'confirmado' && d.date > TODAY)
+    .map(d => d.date)
+    .sort()[0] || null;
+  const nextDemand = nextFutureDate
+    ? myDemands.find(d => d.myEntry.status === 'confirmado' && d.date === nextFutureDate)
+    : null;
 
   return (
     <div className="space-y-4">
@@ -147,18 +159,16 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
         );
       })}
 
-      {/* Card unificado: serviço confirmado + horários batidos (quando disponíveis) */}
-      {upcomingDemands.map(d => {
+      {/* ── Serviço de HOJE ── */}
+      {todayDemands.map(d => {
         const company   = findCompany(d.companyId);
-        const isToday   = d.date === TODAY;
-        const rec       = isToday ? todayRecord : null;
+        const rec       = todayRecord;
         const hasPunch  = rec?.checkIn;
         const isDone    = rec?.checkOut;
-
-        const accent    = isDone ? '#475569' : hasPunch ? '#059669' : '#059669';
-        const statusLabel = isDone ? 'SERVIÇO CONCLUÍDO'
-          : hasPunch ? 'TRABALHANDO AGORA'
-          : 'SERVIÇO CONFIRMADO';
+        const accent    = isDone ? '#475569' : '#059669';
+        const serviceBg = isDone ? '#F8FAFC' : '#F0FDF4';
+        const serviceColor = isDone ? '#475569' : '#059669';
+        const statusLabel = isDone ? 'SERVIÇO CONCLUÍDO' : hasPunch ? 'TRABALHANDO AGORA' : 'SERVIÇO DE HOJE';
 
         return (
           <div key={d.id} className="card p-4" style={{ borderLeft: `4px solid ${accent}` }}>
@@ -173,8 +183,8 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
             </div>
 
             {/* Serviço em destaque */}
-            <div style={{ background: '#F0FDF4', borderRadius: '10px', padding: '10px 14px', marginBottom: '12px' }}>
-              <p style={{ fontSize: '11px', color: '#059669', fontWeight: 600, marginBottom: '2px' }}>Serviço</p>
+            <div style={{ background: serviceBg || '#F0FDF4', borderRadius: '10px', padding: '10px 14px', marginBottom: '12px' }}>
+              <p style={{ fontSize: '11px', color: serviceColor || '#059669', fontWeight: 600, marginBottom: '2px' }}>Serviço</p>
               <p style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>{d.service}</p>
             </div>
 
@@ -241,8 +251,43 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
         );
       })}
 
+      {/* ── Próximo serviço (1 só, cor laranja) ── */}
+      {nextDemand && (() => {
+        const company = findCompany(nextDemand.companyId);
+        return (
+          <div className="card p-4" style={{ borderLeft: '4px solid #FF4D0C' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-2 h-2 rounded-full" style={{ background: '#FF4D0C', boxShadow: '0 0 0 3px rgba(255,77,12,0.15)' }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#FF4D0C', letterSpacing: '0.06em' }}>PRÓXIMO SERVIÇO</span>
+            </div>
+            <div style={{ background: '#FFF5F2', borderRadius: '10px', padding: '10px 14px', marginBottom: '12px' }}>
+              <p style={{ fontSize: '11px', color: '#FF4D0C', fontWeight: 600, marginBottom: '2px' }}>Serviço</p>
+              <p style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>{nextDemand.service}</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Briefcase size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{company?.name ?? nextDemand.companyName}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
+                <p style={{ fontSize: '12px', color: '#475569' }}>
+                  {fmtISO(nextDemand.date)} · <span style={{ fontWeight: 700, color: '#0F172A' }}>{nextDemand.time}</span>
+                </p>
+              </div>
+              {company?.contact && (
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
+                  <p style={{ fontSize: '12px', color: '#475569' }}>Receber com: <span style={{ fontWeight: 600, color: '#0F172A' }}>{company.contact}</span></p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Sem demandas confirmadas mas com ponto hoje (fallback) */}
-      {upcomingDemands.length === 0 && derivedState && derivedState !== 'scheduled' && todayRecord && (
+      {todayDemands.length === 0 && derivedState && derivedState !== 'scheduled' && todayRecord && (
         <div className="card p-5" style={{ borderLeft: `4px solid ${derivedState === 'completed' ? '#475569' : '#059669'}` }}>
           <div className="flex items-center gap-2 mb-3">
             {derivedState === 'completed'
@@ -271,7 +316,7 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
       )}
 
       {/* Sem nenhuma alocação */}
-      {upcomingDemands.length === 0 && pendingDemands.length === 0 && !derivedState && (
+      {todayDemands.length === 0 && !nextDemand && pendingDemands.length === 0 && !derivedState && (
         <div className="card p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F1F5F9' }}>
             <AlertCircle size={18} style={{ color: '#94A3B8' }} />
@@ -434,20 +479,33 @@ function Pagamentos({ user, myRecords }) {
 
 // ── Histórico ────────────────────────────────────────────────────────────────
 
-function Historico({ myRecords }) {
+function Historico({ myRecords, demands, userId }) {
   const [openQ, setOpenQ] = useState(null);
 
-  const past = myRecords.filter(r => r.date < TODAY && r.status === 'completed');
+  // Usa demands reais do banco (inclui todas as escalas passadas)
+  const pastDemands = demands
+    .map(d => ({ ...d, myEntry: d.employees?.find(e => e.employeeId === userId) }))
+    .filter(d => d.myEntry && d.date < TODAY)
+    .sort((a, b) => b.date.localeCompare(a.date));
 
+  // Agrupa por quinzena
   const groups = {};
-  past.forEach(r => {
-    const key = getQuinzenaLabel(r.date);
-    const bounds = getQuinzenaBounds(r.date);
-    if (!groups[key]) groups[key] = { label: key, bounds, records: [] };
-    groups[key].records.push(r);
+  pastDemands.forEach(d => {
+    const key    = getQuinzenaLabel(d.date);
+    const bounds = getQuinzenaBounds(d.date);
+    if (!groups[key]) groups[key] = { label: key, bounds, items: [] };
+    groups[key].items.push(d);
   });
 
   const quinzenas = Object.values(groups).sort((a, b) => b.bounds.start.localeCompare(a.bounds.start));
+
+  const STATUS_LABEL = {
+    finalizado: { label: 'Trabalhado',   color: '#059669' },
+    falta:      { label: 'Falta',        color: '#E11D48' },
+    confirmado: { label: 'Realizado',    color: '#059669' },
+    atrasado:   { label: 'Atrasado',     color: '#D97706' },
+    aguardando: { label: 'Aguardando',   color: '#94A3B8' },
+  };
 
   if (quinzenas.length === 0) {
     return (
@@ -461,20 +519,18 @@ function Historico({ myRecords }) {
   return (
     <div className="space-y-3">
       {quinzenas.map(q => {
-        const total  = q.records.length * VALOR_DIARIA;
+        const trabalhados = q.items.filter(d => ['finalizado','confirmado','atrasado'].includes(d.myEntry.status)).length;
         const isOpen = openQ === q.label;
+        const total  = trabalhados * VALOR_DIARIA;
 
         return (
           <div key={q.label} className="card overflow-hidden">
-            <button
-              onClick={() => setOpenQ(isOpen ? null : q.label)}
-              className="w-full text-left"
-              style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', background: 'transparent', border: 'none', cursor: 'pointer', gap: '12px' }}
-            >
+            <button onClick={() => setOpenQ(isOpen ? null : q.label)} className="w-full text-left"
+              style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', background: 'transparent', border: 'none', cursor: 'pointer', gap: '12px' }}>
               <div style={{ flex: 1 }}>
                 <p className="text-sm font-bold mb-1" style={T}>{q.label}</p>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs" style={TM}>{q.records.length} dia{q.records.length !== 1 ? 's' : ''} trabalhado{q.records.length !== 1 ? 's' : ''}</span>
+                  <span className="text-xs" style={TM}>{trabalhados} dia{trabalhados !== 1 ? 's' : ''} trabalhado{trabalhados !== 1 ? 's' : ''}</span>
                   <span className="text-xs font-bold" style={{ color: '#059669' }}>{fmtCurrency(total)}</span>
                 </div>
               </div>
@@ -483,24 +539,29 @@ function Historico({ myRecords }) {
 
             {isOpen && (
               <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                {q.records.sort((a, b) => b.date.localeCompare(a.date)).map(rec => {
-                  const company = getCompany(rec.companyId);
-                  const [, m, d] = rec.date.split('-');
-                  const dow = DOW[new Date(`${rec.date}T12:00:00`).getDay()];
+                {q.items.map(d => {
+                  const [, m, dy] = d.date.split('-');
+                  const dow = DOW[new Date(`${d.date}T12:00:00`).getDay()];
+                  const st = STATUS_LABEL[d.myEntry.status] || STATUS_LABEL.confirmado;
+                  const entrada = d.myEntry.entrada;
+                  const saida   = d.myEntry.saida;
+                  const falta   = d.myEntry.status === 'falta';
 
                   return (
-                    <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderTop: '1px solid rgba(0,0,0,0.04)', opacity: falta ? 0.6 : 1 }}>
                       <div style={{ textAlign: 'center', minWidth: '36px' }}>
                         <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' }}>{dow}</p>
-                        <p style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{d}/{m}</p>
+                        <p style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{dy}/{m}</p>
                       </div>
                       <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A' }}>{company?.name}</p>
-                        <p style={{ fontSize: '11px', color: '#94A3B8' }}>{rec.service}</p>
+                        <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A' }}>{d.companyName}</p>
+                        <p style={{ fontSize: '11px', color: '#94A3B8' }}>{d.service || '—'}</p>
                       </div>
                       <div className="text-right">
-                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#059669' }}>{fmtCurrency(rec.value)}</p>
-                        <p style={{ fontSize: '10px', color: '#94A3B8' }}>{rec.checkIn} → {rec.checkOut}</p>
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '5px', background: falta ? '#FFE4E6' : '#DCFCE7', color: st.color }}>
+                          {st.label}
+                        </span>
+                        {entrada && <p style={{ fontSize: '10px', color: '#94A3B8', marginTop: '3px' }}>{entrada}{saida ? ` → ${saida}` : ''}</p>}
                       </div>
                     </div>
                   );
@@ -659,7 +720,7 @@ export default function EmployeeDashboard() {
 
       {tab === 'visao'      && <VisaoGeral    user={user} myRecords={myRecords} demands={demands} updateDemandStatus={updateDemandStatus} todayOverride={effectiveTodayRecord} companies={companies} />}
       {tab === 'pagamentos' && <Pagamentos    user={user} myRecords={myRecords} />}
-      {tab === 'historico'  && <Historico     myRecords={myRecords} />}
+      {tab === 'historico'  && <Historico     myRecords={myRecords} demands={demands} userId={user.id} />}
       {tab === 'ocorrencia' && <TabOcorrencia user={user} todayRecord={effectiveTodayRecord} />}
     </div>
   );
