@@ -198,8 +198,7 @@ select.input-field option { background: #fff; color: #0F172A; }
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15,23,42,0.4);
-  backdrop-filter: blur(4px);
+  background: rgba(15,23,42,0.55);
   display: flex;
   align-items: center;
   justify-content: center;
