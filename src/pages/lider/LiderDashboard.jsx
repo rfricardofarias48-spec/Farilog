@@ -734,7 +734,11 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
                     <div style={{ width: '30px', height: '30px', borderRadius: '9px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                       {emp.initials}
                     </div>
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: sel ? '#FF4D0C' : '#0F172A', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.name}</p>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: sel ? '#FF4D0C' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {emp.name}{emp.cidade ? <span style={{ fontWeight: 400, color: sel ? '#FF7A45' : '#94A3B8' }}> ({emp.cidade})</span> : ''}
+                      </p>
+                    </div>
                     {sel && <CheckCircle2 size={13} style={{ color: '#FF4D0C', flexShrink: 0 }} />}
                   </button>
                 );
@@ -973,7 +977,11 @@ function ModalEditarEscala({ escala, employees, onClose, onSaved }) {
                       <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                         {emp.initials}
                       </div>
-                      <p style={{ fontSize: '12px', fontWeight: 600, color: sel ? '#FF4D0C' : '#0F172A', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.name}</p>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '12px', fontWeight: 600, color: sel ? '#FF4D0C' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {emp.name}{emp.cidade ? <span style={{ fontWeight: 400, color: sel ? '#FF7A45' : '#94A3B8' }}> ({emp.cidade})</span> : ''}
+                        </p>
+                      </div>
                       {sel && <CheckCircle2 size={12} style={{ color: '#FF4D0C', flexShrink: 0 }} />}
                     </button>
                   );

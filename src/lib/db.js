@@ -779,7 +779,7 @@ export async function fetchAjudantesDisponiveis(data) {
 
   const { data: rows, error } = await q.order('nome');
   if (error) { console.error('[db] fetchAjudantesDisponiveis rows:', error.message); return []; }
-  return rows.map(r => ({ ...r, name: r.nome, initials: r.iniciais, color: r.cor, dailyRate: Number(r.diaria) }));
+  return rows.map(r => ({ ...r, name: r.nome, initials: r.iniciais, color: r.cor, dailyRate: Number(r.diaria), cidade: r.cidade || '' }));
 }
 
 export async function fetchTodosAjudantes() {
