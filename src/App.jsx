@@ -5,7 +5,6 @@ import EmployeeLayout from './layouts/EmployeeLayout';
 import CompanyLayout from './layouts/CompanyLayout';
 import AdminLayout from './layouts/AdminLayout';
 import LiderLayout from './layouts/LiderLayout';
-import RHLayout from './layouts/RHLayout';
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import CompanyDashboard from './pages/company/CompanyDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -15,17 +14,10 @@ import AdminFinanceiro from './pages/admin/AdminFinanceiro';
 import AdminDemanda from './pages/admin/AdminDemanda';
 import AdminOperacional from './pages/admin/AdminOperacional';
 import LiderDashboard from './pages/lider/LiderDashboard';
-import RHTarefas from './pages/rh/RHTarefas';
-import RHBanco from './pages/rh/RHBanco';
-import RHAdmissao from './pages/rh/RHAdmissao';
-import RHBeneficios from './pages/rh/RHBeneficios';
-import RHSolicitacoes from './pages/rh/RHSolicitacoes';
-import RHRecrutamento from './pages/rh/RHRecrutamento';
-import RHFolha from './pages/rh/RHFolha';
 import AdminLideres from './pages/admin/AdminLideres';
-import AdminRHUsers from './pages/admin/AdminRHUsers';
 import AdminOcorrencias from './pages/admin/AdminOcorrencias';
 import AdminTarefas from './pages/admin/AdminTarefas';
+import AdminSolicitacoes from './pages/admin/AdminSolicitacoes';
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user } = useAuth();
@@ -52,31 +44,20 @@ function AppRoutes() {
         <ProtectedRoute allowedRole="admin"><AdminLayout /></ProtectedRoute>
       }>
         <Route index element={<AdminDashboard />} />
-        <Route path="companies" element={<AdminCompanies />} />
-        <Route path="employees" element={<AdminEmployees />} />
+        <Route path="companies"    element={<AdminCompanies />} />
+        <Route path="employees"    element={<AdminEmployees />} />
         <Route path="financeiro"   element={<AdminFinanceiro />} />
-        <Route path="demanda"     element={<AdminDemanda />} />
-        <Route path="operacional" element={<AdminOperacional />} />
+        <Route path="demanda"      element={<AdminDemanda />} />
+        <Route path="operacional"  element={<AdminOperacional />} />
         <Route path="lideres"      element={<AdminLideres />} />
-        <Route path="rh-users"    element={<AdminRHUsers />} />
-        <Route path="ocorrencias" element={<AdminOcorrencias />} />
-        <Route path="tarefas"     element={<AdminTarefas />} />
+        <Route path="ocorrencias"  element={<AdminOcorrencias />} />
+        <Route path="tarefas"      element={<AdminTarefas />} />
+        <Route path="solicitacoes" element={<AdminSolicitacoes />} />
       </Route>
       <Route path="/lider" element={
         <ProtectedRoute allowedRole="lider"><LiderLayout /></ProtectedRoute>
       }>
         <Route index element={<LiderDashboard />} />
-      </Route>
-      <Route path="/rh" element={
-        <ProtectedRoute allowedRole="rh"><RHLayout /></ProtectedRoute>
-      }>
-        <Route index element={<RHTarefas />} />
-        <Route path="solicitacoes" element={<RHSolicitacoes />} />
-        <Route path="recrutamento" element={<RHRecrutamento />} />
-        <Route path="banco"        element={<RHBanco />} />
-        <Route path="admissao"     element={<RHAdmissao />} />
-        <Route path="beneficios"   element={<RHBeneficios />} />
-        <Route path="folha"        element={<RHFolha />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

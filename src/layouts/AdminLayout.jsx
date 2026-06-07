@@ -19,7 +19,7 @@ const PAGE_TITLES = {
   '/admin/financeiro':   'Financeiro',
   '/admin/operacional':  'Operacional',
   '/admin/lideres':      'Líderes',
-  '/admin/rh-users':     'Usuários RH',
+  '/admin/solicitacoes': 'Solicitações',
   '/admin/ocorrencias':  'Ocorrências',
 };
 
@@ -28,7 +28,7 @@ const NAV = [
   { path: '/admin/companies',    label: 'Empresas',       icon: Building2 },
   { path: '/admin/employees',    label: 'Funcionários',   icon: Users },
   { path: '/admin/lideres',      label: 'Líderes',        icon: UserCog },
-  { path: '/admin/rh-users',     label: 'Usuários RH',    icon: UserCheck },
+  { path: '/admin/solicitacoes', label: 'Solicitações',   icon: UserCheck },
   { path: '/admin/tarefas',      label: 'Tarefas',        icon: ClipboardList },
   { path: '/admin/ocorrencias',  label: 'Ocorrências',    icon: AlertTriangle },
   { path: '/admin/financeiro',   label: 'Financeiro',     icon: DollarSign },

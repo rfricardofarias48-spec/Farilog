@@ -5,7 +5,7 @@ import {
   fetchEscalasByLider, fetchAjudantesDisponiveis,
   upsertRelatorioDiario, fetchOcorrencias, createOcorrencia,
   createEscalaByLider, addRegistroToEscala, updateEscalaByLider,
-  createTarefaRH, fetchEmpresasDoLider, fetchRelatoriosDiarios,
+  fetchEmpresasDoLider, fetchRelatoriosDiarios,
   uploadFotoRelatorio, fetchTodosAjudantes, createSolicitacaoAjudantes,
   fetchTarefasParaLider, concluirTarefaAdmin,
 } from '../../lib/db';
@@ -234,8 +234,6 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
 
   const [modalSubst, setModalSubst]   = useState(false);
   const [ocorrencias, setOcorrencias] = useState([]);
-  const [solicitandoRH, setSolicitandoRH] = useState(false);
-  const [rhOk, setRhOk]               = useState(false);
 
   const confirmados = ajudantes.filter(a => ['confirmado','finalizado'].includes(a.status)).length;
   const ausentes    = ajudantes.filter(a => a.status === 'falta').length;
@@ -253,18 +251,6 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
     }
   }, [todayEscala?.id, confirmados, ausentes]);
 
-  const handleSolicitarRH = async () => {
-    setSolicitandoRH(true);
-    await createTarefaRH({
-      tipo: `Solicitação urgente de ajudante — ${user.companyName || 'operação'}`,
-      descricao: `Líder ${user.name} reportou banco insuficiente em ${fmtDate(TODAY)}. ${ausentes} falta(s) na escala.`,
-      prioridade: 'alta',
-    });
-    setSolicitandoRH(false);
-    setRhOk(true);
-    setTimeout(() => setRhOk(false), 4000);
-  };
-
   return (
     <div className="space-y-5">
 
@@ -276,18 +262,12 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
             <p style={{ fontSize: '13px', fontWeight: 700, color: '#E11D48' }}>
               {ausentes} falta{ausentes !== 1 ? 's' : ''} detectada{ausentes !== 1 ? 's' : ''}
             </p>
-            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px' }}>Acione substituto ou avise o RH</p>
+            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px' }}>Acione um substituto</p>
           </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button onClick={() => setModalSubst(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer' }}>
-              <RefreshCw size={11} /> Substituto
-            </button>
-            <button onClick={handleSolicitarRH} disabled={solicitandoRH || rhOk}
-              style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: rhOk ? '#059669' : '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', opacity: solicitandoRH ? 0.6 : 1 }}>
-              <Send size={11} /> {rhOk ? 'Enviado!' : 'Avisar RH'}
-            </button>
-          </div>
+          <button onClick={() => setModalSubst(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer' }}>
+            <RefreshCw size={11} /> Substituto
+          </button>
         </div>
       )}
 
@@ -1304,8 +1284,8 @@ function ModalSolicitarAjudantes({ user, onClose }) {
       <div className="modal-box animate-fade-up" style={{ maxWidth: '460px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <div>
-            <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>Solicitar Ajudantes ao RH</p>
-            <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px' }}>O RH receberá sua solicitação para recrutamento</p>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>Solicitar Mais Ajudantes</p>
+            <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px' }}>O admin receberá sua solicitação</p>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
         </div>

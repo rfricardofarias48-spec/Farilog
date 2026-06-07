@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createTarefaAdmin, fetchTodasTarefasAdmin, fetchLideres } from '../../lib/db';
-import { Plus, X, CheckCircle2, Circle, Clock, Users, User, Briefcase } from 'lucide-react';
+import { Plus, X, CheckCircle2, Circle, Clock, Users, User } from 'lucide-react';
 
 const PRIORIDADE = {
   alta:   { label: 'Alta',   color: '#E11D48', bg: '#FFE4E6' },
@@ -9,9 +9,8 @@ const PRIORIDADE = {
 };
 
 const DEST_TIPOS = [
-  { value: 'rh',           label: 'RH',                icon: Briefcase },
-  { value: 'todos_lideres',label: 'Todos os Líderes',  icon: Users     },
-  { value: 'lider',        label: 'Líder específico',  icon: User      },
+  { value: 'todos_lideres', label: 'Todos os Líderes', icon: Users },
+  { value: 'lider',         label: 'Líder específico', icon: User  },
 ];
 
 function fmtDate(iso) {

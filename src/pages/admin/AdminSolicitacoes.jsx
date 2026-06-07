@@ -3,9 +3,9 @@ import { fetchSolicitacoesAjudantes, updateStatusSolicitacao } from '../../lib/d
 import { Users, MapPin, Briefcase, Hash, Clock, CheckCircle2, RefreshCw } from 'lucide-react';
 
 const STATUS_CFG = {
-  pendente:      { label: 'Pendente',      color: '#D97706', bg: '#FEF3C7' },
-  em_andamento:  { label: 'Em andamento',  color: '#2563EB', bg: '#DBEAFE' },
-  concluido:     { label: 'Concluído',     color: '#059669', bg: '#DCFCE7' },
+  pendente:     { label: 'Pendente',      color: '#D97706', bg: '#FEF3C7' },
+  em_andamento: { label: 'Em andamento',  color: '#2563EB', bg: '#DBEAFE' },
+  concluido:    { label: 'Concluído',     color: '#059669', bg: '#DCFCE7' },
 };
 
 function fmtDateTime(iso) {
@@ -13,7 +13,7 @@ function fmtDateTime(iso) {
   return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export default function RHSolicitacoes() {
+export default function AdminSolicitacoes() {
   const [solicitacoes, setSolicitacoes] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [filtro, setFiltro]             = useState('todos');
@@ -30,9 +30,7 @@ export default function RHSolicitacoes() {
     load();
   };
 
-  const filtradas = filtro === 'todos'
-    ? solicitacoes
-    : solicitacoes.filter(s => s.status === filtro);
+  const filtradas = filtro === 'todos' ? solicitacoes : solicitacoes.filter(s => s.status === filtro);
 
   const counts = {
     pendente:     solicitacoes.filter(s => s.status === 'pendente').length,
@@ -44,15 +42,15 @@ export default function RHSolicitacoes() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>Solicitações de Ajudantes</h1>
-        <p className="text-sm mt-1" style={{ color: '#94A3B8' }}>Pedidos enviados pelos líderes de equipe para recrutamento</p>
+        <p className="text-sm mt-1" style={{ color: '#94A3B8' }}>Pedidos enviados pelos líderes de equipe</p>
       </div>
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
         {[
-          { key: 'pendente',     label: 'Pendentes',      color: '#D97706' },
-          { key: 'em_andamento', label: 'Em andamento',   color: '#2563EB' },
-          { key: 'concluido',    label: 'Concluídos',     color: '#059669' },
+          { key: 'pendente',     label: 'Pendentes',     color: '#D97706' },
+          { key: 'em_andamento', label: 'Em andamento',  color: '#2563EB' },
+          { key: 'concluido',    label: 'Concluídos',    color: '#059669' },
         ].map(k => (
           <div key={k.key} className="card" style={{ padding: '16px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.07)' }}>
             <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '6px' }}>{k.label}</p>
@@ -71,7 +69,6 @@ export default function RHSolicitacoes() {
         ))}
       </div>
 
-      {/* Lista */}
       {loading ? (
         <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
           <p style={{ color: '#94A3B8', fontSize: '13px' }}>Carregando...</p>
@@ -79,7 +76,7 @@ export default function RHSolicitacoes() {
       ) : filtradas.length === 0 ? (
         <div className="card" style={{ padding: '64px', textAlign: 'center' }}>
           <Users size={32} style={{ color: '#CBD5E1', margin: '0 auto 12px' }} />
-          <p style={{ color: '#94A3B8', fontSize: '14px' }}>Nenhuma solicitação {filtro !== 'todos' ? 'neste status' : 'ainda'}</p>
+          <p style={{ color: '#94A3B8', fontSize: '14px' }}>Nenhuma solicitação</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -88,11 +85,9 @@ export default function RHSolicitacoes() {
             return (
               <div key={sol.id} className="card p-5">
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '14px' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '8px', background: cfg.bg, color: cfg.color }}>
-                        {cfg.label}
-                      </span>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '8px', background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
                       <span style={{ fontSize: '12px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Clock size={11} /> {fmtDateTime(sol.criadoEm)}
                       </span>
@@ -103,26 +98,19 @@ export default function RHSolicitacoes() {
                   </div>
                 </div>
 
-                {/* Detalhes */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px', marginBottom: sol.observacoes ? '12px' : 0 }}>
-                  <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <MapPin size={10} /> Cidade
-                    </p>
-                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{sol.cidade}</p>
-                  </div>
-                  <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Briefcase size={10} /> Função
-                    </p>
-                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{sol.funcao}</p>
-                  </div>
-                  <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Hash size={10} /> Quantidade
-                    </p>
-                    <p style={{ fontSize: '24px', fontWeight: 800, color: '#FF4D0C', lineHeight: 1 }}>{sol.quantidade}</p>
-                  </div>
+                  {[
+                    { icon: MapPin,    label: 'Cidade',    value: sol.cidade },
+                    { icon: Briefcase, label: 'Função',    value: sol.funcao },
+                    { icon: Hash,      label: 'Quantidade', value: sol.quantidade, big: true },
+                  ].map(({ icon: Icon, label, value, big }) => (
+                    <div key={label} style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Icon size={10} /> {label}
+                      </p>
+                      <p style={{ fontSize: big ? '24px' : '14px', fontWeight: 700, color: big ? '#FF4D0C' : '#0F172A', lineHeight: 1 }}>{value}</p>
+                    </div>
+                  ))}
                 </div>
 
                 {sol.observacoes && (
@@ -131,7 +119,6 @@ export default function RHSolicitacoes() {
                   </p>
                 )}
 
-                {/* Ações de status */}
                 {sol.status !== 'concluido' && (
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {sol.status === 'pendente' && (

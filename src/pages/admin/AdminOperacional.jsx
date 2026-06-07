@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { fetchTodayAllRecords, fetchWorkRecordsByPeriod, fetchPresencaEquipeHoje, createTarefaRH } from '../../lib/db';
+import { fetchTodayAllRecords, fetchWorkRecordsByPeriod, fetchPresencaEquipeHoje } from '../../lib/db';
 import { fmtCurrency, fmtDate } from '../../data/mockData';
 import AdminDemanda from './AdminDemanda';
 import jsPDF from 'jspdf';
@@ -59,62 +59,10 @@ function getPeriodBounds(period, offset) {
 // ── RESUMO DO DIA ──────────────────────────────────────────────────────────
 const DOW_PT = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
 
-function ModalTarefa({ onClose, onSaved }) {
-  const [form, setForm] = useState({ tipo: '', descricao: '', prioridade: 'normal' });
-  const [saving, setSaving] = useState(false);
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.tipo.trim()) return;
-    setSaving(true);
-    await createTarefaRH({ tipo: form.tipo, descricao: form.descricao, prioridade: form.prioridade });
-    setSaving(false);
-    onSaved();
-  };
-  return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-box animate-fade-up" style={{ maxWidth: '420px' }}>
-        <div className="flex items-center justify-between mb-4">
-          <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Enviar tarefa ao RH</p>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Título *</label>
-            <input className="input-field" required value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))} />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Descrição</label>
-            <textarea className="input-field" rows={3} value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} style={{ resize: 'none' }} />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '6px' }}>Prioridade</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {[['alta','Alta','#E11D48','#FFE4E6'],['normal','Normal','#D97706','#FEF3C7'],['baixa','Baixa','#64748B','#F1F5F9']].map(([v,l,c,bg]) => (
-                <button key={v} type="button" onClick={() => setForm(f => ({ ...f, prioridade: v }))}
-                  style={{ flex: 1, padding: '8px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', border: form.prioridade === v ? `2px solid ${c}` : '2px solid transparent', background: form.prioridade === v ? bg : '#F8FAFC', color: form.prioridade === v ? c : '#94A3B8' }}>
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: '10px', background: '#F1F5F9', color: '#64748B', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
-            <button type="submit" disabled={saving} style={{ flex: 2, padding: '10px', borderRadius: '10px', background: saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700 }}>
-              {saving ? 'Enviando...' : 'Enviar tarefa'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 function ResumoDia() {
   const { demands, companies, employees } = useAuth();
   const [records, setRecords]       = useState([]);
   const [presenca, setPresenca]     = useState([]);
-  const [modalTarefa, setModalTarefa] = useState(false);
-  const [tarefaOk, setTarefaOk]    = useState(false);
 
   useEffect(() => {
     fetchTodayAllRecords(TODAY).then(setRecords);
@@ -271,27 +219,6 @@ function ResumoDia() {
         </div>
       )}
 
-      {/* Enviar tarefa ao RH */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button onClick={() => setModalTarefa(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, background: '#111827', color: 'white', border: 'none', cursor: 'pointer' }}>
-          <Plus size={14} /> Enviar tarefa ao RH
-        </button>
-      </div>
-
-      {tarefaOk && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', borderRadius: '10px', background: '#DCFCE7' }}>
-          <CheckCircle2 size={15} style={{ color: '#059669' }} />
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#059669' }}>Tarefa enviada ao RH com sucesso!</p>
-        </div>
-      )}
-
-      {modalTarefa && (
-        <ModalTarefa
-          onClose={() => setModalTarefa(false)}
-          onSaved={() => { setModalTarefa(false); setTarefaOk(true); setTimeout(() => setTarefaOk(false), 3000); }}
-        />
-      )}
     </div>
   );
 }

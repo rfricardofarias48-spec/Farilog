@@ -560,40 +560,6 @@ export async function upsertLiderEmpresas(liderId, empresaIds) {
   if (error) { console.error('[db] upsertLiderEmpresas:', error.message); }
 }
 
-// ── Usuários RH ───────────────────────────────────────────────────────────
-
-export async function fetchRHUsers() {
-  const { data, error } = await supabase.from('usuarios_rh').select('*').order('nome');
-  if (error) { console.error('[db] fetchRHUsers:', error.message); return []; }
-  return data.map(r => ({ ...r, name: r.nome, initials: r.iniciais }));
-}
-
-export async function createRHUser(rh) {
-  const { data, error } = await supabase
-    .from('usuarios_rh')
-    .insert({ id: crypto.randomUUID(), nome: rh.name, email: rh.email, senha: rh.password, iniciais: rh.initials })
-    .select().single();
-  if (error) { console.error('[db] createRHUser:', error.message); return null; }
-  return { ...data, name: data.nome, initials: data.iniciais };
-}
-
-export async function updateRHUser(id, patch) {
-  const p = {};
-  if (patch.name     !== undefined) p.nome     = patch.name;
-  if (patch.email    !== undefined) p.email    = patch.email;
-  if (patch.password !== undefined) p.senha    = patch.password;
-  if (patch.initials !== undefined) p.iniciais = patch.initials;
-  const { error } = await supabase.from('usuarios_rh').update(p).eq('id', id);
-  if (error) { console.error('[db] updateRHUser:', error.message); return false; }
-  return true;
-}
-
-export async function deleteRHUser(id) {
-  const { error } = await supabase.from('usuarios_rh').delete().eq('id', id);
-  if (error) { console.error('[db] deleteRHUser:', error.message); return false; }
-  return true;
-}
-
 // ── Ocorrências ───────────────────────────────────────────────────────────
 
 export async function fetchOcorrencias(filters = {}) {
@@ -654,104 +620,7 @@ export async function uploadFotoRelatorio(file, liderId) {
   return data.publicUrl;
 }
 
-// ── Tarefas RH ────────────────────────────────────────────────────────────
-
-export async function fetchTarefasRH() {
-  const { data, error } = await supabase
-    .from('tarefas_rh')
-    .select('*')
-    .order('criado_em', { ascending: false });
-  if (error) { console.error('[db] fetchTarefasRH:', error.message); return []; }
-  return data;
-}
-
-export async function createTarefaRH(tarefa) {
-  const { error } = await supabase
-    .from('tarefas_rh')
-    .insert({ id: crypto.randomUUID(), tipo: tarefa.tipo, descricao: tarefa.descricao, referencia_id: tarefa.referenciaId || null, prioridade: tarefa.prioridade || 'normal' });
-  if (error) { console.error('[db] createTarefaRH:', error.message); }
-}
-
-export async function concluirTarefaRH(id) {
-  const { error } = await supabase.from('tarefas_rh').update({ status: 'concluido' }).eq('id', id);
-  if (error) { console.error('[db] concluirTarefaRH:', error.message); }
-}
-
-// ── Candidatos (Recrutamento) ─────────────────────────────────────────────
-
-export async function fetchCandidatos() {
-  const { data, error } = await supabase.from('candidatos').select('*').order('criado_em', { ascending: false });
-  if (error) { console.error('[db] fetchCandidatos:', error.message); return []; }
-  return data || [];
-}
-
-export async function createCandidato(c) {
-  const { error } = await supabase.from('candidatos').insert({ nome: c.nome, telefone: c.telefone || '', cidade: c.cidade || '', funcao: c.funcao || '', observacoes: c.observacoes || '' });
-  if (error) { console.error('[db] createCandidato:', error.message); return false; }
-  return true;
-}
-
-export async function updateCandidatoStatus(id, status, obs) {
-  const patch = { status };
-  if (obs !== undefined) patch.observacoes = obs;
-  const { error } = await supabase.from('candidatos').update(patch).eq('id', id);
-  if (error) { console.error('[db] updateCandidatoStatus:', error.message); }
-}
-
-// ── Banco melhorado ───────────────────────────────────────────────────────
-
-export async function fetchEmployeesRH() {
-  const { data, error } = await supabase
-    .from('funcionarios')
-    .select('id, nome, iniciais, cor, status, cargo, cidade, data_contratacao, diaria, hora_extra, vr, vt, uniforme_entregue, cracha_entregue, motivo_afastamento')
-    .order('nome');
-  if (error) { console.error('[db] fetchEmployeesRH:', error.message); return []; }
-  return (data || []).map(r => ({
-    id: r.id, name: r.nome, initials: r.iniciais, color: r.cor, status: r.status,
-    cargo: r.cargo, cidade: r.cidade || '', dataContratacao: r.data_contratacao,
-    dailyRate: Number(r.diaria), overtimeRate: Number(r.hora_extra),
-    vr: Number(r.vr || 0), vt: Number(r.vt || 0),
-    uniformeEntregue: r.uniforme_entregue, crachaEntregue: r.cracha_entregue,
-    motivoAfastamento: r.motivo_afastamento || '',
-  }));
-}
-
-export async function toggleEmployeeStatus(id, status, motivo) {
-  const patch = { status };
-  if (motivo !== undefined) patch.motivo_afastamento = motivo;
-  const { error } = await supabase.from('funcionarios').update(patch).eq('id', id);
-  if (error) { console.error('[db] toggleEmployeeStatus:', error.message); }
-}
-
-export async function updateEmployeeChecklist(id, field, value) {
-  const { error } = await supabase.from('funcionarios').update({ [field]: value }).eq('id', id);
-  if (error) { console.error('[db] updateEmployeeChecklist:', error.message); }
-}
-
-// ── Folha ─────────────────────────────────────────────────────────────────
-
-export async function fetchFechamentosfolha() {
-  const { data, error } = await supabase.from('fechamentos_folha').select('*').order('criado_em', { ascending: false });
-  if (error) { console.error('[db] fetchFechamentosfolha:', error.message); return []; }
-  return data || [];
-}
-
-export async function createFechamentoFolha(f) {
-  const { error } = await supabase.from('fechamentos_folha').insert({
-    periodo: f.periodo, total_diarias: f.totalDiarias, total_he: f.totalHe, valor_total: f.valorTotal,
-  });
-  if (error) { console.error('[db] createFechamentoFolha:', error.message); return false; }
-  return true;
-}
-
-export async function aprovarFechamento(id) {
-  const { error } = await supabase.from('fechamentos_folha')
-    .update({ ok_rh: true, status: 'aprovado', fechado_em: new Date().toISOString() })
-    .eq('id', id);
-  if (error) { console.error('[db] aprovarFechamento:', error.message); }
-}
-
-// ── Tarefas do Admin → Líder / RH ────────────────────────────────────────
+// ── Tarefas do Admin → Líder ─────────────────────────────────────────────
 
 export async function createTarefaAdmin({ titulo, descricao, prioridade, destinatarioTipo, destinatarioId }) {
   const { error } = await supabase.from('tarefas').insert({
@@ -772,16 +641,6 @@ export async function fetchTarefasParaLider(liderId) {
   return data || [];
 }
 
-export async function fetchTarefasParaRH() {
-  const { data, error } = await supabase
-    .from('tarefas')
-    .select('*')
-    .eq('destinatario_tipo', 'rh')
-    .order('criado_em', { ascending: false });
-  if (error) { console.error('[db] fetchTarefasParaRH:', error.message); return []; }
-  return data || [];
-}
-
 export async function fetchTodasTarefasAdmin() {
   const { data, error } = await supabase
     .from('tarefas')
@@ -790,8 +649,7 @@ export async function fetchTodasTarefasAdmin() {
   if (error) { console.error('[db] fetchTodasTarefasAdmin:', error.message); return []; }
   return (data || []).map(t => ({
     ...t,
-    destinatarioNome: t.destinatario_tipo === 'rh' ? 'RH'
-      : t.destinatario_tipo === 'todos_lideres' ? 'Todos os Líderes'
+    destinatarioNome: t.destinatario_tipo === 'todos_lideres' ? 'Todos os Líderes'
       : t['lideres_equipe']?.nome || '—',
   }));
 }
@@ -803,7 +661,7 @@ export async function concluirTarefaAdmin(id) {
   if (error) { console.error('[db] concluirTarefaAdmin:', error.message); }
 }
 
-// ── Solicitações de Ajudantes (Líder → RH) ───────────────────────────────
+// ── Solicitações de Ajudantes (Líder → Admin) ────────────────────────────
 
 export async function createSolicitacaoAjudantes({ liderId, cidade, funcao, quantidade, observacoes }) {
   const { error } = await supabase.from('solicitacoes_ajudantes').insert({

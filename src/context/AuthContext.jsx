@@ -1,9 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import {
-  loginAdmin, loginEmployee, loginCompany, loginLider, loginRH,
+  loginAdmin, loginEmployee, loginCompany, loginLider,
   fetchEmployees, fetchCompanies, fetchDemands,
   createDemand, updateDemandEmployeeStatus, deleteDemand, editDemand,
-  fetchTarefasRH, createTarefaRH, concluirTarefaRH,
 } from '../lib/db';
 
 const AuthContext = createContext(null);
@@ -28,7 +27,6 @@ export function AuthProvider({ children }) {
   const addDemand = async ({ companyId, date, time, service, employeeIds }) => {
     const saved = await createDemand({ companyId, date, time, service, employeeIds, adminId: user?.id ?? null });
     if (saved) {
-      // attach companyName for display
       const company = companies.find(c => c.id === companyId);
       setDemands(prev => [{ ...saved, companyName: company?.name }, ...prev]);
     }
@@ -92,9 +90,6 @@ export function AuthProvider({ children }) {
     const lider = await loginLider(email, password);
     if (lider) { setUser({ role: 'lider', ...lider }); return { success: true, role: 'lider' }; }
 
-    const rh = await loginRH(email, password);
-    if (rh) { setUser({ role: 'rh', ...rh }); return { success: true, role: 'rh' }; }
-
     return { success: false, error: 'E-mail ou senha inválidos' };
   };
 
@@ -106,7 +101,6 @@ export function AuthProvider({ children }) {
       employees, setEmployees,
       companies, setCompanies,
       demands, addDemand, updateDemandStatus, removeDemand, changeDemand,
-      createTarefaRH, concluirTarefaRH, fetchTarefasRH,
     }}>
       {children}
     </AuthContext.Provider>
