@@ -1064,3 +1064,18 @@ export async function fetchLancamentos(start, end) {
   if (error) { console.error('[db] fetchLancamentos:', error.message); return []; }
   return data || [];
 }
+
+export async function createLancamentoManual({ tipo, descricao, valor, dataVencimento }) {
+  const { data, error } = await supabase
+    .from('financeiro_lancamentos')
+    .insert({ id: crypto.randomUUID(), tipo, descricao, valor, data_vencimento: dataVencimento, origem_tipo: 'manual' })
+    .select().single();
+  if (error) { console.error('[db] createLancamentoManual:', error.message); return null; }
+  return data;
+}
+
+export async function deleteLancamento(id) {
+  const { error } = await supabase.from('financeiro_lancamentos').delete().eq('id', id);
+  if (error) { console.error('[db] deleteLancamento:', error.message); return false; }
+  return true;
+}

@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   fetchWorkRecordsByPeriod, fetchLancamentos,
   fetchDividas, createDivida, deleteDivida,
   fetchCustosFixos, createCustoFixo, deleteCustoFixo,
+  createLancamentoManual, deleteLancamento,
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
 import {
@@ -14,7 +16,8 @@ import {
 import {
   DollarSign, TrendingUp, TrendingDown, Percent,
   ChevronLeft, ChevronRight, ChevronDown,
-  Plus, Trash2, BarChart2, CreditCard, FileText, Wallet, Building2,
+  Plus, Trash2, BarChart2, CreditCard, FileText, Wallet, Building2, X,
+  Maximize2,
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -98,9 +101,12 @@ function buildChartData(type, start, end, records, lancamentos) {
 
   return buckets.map(b => {
     const match = (date) => isDay ? date === b.key : date.startsWith(b.key);
-    const aReceber = records.filter(r => r.status !== 'absent' && match(r.date))
-      .reduce((s, r) => s + Number(r.value || 0), 0);
-    const aPagar = lancamentos.filter(l => match(l.data_vencimento))
+    const aReceber =
+      records.filter(r => r.status !== 'absent' && match(r.date))
+        .reduce((s, r) => s + Number(r.value || 0), 0) +
+      lancamentos.filter(l => l.tipo === 'a_receber' && match(l.data_vencimento))
+        .reduce((s, l) => s + Number(l.valor || 0), 0);
+    const aPagar = lancamentos.filter(l => l.tipo === 'a_pagar' && match(l.data_vencimento))
       .reduce((s, l) => s + Number(l.valor || 0), 0);
     return { ...b, aReceber, aPagar, saldo: aReceber - aPagar };
   });
@@ -293,9 +299,78 @@ function TabVisaoGeral({ records, lancamentos, employees }) {
   );
 }
 
+// ── Modal lista completa ───────────────────────────────────────────────────
+function ListModal({ title, items, onDelete, onClose }) {
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  const isRec = title === 'A Receber';
+
+  return createPortal(
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '680px', maxHeight: '84vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', background: '#1E293B', borderRadius: '20px 20px 0 0' }}>
+          <div>
+            <p style={{ fontSize: '15px', fontWeight: 700, color: '#F1F5F9' }}>{title}</p>
+            <p style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>{items.length} lançamento{items.length !== 1 ? 's' : ''}</p>
+          </div>
+          <button onClick={onClose} style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={15} />
+          </button>
+        </div>
+        {/* Cabeçalho tabela */}
+        <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px 40px', padding: '9px 24px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
+          <span>Data</span><span>Descrição</span><span>Origem</span><span style={{ textAlign: 'right' }}>Valor</span><span />
+        </div>
+        {/* Lista */}
+        <div style={{ overflowY: 'auto', flex: 1 }}>
+          {items.length === 0 ? (
+            <div style={{ padding: '48px', textAlign: 'center' }}>
+              <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Nenhum lançamento</p>
+            </div>
+          ) : items.map((item, idx) => {
+            const [yr, mo, dd] = item.date.split('-');
+            return (
+              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px 40px', padding: '12px 24px', borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>{dd}/{mo}/{yr.slice(2)}</span>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.descricao}</span>
+                <span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: isRec ? '#F0FDF4' : '#FFF1F2', color: isRec ? '#059669' : '#E11D48' }}>
+                    {item.origem}
+                  </span>
+                </span>
+                <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: isRec ? '#059669' : '#E11D48' }}>
+                  {isRec ? '+' : '−'}{fmtCurrency(item.valor)}
+                </span>
+                <span style={{ display: 'flex', justifyContent: 'center' }}>
+                  {item.isManual && onDelete ? (
+                    <button onClick={() => onDelete(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CBD5E1', display: 'flex', padding: '2px' }}>
+                      <Trash2 size={13} />
+                    </button>
+                  ) : null}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ── Tab: Fluxo de Caixa ────────────────────────────────────────────────────
-function TabFluxoCaixa({ records, lancamentos, type: periodType, bounds, companies }) {
-  const [view, setView] = useState('all');
+function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType, bounds, companies }) {
+  const [view,     setView]     = useState('all');
+  const [modal,    setModal]    = useState(null); // 'receber' | 'pagar'
+  const [showForm, setShowForm] = useState(false);
+  const [saving,   setSaving]   = useState(false);
+  const [form, setForm] = useState({ tipo: 'a_pagar', descricao: '', valor: '', data: TODAY_ISO });
 
   const chartData = useMemo(
     () => buildChartData(periodType, bounds.start, bounds.end, records, lancamentos),
@@ -303,7 +378,11 @@ function TabFluxoCaixa({ records, lancamentos, type: periodType, bounds, compani
   );
   const hasChart = chartData.some(b => b.aReceber > 0 || b.aPagar > 0);
 
-  // a_receber: group registros by date + company
+  // Barras: mais grossas conforme período
+  const barSize = { quinzenal: 20, mensal: 12, semestral: 40, anual: 24 }[periodType] ?? 16;
+  const xInterval = periodType === 'mensal' ? 2 : 0;
+
+  // a_receber: registros agrupados + manuais
   const recGroups = useMemo(() => {
     const map = {};
     records.filter(r => r.status !== 'absent').forEach(r => {
@@ -312,104 +391,207 @@ function TabFluxoCaixa({ records, lancamentos, type: periodType, bounds, compani
       map[key].valor += Number(r.value || 0);
       map[key].count++;
     });
-    return Object.values(map).sort((a, b) => a.date.localeCompare(b.date));
-  }, [records]);
+    const fromRecs = Object.values(map).map(g => {
+      const co = companies?.find(c => c.id === g.companyId);
+      return { date: g.date, descricao: `${co?.name || g.companyId} — ${g.count} ajudante${g.count !== 1 ? 's' : ''}`, origem: 'Serviço', valor: g.valor, tipo: 'a_receber', isManual: false };
+    });
+    const fromManual = lancamentos
+      .filter(l => l.tipo === 'a_receber')
+      .map(l => ({ date: l.data_vencimento, descricao: l.descricao, origem: 'Manual', valor: Number(l.valor || 0), tipo: 'a_receber', isManual: true, id: l.id }));
+    return [...fromRecs, ...fromManual].sort((a, b) => a.date.localeCompare(b.date));
+  }, [records, lancamentos, companies]);
 
-  const pagItems = useMemo(
-    () => [...lancamentos].sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento)),
+  const pagItems = useMemo(() =>
+    lancamentos.filter(l => l.tipo === 'a_pagar').map(l => ({
+      date: l.data_vencimento, descricao: l.descricao,
+      origem: l.origem_tipo === 'divida' ? 'Dívida' : l.origem_tipo === 'custo_fixo' ? 'Custo Fixo' : 'Manual',
+      valor: Number(l.valor || 0), tipo: 'a_pagar', isManual: l.origem_tipo === 'manual', id: l.id,
+    })).sort((a, b) => a.date.localeCompare(b.date)),
     [lancamentos]
   );
 
   const totalRec = recGroups.reduce((s, g) => s + g.valor, 0);
-  const totalPag = pagItems.reduce((s, l) => s + Number(l.valor || 0), 0);
+  const totalPag = pagItems.reduce((s, l) => s + l.valor, 0);
+
+  // Lista exibida inline (limitada a 8 itens)
+  const inlineItems = useMemo(() => {
+    const items = [];
+    if (view !== 'pagar')   items.push(...recGroups);
+    if (view !== 'receber') items.push(...pagItems);
+    return items.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8);
+  }, [view, recGroups, pagItems]);
+
+  const handleSave = async () => {
+    if (!form.descricao || !form.valor || !form.data) return;
+    setSaving(true);
+    const l = await createLancamentoManual({ tipo: form.tipo, descricao: form.descricao, valor: Number(form.valor), dataVencimento: form.data });
+    if (l) {
+      setLancamentos(prev => [...prev, l].sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento)));
+      setForm({ tipo: 'a_pagar', descricao: '', valor: '', data: TODAY_ISO });
+      setShowForm(false);
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id) => {
+    await deleteLancamento(id);
+    setLancamentos(prev => prev.filter(l => l.id !== id));
+  };
+
+  const modalItems = modal === 'receber' ? recGroups : pagItems;
 
   return (
     <div className="space-y-5">
-      {/* Totais rápidos */}
+      {/* Totais */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
         <KpiCard label="A Receber no Período" value={fmtCurrency(totalRec)} icon={TrendingUp}   color="#059669" bg="#F0FDF4" />
         <KpiCard label="A Pagar no Período"   value={fmtCurrency(totalPag)} icon={TrendingDown} color="#E11D48" bg="#FFF1F2" />
-        <KpiCard label="Saldo Projetado"       value={fmtCurrency(totalRec - totalPag)} icon={BarChart2}
+        <KpiCard label="Saldo Projetado" value={fmtCurrency(totalRec - totalPag)} icon={BarChart2}
           color={(totalRec - totalPag) >= 0 ? '#059669' : '#E11D48'}
           bg={(totalRec - totalPag) >= 0 ? '#F0FDF4' : '#FFF1F2'} />
       </div>
 
-      {/* Gráfico — sempre visível */}
+      {/* Gráfico */}
       <div className="card p-5">
         <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ fontSize: '13px', fontWeight: 700, ...T }}>Fluxo de Caixa</p>
-            <p style={{ fontSize: '11px', ...TM, marginTop: '2px' }}>Entradas vs. Saídas — {bounds.label}</p>
+            <p style={{ fontSize: '13px', fontWeight: 700, ...T }}>Fluxo de Caixa — {bounds.label}</p>
+            <p style={{ fontSize: '11px', ...TM, marginTop: '2px' }}>Entradas vs. Saídas por período</p>
           </div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
             {[['#059669','A Receber'],['#E11D48','A Pagar'],['#2563EB','Saldo']].map(([c, l]) => (
               <div key={l} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: c }} />
+                <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: c }} />
                 <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 500 }}>{l}</span>
               </div>
             ))}
           </div>
         </div>
         {!hasChart ? (
-          <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Sem dados no período</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <ComposedChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -10 }} barGap={2}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
-              <XAxis dataKey="label" tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false}
-                interval={periodType === 'mensal' ? 4 : 0} />
-              <YAxis tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false}
-                tickFormatter={v => v === 0 ? '' : `${(v / 1000).toFixed(0)}k`} />
-              <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
-              <Bar dataKey="aReceber" name="A Receber" fill="#059669" radius={[3,3,0,0]} barSize={7} opacity={0.85} />
-              <Bar dataKey="aPagar"   name="A Pagar"   fill="#E11D48" radius={[3,3,0,0]} barSize={7} opacity={0.85} />
-              <Line dataKey="saldo" name="Saldo" stroke="#2563EB" strokeWidth={2} dot={false} />
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: -10 }} barCategoryGap="28%">
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: '#94A3B8', fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                interval={xInterval}
+                height={30}
+              />
+              <YAxis
+                tick={{ fill: '#94A3B8', fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={v => v === 0 ? '' : `R$${(v / 1000).toFixed(0)}k`}
+              />
+              <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+              <Bar dataKey="aReceber" name="A Receber" fill="#059669" radius={[5,5,0,0]} barSize={barSize} />
+              <Bar dataKey="aPagar"   name="A Pagar"   fill="#E11D48" radius={[5,5,0,0]} barSize={barSize} />
+              <Line dataKey="saldo" name="Saldo" stroke="#2563EB" strokeWidth={2.5} dot={false} />
             </ComposedChart>
           </ResponsiveContainer>
         )}
       </div>
 
-      {/* Filtros da lista */}
-      <div>
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-          {[['all','Todos'],['receber','A Receber'],['pagar','A Pagar']].map(([v, l]) => (
-            <button key={v} onClick={() => setView(v)}
-              style={{
-                padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                fontSize: '12px', fontWeight: 600, transition: 'all 0.12s',
-                background: view === v ? (v === 'receber' ? '#F0FDF4' : v === 'pagar' ? '#FFF1F2' : '#0F172A') : '#F1F5F9',
-                color:      view === v ? (v === 'receber' ? '#059669' : v === 'pagar' ? '#E11D48' : 'white')    : '#64748B',
-              }}>{l}</button>
-          ))}
+      {/* Barra de ações */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+        {/* Filtros + Ver mais */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {/* Todos */}
+          <button onClick={() => setView('all')}
+            style={{ padding: '7px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'all' ? '#0F172A' : '#F1F5F9', color: view === 'all' ? 'white' : '#64748B' }}>
+            Todos
+          </button>
+
+          {/* A Receber + Ver mais */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <button onClick={() => setView('receber')}
+              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'receber' ? '#F0FDF4' : '#F1F5F9', color: view === 'receber' ? '#059669' : '#64748B' }}>
+              A Receber
+            </button>
+            <button onClick={() => setModal('receber')} title="Ver lista completa"
+              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: 'none', borderLeft: '1px solid rgba(0,0,0,0.07)', cursor: 'pointer', background: view === 'receber' ? '#F0FDF4' : '#F1F5F9', color: '#94A3B8', display: 'flex', alignItems: 'center' }}>
+              <Maximize2 size={11} />
+            </button>
+          </div>
+
+          {/* A Pagar + Ver mais */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <button onClick={() => setView('pagar')}
+              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'pagar' ? '#FFF1F2' : '#F1F5F9', color: view === 'pagar' ? '#E11D48' : '#64748B' }}>
+              A Pagar
+            </button>
+            <button onClick={() => setModal('pagar')} title="Ver lista completa"
+              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: 'none', borderLeft: '1px solid rgba(0,0,0,0.07)', cursor: 'pointer', background: view === 'pagar' ? '#FFF1F2' : '#F1F5F9', color: '#94A3B8', display: 'flex', alignItems: 'center' }}>
+              <Maximize2 size={11} />
+            </button>
+          </div>
         </div>
 
-        <div className="card overflow-hidden">
-          <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px', padding: '9px 16px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
-            <span>Data</span><span>Descrição</span><span>Origem</span><span style={{ textAlign: 'right' }}>Valor</span>
+        {/* Adicionar */}
+        <button onClick={() => setShowForm(v => !v)}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#FF4D0C', color: 'white', fontSize: '12px', fontWeight: 700 }}>
+          <Plus size={12} /> Adicionar
+        </button>
+      </div>
+
+      {/* Formulário de adição */}
+      {showForm && (
+        <div className="card p-4 space-y-4">
+          <p style={{ fontSize: '13px', fontWeight: 700, ...T }}>Novo Lançamento</p>
+          {/* Toggle tipo */}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {[['a_pagar','A Pagar','#E11D48','#FFF1F2'],['a_receber','A Receber','#059669','#F0FDF4']].map(([v, l, c, bg]) => (
+              <button key={v} onClick={() => setForm(f => ({...f, tipo: v}))}
+                style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, background: form.tipo === v ? bg : '#F8FAFC', color: form.tipo === v ? c : '#94A3B8' }}>
+                {l}
+              </button>
+            ))}
           </div>
-          {(() => {
-            const items = [];
-            if (view !== 'pagar') {
-              recGroups.forEach(g => {
-                const co = companies?.find(c => c.id === g.companyId);
-                items.push({ date: g.date, descricao: `${co?.name || g.companyId} — ${g.count} ajudante${g.count !== 1 ? 's' : ''}`, origem: 'A Receber', valor: g.valor, tipo: 'a_receber' });
-              });
-            }
-            if (view !== 'receber') {
-              pagItems.forEach(l => items.push({ date: l.data_vencimento, descricao: l.descricao, origem: l.origem_tipo === 'divida' ? 'Dívida' : l.origem_tipo === 'custo_fixo' ? 'Custo Fixo' : 'Manual', valor: Number(l.valor || 0), tipo: 'a_pagar' }));
-            }
-            items.sort((a, b) => a.date.localeCompare(b.date));
-            if (items.length === 0) return (
-              <div style={{ padding: '48px', textAlign: 'center' }}>
-                <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Nenhum lançamento no período</p>
-              </div>
-            );
-            return items.map((item, idx) => {
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 140px', gap: '10px' }}>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '5px' }}>Descrição</label>
+              <input className="input-field" placeholder="Ex: Pagamento fornecedor" value={form.descricao} onChange={e => setForm(f => ({...f, descricao: e.target.value}))} />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '5px' }}>Valor (R$)</label>
+              <input className="input-field" type="number" min="0" step="0.01" placeholder="0,00" value={form.valor} onChange={e => setForm(f => ({...f, valor: e.target.value}))} />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '5px' }}>Data</label>
+              <input className="input-field" type="date" value={form.data} onChange={e => setForm(f => ({...f, data: e.target.value}))} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: '9px', borderRadius: '9px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '12px', fontWeight: 600 }}>Cancelar</button>
+            <button onClick={handleSave} disabled={saving || !form.descricao || !form.valor}
+              style={{ flex: 2, padding: '9px', borderRadius: '9px', border: 'none', cursor: 'pointer', background: saving || !form.descricao || !form.valor ? '#E2E8F0' : '#FF4D0C', color: saving || !form.descricao || !form.valor ? '#94A3B8' : 'white', fontSize: '12px', fontWeight: 700 }}>
+              {saving ? 'Salvando...' : 'Salvar Lançamento'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Lista inline (preview — máx 8 itens) */}
+      <div className="card overflow-hidden">
+        <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px', padding: '9px 16px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
+          <span>Data</span><span>Descrição</span><span>Origem</span><span style={{ textAlign: 'right' }}>Valor</span>
+        </div>
+        {inlineItems.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Nenhum lançamento no período</p>
+          </div>
+        ) : (
+          <>
+            {inlineItems.map((item, idx) => {
               const [yr, mo, dd] = item.date.split('-');
               return (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px', padding: '11px 16px', borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px' }}>
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px', padding: '11px 16px', borderBottom: idx < inlineItems.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>{dd}/{mo}/{yr.slice(2)}</span>
                   <span style={{ fontSize: '13px', fontWeight: 600, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.descricao}</span>
                   <span>
@@ -422,10 +604,29 @@ function TabFluxoCaixa({ records, lancamentos, type: periodType, bounds, compani
                   </span>
                 </div>
               );
-            });
-          })()}
-        </div>
+            })}
+            {/* Rodapé com total de itens ocultos */}
+            {(view !== 'pagar' ? recGroups : []).length + (view !== 'receber' ? pagItems : []).length > 8 && (
+              <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'center' }}>
+                <button onClick={() => setModal(view === 'all' ? 'receber' : view)}
+                  style={{ fontSize: '12px', fontWeight: 600, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  Ver lista completa →
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
+
+      {/* Modal Ver mais */}
+      {modal && (
+        <ListModal
+          title={modal === 'receber' ? 'A Receber' : 'A Pagar'}
+          items={modalItems}
+          onDelete={handleDelete}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -823,7 +1024,7 @@ export default function AdminFinanceiro() {
       ) : (
         <>
           {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} />}
-          {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} type={periodType} bounds={bounds} companies={companies} />}
+          {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} />}
           {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}
           {activeTab === 'dre'     && <TabDRE           records={records} lancamentos={lancamentos} employees={employees} bounds={bounds} />}
