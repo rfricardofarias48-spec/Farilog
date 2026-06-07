@@ -965,3 +965,102 @@ export async function fetchAjudantesSemPontoHoje(today) {
     funcionarioCor:  r.funcionarios?.cor || '#94A3B8',
   }));
 }
+
+// ── Financeiro ─────────────────────────────────────────────────────────────
+
+export async function fetchDividas() {
+  const { data, error } = await supabase
+    .from('financeiro_dividas').select('*').order('criado_em', { ascending: false });
+  if (error) { console.error('[db] fetchDividas:', error.message); return []; }
+  return data || [];
+}
+
+export async function createDivida({ nome, valorTotal, valorParcela, numParcelas, dataInicio }) {
+  const { data: divida, error } = await supabase
+    .from('financeiro_dividas')
+    .insert({ nome, valor_total: valorTotal, valor_parcela: valorParcela, num_parcelas: numParcelas, data_inicio: dataInicio })
+    .select().single();
+  if (error) { console.error('[db] createDivida:', error.message); return null; }
+
+  const [year, month, day] = dataInicio.split('-').map(Number);
+  const lancamentos = Array.from({ length: numParcelas }, (_, i) => {
+    let m = month - 1 + i, y = year;
+    while (m >= 12) { m -= 12; y++; }
+    const last = new Date(y, m + 1, 0).getDate();
+    const d    = String(Math.min(day, last)).padStart(2, '0');
+    return {
+      id: crypto.randomUUID(),
+      tipo: 'a_pagar',
+      descricao: `${nome} — Parcela ${i + 1}/${numParcelas}`,
+      valor: valorParcela,
+      data_vencimento: `${y}-${String(m + 1).padStart(2, '0')}-${d}`,
+      origem_tipo: 'divida',
+      origem_id: divida.id,
+    };
+  });
+  await supabase.from('financeiro_lancamentos').insert(lancamentos);
+  return divida;
+}
+
+export async function deleteDivida(id) {
+  await supabase.from('financeiro_lancamentos').delete().eq('origem_id', id).eq('origem_tipo', 'divida');
+  const { error } = await supabase.from('financeiro_dividas').delete().eq('id', id);
+  if (error) { console.error('[db] deleteDivida:', error.message); return false; }
+  return true;
+}
+
+export async function fetchCustosFixos() {
+  const { data, error } = await supabase
+    .from('financeiro_custos_fixos').select('*').order('criado_em', { ascending: false });
+  if (error) { console.error('[db] fetchCustosFixos:', error.message); return []; }
+  return data || [];
+}
+
+export async function createCustoFixo({ nome, valor, diaVencimento }) {
+  const { data: custo, error } = await supabase
+    .from('financeiro_custos_fixos')
+    .insert({ nome, valor, dia_vencimento: diaVencimento })
+    .select().single();
+  if (error) { console.error('[db] createCustoFixo:', error.message); return null; }
+
+  const today = new Date();
+  let startYear  = today.getFullYear();
+  let startMonth = today.getMonth(); // 0-indexed
+  if (diaVencimento < today.getDate()) { startMonth++; if (startMonth >= 12) { startMonth = 0; startYear++; } }
+
+  const lancamentos = Array.from({ length: 24 }, (_, i) => {
+    let m = startMonth + i, y = startYear;
+    while (m >= 12) { m -= 12; y++; }
+    const last = new Date(y, m + 1, 0).getDate();
+    const d    = String(Math.min(diaVencimento, last)).padStart(2, '0');
+    return {
+      id: crypto.randomUUID(),
+      tipo: 'a_pagar',
+      descricao: nome,
+      valor,
+      data_vencimento: `${y}-${String(m + 1).padStart(2, '0')}-${d}`,
+      origem_tipo: 'custo_fixo',
+      origem_id: custo.id,
+    };
+  });
+  await supabase.from('financeiro_lancamentos').insert(lancamentos);
+  return custo;
+}
+
+export async function deleteCustoFixo(id) {
+  await supabase.from('financeiro_lancamentos').delete().eq('origem_id', id).eq('origem_tipo', 'custo_fixo');
+  const { error } = await supabase.from('financeiro_custos_fixos').delete().eq('id', id);
+  if (error) { console.error('[db] deleteCustoFixo:', error.message); return false; }
+  return true;
+}
+
+export async function fetchLancamentos(start, end) {
+  const { data, error } = await supabase
+    .from('financeiro_lancamentos')
+    .select('*')
+    .gte('data_vencimento', start)
+    .lte('data_vencimento', end)
+    .order('data_vencimento');
+  if (error) { console.error('[db] fetchLancamentos:', error.message); return []; }
+  return data || [];
+}
