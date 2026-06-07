@@ -4,7 +4,7 @@ import { fmtDate } from '../../data/mockData';
 import { createEmployee, updateEmployee, deleteEmployee } from '../../lib/db';
 import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, KeyRound } from 'lucide-react';
 
-const EMPTY = { name: '', phone: '', email: '', dailyRate: 150, overtimeRate: 50, password: '', status: 'active', cidade: '' };
+const EMPTY = { name: '', phone: '', email: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0, password: '', status: 'active', cidade: '' };
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
@@ -18,8 +18,10 @@ function Modal({ employee, onSave, onClose }) {
     { key: 'phone',       label: 'Telefone',              required: true, placeholder: '(00) 00000-0000' },
     { key: 'email',       label: 'E-mail de acesso',      required: true, type: 'email' },
     { key: 'cidade',      label: 'Cidade/UF',             placeholder: 'Ex: Gravataí/RS' },
-    { key: 'dailyRate',   label: 'Valor da diária (R$)',  type: 'number', required: true },
-    { key: 'overtimeRate',label: 'Hora extra (R$)',        type: 'number', required: true },
+    { key: 'dailyRate',   label: 'Valor da diária (R$)',     type: 'number', required: true },
+    { key: 'overtimeRate',label: 'Hora extra (R$)',           type: 'number', required: true },
+    { key: 'vtDiario',    label: 'Vale Transporte/dia (R$)',  type: 'number', placeholder: '0,00' },
+    { key: 'vrDiario',    label: 'Vale Refeição/dia (R$)',    type: 'number', placeholder: '0,00' },
     ...(!employee ? [{ key: 'password', label: 'Senha', type: 'password', col: 2, required: true }] : []),
   ];
 
@@ -141,7 +143,7 @@ export default function AdminEmployees() {
       });
       if (saved) setEmployees(prev => [...prev, saved]);
     } else {
-      const patch = { ...form, dailyRate: Number(form.dailyRate), overtimeRate: Number(form.overtimeRate) };
+      const patch = { ...form, dailyRate: Number(form.dailyRate), overtimeRate: Number(form.overtimeRate), vtDiario: Number(form.vtDiario ?? 0), vrDiario: Number(form.vrDiario ?? 0) };
       if (!patch.password) delete patch.password;
       const saved = await updateEmployee(modal.id, patch);
       if (saved) setEmployees(prev => prev.map(e => e.id === modal.id ? saved : e));
