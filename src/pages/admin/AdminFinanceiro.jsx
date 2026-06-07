@@ -180,42 +180,118 @@ function PeriodSelector({ type, offset, bounds, onChangeType, onChangeOffset }) 
 }
 
 // ── Tab: Visão Geral ───────────────────────────────────────────────────────
-function TabVisaoGeral({ records, lancamentos, dividas, employees }) {
+function TabVisaoGeral({ records, lancamentos, employees }) {
   const active = records.filter(r => r.status !== 'absent');
-  const fat = active.reduce((s, r) => s + Number(r.value || 0), 0);
-  const custSvc = active.reduce((s, r) => {
-    const emp = employees.find(e => e.id === r.employeeId);
-    return s + Number(emp?.dailyRate ?? 0) + (r.overtime ? Number(emp?.overtimeRate ?? 50) : 0);
-  }, 0);
-  const aPagar        = lancamentos.reduce((s, l) => s + Number(l.valor || 0), 0);
-  const custoFixo     = lancamentos.filter(l => l.origem_tipo === 'custo_fixo').reduce((s, l) => s + Number(l.valor || 0), 0);
-  const endivPeriodo  = lancamentos.filter(l => l.origem_tipo === 'divida').reduce((s, l) => s + Number(l.valor || 0), 0);
-  const resultado     = fat - custSvc - aPagar;
-  const margem        = fat > 0 ? ((fat - custSvc) / fat) * 100 : 0;
-  const endivTotal    = dividas.reduce((s, d) => s + Number(d.valor_total || 0), 0);
 
-  const row1 = [
-    { label: 'Faturamento',          value: fmtCurrency(fat),       icon: DollarSign,   color: '#059669', bg: '#F0FDF4' },
-    { label: 'Contas a Receber',     value: fmtCurrency(fat),       icon: TrendingUp,   color: '#2563EB', bg: '#EFF6FF' },
-    { label: 'Contas a Pagar',       value: fmtCurrency(aPagar),    icon: TrendingDown, color: '#E11D48', bg: '#FFF1F2' },
-    { label: 'Resultado do Período', value: fmtCurrency(resultado), icon: BarChart2,
-      color: resultado >= 0 ? '#059669' : '#E11D48',
-      bg:    resultado >= 0 ? '#F0FDF4' : '#FFF1F2' },
-  ];
-  const row2 = [
-    { label: 'Margem de Contribuição', value: `${margem.toFixed(1)}%`,    icon: Percent,     color: '#7C3AED', bg: '#F5F3FF' },
-    { label: 'Custo Fixo no Período',  value: fmtCurrency(custoFixo),     icon: Building2,   color: '#D97706', bg: '#FFFBEB' },
-    { label: 'Endividamento Total',    value: fmtCurrency(endivTotal),    icon: CreditCard,  color: '#64748B', bg: '#F1F5F9',
-      sub: endivPeriodo > 0 ? `${fmtCurrency(endivPeriodo)} vence no período` : undefined },
+  const fat = active.reduce((s, r) => s + Number(r.value || 0), 0);
+
+  // Folha de pagamento (diárias) e benefícios (horas extras) separados
+  const folha = active.reduce((s, r) => {
+    const emp = employees.find(e => e.id === r.employeeId);
+    return s + Number(emp?.dailyRate ?? 0);
+  }, 0);
+  const beneficios = active.reduce((s, r) => {
+    if (!r.overtime) return s;
+    const emp = employees.find(e => e.id === r.employeeId);
+    return s + Number(emp?.overtimeRate ?? 50);
+  }, 0);
+
+  const custoFixo    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo').reduce((s, l) => s + Number(l.valor || 0), 0);
+  const endivPeriodo = lancamentos.filter(l => l.origem_tipo === 'divida').reduce((s, l) => s + Number(l.valor || 0), 0);
+
+  const totalCustos   = folha + beneficios + custoFixo + endivPeriodo;
+  const lucroLiquido  = fat - totalCustos;
+  const margemContrib = fat > 0 ? ((fat - folha - beneficios) / fat) * 100 : 0;
+  const margemLucro   = fat > 0 ? (lucroLiquido / fat) * 100 : 0;
+
+  // Fatias do gráfico — devem somar ao faturamento
+  const slices = [
+    { name: 'Lucro Líquido',        value: Math.max(0, lucroLiquido), color: '#059669' },
+    { name: 'Folha de Pagamento',   value: folha,                     color: '#2563EB' },
+    { name: 'Benefícios (H. Extra)',value: beneficios,                color: '#7C3AED' },
+    { name: 'Custos Fixos',         value: custoFixo,                 color: '#D97706' },
+    { name: 'Endividamento',        value: endivPeriodo,              color: '#E11D48' },
+  ].filter(s => s.value > 0);
+
+  const kpis = [
+    { label: 'Faturamento',           value: fmtCurrency(fat),             icon: DollarSign, color: '#059669', bg: '#F0FDF4' },
+    { label: 'Margem de Contribuição',value: `${margemContrib.toFixed(1)}%`,icon: Percent,    color: '#7C3AED', bg: '#F5F3FF' },
+    { label: 'Lucro Líquido',         value: fmtCurrency(lucroLiquido),    icon: TrendingUp,
+      color: lucroLiquido >= 0 ? '#059669' : '#E11D48',
+      bg:    lucroLiquido >= 0 ? '#F0FDF4' : '#FFF1F2' },
+    { label: 'Margem de Lucro',       value: `${margemLucro.toFixed(1)}%`, icon: BarChart2,
+      color: margemLucro >= 0 ? '#059669' : '#E11D48',
+      bg:    margemLucro >= 0 ? '#F0FDF4' : '#FFF1F2' },
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* 4 KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-        {row1.map(k => <KpiCard key={k.label} {...k} />)}
+        {kpis.map(k => <KpiCard key={k.label} {...k} />)}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-        {row2.map(k => <KpiCard key={k.label} {...k} />)}
+
+      {/* Gráfico + legenda */}
+      <div className="card p-6">
+        {fat === 0 ? (
+          <div style={{ padding: '48px', textAlign: 'center' }}>
+            <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Sem faturamento no período selecionado</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
+            {/* Donut chart */}
+            <div style={{ flexShrink: 0 }}>
+              <PieChart width={220} height={220}>
+                <Pie data={slices} cx="50%" cy="50%" innerRadius={62} outerRadius={100} paddingAngle={2} dataKey="value" startAngle={90} endAngle={-270}>
+                  {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
+                </Pie>
+                <Tooltip formatter={v => fmtCurrency(v)} contentStyle={{ background: '#1E293B', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F1F5F9' }} />
+              </PieChart>
+              {/* Valor central */}
+              <p style={{ textAlign: 'center', fontSize: '11px', color: '#94A3B8', fontWeight: 600, marginTop: '-8px' }}>
+                Faturamento total
+              </p>
+              <p style={{ textAlign: 'center', fontSize: '16px', fontWeight: 900, color: '#0F172A', lineHeight: 1.1 }}>
+                {fmtCurrency(fat)}
+              </p>
+            </div>
+
+            {/* Legenda */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {slices.map(s => {
+                const pct = fat > 0 ? (s.value / fat) * 100 : 0;
+                return (
+                  <div key={s.name}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: s.color, flexShrink: 0 }} />
+                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{s.name}</p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: s.color }}>{fmtCurrency(s.value)}</p>
+                        <p style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 500, minWidth: '38px', textAlign: 'right' }}>{pct.toFixed(1)}%</p>
+                      </div>
+                    </div>
+                    {/* Barra de progresso */}
+                    <div style={{ height: '4px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: s.color, borderRadius: '4px', transition: 'width 0.4s ease' }} />
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Caso o lucro seja negativo, mostra aviso */}
+              {lucroLiquido < 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: '#FFF1F2', marginTop: '4px' }}>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#E11D48', flexShrink: 0 }} />
+                  <p style={{ fontSize: '12px', fontWeight: 600, color: '#E11D48' }}>
+                    Prejuízo de {fmtCurrency(Math.abs(lucroLiquido))} no período — custos superam o faturamento
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
