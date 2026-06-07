@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { fetchTodayAllRecords, fetchWorkRecordsByPeriod, fetchPresencaEquipeHoje } from '../../lib/db';
+import { fetchTodayAllRecords, fetchWorkRecordsByPeriod, fetchPresencaEquipeHoje, fetchRelatorioByEmpresaData } from '../../lib/db';
 import { fmtCurrency, fmtDate } from '../../data/mockData';
 import AdminDemanda from './AdminDemanda';
 import AdminOcorrencias from './AdminOcorrencias';
@@ -480,10 +480,22 @@ function Historico() {
 
 // ── MODAL DETALHE DO DIA ──────────────────────────────────────────────────
 function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, onClose }) {
-  if (!day) return null;
+  const [relatorio, setRelatorio] = useState(null);
+  const [loadingRel, setLoadingRel] = useState(false);
 
-  const presentes = day.presentes ?? day.recs?.filter(r => r.status !== 'absent') ?? [];
+  const companyId = viewBy === 'empresa' ? (day.recs?.[0]?.companyId ?? null) : null;
+
+  useEffect(() => {
+    if (!companyId) return;
+    setLoadingRel(true);
+    fetchRelatorioByEmpresaData(companyId, day.date)
+      .then(setRelatorio)
+      .finally(() => setLoadingRel(false));
+  }, [companyId, day.date]);
+
+  const presentes  = day.presentes ?? day.recs?.filter(r => r.status !== 'absent') ?? [];
   const totalValor = day.total;
+  const lider      = relatorio?.lideres_equipe;
 
   return (
     <div
@@ -497,7 +509,7 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
     >
       <div style={{
         background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '600px',
-        maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        maxHeight: '82vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
         boxShadow: '0 32px 80px rgba(0,0,0,0.25)',
       }}>
         {/* Cabeçalho */}
@@ -517,12 +529,12 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
           </button>
         </div>
 
-        {/* Resumo do dia */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1px', background: 'rgba(0,0,0,0.06)' }}>
+        {/* KPIs do dia */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1px', background: 'rgba(0,0,0,0.06)', flexShrink: 0 }}>
           {[
-            ['Ajudantes',    presentes.length,           '#0F172A'],
-            ['Horas extras', day.heCount > 0 ? `${day.heCount}x` : '—', '#0F172A'],
-            ['Total do dia', fmtCurrency(totalValor),    '#1E40AF'],
+            ['Ajudantes',    presentes.length,                              '#0F172A'],
+            ['Horas extras', day.heCount > 0 ? `${day.heCount}x` : '—',   '#0F172A'],
+            ['Total do dia', fmtCurrency(totalValor),                      '#1E40AF'],
           ].map(([lbl, val, color]) => (
             <div key={lbl} style={{ background: '#F8FAFC', padding: '12px 16px', textAlign: 'center' }}>
               <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '4px' }}>{lbl}</p>
@@ -531,15 +543,16 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
           ))}
         </div>
 
-        {/* Lista de ajudantes */}
+        {/* Conteúdo rolável */}
         <div style={{ overflowY: 'auto', flex: 1 }}>
+
+          {/* Lista de ajudantes */}
           {presentes.length === 0 ? (
             <div style={{ padding: '32px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
               Nenhum registro neste dia
             </div>
           ) : (
             <>
-              {/* Cabeçalho da tabela */}
               <div style={{
                 display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px 60px 70px 70px',
                 gap: '4px', padding: '8px 20px',
@@ -557,15 +570,14 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
               </div>
 
               {presentes.map((rec, idx) => {
-                const emp    = viewBy === 'empresa' ? employees.find(e => e.id === rec.employeeId) : null;
+                const emp     = viewBy === 'empresa' ? employees.find(e => e.id === rec.employeeId) : null;
                 const empRate = viewBy === 'empresa'
                   ? Number(employees.find(e => e.id === rec.employeeId)?.dailyRate ?? dailyRate)
                   : dailyRate;
-                const empHE  = viewBy === 'empresa'
+                const empHE   = viewBy === 'empresa'
                   ? Number(employees.find(e => e.id === rec.employeeId)?.overtimeRate ?? heRate)
                   : heRate;
-                const recVal = empRate + (rec.overtime ? empHE : 0);
-
+                const recVal  = empRate + (rec.overtime ? empHE : 0);
                 return (
                   <div key={rec.id ?? idx} style={{
                     display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px 60px 70px 70px',
@@ -573,7 +585,6 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
                     borderBottom: idx < presentes.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                     background: idx % 2 === 1 ? '#FAFAFA' : 'transparent',
                   }}>
-                    {/* Nome / serviço */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                       {viewBy === 'empresa' && (
                         <div style={{
@@ -589,20 +600,14 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
                         {viewBy === 'empresa' ? (emp?.name ?? rec.employeeId) : (rec.service ?? '—')}
                       </p>
                     </div>
-
-                    {/* Horários */}
                     {[rec.checkIn, rec.lunchOut, rec.lunchReturn, rec.checkOut].map((t, i) => (
                       <p key={i} style={{ fontSize: '11px', fontWeight: t ? 600 : 400, color: t ? '#0F172A' : '#CBD5E1', textAlign: 'center' }}>
                         {t ?? '—'}
                       </p>
                     ))}
-
-                    {/* H. Extra */}
                     <p style={{ fontSize: '11px', fontWeight: rec.overtime ? 700 : 400, color: rec.overtime ? '#1E40AF' : '#CBD5E1', textAlign: 'center' }}>
                       {rec.overtime ?? '—'}
                     </p>
-
-                    {/* Valor */}
                     <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', textAlign: 'center' }}>
                       {fmtCurrency(recVal)}
                     </p>
@@ -611,6 +616,60 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
               })}
             </>
           )}
+
+          {/* Resumo do Líder */}
+          {viewBy === 'empresa' && (
+            <div style={{ borderTop: '1px solid rgba(0,0,0,0.07)', padding: '20px' }}>
+              <p style={{
+                fontSize: '10px', fontWeight: 700, color: '#94A3B8',
+                textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '14px',
+              }}>
+                Resumo do Líder
+              </p>
+
+              {loadingRel ? (
+                <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Carregando...</p>
+              ) : relatorio ? (
+                <>
+                  {/* Nome do líder */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                    <div style={{
+                      width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0,
+                      background: lider?.cor || '#FF4D0C',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '11px', fontWeight: 800, color: 'white',
+                    }}>
+                      {lider?.iniciais || 'L'}
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+                        {lider?.nome || 'Líder'}
+                      </p>
+                      <p style={{ fontSize: '11px', color: '#94A3B8' }}>Líder responsável</p>
+                    </div>
+                  </div>
+
+                  {/* Texto do relatório */}
+                  <div style={{
+                    background: '#F8FAFC', borderRadius: '12px',
+                    padding: '14px 16px', border: '1px solid rgba(0,0,0,0.07)',
+                  }}>
+                    <p style={{
+                      fontSize: '13px', color: relatorio.observacoes ? '#0F172A' : '#CBD5E1',
+                      lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0,
+                    }}>
+                      {relatorio.observacoes || 'Nenhuma observação registrada pelo líder.'}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <p style={{ fontSize: '13px', color: '#CBD5E1' }}>
+                  Nenhum resumo registrado pelo líder.
+                </p>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
     </div>

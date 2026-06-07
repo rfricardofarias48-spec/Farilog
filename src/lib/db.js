@@ -599,6 +599,17 @@ export async function updateOcorrenciaStatus(id, status) {
 
 // ── Relatórios Diários ────────────────────────────────────────────────────
 
+export async function fetchRelatorioByEmpresaData(empresaId, date) {
+  const { data, error } = await supabase
+    .from('relatorios_diarios')
+    .select('*, lideres_equipe(nome, iniciais, cor)')
+    .eq('empresa_id', empresaId)
+    .eq('data', date)
+    .maybeSingle();
+  if (error) { console.error('[db] fetchRelatorioByEmpresaData:', error.message); return null; }
+  return data;
+}
+
 export async function fetchRelatoriosDiarios(liderId) {
   const { data, error } = await supabase
     .from('relatorios_diarios')
