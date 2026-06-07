@@ -545,24 +545,57 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onD
   );
 }
 
+// ── helpers de data ───────────────────────────────────────────────────────
+const TODAY_ISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+
+function subtractDays(isoDate, days) {
+  const d = new Date(isoDate + 'T12:00:00');
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Janela de exibição: hoje, ontem e anteontem (3 dias)
+const CUTOFF = subtractDays(TODAY_ISO, 2);
+
 // ── Página principal ───────────────────────────────────────────────────────
 export default function AdminDemanda() {
-  const { employees, companies, demands, addDemand, updateDemandStatus, removeDemand, changeDemand } = useAuth();
+  const { employees, companies, demands, addDemand, updateDemandStatus, removeDemand, archiveDemandFromList, changeDemand } = useAuth();
   const [subTab, setSubTab] = useState('nova');
+  const cleanedRef = useRef(false);
+
+  // Limpeza automática: demandas fora da janela de 3 dias
+  useEffect(() => {
+    if (cleanedRef.current || demands.length === 0) return;
+    cleanedRef.current = true;
+
+    const old = demands.filter(d => d.date < CUTOFF);
+    old.forEach(d => {
+      const hasStarted = d.employees.some(e => e.entrada !== null);
+      if (hasStarted) {
+        // Trabalho iniciado → arquiva (mantém registros no histórico, remove escala)
+        archiveDemandFromList(d.id);
+      } else {
+        // Nenhum trabalho → deleta tudo
+        removeDemand(d.id);
+      }
+    });
+  }, [demands]);
+
+  // Demandas dos últimos 3 dias para exibição
+  const recentDemands = demands.filter(d => d.date >= CUTOFF);
 
   const handleNewDemand = async (form) => {
-    const saved = await addDemand({
+    return await addDemand({
       companyId:   form.companyId,
       date:        form.date,
       time:        form.time,
       service:     form.service || 'Serviço geral',
       employeeIds: form.selectedEmployees,
     });
-    return saved;
   };
 
   const SUB_TABS = [
-    { key: 'nova',        label: 'Nova Demanda',       icon: Plus },
+    { key: 'nova',        label: 'Nova Demanda',        icon: Plus },
     { key: 'acompanhar',  label: 'Acompanhar Demandas', icon: ClipboardList },
   ];
 
@@ -584,13 +617,13 @@ export default function AdminDemanda() {
           >
             <Icon size={12} />
             {label}
-            {key === 'acompanhar' && demands.length > 0 && (
+            {key === 'acompanhar' && recentDemands.length > 0 && (
               <span style={{
                 fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px',
                 background: subTab === key ? '#FFF2EE' : '#E2E8F0',
                 color:      subTab === key ? '#FF4D0C' : '#64748B',
               }}>
-                {demands.length}
+                {recentDemands.length}
               </span>
             )}
           </button>
@@ -610,7 +643,7 @@ export default function AdminDemanda() {
       {subTab === 'acompanhar' && (
         <div className="animate-fade-up">
           <AcompanharDemandas
-            demands={demands}
+            demands={recentDemands}
             employees={employees}
             companies={companies}
             onChangeStatus={updateDemandStatus}

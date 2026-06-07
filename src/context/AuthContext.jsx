@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import {
   loginAdmin, loginEmployee, loginCompany, loginLider,
   fetchEmployees, fetchCompanies, fetchDemands,
-  createDemand, updateDemandEmployeeStatus, deleteDemand, editDemand,
+  createDemand, updateDemandEmployeeStatus, deleteDemand, archiveDemand, editDemand,
 } from '../lib/db';
 
 const AuthContext = createContext(null);
@@ -47,6 +47,11 @@ export function AuthProvider({ children }) {
   const removeDemand = async (id) => {
     setDemands(prev => prev.filter(d => d.id !== id));
     return await deleteDemand(id);
+  };
+
+  const archiveDemandFromList = async (id) => {
+    setDemands(prev => prev.filter(d => d.id !== id));
+    return await archiveDemand(id);
   };
 
   const changeDemand = async (id, form) => {
@@ -100,7 +105,7 @@ export function AuthProvider({ children }) {
       user, login, logout, loading,
       employees, setEmployees,
       companies, setCompanies,
-      demands, addDemand, updateDemandStatus, removeDemand, changeDemand,
+      demands, addDemand, updateDemandStatus, removeDemand, archiveDemandFromList, changeDemand,
     }}>
       {children}
     </AuthContext.Provider>

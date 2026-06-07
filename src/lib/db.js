@@ -360,6 +360,13 @@ export async function deleteDemand(id) {
   return true;
 }
 
+// Arquiva: remove a escala mas mantém os registros no histórico
+export async function archiveDemand(id) {
+  const { error } = await supabase.from('escalas').delete().eq('id', id);
+  if (error) { console.error('[db] archiveDemand:', error.message); return false; }
+  return true;
+}
+
 export async function editDemand(id, { companyId, date, time, service, selectedEmployees }) {
   const { error: escErr } = await supabase
     .from('escalas')
