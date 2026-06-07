@@ -299,6 +299,114 @@ function TabVisaoGeral({ records, lancamentos, employees }) {
   );
 }
 
+// ── Modal adicionar lançamento ─────────────────────────────────────────────
+function AddLancamentoModal({ onSave, onClose }) {
+  const [form,   setForm]   = useState({ tipo: 'a_pagar', descricao: '', valor: '', data: TODAY_ISO });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  const canSave = form.descricao.trim() && form.valor && form.data && !saving;
+  const isPagar = form.tipo === 'a_pagar';
+
+  const handleSave = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    await onSave({ tipo: form.tipo, descricao: form.descricao.trim(), valor: Number(form.valor), dataVencimento: form.data });
+    setSaving(false);
+  };
+
+  return createPortal(
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+
+        {/* Header */}
+        <div style={{ background: 'linear-gradient(135deg,#111827,#1E293B)', padding: '24px 24px 20px', position: 'relative' }}>
+          <button onClick={onClose}
+            style={{ position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={15} />
+          </button>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Novo Lançamento</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>
+            {isPagar ? 'Conta a Pagar' : 'Conta a Receber'}
+          </p>
+        </div>
+
+        {/* Corpo */}
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+
+          {/* Toggle tipo */}
+          <div>
+            <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '8px' }}>Tipo</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {[['a_pagar','Conta a Pagar','#E11D48','#FFF1F2'],['a_receber','Conta a Receber','#059669','#F0FDF4']].map(([v, l, c, bg]) => (
+                <button key={v} onClick={() => setForm(f => ({...f, tipo: v}))}
+                  style={{
+                    flex: 1, padding: '10px', borderRadius: '10px', border: '1.5px solid',
+                    borderColor: form.tipo === v ? c : 'rgba(0,0,0,0.08)',
+                    cursor: 'pointer', fontSize: '12px', fontWeight: 700,
+                    background: form.tipo === v ? bg : '#F8FAFC',
+                    color: form.tipo === v ? c : '#94A3B8',
+                    transition: 'all 0.15s',
+                  }}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Descrição */}
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Descrição</label>
+            <input className="input-field" placeholder="Ex: Aluguel, Cliente XYZ..." value={form.descricao}
+              onChange={e => setForm(f => ({...f, descricao: e.target.value}))} />
+          </div>
+
+          {/* Valor + Data */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Valor (R$)</label>
+              <input className="input-field" type="number" min="0" step="0.01" placeholder="0,00"
+                value={form.valor} onChange={e => setForm(f => ({...f, valor: e.target.value}))} />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Data de vencimento</label>
+              <input className="input-field" type="date" value={form.data}
+                onChange={e => setForm(f => ({...f, data: e.target.value}))} />
+            </div>
+          </div>
+
+          {/* Ações */}
+          <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
+            <button onClick={onClose}
+              style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>
+              Cancelar
+            </button>
+            <button onClick={handleSave} disabled={!canSave}
+              style={{
+                flex: 2, padding: '12px', borderRadius: '12px', border: 'none',
+                cursor: canSave ? 'pointer' : 'not-allowed',
+                background: canSave ? (isPagar ? '#E11D48' : '#059669') : '#E2E8F0',
+                color: canSave ? 'white' : '#94A3B8',
+                fontSize: '13px', fontWeight: 700,
+                boxShadow: canSave ? `0 2px 10px ${isPagar ? 'rgba(225,29,72,0.3)' : 'rgba(5,150,105,0.3)'}` : 'none',
+                transition: 'all 0.15s',
+              }}>
+              {saving ? 'Salvando...' : `Lançar ${isPagar ? 'Conta a Pagar' : 'Conta a Receber'}`}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ── Modal lista completa ───────────────────────────────────────────────────
 function ListModal({ title, items, onDelete, onClose }) {
   useEffect(() => {
@@ -368,9 +476,7 @@ function ListModal({ title, items, onDelete, onClose }) {
 function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType, bounds, companies }) {
   const [view,     setView]     = useState('all');
   const [modal,    setModal]    = useState(null); // 'receber' | 'pagar'
-  const [showForm, setShowForm] = useState(false);
-  const [saving,   setSaving]   = useState(false);
-  const [form, setForm] = useState({ tipo: 'a_pagar', descricao: '', valor: '', data: TODAY_ISO });
+  const [showAdd,  setShowAdd]  = useState(false);
 
   const chartData = useMemo(
     () => buildChartData(periodType, bounds.start, bounds.end, records, lancamentos),
@@ -421,16 +527,12 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     return items.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8);
   }, [view, recGroups, pagItems]);
 
-  const handleSave = async () => {
-    if (!form.descricao || !form.valor || !form.data) return;
-    setSaving(true);
-    const l = await createLancamentoManual({ tipo: form.tipo, descricao: form.descricao, valor: Number(form.valor), dataVencimento: form.data });
+  const handleSave = async ({ tipo, descricao, valor, dataVencimento }) => {
+    const l = await createLancamentoManual({ tipo, descricao, valor, dataVencimento });
     if (l) {
       setLancamentos(prev => [...prev, l].sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento)));
-      setForm({ tipo: 'a_pagar', descricao: '', valor: '', data: TODAY_ISO });
-      setShowForm(false);
+      setShowAdd(false);
     }
-    setSaving(false);
   };
 
   const handleDelete = async (id) => {
@@ -534,48 +636,11 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
         </div>
 
         {/* Adicionar */}
-        <button onClick={() => setShowForm(v => !v)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#FF4D0C', color: 'white', fontSize: '12px', fontWeight: 700 }}>
+        <button onClick={() => setShowAdd(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#FF4D0C', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(255,77,12,0.3)' }}>
           <Plus size={12} /> Adicionar
         </button>
       </div>
-
-      {/* Formulário de adição */}
-      {showForm && (
-        <div className="card p-4 space-y-4">
-          <p style={{ fontSize: '13px', fontWeight: 700, ...T }}>Novo Lançamento</p>
-          {/* Toggle tipo */}
-          <div style={{ display: 'flex', gap: '6px' }}>
-            {[['a_pagar','A Pagar','#E11D48','#FFF1F2'],['a_receber','A Receber','#059669','#F0FDF4']].map(([v, l, c, bg]) => (
-              <button key={v} onClick={() => setForm(f => ({...f, tipo: v}))}
-                style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, background: form.tipo === v ? bg : '#F8FAFC', color: form.tipo === v ? c : '#94A3B8' }}>
-                {l}
-              </button>
-            ))}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 140px', gap: '10px' }}>
-            <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '5px' }}>Descrição</label>
-              <input className="input-field" placeholder="Ex: Pagamento fornecedor" value={form.descricao} onChange={e => setForm(f => ({...f, descricao: e.target.value}))} />
-            </div>
-            <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '5px' }}>Valor (R$)</label>
-              <input className="input-field" type="number" min="0" step="0.01" placeholder="0,00" value={form.valor} onChange={e => setForm(f => ({...f, valor: e.target.value}))} />
-            </div>
-            <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '5px' }}>Data</label>
-              <input className="input-field" type="date" value={form.data} onChange={e => setForm(f => ({...f, data: e.target.value}))} />
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: '9px', borderRadius: '9px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '12px', fontWeight: 600 }}>Cancelar</button>
-            <button onClick={handleSave} disabled={saving || !form.descricao || !form.valor}
-              style={{ flex: 2, padding: '9px', borderRadius: '9px', border: 'none', cursor: 'pointer', background: saving || !form.descricao || !form.valor ? '#E2E8F0' : '#FF4D0C', color: saving || !form.descricao || !form.valor ? '#94A3B8' : 'white', fontSize: '12px', fontWeight: 700 }}>
-              {saving ? 'Salvando...' : 'Salvar Lançamento'}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Lista inline (preview — máx 8 itens) */}
       <div className="card overflow-hidden">
@@ -625,6 +690,14 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           items={modalItems}
           onDelete={handleDelete}
           onClose={() => setModal(null)}
+        />
+      )}
+
+      {/* Modal Adicionar */}
+      {showAdd && (
+        <AddLancamentoModal
+          onSave={handleSave}
+          onClose={() => setShowAdd(false)}
         />
       )}
     </div>
