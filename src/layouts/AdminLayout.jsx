@@ -5,6 +5,7 @@ import {
   LogOut, LayoutDashboard, Building2, ChevronLeft, ChevronRight,
   DollarSign, ClipboardList, Search, Bell, Briefcase, Activity,
   Send, BarChart2, ChevronDown, Users, Heart, Clock, Shield, AlertTriangle,
+  TrendingUp, CreditCard, Wallet, FileText,
 } from 'lucide-react';
 
 const OP_TABS = [
@@ -22,8 +23,17 @@ const RH_TABS = [
   { key: 'epi',          label: 'EPI',               icon: Shield },
 ];
 
-const OP_TAB_LABELS = Object.fromEntries(OP_TABS.map(t => [t.key, t.label]));
-const RH_TAB_LABELS = Object.fromEntries(RH_TABS.map(t => [t.key, t.label]));
+const FIN_TABS = [
+  { key: 'visao',   label: 'Visão Geral',    icon: BarChart2  },
+  { key: 'fluxo',   label: 'Fluxo de Caixa', icon: TrendingUp },
+  { key: 'dividas', label: 'Endividamento',   icon: CreditCard },
+  { key: 'custos',  label: 'Custos Fixos',    icon: Wallet     },
+  { key: 'dre',     label: 'DRE',             icon: FileText   },
+];
+
+const OP_TAB_LABELS  = Object.fromEntries(OP_TABS.map(t => [t.key, t.label]));
+const RH_TAB_LABELS  = Object.fromEntries(RH_TABS.map(t => [t.key, t.label]));
+const FIN_TAB_LABELS = Object.fromEntries(FIN_TABS.map(t => [t.key, t.label]));
 
 const PAGE_TITLES = {
   '/admin':            'Visão Geral',
@@ -43,14 +53,18 @@ export default function AdminLayout() {
 
   const isOperacional = location.pathname === '/admin/operacional';
   const isRH          = location.pathname === '/admin/rh';
+  const isFinanceiro  = location.pathname === '/admin/financeiro';
   const activeOpTab   = searchParams.get('tab') || 'resumo';
   const activeRHTab   = searchParams.get('tab') || 'funcionarios';
+  const activeFinTab  = searchParams.get('tab') || 'visao';
 
   const baseTitle = PAGE_TITLES[location.pathname] ?? 'Painel';
   const pageTitle = isOperacional
-    ? (OP_TAB_LABELS[activeOpTab] ?? 'Operacional')
+    ? (OP_TAB_LABELS[activeOpTab]  ?? 'Operacional')
     : isRH
-    ? (RH_TAB_LABELS[activeRHTab] ?? 'RH')
+    ? (RH_TAB_LABELS[activeRHTab]  ?? 'RH')
+    : isFinanceiro
+    ? (FIN_TAB_LABELS[activeFinTab] ?? 'Financeiro')
     : baseTitle;
 
   const AccordionItem = ({ path, label, icon: Icon, isActive, tabs, activeTab, onTabClick }) => (
@@ -129,11 +143,16 @@ export default function AdminLayout() {
             onTabClick={key => navigate(`/admin/operacional?tab=${key}`)}
           />
 
-          {/* Financeiro */}
-          <NavLink to="/admin/financeiro" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${!open ? 'justify-center px-0' : ''}`}>
-            <DollarSign size={17} className="flex-shrink-0" />
-            {open && <span>Financeiro</span>}
-          </NavLink>
+          {/* Financeiro — accordion */}
+          <AccordionItem
+            path="/admin/financeiro"
+            label="Financeiro"
+            icon={DollarSign}
+            isActive={isFinanceiro}
+            tabs={FIN_TABS}
+            activeTab={activeFinTab}
+            onTabClick={key => navigate(`/admin/financeiro?tab=${key}`)}
+          />
 
           {/* RH — accordion */}
           <AccordionItem

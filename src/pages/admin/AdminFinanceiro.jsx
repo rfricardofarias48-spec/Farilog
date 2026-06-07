@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   fetchWorkRecordsByPeriod, fetchLancamentos,
@@ -23,14 +24,6 @@ const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julh
 const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const PIE_COLORS  = ['#FF4D0C','#2563EB','#059669','#7C3AED','#D97706','#0891B2','#E11D48','#94A3B8'];
 const TODAY_ISO   = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-
-const TABS = [
-  { key: 'visao',   label: 'Visão Geral',    icon: BarChart2  },
-  { key: 'fluxo',   label: 'Fluxo de Caixa', icon: TrendingUp },
-  { key: 'dividas', label: 'Endividamento',   icon: CreditCard },
-  { key: 'custos',  label: 'Custos Fixos',    icon: Wallet     },
-  { key: 'dre',     label: 'DRE',             icon: FileText   },
-];
 
 // ── Period helpers ─────────────────────────────────────────────────────────
 function getBounds(type, offset) {
@@ -702,7 +695,8 @@ function TabDRE({ records, lancamentos, employees, bounds }) {
 // ── Main ───────────────────────────────────────────────────────────────────
 export default function AdminFinanceiro() {
   const { employees, companies } = useAuth();
-  const [activeTab,   setActiveTab]   = useState('visao');
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'visao';
   const [periodType,  setPeriodType]  = useState('mensal');
   const [offset,      setOffset]      = useState(0);
   const [records,     setRecords]     = useState([]);
@@ -747,23 +741,6 @@ export default function AdminFinanceiro() {
           onChangeType={handleChangePeriodType}
           onChangeOffset={setOffset}
         />
-      </div>
-
-      {/* Sub-tabs */}
-      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-        {TABS.map(({ key, label, icon: Icon }) => (
-          <button key={key} onClick={() => setActiveTab(key)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '7px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-              fontSize: '12px', fontWeight: 600, transition: 'all 0.15s',
-              background: activeTab === key ? '#0F172A' : '#F1F5F9',
-              color:      activeTab === key ? 'white'   : '#64748B',
-            }}>
-            <Icon size={12} />
-            {label}
-          </button>
-        ))}
       </div>
 
       {/* Content */}
