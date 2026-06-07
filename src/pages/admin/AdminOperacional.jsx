@@ -10,7 +10,7 @@ import autoTable from 'jspdf-autotable';
 import {
   Activity, Building2, Users, DollarSign, CheckCircle2,
   Clock, Send, ClipboardList, BarChart2, FileDown,
-  ChevronLeft, ChevronRight, Filter, Search, X, Plus,
+  ChevronLeft, ChevronRight, Filter, Search, X, Plus, TrendingUp,
 } from 'lucide-react';
 
 const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -62,30 +62,39 @@ const DOW_PT = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-
 
 function ResumoDia() {
   const { demands, companies, employees } = useAuth();
-  const [records, setRecords]       = useState([]);
-  const [presenca, setPresenca]     = useState([]);
+  const [records, setRecords]   = useState([]);
+  const [presenca, setPresenca] = useState([]);
 
   useEffect(() => {
     fetchTodayAllRecords(TODAY).then(setRecords);
     fetchPresencaEquipeHoje(TODAY).then(setPresenca);
   }, []);
 
-  const todayDemands     = demands.filter(d => d.date === TODAY);
-  const activeRecs       = records.filter(r => r.status === 'active');
-  const doneRecs         = records.filter(r => r.status === 'completed');
-  const scheduledRecs    = records.filter(r => r.status === 'scheduled');
-  const companiesWorking = [...new Set(activeRecs.map(r => r.companyId))];
-  const helpersWorking   = [...new Set(activeRecs.map(r => r.employeeId))];
-  const faturamentoDia   = [...activeRecs, ...doneRecs].reduce((s, r) => s + Number(r.value ?? 150), 0);
+  const todayDemands   = demands.filter(d => d.date === TODAY);
+  const activeRecs     = records.filter(r => r.status === 'active');
+  const doneRecs       = records.filter(r => r.status === 'completed');
+  const allWorkedRecs  = [...activeRecs, ...doneRecs];
 
-  const [dayOfWeek] = [DOW_PT[TODAY_DATE.getDay()]];
-  const [d, m, y]   = TODAY.split('-');
+  const companiesWorking = [...new Set(allWorkedRecs.map(r => r.companyId))];
+  const helpersWorking   = [...new Set(allWorkedRecs.map(r => r.employeeId))];
+
+  const faturamentoDia = allWorkedRecs.reduce((s, r) => {
+    const emp = employees.find(e => e.id === r.employeeId);
+    return s + Number(emp?.dailyRate ?? r.value ?? 150) + (r.overtime ? Number(emp?.overtimeRate ?? 50) : 0);
+  }, 0);
+
+  const totalEscalados = todayDemands.reduce((s, d) => s + (d.employees?.length ?? 0), 0);
+  const totalFaltas    = todayDemands.reduce((s, d) => s + (d.employees?.filter(e => e.status === 'falta').length ?? 0), 0);
+  const assertividade  = totalEscalados > 0 ? Math.round(((totalEscalados - totalFaltas) / totalEscalados) * 100) : null;
+
+  const dateLabel = `${DOW_PT[TODAY_DATE.getDay()]}, ${TODAY_DATE.getDate()} de ${MONTH_FULL[TODAY_DATE.getMonth()]}`;
 
   const kpis = [
-    { label: 'Concluídas',     value: doneRecs.length,        icon: CheckCircle2, color: '#059669', bg: '#F0FDF4', bar: '#059669' },
-    { label: 'Em andamento',   value: activeRecs.length,      icon: Activity,     color: '#2563EB', bg: '#EFF6FF', bar: '#2563EB' },
-    { label: 'Empresas',       value: companiesWorking.length, icon: Building2,   color: '#7C3AED', bg: '#F5F3FF', bar: '#7C3AED' },
-    { label: 'Ajudantes',      value: helpersWorking.length,   icon: Users,       color: '#EA580C', bg: '#FFF7ED', bar: '#EA580C' },
+    { label: 'Empresas',      value: companiesWorking.length,                           icon: Building2,    color: '#7C3AED', bg: '#F5F3FF', bar: '#7C3AED' },
+    { label: 'Ajudantes',     value: helpersWorking.length,                             icon: Users,        color: '#EA580C', bg: '#FFF7ED', bar: '#EA580C' },
+    { label: 'Concluídas',    value: doneRecs.length,                                   icon: CheckCircle2, color: '#059669', bg: '#F0FDF4', bar: '#059669' },
+    { label: 'Em andamento',  value: activeRecs.length,                                 icon: Activity,     color: '#2563EB', bg: '#EFF6FF', bar: '#2563EB' },
+    { label: 'Assertividade', value: assertividade !== null ? `${assertividade}%` : '—', icon: TrendingUp,   color: '#0891B2', bg: '#F0F9FF', bar: '#0891B2' },
   ];
 
   return (
@@ -95,24 +104,19 @@ function ResumoDia() {
       <div className="rounded-2xl p-5 flex items-center justify-between"
         style={{ background: 'linear-gradient(135deg, #111827 0%, #1E293B 100%)', color: 'white' }}>
         <div>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{dayOfWeek}</p>
-          <p style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{d}/{m}/{y}</p>
+          <p style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{dateLabel}</p>
           <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>Dados em tempo real</p>
         </div>
         <div style={{ textAlign: 'right' }}>
           <p style={{ fontSize: '11px', color: '#64748B', marginBottom: '4px' }}>Faturamento do dia</p>
           <p style={{ fontSize: '28px', fontWeight: 900, color: '#FF4D0C', lineHeight: 1 }}>{fmtCurrency(faturamentoDia)}</p>
-          <p style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>
-            {doneRecs.length + activeRecs.length} diária{doneRecs.length + activeRecs.length !== 1 ? 's' : ''} no total
-          </p>
         </div>
       </div>
 
-      {/* KPIs — 2×2 */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* KPIs — 5 colunas */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
         {kpis.map(({ label, value, icon: Icon, color, bg, bar }) => (
           <div key={label} className="card p-4" style={{ background: '#fff', overflow: 'hidden', position: 'relative' }}>
-            {/* barra colorida esquerda */}
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px', background: bar, borderRadius: '8px 0 0 8px' }} />
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold" style={{ color: '#64748B' }}>{label}</p>
@@ -120,28 +124,21 @@ function ResumoDia() {
                 <Icon size={14} style={{ color }} />
               </div>
             </div>
-            <p style={{ fontSize: '32px', fontWeight: 900, color, lineHeight: 1 }}>{value}</p>
+            <p style={{ fontSize: '28px', fontWeight: 900, color, lineHeight: 1 }}>{value}</p>
           </div>
         ))}
       </div>
 
-      {/* Demandas do dia */}
+      {/* Demandas do dia — tabela */}
       <div className="card overflow-hidden">
         <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
           <div className="flex items-center gap-2">
             <ClipboardList size={14} style={{ color: '#FF4D0C' }} />
             <p className="text-sm font-bold" style={T}>Demandas de Hoje</p>
           </div>
-          <div className="flex items-center gap-2">
-            {scheduledRecs.length > 0 && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: '#EFF6FF', color: '#2563EB' }}>
-                {scheduledRecs.length} aguardando
-              </span>
-            )}
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>
-              {todayDemands.length} demanda{todayDemands.length !== 1 ? 's' : ''}
-            </span>
-          </div>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>
+            {todayDemands.length} demanda{todayDemands.length !== 1 ? 's' : ''}
+          </span>
         </div>
 
         {todayDemands.length === 0 ? (
@@ -152,46 +149,74 @@ function ResumoDia() {
             <p className="text-sm font-semibold" style={{ color: '#94A3B8' }}>Nenhuma demanda hoje</p>
             <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>Use Lançar Demanda para escalar ajudantes</p>
           </div>
-        ) : todayDemands.map((d, idx) => {
-          const co        = companies.find(c => c.id === d.companyId);
-          const confirmed = d.employees.filter(e => e.status === 'confirmado').length;
-          const falta     = d.employees.filter(e => e.status === 'falta').length;
-          const total     = d.employees.length;
-          const allOk     = confirmed === total;
-          const hasFalta  = falta > 0;
-          return (
-            <div key={d.id} className="px-5 py-4 flex items-center gap-4"
-              style={{ borderBottom: idx < todayDemands.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
-              {/* Avatar empresa */}
-              <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', fontSize: '11px', fontWeight: 800, color: 'white', letterSpacing: '0.01em' }}>
-                {(co?.name ?? 'E').slice(0,2).toUpperCase()}
-              </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                  {[['Empresa','left'],['Ajudantes','center'],['Atrasos','center'],['Faltas','center'],['Presença','center'],['Status','center']].map(([h, align]) => (
+                    <th key={h} style={{ padding: '10px 16px', textAlign: align, fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {todayDemands.map((dem, idx) => {
+                  const co          = companies.find(c => c.id === dem.companyId);
+                  const total       = dem.employees?.length ?? 0;
+                  const faltas      = dem.employees?.filter(e => e.status === 'falta').length ?? 0;
+                  const atrasos     = dem.employees?.filter(e => e.status === 'atraso').length ?? 0;
+                  const presentes   = total - faltas;
+                  const presencaPct = total > 0 ? Math.round((presentes / total) * 100) : 0;
+                  const compRecs    = records.filter(r => r.companyId === dem.companyId);
+                  const hasActive   = compRecs.some(r => r.status === 'active');
+                  const hasDone     = compRecs.some(r => r.status === 'completed');
+                  const statusLabel = hasActive ? 'Em andamento' : hasDone ? 'Finalizado' : 'Agendado';
+                  const statusColor = hasActive ? '#2563EB' : hasDone ? '#059669' : '#D97706';
+                  const statusBg    = hasActive ? '#EFF6FF'  : hasDone ? '#DCFCE7' : '#FEF3C7';
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold truncate" style={T}>{co?.name ?? d.companyId}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <Clock size={10} style={{ color: '#94A3B8' }} />
-                  <p className="text-xs" style={TM}>{d.time} · {d.service}</p>
-                </div>
-              </div>
-
-              {/* Status badges */}
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: allOk ? '#DCFCE7' : '#FEF3C7', color: allOk ? '#059669' : '#D97706' }}>
-                  {confirmed}/{total} confirm.
-                </span>
-                {hasFalta && (
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#FFE4E6', color: '#E11D48' }}>
-                    {falta} falta{falta > 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
+                  return (
+                    <tr key={dem.id} style={{ borderBottom: idx < todayDemands.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+                            {(co?.name ?? 'E').slice(0,2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{co?.name ?? dem.companyId}</p>
+                            <p style={{ fontSize: '11px', color: '#94A3B8' }}>{dem.time} · {dem.service}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>{total}</td>
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        {atrasos > 0
+                          ? <span style={{ fontSize: '13px', fontWeight: 700, color: '#D97706' }}>{atrasos}</span>
+                          : <span style={{ fontSize: '13px', color: '#CBD5E1' }}>—</span>}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        {faltas > 0
+                          ? <span style={{ fontSize: '13px', fontWeight: 700, color: '#E11D48' }}>{faltas}</span>
+                          : <span style={{ fontSize: '13px', color: '#CBD5E1' }}>—</span>}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 800, color: presencaPct >= 80 ? '#059669' : presencaPct >= 60 ? '#D97706' : '#E11D48' }}>
+                          {total > 0 ? `${presencaPct}%` : '—'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', background: statusBg, color: statusColor, whiteSpace: 'nowrap' }}>
+                          {statusLabel}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Presença por equipe */}
