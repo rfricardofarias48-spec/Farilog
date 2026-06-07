@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fmtDate } from '../../data/mockData';
 import { createEmployee, updateEmployee, deleteEmployee } from '../../lib/db';
@@ -17,7 +17,7 @@ function Modal({ employee, onSave, onClose }) {
     { key: 'name',        label: 'Nome completo',        required: true, col: 2 },
     { key: 'phone',       label: 'Telefone',              required: true, placeholder: '(00) 00000-0000' },
     { key: 'email',       label: 'E-mail de acesso',      required: true, type: 'email' },
-    { key: 'cidade',      label: 'Cidade',                placeholder: 'Ex: Gravataí' },
+    { key: 'cidade',      label: 'Cidade/UF',             placeholder: 'Ex: Gravataí/RS' },
     { key: 'dailyRate',   label: 'Valor da diária (R$)',  type: 'number', required: true },
     { key: 'overtimeRate',label: 'Hora extra (R$)',        type: 'number', required: true },
     ...(!employee ? [{ key: 'password', label: 'Senha', type: 'password', col: 2, required: true }] : []),
@@ -107,13 +107,22 @@ export default function AdminEmployees() {
   const [modal, setModal]           = useState(null);
   const [search, setSearch]         = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterCity,   setFilterCity]   = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  const cities = useMemo(() =>
+    [...new Set(employees.map(e => e.cidade).filter(Boolean))].sort(),
+    [employees]
+  );
+
   const filtered = employees.filter(e => {
-    const matchSearch = e.name.toLowerCase().includes(search.toLowerCase()) ||
-      (e.phone || '').includes(search);
+    const q = search.toLowerCase();
+    const matchSearch = e.name.toLowerCase().includes(q) ||
+      (e.phone || '').includes(search) ||
+      (e.cidade || '').toLowerCase().includes(q);
     const matchStatus = filterStatus === 'all' || e.status === filterStatus;
-    return matchSearch && matchStatus;
+    const matchCity   = !filterCity || e.cidade === filterCity;
+    return matchSearch && matchStatus && matchCity;
   });
 
   const handleSave = async (form) => {
@@ -159,7 +168,7 @@ export default function AdminEmployees() {
       <div className="flex gap-3 animate-fade-up delay-1">
         <div className="relative flex-1">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }} />
-          <input className="input-field pl-9" placeholder="Buscar por nome, CPF ou e-mail..."
+          <input className="input-field pl-9" placeholder="Buscar por nome, cidade ou telefone..."
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
@@ -175,6 +184,31 @@ export default function AdminEmployees() {
           ))}
         </div>
       </div>
+
+      {/* Filtro por cidade */}
+      {cities.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap animate-fade-up delay-1">
+          <span style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8' }}>Cidade:</span>
+          {cities.map(city => (
+            <button key={city}
+              onClick={() => setFilterCity(c => c === city ? '' : city)}
+              style={{
+                padding: '4px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer',
+                fontSize: '11px', fontWeight: 600, transition: 'all 0.12s',
+                background: filterCity === city ? '#0F172A' : '#F1F5F9',
+                color:      filterCity === city ? 'white'   : '#64748B',
+              }}>
+              {city}
+            </button>
+          ))}
+          {filterCity && (
+            <button onClick={() => setFilterCity('')}
+              style={{ padding: '4px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 600, background: '#FFF1F2', color: '#E11D48' }}>
+              ✕ limpar
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="card overflow-hidden animate-fade-up delay-2">
         <div className="px-5 py-3 grid text-xs font-semibold"
@@ -194,7 +228,12 @@ export default function AdminEmployees() {
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="avatar flex-shrink-0" style={{ background: emp.color }}>{emp.initials}</div>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold truncate" style={T}>{emp.name}</p>
+                    <p className="text-xs font-semibold truncate" style={T}>
+                      {emp.name}
+                      {emp.cidade && (
+                        <span style={{ color: '#94A3B8', fontWeight: 400 }}> ({emp.cidade})</span>
+                      )}
+                    </p>
                     <p className="text-xs truncate" style={TM}>{emp.phone}</p>
                   </div>
                 </div>
