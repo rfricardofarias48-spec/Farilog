@@ -704,50 +704,41 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   );
 }
 
-// ── Tab: Endividamento ─────────────────────────────────────────────────────
-function TabEndividamento({ dividas, setDividas }) {
-  const [showForm, setShowForm] = useState(false);
-  const [saving,   setSaving]   = useState(false);
-  const [confirmDel, setConfirmDel] = useState(null);
-  const [form, setForm] = useState({ nome: '', valorTotal: '', valorParcela: '', numParcelas: '', dataInicio: TODAY_ISO });
+// ── Modal: Nova Dívida ─────────────────────────────────────────────────────
+function NovaDividaModal({ onSave, onClose }) {
+  const [form,   setForm]   = useState({ nome: '', valorTotal: '', valorParcela: '', numParcelas: '', dataInicio: TODAY_ISO });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
 
   const numAuto = (form.valorTotal && form.valorParcela)
-    ? Math.ceil(Number(form.valorTotal) / Number(form.valorParcela))
-    : '';
+    ? Math.ceil(Number(form.valorTotal) / Number(form.valorParcela)) : '';
+  const canSave = form.nome.trim() && form.valorTotal && form.valorParcela && form.dataInicio && !saving;
 
   const handleSave = async () => {
-    if (!form.nome || !form.valorTotal || !form.valorParcela || !form.dataInicio) return;
+    if (!canSave) return;
     setSaving(true);
     const num = Number(form.numParcelas) || numAuto || 1;
-    const d = await createDivida({ nome: form.nome, valorTotal: Number(form.valorTotal), valorParcela: Number(form.valorParcela), numParcelas: num, dataInicio: form.dataInicio });
-    if (d) { setDividas(prev => [d, ...prev]); setForm({ nome: '', valorTotal: '', valorParcela: '', numParcelas: '', dataInicio: TODAY_ISO }); setShowForm(false); }
+    await onSave({ nome: form.nome.trim(), valorTotal: Number(form.valorTotal), valorParcela: Number(form.valorParcela), numParcelas: num, dataInicio: form.dataInicio });
     setSaving(false);
   };
 
-  const handleDelete = async (id) => {
-    await deleteDivida(id);
-    setDividas(prev => prev.filter(d => d.id !== id));
-    setConfirmDel(null);
-  };
-
-  const totalDiv = dividas.reduce((s, d) => s + Number(d.valor_total || 0), 0);
-
-  return (
-    <div className="space-y-5">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <p style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>Total em dívidas</p>
-          <p style={{ fontSize: '26px', fontWeight: 900, ...T, lineHeight: 1.1 }}>{fmtCurrency(totalDiv)}</p>
+  return createPortal(
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '480px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+        <div style={{ background: 'linear-gradient(135deg,#111827,#1E293B)', padding: '24px 24px 20px', position: 'relative' }}>
+          <button onClick={onClose} style={{ position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={15} />
+          </button>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Endividamento</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff' }}>Nova Dívida</p>
         </div>
-        <button onClick={() => setShowForm(v => !v)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#FF4D0C', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(255,77,12,0.3)' }}>
-          <Plus size={13} /> Nova Dívida
-        </button>
-      </div>
-
-      {showForm && (
-        <div className="card p-5 space-y-4">
-          <p style={{ fontSize: '14px', fontWeight: 700, ...T }}>Lançar Nova Dívida</p>
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Nome da dívida</label>
             <input className="input-field" placeholder="Ex: Empréstimo bancário" value={form.nome} onChange={e => setForm(f => ({...f, nome: e.target.value}))} />
@@ -765,8 +756,7 @@ function TabEndividamento({ dividas, setDividas }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>
-                Qtd. parcelas
-                {numAuto ? <span style={{ color: '#94A3B8', fontWeight: 400 }}> — calculado: {numAuto}x</span> : ''}
+                Qtd. parcelas {numAuto ? <span style={{ color: '#94A3B8', fontWeight: 400 }}>— auto: {numAuto}x</span> : ''}
               </label>
               <input className="input-field" type="number" min="1" placeholder={numAuto || '24'} value={form.numParcelas} onChange={e => setForm(f => ({...f, numParcelas: e.target.value}))} />
             </div>
@@ -775,15 +765,52 @@ function TabEndividamento({ dividas, setDividas }) {
               <input className="input-field" type="date" value={form.dataInicio} onChange={e => setForm(f => ({...f, dataInicio: e.target.value}))} />
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
-            <button onClick={handleSave} disabled={saving || !form.nome || !form.valorTotal || !form.valorParcela}
-              style={{ flex: 2, padding: '10px', borderRadius: '10px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', background: (!form.nome || !form.valorTotal || !form.valorParcela) ? '#E2E8F0' : '#FF4D0C', color: (!form.nome || !form.valorTotal || !form.valorParcela) ? '#94A3B8' : 'white', fontSize: '13px', fontWeight: 700 }}>
+          <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
+            <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
+            <button onClick={handleSave} disabled={!canSave}
+              style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#FF4D0C' : '#E2E8F0', color: canSave ? 'white' : '#94A3B8', fontSize: '13px', fontWeight: 700, boxShadow: canSave ? '0 2px 10px rgba(255,77,12,0.3)' : 'none' }}>
               {saving ? 'Salvando...' : 'Lançar Dívida'}
             </button>
           </div>
         </div>
-      )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ── Tab: Endividamento ─────────────────────────────────────────────────────
+function TabEndividamento({ dividas, setDividas }) {
+  const [showModal,  setShowModal]  = useState(false);
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  const handleSave = async (data) => {
+    const d = await createDivida(data);
+    if (d) { setDividas(prev => [d, ...prev]); setShowModal(false); }
+  };
+
+  const handleDelete = async (id) => {
+    await deleteDivida(id);
+    setDividas(prev => prev.filter(d => d.id !== id));
+    setConfirmDel(null);
+  };
+
+  const totalDiv = dividas.reduce((s, d) => s + Number(d.valor_total || 0), 0);
+
+  return (
+    <div className="space-y-5">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <p style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>Total em dívidas</p>
+          <p style={{ fontSize: '26px', fontWeight: 900, ...T, lineHeight: 1.1 }}>{fmtCurrency(totalDiv)}</p>
+        </div>
+        <button onClick={() => setShowModal(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#FF4D0C', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(255,77,12,0.3)' }}>
+          <Plus size={13} /> Nova Dívida
+        </button>
+      </div>
+
+      {showModal && <NovaDividaModal onSave={handleSave} onClose={() => setShowModal(false)} />}
 
       {dividas.length === 0 ? (
         <div className="card" style={{ padding: '56px', textAlign: 'center' }}>
@@ -832,22 +859,80 @@ function TabEndividamento({ dividas, setDividas }) {
   );
 }
 
-// ── Tab: Custos Fixos ──────────────────────────────────────────────────────
-function TabCustosFixos({ custosFixos, setCustosFixos }) {
-  const [showForm,   setShowForm]   = useState(false);
-  const [saving,     setSaving]     = useState(false);
-  const [confirmDel, setConfirmDel] = useState(null);
-  const [form, setForm] = useState({ nome: '', valor: '', diaVencimento: '10' });
+// ── Modal: Novo Custo Fixo ─────────────────────────────────────────────────
+function NovoCustoModal({ onSave, onClose }) {
+  const [form,   setForm]   = useState({ nome: '', valor: '', diaVencimento: '10' });
+  const [saving, setSaving] = useState(false);
 
-  const total    = custosFixos.reduce((s, c) => s + Number(c.valor || 0), 0);
-  const pieData  = custosFixos.filter(c => Number(c.valor) > 0).map(c => ({ name: c.nome, value: Number(c.valor) }));
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  const canSave = form.nome.trim() && form.valor && !saving;
 
   const handleSave = async () => {
-    if (!form.nome || !form.valor) return;
+    if (!canSave) return;
     setSaving(true);
-    const c = await createCustoFixo({ nome: form.nome, valor: Number(form.valor), diaVencimento: Number(form.diaVencimento) || 10 });
-    if (c) { setCustosFixos(prev => [c, ...prev]); setForm({ nome: '', valor: '', diaVencimento: '10' }); setShowForm(false); }
+    await onSave({ nome: form.nome.trim(), valor: Number(form.valor), diaVencimento: Number(form.diaVencimento) || 10 });
     setSaving(false);
+  };
+
+  return createPortal(
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '440px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+        <div style={{ background: 'linear-gradient(135deg,#111827,#1E293B)', padding: '24px 24px 20px', position: 'relative' }}>
+          <button onClick={onClose} style={{ position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={15} />
+          </button>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Custos Fixos</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff' }}>Novo Custo Fixo</p>
+        </div>
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Nome do custo</label>
+            <input className="input-field" placeholder="Ex: Aluguel, Energia elétrica, Internet..." value={form.nome} onChange={e => setForm(f => ({...f, nome: e.target.value}))} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Valor mensal (R$)</label>
+              <input className="input-field" type="number" min="0" step="0.01" placeholder="0,00" value={form.valor} onChange={e => setForm(f => ({...f, valor: e.target.value}))} />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Dia do vencimento</label>
+              <input className="input-field" type="number" min="1" max="31" placeholder="10" value={form.diaVencimento} onChange={e => setForm(f => ({...f, diaVencimento: e.target.value}))} />
+            </div>
+          </div>
+          <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '-4px' }}>
+            O custo será lançado automaticamente no Fluxo de Caixa pelos próximos 24 meses.
+          </p>
+          <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
+            <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
+            <button onClick={handleSave} disabled={!canSave}
+              style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#FF4D0C' : '#E2E8F0', color: canSave ? 'white' : '#94A3B8', fontSize: '13px', fontWeight: 700, boxShadow: canSave ? '0 2px 10px rgba(255,77,12,0.3)' : 'none' }}>
+              {saving ? 'Salvando...' : 'Lançar Custo Fixo'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ── Tab: Custos Fixos ──────────────────────────────────────────────────────
+function TabCustosFixos({ custosFixos, setCustosFixos }) {
+  const [showModal,  setShowModal]  = useState(false);
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  const total   = custosFixos.reduce((s, c) => s + Number(c.valor || 0), 0);
+  const pieData = custosFixos.filter(c => Number(c.valor) > 0).map(c => ({ name: c.nome, value: Number(c.valor) }));
+
+  const handleSave = async (data) => {
+    const c = await createCustoFixo(data);
+    if (c) { setCustosFixos(prev => [c, ...prev]); setShowModal(false); }
   };
 
   const handleDelete = async (id) => {
@@ -863,38 +948,13 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
           <p style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>Total de custos fixos / mês</p>
           <p style={{ fontSize: '26px', fontWeight: 900, ...T, lineHeight: 1.1 }}>{fmtCurrency(total)}</p>
         </div>
-        <button onClick={() => setShowForm(v => !v)}
+        <button onClick={() => setShowModal(true)}
           style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#FF4D0C', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(255,77,12,0.3)' }}>
           <Plus size={13} /> Novo Custo
         </button>
       </div>
 
-      {showForm && (
-        <div className="card p-5 space-y-4">
-          <p style={{ fontSize: '14px', fontWeight: 700, ...T }}>Novo Custo Fixo</p>
-          <div>
-            <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Nome</label>
-            <input className="input-field" placeholder="Ex: Aluguel, Energia elétrica..." value={form.nome} onChange={e => setForm(f => ({...f, nome: e.target.value}))} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Valor mensal (R$)</label>
-              <input className="input-field" type="number" min="0" step="0.01" placeholder="0,00" value={form.valor} onChange={e => setForm(f => ({...f, valor: e.target.value}))} />
-            </div>
-            <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Dia do vencimento</label>
-              <input className="input-field" type="number" min="1" max="31" placeholder="10" value={form.diaVencimento} onChange={e => setForm(f => ({...f, diaVencimento: e.target.value}))} />
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
-            <button onClick={handleSave} disabled={saving || !form.nome || !form.valor}
-              style={{ flex: 2, padding: '10px', borderRadius: '10px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', background: (!form.nome || !form.valor) ? '#E2E8F0' : '#FF4D0C', color: (!form.nome || !form.valor) ? '#94A3B8' : 'white', fontSize: '13px', fontWeight: 700 }}>
-              {saving ? 'Salvando...' : 'Lançar Custo'}
-            </button>
-          </div>
-        </div>
-      )}
+      {showModal && <NovoCustoModal onSave={handleSave} onClose={() => setShowModal(false)} />}
 
       <div style={{ display: 'grid', gridTemplateColumns: pieData.length > 0 ? '260px 1fr' : '1fr', gap: '16px', alignItems: 'start' }}>
         {/* Gráfico pizza */}
