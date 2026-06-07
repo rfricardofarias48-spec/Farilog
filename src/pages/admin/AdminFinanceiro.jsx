@@ -214,78 +214,74 @@ function TabVisaoGeral({ records, lancamentos, employees }) {
   ].filter(s => s.value > 0);
 
   const kpis = [
-    { label: 'Faturamento',           value: fmtCurrency(fat),             icon: DollarSign, color: '#059669', bg: '#F0FDF4' },
-    { label: 'Margem de Contribuição',value: `${margemContrib.toFixed(1)}%`,icon: Percent,    color: '#7C3AED', bg: '#F5F3FF' },
-    { label: 'Lucro Líquido',         value: fmtCurrency(lucroLiquido),    icon: TrendingUp,
+    { label: 'Faturamento',   value: fmtCurrency(fat),          icon: DollarSign, color: '#059669', bg: '#F0FDF4' },
+    { label: 'Lucro Líquido', value: fmtCurrency(lucroLiquido), icon: TrendingUp,
       color: lucroLiquido >= 0 ? '#059669' : '#E11D48',
       bg:    lucroLiquido >= 0 ? '#F0FDF4' : '#FFF1F2' },
-    { label: 'Margem de Lucro',       value: `${margemLucro.toFixed(1)}%`, icon: BarChart2,
+    { label: 'Margem de Lucro', value: `${margemLucro.toFixed(1)}%`, icon: BarChart2,
       color: margemLucro >= 0 ? '#059669' : '#E11D48',
       bg:    margemLucro >= 0 ? '#F0FDF4' : '#FFF1F2' },
   ];
 
   return (
     <div className="space-y-5">
-      {/* 4 KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+      {/* 3 KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
         {kpis.map(k => <KpiCard key={k.label} {...k} />)}
       </div>
 
       {/* Gráfico + legenda */}
-      <div className="card p-6">
+      <div className="card" style={{ padding: '32px' }}>
         {fat === 0 ? (
-          <div style={{ padding: '48px', textAlign: 'center' }}>
+          <div style={{ padding: '64px', textAlign: 'center' }}>
             <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Sem faturamento no período selecionado</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-            {/* Donut chart */}
-            <div style={{ flexShrink: 0 }}>
-              <PieChart width={220} height={220}>
-                <Pie data={slices} cx="50%" cy="50%" innerRadius={62} outerRadius={100} paddingAngle={2} dataKey="value" startAngle={90} endAngle={-270}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '48px' }}>
+            {/* Donut chart grande */}
+            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <PieChart width={340} height={340}>
+                <Pie data={slices} cx="50%" cy="50%" innerRadius={95} outerRadius={155} paddingAngle={2} dataKey="value" startAngle={90} endAngle={-270}>
                   {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
                 </Pie>
                 <Tooltip formatter={v => fmtCurrency(v)} contentStyle={{ background: '#1E293B', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F1F5F9' }} />
               </PieChart>
-              {/* Valor central */}
-              <p style={{ textAlign: 'center', fontSize: '11px', color: '#94A3B8', fontWeight: 600, marginTop: '-8px' }}>
+              <p style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600, marginTop: '-12px' }}>
                 Faturamento total
               </p>
-              <p style={{ textAlign: 'center', fontSize: '16px', fontWeight: 900, color: '#0F172A', lineHeight: 1.1 }}>
+              <p style={{ fontSize: '22px', fontWeight: 900, color: '#0F172A', lineHeight: 1.1, marginTop: '2px' }}>
                 {fmtCurrency(fat)}
               </p>
             </div>
 
             {/* Legenda */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {slices.map(s => {
                 const pct = fat > 0 ? (s.value / fat) * 100 : 0;
                 return (
                   <div key={s.name}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: s.color, flexShrink: 0 }} />
-                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{s.name}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: s.color, flexShrink: 0 }} />
+                        <p style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{s.name}</p>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <p style={{ fontSize: '13px', fontWeight: 700, color: s.color }}>{fmtCurrency(s.value)}</p>
-                        <p style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 500, minWidth: '38px', textAlign: 'right' }}>{pct.toFixed(1)}%</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <p style={{ fontSize: '15px', fontWeight: 800, color: s.color }}>{fmtCurrency(s.value)}</p>
+                        <p style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 500, minWidth: '44px', textAlign: 'right' }}>{pct.toFixed(1)}%</p>
                       </div>
                     </div>
-                    {/* Barra de progresso */}
-                    <div style={{ height: '4px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                    <div style={{ height: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${pct}%`, background: s.color, borderRadius: '4px', transition: 'width 0.4s ease' }} />
                     </div>
                   </div>
                 );
               })}
 
-              {/* Caso o lucro seja negativo, mostra aviso */}
               {lucroLiquido < 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: '#FFF1F2', marginTop: '4px' }}>
-                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#E11D48', flexShrink: 0 }} />
-                  <p style={{ fontSize: '12px', fontWeight: 600, color: '#E11D48' }}>
-                    Prejuízo de {fmtCurrency(Math.abs(lucroLiquido))} no período — custos superam o faturamento
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: '#FFF1F2', marginTop: '4px' }}>
+                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#E11D48', flexShrink: 0 }} />
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#E11D48' }}>
+                    Prejuízo de {fmtCurrency(Math.abs(lucroLiquido))} — custos superam o faturamento
                   </p>
                 </div>
               )}
