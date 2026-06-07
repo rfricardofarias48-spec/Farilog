@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { fetchTodayAllRecords, fetchWorkRecordsByPeriod, fetchPresencaEquipeHoje } from '../../lib/db';
 import { fmtCurrency, fmtDate } from '../../data/mockData';
 import AdminDemanda from './AdminDemanda';
+import AdminOcorrencias from './AdminOcorrencias';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
@@ -938,10 +939,11 @@ export default function AdminOperacional() {
 
   return (
     <div className="space-y-5">
-      {tab === 'resumo'     && <ResumoDia />}
-      {tab === 'demanda'    && <AdminDemanda />}
-      {tab === 'historico'  && <Historico />}
-      {tab === 'relatorios' && <Relatorios />}
+      {tab === 'resumo'      && <ResumoDia />}
+      {tab === 'demanda'     && <AdminDemanda />}
+      {tab === 'historico'   && <Historico />}
+      {tab === 'relatorios'  && <Relatorios />}
+      {tab === 'ocorrencias' && <AdminOcorrencias />}
     </div>
   );
 }

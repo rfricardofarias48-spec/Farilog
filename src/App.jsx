@@ -15,8 +15,7 @@ import AdminDemanda from './pages/admin/AdminDemanda';
 import AdminOperacional from './pages/admin/AdminOperacional';
 import LiderDashboard from './pages/lider/LiderDashboard';
 import AdminLideres from './pages/admin/AdminLideres';
-import AdminOcorrencias from './pages/admin/AdminOcorrencias';
-import AdminTarefas from './pages/admin/AdminTarefas';
+import AdminRH from './pages/admin/AdminRH';
 import AdminSolicitacoes from './pages/admin/AdminSolicitacoes';
 
 function ProtectedRoute({ children, allowedRole }) {
@@ -50,8 +49,7 @@ function AppRoutes() {
         <Route path="demanda"      element={<AdminDemanda />} />
         <Route path="operacional"  element={<AdminOperacional />} />
         <Route path="lideres"      element={<AdminLideres />} />
-        <Route path="ocorrencias"  element={<AdminOcorrencias />} />
-        <Route path="tarefas"      element={<AdminTarefas />} />
+        <Route path="rh"           element={<AdminRH />} />
         <Route path="solicitacoes" element={<AdminSolicitacoes />} />
       </Route>
       <Route path="/lider" element={
