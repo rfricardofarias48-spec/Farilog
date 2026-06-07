@@ -45,6 +45,8 @@ function mapEmployee(r) {
     status:          r.status,
     dailyRate:       Number(r.diaria),
     overtimeRate:    Number(r.hora_extra ?? 50),
+    vtDiario:        Number(r.vt_diario ?? 0),
+    vrDiario:        Number(r.vr_diario ?? 0),
     cidade:          r.cidade || '',
     dataContratacao: r.data_contratacao || null,
   };
@@ -218,6 +220,8 @@ export async function updateEmployee(id, emp) {
   if (emp.status       !== undefined) patch.status     = emp.status;
   if (emp.dailyRate    !== undefined) patch.diaria     = emp.dailyRate;
   if (emp.overtimeRate !== undefined) patch.hora_extra = emp.overtimeRate;
+  if (emp.vtDiario     !== undefined) patch.vt_diario  = emp.vtDiario;
+  if (emp.vrDiario     !== undefined) patch.vr_diario  = emp.vrDiario;
   if (emp.cidade       !== undefined) patch.cidade     = emp.cidade;
 
   const { data, error } = await supabase
@@ -1077,5 +1081,46 @@ export async function createLancamentoManual({ tipo, descricao, valor, dataVenci
 export async function deleteLancamento(id) {
   const { error } = await supabase.from('financeiro_lancamentos').delete().eq('id', id);
   if (error) { console.error('[db] deleteLancamento:', error.message); return false; }
+  return true;
+}
+
+// ── Benefícios (VT/VR) ────────────────────────────────────────────────────
+
+export async function fetchRecargas(tipo) {
+  const { data, error } = await supabase
+    .from('beneficios_recargas')
+    .select('*, funcionarios(nome, iniciais, cor, cidade)')
+    .eq('tipo', tipo)
+    .order('criado_em', { ascending: false });
+  if (error) { console.error('[db] fetchRecargas:', error.message); return []; }
+  return (data || []).map(r => ({
+    id:            r.id,
+    funcionarioId: r.funcionario_id,
+    nome:          r.funcionarios?.nome || '—',
+    iniciais:      r.funcionarios?.iniciais || '?',
+    cor:           r.funcionarios?.cor || '#94A3B8',
+    cidade:        r.funcionarios?.cidade || '',
+    tipo:          r.tipo,
+    dias:          r.dias,
+    valorDia:      Number(r.valor_dia),
+    total:         Number(r.total),
+    quinzena:      r.quinzena,
+    dataRecarga:   r.data_recarga,
+  }));
+}
+
+export async function createRecargasLote(items) {
+  const rows = items.map(i => ({
+    id:             crypto.randomUUID(),
+    funcionario_id: i.funcionarioId,
+    tipo:           i.tipo,
+    dias:           i.dias,
+    valor_dia:      i.valorDia,
+    total:          i.total,
+    quinzena:       i.quinzena,
+    data_recarga:   i.dataRecarga,
+  }));
+  const { error } = await supabase.from('beneficios_recargas').insert(rows);
+  if (error) { console.error('[db] createRecargasLote:', error.message); return false; }
   return true;
 }
