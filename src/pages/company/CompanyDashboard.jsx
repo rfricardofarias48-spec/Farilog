@@ -468,27 +468,27 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
 
       {/* ── Stats ── */}
       {isCargaDescarga ? (
-        /* Carga/Descarga: [Escala] + [card dark Início | Final | Status] */
-        <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: '8px', alignItems: 'stretch' }}>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', marginBottom: '4px' }}>Escala</p>
-            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+        /* Carga/Descarga: Escala (maior) | Início | Final | Status (dark) */
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.1fr', gap: '8px', alignItems: 'stretch' }}>
+          {/* Escala — card claro, número grande */}
+          <div style={{ padding: '14px 10px', borderRadius: '12px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '5px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
+            <p style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
           </div>
-          <div style={{ background: 'linear-gradient(160deg, #0F172A 0%, #1E293B 100%)', borderRadius: '10px', padding: '10px 8px', display: 'flex', alignItems: 'center' }}>
-            <div style={{ flex: 1, textAlign: 'center' }}>
-              <p style={{ fontSize: '9px', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>Início</p>
-              <p style={{ fontSize: '19px', fontWeight: 800, color: teamStart ? '#F1F5F9' : '#334155', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamStart ?? '—'}</p>
-            </div>
-            <div style={{ width: '1px', height: '34px', background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
-            <div style={{ flex: 1, textAlign: 'center' }}>
-              <p style={{ fontSize: '9px', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>Final</p>
-              <p style={{ fontSize: '19px', fontWeight: 800, color: teamEnd ? '#10B981' : '#334155', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
-            </div>
-            <div style={{ width: '1px', height: '34px', background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
-            <div style={{ flex: 1.1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: operCfg.dot, flexShrink: 0 }} />
-              <span style={{ fontSize: '9px', fontWeight: 700, color: operCfg.color, lineHeight: 1.2, textAlign: 'center' }}>{operCfg.label}</span>
-            </div>
+          {/* Início — card claro */}
+          <div style={{ padding: '14px 8px', borderRadius: '12px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '5px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
+            <p style={{ fontSize: '20px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamStart ?? '—'}</p>
+          </div>
+          {/* Final — card claro */}
+          <div style={{ padding: '14px 8px', borderRadius: '12px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '5px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
+            <p style={{ fontSize: '20px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
+          </div>
+          {/* Status — único card escuro */}
+          <div style={{ padding: '14px 8px', borderRadius: '12px', background: 'linear-gradient(160deg, #0F172A 0%, #1E293B 100%)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: operCfg.dot, flexShrink: 0 }} />
+            <span style={{ fontSize: '11px', fontWeight: 700, color: operCfg.color, lineHeight: 1.3 }}>{operCfg.label}</span>
           </div>
         </div>
       ) : isToday ? (
