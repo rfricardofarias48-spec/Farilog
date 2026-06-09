@@ -58,7 +58,7 @@ function LiderBadge({ lider }) {
           </div>
           <div>
             <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#D97706' }}>Não atribuído</p>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Não atribuído</p>
           </div>
         </>
       )}
@@ -455,13 +455,13 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
           </div>
         );
       })() : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#FFF7ED', border: '1px solid #FED7AA' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Users size={18} style={{ color: '#94A3B8' }} />
           </div>
           <div>
             <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#D97706' }}>Não atribuído</p>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Não atribuído</p>
           </div>
         </div>
       )}
@@ -562,21 +562,21 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
             </div>
 
             {/* Direita: card de horário */}
-            <div style={{ width: '130px', flexShrink: 0, background: '#F8FAFC', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.08)', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ width: '130px', flexShrink: 0, background: 'linear-gradient(160deg, #0F172A 0%, #1E293B 100%)', borderRadius: '14px', padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {/* Início */}
               <div>
-                <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Início</p>
-                <p style={{ fontSize: '22px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{teamStart ?? '—'}</p>
+                <p style={{ fontSize: '9px', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>Início</p>
+                <p style={{ fontSize: '26px', fontWeight: 800, color: teamStart ? '#F1F5F9' : '#334155', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamStart ?? '—'}</p>
               </div>
-              <div style={{ height: '1px', background: 'rgba(0,0,0,0.07)' }} />
+              <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)' }} />
               {/* Final */}
               <div>
-                <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Final</p>
-                <p style={{ fontSize: '22px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1 }}>{teamEnd ?? '—'}</p>
+                <p style={{ fontSize: '9px', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>Final</p>
+                <p style={{ fontSize: '26px', fontWeight: 800, color: teamEnd ? '#10B981' : '#334155', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
               </div>
-              <div style={{ height: '1px', background: 'rgba(0,0,0,0.07)' }} />
+              <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)' }} />
               {/* Status */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 8px', borderRadius: '8px', background: operCfg.bg }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 8px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: `1px solid rgba(255,255,255,0.08)` }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: operCfg.dot, flexShrink: 0 }} />
                 <span style={{ fontSize: '10px', fontWeight: 700, color: operCfg.color, lineHeight: 1.2 }}>{operCfg.label}</span>
               </div>
@@ -1688,15 +1688,15 @@ function EscalasHoje({ companyId }) {
             ) : (
               <>
                 {/* Horário da equipe */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0', background: '#F1F5F9', borderRadius: '12px', overflow: 'hidden' }}>
-                  <div style={{ flex: 1, padding: '14px 20px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Início</p>
-                    <p style={{ fontSize: '28px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{teamStart ?? '—'}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0', background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', borderRadius: '14px', overflow: 'hidden' }}>
+                  <div style={{ flex: 1, padding: '16px 20px', textAlign: 'center' }}>
+                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Início</p>
+                    <p style={{ fontSize: '30px', fontWeight: 800, color: teamStart ? '#F1F5F9' : '#334155', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamStart ?? '—'}</p>
                   </div>
-                  <div style={{ width: '1px', height: '56px', background: 'rgba(0,0,0,0.08)', flexShrink: 0 }} />
-                  <div style={{ flex: 1, padding: '14px 20px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Final</p>
-                    <p style={{ fontSize: '28px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1 }}>{teamEnd ?? '—'}</p>
+                  <div style={{ width: '1px', height: '60px', background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+                  <div style={{ flex: 1, padding: '16px 20px', textAlign: 'center' }}>
+                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Final</p>
+                    <p style={{ fontSize: '30px', fontWeight: 800, color: teamEnd ? '#10B981' : '#334155', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
                   </div>
                 </div>
 
@@ -1889,13 +1889,13 @@ function EscalasProximas({ companyId }) {
                   </div>
                 );
               })() : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#FFF7ED', border: '1px solid #FED7AA' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
                   <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Users size={17} style={{ color: '#94A3B8' }} />
                   </div>
                   <div>
                     <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#D97706' }}>Não atribuído</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Não atribuído</p>
                   </div>
                 </div>
               )}
