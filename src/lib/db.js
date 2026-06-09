@@ -311,7 +311,7 @@ export async function fetchDemands() {
   return data.map(mapDemand);
 }
 
-export async function createDemand({ companyId, date, time, service, employeeIds, adminId }) {
+export async function createDemand({ companyId, date, time, service, employeeIds, adminId, liderId }) {
   const escalaId = crypto.randomUUID();
 
   const { data: escala, error: escErr } = await supabase
@@ -324,6 +324,7 @@ export async function createDemand({ companyId, date, time, service, employeeIds
       servico:    service || null,
       status:     'scheduled',
       criado_por: adminId || null,
+      lider_id:   liderId || null,
     })
     .select()
     .single();
@@ -371,10 +372,10 @@ export async function archiveDemand(id) {
   return true;
 }
 
-export async function editDemand(id, { companyId, date, time, service, selectedEmployees }) {
+export async function editDemand(id, { companyId, date, time, service, selectedEmployees, liderId }) {
   const { error: escErr } = await supabase
     .from('escalas')
-    .update({ empresa_id: companyId, data: date, horario: time, servico: service })
+    .update({ empresa_id: companyId, data: date, horario: time, servico: service, lider_id: liderId || null })
     .eq('id', id);
   if (escErr) { console.error('[db] editDemand escala:', escErr.message); return false; }
 
