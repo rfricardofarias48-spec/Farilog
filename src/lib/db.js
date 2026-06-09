@@ -28,6 +28,7 @@ function mapRecord(r) {
     status:      r.status,
     value:       r.valor,
     confirmacao: r.confirmacao,
+    tipoServico: r.escalas?.tipo_servico || 'entrega',
   };
 }
 
@@ -77,6 +78,7 @@ function mapDemand(escala) {
     date:            escala.data,
     time:            fmtHHMM(escala.horario),
     service:         escala.servico,
+    tipoServico:     escala.tipo_servico || 'entrega',
     responsavelDia:  escala.responsavel_dia || '',
     contatoDia:      escala.contato_dia     || '',
     liderNome:       escala.lideres_equipe?.nome || escala.liderNome || null,
@@ -311,20 +313,21 @@ export async function fetchDemands() {
   return data.map(mapDemand);
 }
 
-export async function createDemand({ companyId, date, time, service, employeeIds, adminId, liderId }) {
+export async function createDemand({ companyId, date, time, service, employeeIds, adminId, liderId, tipoServico }) {
   const escalaId = crypto.randomUUID();
 
   const { data: escala, error: escErr } = await supabase
     .from('escalas')
     .insert({
-      id:         escalaId,
-      empresa_id: companyId,
-      data:       date,
-      horario:    time || null,
-      servico:    service || null,
-      status:     'scheduled',
-      criado_por: adminId || null,
-      lider_id:   liderId || null,
+      id:           escalaId,
+      empresa_id:   companyId,
+      data:         date,
+      horario:      time || null,
+      servico:      service || null,
+      tipo_servico: tipoServico || 'entrega',
+      status:       'scheduled',
+      criado_por:   adminId || null,
+      lider_id:     liderId || null,
     })
     .select()
     .single();
@@ -372,10 +375,10 @@ export async function archiveDemand(id) {
   return true;
 }
 
-export async function editDemand(id, { companyId, date, time, service, selectedEmployees, liderId }) {
+export async function editDemand(id, { companyId, date, time, service, selectedEmployees, liderId, tipoServico }) {
   const { error: escErr } = await supabase
     .from('escalas')
-    .update({ empresa_id: companyId, data: date, horario: time, servico: service, lider_id: liderId || null })
+    .update({ empresa_id: companyId, data: date, horario: time, servico: service, lider_id: liderId || null, tipo_servico: tipoServico || 'entrega' })
     .eq('id', id);
   if (escErr) { console.error('[db] editDemand escala:', escErr.message); return false; }
 
@@ -432,7 +435,7 @@ export async function fetchWorkRecordsByPeriod(companyId, employeeId, start, end
 export async function fetchCompanyRecords(companyId) {
   const { data, error } = await supabase
     .from('registros')
-    .select('*')
+    .select('*, escalas(tipo_servico)')
     .eq('empresa_id', companyId)
     .order('data', { ascending: false });
   if (error) { console.error('[db] fetchCompanyRecords:', error.message); return []; }
@@ -898,17 +901,18 @@ export async function updateOcorrenciaStatusAdmin(id, status) {
 export async function fetchEscalasComLiderByEmpresa(companyId) {
   const { data, error } = await supabase
     .from('escalas')
-    .select('id, data, horario, servico, status, lider_id, lideres_equipe(id, nome, telefone, iniciais, cor)')
+    .select('id, data, horario, servico, status, tipo_servico, lider_id, lideres_equipe(id, nome, telefone, iniciais, cor)')
     .eq('empresa_id', companyId)
     .order('data', { ascending: false });
   if (error) { console.error('[db] fetchEscalasComLiderByEmpresa:', error.message); return []; }
   return (data || []).map(e => ({
-    id:      e.id,
-    date:    e.data,
-    time:    e.horario,
-    service: e.servico,
-    status:  e.status,
-    lider:   e.lideres_equipe || null,
+    id:          e.id,
+    date:        e.data,
+    time:        e.horario,
+    service:     e.servico,
+    status:      e.status,
+    tipoServico: e.tipo_servico || 'entrega',
+    lider:       e.lideres_equipe || null,
   }));
 }
 

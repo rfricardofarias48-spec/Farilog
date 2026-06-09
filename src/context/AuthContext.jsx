@@ -24,8 +24,8 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const addDemand = async ({ companyId, date, time, service, employeeIds, liderId }) => {
-    const saved = await createDemand({ companyId, date, time, service, employeeIds, adminId: user?.id ?? null, liderId });
+  const addDemand = async ({ companyId, date, time, service, employeeIds, liderId, tipoServico }) => {
+    const saved = await createDemand({ companyId, date, time, service, employeeIds, adminId: user?.id ?? null, liderId, tipoServico });
     if (saved) {
       const company = companies.find(c => c.id === companyId);
       setDemands(prev => [{ ...saved, companyName: company?.name }, ...prev]);
@@ -55,7 +55,7 @@ export function AuthProvider({ children }) {
   };
 
   const changeDemand = async (id, form) => {
-    const ok = await editDemand(id, { ...form, liderId: form.liderId });
+    const ok = await editDemand(id, { ...form, liderId: form.liderId, tipoServico: form.tipoServico });
     if (ok) {
       const company = companies.find(c => c.id === form.companyId);
       setDemands(prev => prev.map(d =>

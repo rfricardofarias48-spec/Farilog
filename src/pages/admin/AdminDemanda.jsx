@@ -95,7 +95,7 @@ function StatusBadge({ status, onChangeStatus }) {
 function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCancel, submitLabel = 'Lançar Demanda' }) {
   const activeEmployees = employees.filter(e => e.status === 'active');
   const [form, setForm] = useState(initialData || {
-    companyId: '', date: new Date().toISOString().slice(0, 10), time: '07:30', service: '', selectedEmployees: [], liderId: '',
+    companyId: '', date: new Date().toISOString().slice(0, 10), time: '07:30', service: '', selectedEmployees: [], liderId: '', tipoServico: 'entrega',
   });
   const [search,  setSearch]  = useState('');
   const [error,   setError]   = useState('');
@@ -131,7 +131,7 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
     const ok = await onSubmit(form);
     setSaving(false);
     if (ok && !initialData) {
-      setForm({ companyId: '', date: new Date().toISOString().slice(0, 10), time: '07:30', service: '', selectedEmployees: [], liderId: '' });
+      setForm({ companyId: '', date: new Date().toISOString().slice(0, 10), time: '07:30', service: '', selectedEmployees: [], liderId: '', tipoServico: 'entrega' });
       setSearch('');
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -217,13 +217,40 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
         </div>
       </div>
 
+      {/* Modalidade */}
+      <div>
+        <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Modalidade</label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {[
+            { value: 'entrega',        label: 'Entrega',          icon: '🚚', desc: 'Horário completo visível' },
+            { value: 'carga_descarga', label: 'Carga e Descarga', icon: '📦', desc: 'Só início e final visíveis' },
+          ].map(opt => {
+            const sel = form.tipoServico === opt.value;
+            return (
+              <button key={opt.value} type="button" onClick={() => setForm(f => ({ ...f, tipoServico: opt.value }))}
+                style={{
+                  flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px',
+                  padding: '10px 13px', borderRadius: '12px', border: '1.5px solid',
+                  borderColor: sel ? '#FF4D0C' : 'rgba(0,0,0,0.1)',
+                  background: sel ? '#FFF2EE' : '#F8FAFC',
+                  cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s',
+                }}>
+                <span style={{ fontSize: '16px', lineHeight: 1 }}>{opt.icon}</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: sel ? '#FF4D0C' : '#0F172A' }}>{opt.label}</span>
+                <span style={{ fontSize: '10px', color: sel ? '#FF7043' : '#94A3B8' }}>{opt.desc}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Serviço */}
       <div>
         <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Tipo de Serviço</label>
         <div className="relative">
           <Briefcase size={13} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
           <input list="services-list" className="input-field" style={{ paddingLeft: '32px' }}
-            placeholder="Ex: Carga e descarga" value={form.service}
+            placeholder="Ex: Separação de mercadoria" value={form.service}
             onChange={e => setForm(f => ({ ...f, service: e.target.value }))} />
           <datalist id="services-list">
             {SERVICES.map(s => <option key={s} value={s} />)}
@@ -517,7 +544,8 @@ function AcompanharDemandas({ demands, employees, companies, lideres, onChangeSt
                 time:              editingDemand.time || '07:30',
                 service:           editingDemand.service || '',
                 selectedEmployees: editingDemand.employees.map(e => e.employeeId),
-                liderId: editingDemand.liderNome ? (lideres.find(l => l.name === editingDemand.liderNome)?.id || '') : '',
+                liderId:           editingDemand.liderNome ? (lideres.find(l => l.name === editingDemand.liderNome)?.id || '') : '',
+                tipoServico:       editingDemand.tipoServico || 'entrega',
               }}
               employees={employees}
               companies={companies}
@@ -647,6 +675,7 @@ export default function AdminDemanda() {
       service:     form.service || 'Serviço geral',
       employeeIds: form.selectedEmployees,
       liderId:     form.liderId || null,
+      tipoServico: form.tipoServico || 'entrega',
     });
   };
 
