@@ -77,7 +77,7 @@ import {
 
 // Data atual no fuso horário do Brasil (America/Sao_Paulo)
 const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-const TODAY_DATE = new Date(TODAY + 'T12:00:00-03:00');
+const TODAY_DATE = new Date(TODAY + 'T12:00:00Z');
 
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
@@ -131,9 +131,9 @@ const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out'
 const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 function getQuinzenaInfo() {
-  const day   = TODAY_DATE.getDate();
-  const month = TODAY_DATE.getMonth();   // 0-indexed
-  const year  = TODAY_DATE.getFullYear();
+  const day   = TODAY_DATE.getUTCDate();
+  const month = TODAY_DATE.getUTCMonth();   // 0-indexed
+  const year  = TODAY_DATE.getUTCFullYear();
   const mm    = String(month + 1).padStart(2, '0');
   const fullMonth = MONTH_FULL[month];   // e.g. "Maio"
 
@@ -167,7 +167,7 @@ function buildPeriodChartData(records, companyId, startIso, endIso) {
   const days = [];
   for (let d = sd; d <= ed; d++) {
     const date = `${sy}-${String(sm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dow  = new Date(`${date}T12:00:00`).getDay();
+    const dow  = new Date(`${date}T12:00:00Z`).getUTCDay();
     const recs = records.filter(r => r.date === date && r.status !== 'absent');
     const isWeekend = dow === 0 || dow === 6;
     days.push({
@@ -262,7 +262,7 @@ function AjudantesModal({ records, escala, faltas, atrasos, date, onClose }) {
   const { employees } = useCompanyData();
   const dateLabel = date ? (() => {
     const [, m, d] = date.split('-');
-    const dow = DOW_FULL[new Date(`${date}T12:00:00`).getDay()];
+    const dow = DOW_FULL[new Date(`${date}T12:00:00Z`).getUTCDay()];
     return `${dow}, ${d}/${m}`;
   })() : null;
 
@@ -387,14 +387,14 @@ const DOW_FULL = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 function formatDemandDate(iso) {
   if (!iso) return '—';
   const [y, m, d] = iso.split('-');
-  const dow = DOW_FULL[new Date(`${iso}T12:00:00`).getDay()];
+  const dow = DOW_FULL[new Date(`${iso}T12:00:00Z`).getUTCDay()];
   return `${dow}, ${d}/${m}/${y}`;
 }
 
 function fmtDateShort(iso) {
   if (!iso) return '—';
   const [, m, d] = iso.split('-');
-  const dow = DOW_FULL[new Date(`${iso}T12:00:00`).getDay()];
+  const dow = DOW_FULL[new Date(`${iso}T12:00:00Z`).getUTCDay()];
   return `${dow}, ${d}/${m}`;
 }
 
@@ -631,7 +631,7 @@ function DiaModal({ date, records, onClose }) {
   const pctColor  = pct >= 80 ? '#059669' : pct >= 50 ? '#D97706' : '#E11D48';
 
   const [y, m, d] = date.split('-');
-  const dow = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][new Date(`${date}T12:00:00`).getDay()];
+  const dow = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][new Date(`${date}T12:00:00Z`).getUTCDay()];
   const isToday = date === TODAY;
 
   const pill = (bg, dot, color, text) => (
@@ -974,7 +974,7 @@ function HistoryTab({ companyId }) {
     // ── Dias ──
     days.forEach(([date, recs]) => {
       const [y, m, d] = date.split('-');
-      const dow = DOW_SHORT[new Date(`${date}T12:00:00`).getDay()];
+      const dow = DOW_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
       const faltas  = recs.filter(r => r.status === 'absent').length;
       const atrasos = recs.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
 
@@ -1114,7 +1114,7 @@ function HistoryTab({ companyId }) {
           const atrasos  = recs.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
           const isToday  = date === TODAY;
           const [, m, d] = date.split('-');
-          const dow      = DOW_SHORT[new Date(`${date}T12:00:00`).getDay()];
+          const dow      = DOW_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
 
           return (
             <button key={date} onClick={() => setSelectedDay(date)}
@@ -1281,7 +1281,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
               const atrasos = recs.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
               const valor   = (escala - faltas) * 150;
               const [, m, d] = date.split('-');
-              const dow = DOW_SHORT[new Date(`${date}T12:00:00`).getDay()];
+              const dow = DOW_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
               const isToday = date === TODAY;
 
               return (
@@ -1931,7 +1931,7 @@ function DiaDetalheRelModal({ date, records, onClose }) {
   const ausentes = records.filter(r => r.status === 'absent');
   const heCount  = ativos.filter(r => r.overtime).length;
   const [, m, d] = date.split('-');
-  const dow = DOW_SHORT[new Date(`${date}T12:00:00`).getDay()];
+  const dow = DOW_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
   const [notes, setNotes] = useNotes();
 
   const TIMES = [
@@ -2034,7 +2034,7 @@ function RelatorioTab({ companyId }) {
   const allDays = [];
   for (let day = sday; day <= eday; day++) {
     const iso  = `${sy}-${String(sm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    const dow  = new Date(`${iso}T12:00:00`).getDay();
+    const dow  = new Date(`${iso}T12:00:00Z`).getUTCDay();
     const recs = records.filter(r => r.date === iso);
     const presentes   = recs.filter(r => r.status !== 'absent');
     const diarias     = presentes.length;
@@ -2406,7 +2406,7 @@ function EquipeTab({ companyId }) {
   const fmtD = (iso) => {
     if (!iso) return '—';
     const [y,m,d] = iso.split('-');
-    return `${DOW[new Date(`${iso}T12:00:00`).getDay()]}, ${d}/${m}/${y}`;
+    return `${DOW[new Date(`${iso}T12:00:00Z`).getUTCDay()]}, ${d}/${m}/${y}`;
   };
 
   useEffect(() => {

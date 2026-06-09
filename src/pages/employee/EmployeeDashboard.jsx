@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-const TODAY_DATE = new Date(TODAY + 'T12:00:00-03:00');
+const TODAY_DATE = new Date(TODAY + 'T12:00:00Z');
 const VALOR_DIARIA = 150;
 const VALOR_HE     = 50;
 
@@ -23,7 +23,7 @@ const MONTH_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho
 function fmtISO(iso) {
   if (!iso) return '—';
   const [y, m, d] = iso.split('-');
-  return `${DOW[new Date(`${iso}T12:00:00`).getDay()]}, ${d}/${m}/${y}`;
+  return `${DOW[new Date(`${iso}T12:00:00Z`).getUTCDay()]}, ${d}/${m}/${y}`;
 }
 
 function getCompany(id) { return COMPANIES.find(c => c.id === id); }
@@ -73,10 +73,10 @@ function VisaoGeral({ user, myRecords, demands, updateDemandStatus, todayOverrid
   const totalReceber = totalDiarias + totalHE;
 
   // Data do próximo pagamento (dia 5 ou 20)
-  const today = TODAY_DATE.getDate();
+  const today = TODAY_DATE.getUTCDate();
   const nextPayDay = today <= 5 ? 5 : today <= 20 ? 20 : 5;
   const nextPayMonth = today > 20
-    ? new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth() + 1, 1)
+    ? new Date(Date.UTC(TODAY_DATE.getUTCFullYear(), TODAY_DATE.getUTCMonth() + 1, 1, 12))
     : TODAY_DATE;
   const nextPayDate = `05/${String(nextPayMonth.getMonth() + (today > 20 ? 1 : 1)).padStart(2,'0')}`;
 
@@ -444,7 +444,7 @@ function Pagamentos({ user, myRecords }) {
                   const company = getCompany(rec.companyId);
                   const valor   = rec.status === 'absent' ? 0 : VALOR_DIARIA + (rec.overtime ? VALOR_HE : 0);
                   const [, m, d] = rec.date.split('-');
-                  const dow = DOW[new Date(`${rec.date}T12:00:00`).getDay()];
+                  const dow = DOW[new Date(`${rec.date}T12:00:00Z`).getUTCDay()];
 
                   return (
                     <div key={rec.id} style={{
@@ -541,7 +541,7 @@ function Historico({ myRecords, demands, userId }) {
               <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                 {q.items.map(d => {
                   const [, m, dy] = d.date.split('-');
-                  const dow = DOW[new Date(`${d.date}T12:00:00`).getDay()];
+                  const dow = DOW[new Date(`${d.date}T12:00:00Z`).getUTCDay()];
                   const st = STATUS_LABEL[d.myEntry.status] || STATUS_LABEL.confirmado;
                   const entrada = d.myEntry.entrada;
                   const saida   = d.myEntry.saida;
@@ -692,8 +692,8 @@ export default function EmployeeDashboard() {
     r.date === TODAY && liveRecord ? liveRecord : r
   );
 
-  const weekday = WEEKDAYS[TODAY_DATE.getDay()];
-  const month   = MONTHS[TODAY_DATE.getMonth()];
+  const weekday = WEEKDAYS[TODAY_DATE.getUTCDay()];
+  const month   = MONTHS[TODAY_DATE.getUTCMonth()];
 
   return (
     <div className="space-y-4">

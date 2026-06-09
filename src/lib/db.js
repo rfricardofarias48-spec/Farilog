@@ -1027,10 +1027,12 @@ export async function createCustoFixo({ nome, valor, diaVencimento }) {
     .select().single();
   if (error) { console.error('[db] createCustoFixo:', error.message); return null; }
 
-  const today = new Date();
-  let startYear  = today.getFullYear();
-  let startMonth = today.getMonth(); // 0-indexed
-  if (diaVencimento < today.getDate()) { startMonth++; if (startMonth >= 12) { startMonth = 0; startYear++; } }
+  // Usa fuso SP para não errar o mês de início
+  const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  const [_ty, _tm, _td] = todayISO.split('-').map(Number);
+  let startYear  = _ty;
+  let startMonth = _tm - 1; // 0-indexed
+  if (diaVencimento < _td) { startMonth++; if (startMonth >= 12) { startMonth = 0; startYear++; } }
 
   const lancamentos = Array.from({ length: 24 }, (_, i) => {
     let m = startMonth + i, y = startYear;

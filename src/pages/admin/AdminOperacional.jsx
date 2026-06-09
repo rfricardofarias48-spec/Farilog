@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-const TODAY_DATE = new Date(TODAY + 'T12:00:00-03:00');
+const TODAY_DATE = new Date(TODAY + 'T12:00:00Z'); // UTC noon no dia SP — getUTC* sempre correto
 
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
@@ -27,7 +27,7 @@ const BASE_YEAR  = 2000;
 const fmtHoursCount = (n) => (!n ? '—' : `${String(n).padStart(2,'0')}:00`);
 
 function getQuinzenaInfo() {
-  const day = TODAY_DATE.getDate(), month = TODAY_DATE.getMonth(), year = TODAY_DATE.getFullYear();
+  const day = TODAY_DATE.getUTCDate(), month = TODAY_DATE.getUTCMonth(), year = TODAY_DATE.getUTCFullYear();
   const num = day <= 15 ? 1 : 2;
   return { num, month, year };
 }
@@ -87,7 +87,7 @@ function ResumoDia() {
   const totalFaltas    = todayDemands.reduce((s, d) => s + (d.employees?.filter(e => e.status === 'falta').length ?? 0), 0);
   const assertividade  = totalEscalados > 0 ? Math.round(((totalEscalados - totalFaltas) / totalEscalados) * 100) : null;
 
-  const dateLabel = `${DOW_PT[TODAY_DATE.getDay()]}, ${TODAY_DATE.getDate()} de ${MONTH_FULL[TODAY_DATE.getMonth()]}`;
+  const dateLabel = `${DOW_PT[TODAY_DATE.getUTCDay()]}, ${TODAY_DATE.getUTCDate()} de ${MONTH_FULL[TODAY_DATE.getUTCMonth()]}`;
 
   const kpis = [
     { label: 'Empresas',      value: companiesWorking.length,                           icon: Building2,    color: '#7C3AED', bg: '#F5F3FF', bar: '#7C3AED' },
@@ -284,7 +284,7 @@ function Historico() {
   const allDays = [];
   for (let day = sday; day <= eday; day++) {
     const iso      = `${tYear}-${String(sm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    const dow      = new Date(`${iso}T12:00:00`).getDay();
+    const dow      = new Date(`${iso}T12:00:00Z`).getUTCDay();
     const recs     = histRecords.filter(r => r.date === iso);
     const presentes = recs.filter(r => r.status !== 'absent');
     const diarias   = viewBy === 'empresa' ? presentes.length : (presentes.length > 0 ? 1 : 0);
@@ -714,7 +714,7 @@ function Relatorios() {
   const allDays = [];
   for (let day = sday; day <= eday; day++) {
     const iso  = `${tYear}-${String(sm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    const dow  = new Date(`${iso}T12:00:00`).getDay();
+    const dow  = new Date(`${iso}T12:00:00Z`).getUTCDay();
     const recs = records.filter(r => r.date === iso);
     const presentes    = recs.filter(r => r.status !== 'absent');
     const diarias      = viewBy === 'empresa' ? presentes.length : (presentes.length > 0 ? 1 : 0);

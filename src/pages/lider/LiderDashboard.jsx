@@ -23,7 +23,7 @@ const MONTHS_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out
 function fmtDate(iso) {
   if (!iso) return '—';
   const [y, m, d] = iso.split('-');
-  return `${DOW[new Date(`${iso}T12:00:00`).getDay()]}, ${d}/${m}/${y}`;
+  return `${DOW[new Date(`${iso}T12:00:00Z`).getUTCDay()]}, ${d}/${m}/${y}`;
 }
 
 // ── Status badge ──────────────────────────────────────────────────────────
@@ -430,7 +430,7 @@ function TabHistorico({ user, escalas, employees }) {
         const sla         = total > 0 ? Math.round((presentes / total) * 100) : null;
         const relatorio   = relatorios.find(r => r.data === escala.date);
         const [y, m, d]   = escala.date.split('-');
-        const dow         = DOW[new Date(`${escala.date}T12:00:00`).getDay()];
+        const dow         = DOW[new Date(`${escala.date}T12:00:00Z`).getUTCDay()];
 
         return (
           <div key={escala.id} className="card overflow-hidden">
