@@ -1511,9 +1511,8 @@ const FinTooltip = ({ active, payload }) => {
   const d = payload[0]?.payload;
   return (
     <div style={{ background:'#1E293B', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'10px', padding:'10px 14px', minWidth:'130px' }}>
-      <p style={{ color:'#94A3B8', fontSize:'10px', fontWeight:600, marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.06em' }}>{d?.shortDay}, {d?.label}</p>
-      <p style={{ color:'#059669', fontSize:'14px', fontWeight:700 }}>{fmtCurrency(d?.value || 0)}</p>
-      <p style={{ color:'#64748B', fontSize:'11px' }}>{d?.count} ajudante{d?.count !== 1 ? 's' : ''}</p>
+      <p style={{ color:'#94A3B8', fontSize:'10px', fontWeight:600, marginBottom:'6px', textTransform:'uppercase', letterSpacing:'0.06em' }}>{d?.shortDay}, {d?.label}</p>
+      <p style={{ color:'#059669', fontSize:'15px', fontWeight:700 }}>{fmtCurrency(d?.value || 0)}</p>
     </div>
   );
 };
@@ -1771,7 +1770,7 @@ function Financial({ companyId }) {
             </div>
 
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={quinzenaData} margin={{ top: 8, right: 8, bottom: 4, left: 8 }} barSize={14} barCategoryGap="25%">
+              <BarChart data={quinzenaData} margin={{ top: 8, right: 8, bottom: 4, left: 8 }} barSize={28} barCategoryGap="25%">
                 <defs>
                   <linearGradient id="finBar" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%"   stopColor="#059669" stopOpacity={1} />
