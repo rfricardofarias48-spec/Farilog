@@ -2884,10 +2884,11 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
 
         {/* Stats */}
         {(() => {
-          const isCD = tipoAtivo === 'carga_descarga';
+          const isCD   = tipoAtivo === 'carga_descarga';
+          const isTodos = !tipoAtivo && temAmbos;
           const statItems = [
-            { label: isCD ? 'Descargas'       : 'Diárias',       value: totalDiarias,               fmt: v => v,       highlight: false },
-            { label: isCD ? 'Total Descargas' : 'Valor Diárias', value: totalValorDiarias,           fmt: fmtCurrency,  highlight: false },
+            { label: isTodos ? 'Diárias + Descargas' : isCD ? 'Descargas'       : 'Diárias',       value: totalDiarias,      fmt: v => v,      highlight: false },
+            { label: isTodos ? 'Valor'               : isCD ? 'Total Descargas' : 'Valor Diárias', value: totalValorDiarias,  fmt: fmtCurrency, highlight: false },
             { label: 'H. Extras',                                 value: fmtHoursCount(totalHE),     fmt: v => v,       highlight: false },
             { label: 'Valor HE',                                  value: totalValorHE,               fmt: fmtCurrency,  highlight: false },
             { label: 'Total',                                     value: totalGeral,                 fmt: fmtCurrency,  highlight: true  },
@@ -2913,8 +2914,9 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
         <div>
         {/* Cabeçalho */}
         {(() => {
-          const isCD = tipoAtivo === 'carga_descarga';
-          const cols = ['Data', isCD ? 'Descargas' : 'Diárias', isCD ? 'Total Descargas' : 'Val. Diária', 'H. Extra', 'Val. H. Extra', 'Total Dia', ''];
+          const isCD    = tipoAtivo === 'carga_descarga';
+          const isTodos = !tipoAtivo && temAmbos;
+          const cols = ['Data', isTodos ? 'Diárias + Descargas' : isCD ? 'Descargas' : 'Diárias', isTodos ? 'Valor' : isCD ? 'Total Descargas' : 'Val. Diária', 'H. Extra', 'Val. H. Extra', 'Total Dia', ''];
           return (
             <div style={{
               display: 'grid', gridTemplateColumns: COL,
