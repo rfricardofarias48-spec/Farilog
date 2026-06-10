@@ -1759,7 +1759,7 @@ function Financial({ companyId }) {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <span style={{ fontSize:'12px', fontWeight:700, padding:'3px 12px', borderRadius:'20px', background:'#FFF7ED', color:'#FB923C' }}>
-                  {quinzenaInfo.badgeLabel} ({quinzenaInfo.rangeLabel})
+                  {quinzenaInfo.badgeLabel} <span style={{ color: '#0F172A', fontWeight: 500 }}>({quinzenaInfo.rangeLabel})</span>
                 </span>
               </div>
               <div className="text-right">
