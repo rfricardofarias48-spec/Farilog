@@ -134,35 +134,57 @@ function TrucksPanel({ escalaKey }) {
   const update = (id, value) => setTrucks(t => t.map(x => x.id === id ? { ...x, value } : x));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      {/* Cabeçalho */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      {/* Cabeçalho — mesmo estilo do título "Equipe" */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
         <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
           Carretas
         </p>
-        <button onClick={add} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 700, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}>
+        <button onClick={add}
+          style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
           + Nova
         </button>
       </div>
 
       {trucks.length === 0 ? (
-        <button onClick={add} style={{ padding: '10px 8px', borderRadius: '8px', border: '1.5px dashed #E2E8F0', background: 'transparent', cursor: 'pointer', color: '#94A3B8', fontSize: '11px', width: '100%', textAlign: 'center' }}>
+        /* Estado vazio — mesmo tamanho de uma linha */
+        <button onClick={add} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '6px 8px', borderRadius: '8px',
+          border: '1.5px dashed #E2E8F0', background: 'transparent',
+          cursor: 'pointer', color: '#94A3B8', fontSize: '11px', width: '100%',
+        }}>
           + Adicionar carreta
         </button>
       ) : (
         trucks.map((truck, idx) => (
-          <div key={truck.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontSize: '9px', fontWeight: 600, color: '#CBD5E1', width: '14px', textAlign: 'right', flexShrink: 0 }}>{idx + 1}</span>
+          /* Linha no estilo das linhas de ajudantes, sem ícone */
+          <div key={truck.id} style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '6px 10px', borderRadius: '8px', background: '#EEF2F7',
+          }}>
+            {/* Número */}
+            <span style={{
+              fontSize: '10px', fontWeight: 700, color: '#94A3B8',
+              flexShrink: 0, minWidth: '14px', textAlign: 'right',
+            }}>{idx + 1}</span>
+            {/* Input livre */}
             <input
               value={truck.value}
               onChange={e => update(truck.id, e.target.value)}
               placeholder="Placa ou motorista..."
-              style={{ flex: 1, padding: '6px 8px', borderRadius: '7px', border: '1px solid rgba(0,0,0,0.09)', background: '#F8FAFC', fontSize: '11px', color: '#0F172A', outline: 'none', minWidth: 0, fontFamily: 'inherit' }}
+              style={{
+                flex: 1, border: 'none', background: 'transparent',
+                fontSize: '12px', fontWeight: 600, color: '#0F172A',
+                outline: 'none', padding: 0, fontFamily: 'inherit', minWidth: 0,
+              }}
             />
-            <button onClick={() => remove(truck.id)} style={{ color: '#CBD5E1', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', flexShrink: 0, display: 'flex', alignItems: 'center', lineHeight: 1 }}
+            {/* Remover */}
+            <button onClick={() => remove(truck.id)}
+              style={{ color: '#CBD5E1', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
               onMouseEnter={e => e.currentTarget.style.color = '#E11D48'}
               onMouseLeave={e => e.currentTarget.style.color = '#CBD5E1'}>
-              <X size={11} />
+              <X size={12} />
             </button>
           </div>
         ))
@@ -639,7 +661,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
             <div style={{ width: '1px', background: 'rgba(0,0,0,0.06)', alignSelf: 'stretch', flexShrink: 0 }} />
 
             {/* Direita: carretas descarregadas */}
-            <div style={{ width: '140px', flexShrink: 0 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <TrucksPanel escalaKey={escalaId || date} />
             </div>
 
@@ -1815,7 +1837,7 @@ function EscalasHoje({ companyId }) {
                   <div style={{ width: '1px', background: 'rgba(0,0,0,0.06)', alignSelf: 'stretch', flexShrink: 0 }} />
 
                   {/* Direita: carretas descarregadas */}
-                  <div style={{ width: '220px', flexShrink: 0 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <TrucksPanel escalaKey={todayEscala?.id || TODAY} />
                   </div>
 
