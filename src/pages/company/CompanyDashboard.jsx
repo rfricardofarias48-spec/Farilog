@@ -1832,11 +1832,11 @@ function Financial({ companyId }) {
           else { payDay = 5; payMonth = month + 1; payYear = year; if (payMonth > 11) { payMonth = 0; payYear += 1; } }
           const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
           return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: '#475569' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ fontSize: '18px', fontWeight: 500, color: '#475569' }}>
                 Valor a pagar: <span style={{ fontWeight: 800, color: '#059669' }}>{fmtCurrency(quinzenaValue)}</span>
               </p>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: '#475569' }}>
+              <p style={{ fontSize: '18px', fontWeight: 500, color: '#475569' }}>
                 Data de pagamento: <span style={{ fontWeight: 800, color: '#059669' }}>{payStr}</span>
               </p>
             </div>
