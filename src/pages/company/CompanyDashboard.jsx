@@ -2591,30 +2591,21 @@ function RelatorioTab({ companyId }) {
         {allDays.map((day, idx) => {
           const hasData = day.diarias > 0 || day.heCount > 0;
           const isLast  = idx === allDays.length - 1;
-          const isOpen  = openDay === day.date;
-          const dayRecs = records.filter(r => r.date === day.date);
-          const ativos  = dayRecs.filter(r => r.status !== 'absent');
-          const relatorio = relatorios.find(r => r.data === day.date);
-          const isCargaDescarga = (dayRecs[0]?.tipoServico || 'entrega') === 'carga_descarga';
-          const teamStart = ativos.filter(r => r.checkIn).map(r => r.checkIn).sort()[0] ?? null;
-          const teamEnd   = ativos.filter(r => r.checkOut).map(r => r.checkOut).sort().reverse()[0] ?? null;
 
           return (
-            <div key={day.date} style={{ borderBottom: !isLast || isOpen ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
-              {/* Linha do dia — clicável */}
+            <div key={day.date} style={{ borderBottom: !isLast ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
               <button
-                onClick={() => hasData && setOpenDay(isOpen ? null : day.date)}
+                onClick={() => hasData && setOpenDay(day.date)}
                 disabled={!hasData}
                 style={{
                   width: '100%', display: 'grid', gridTemplateColumns: COL,
                   alignItems: 'center', padding: '10px 16px', border: 'none',
-                  background: isOpen ? '#FFF2EE' : day.isWeekend ? '#FAFBFC' : 'transparent',
+                  background: day.isWeekend ? '#FAFBFC' : 'transparent',
                   cursor: hasData ? 'pointer' : 'default',
-                  borderLeft: 'none',
                   transition: 'background 0.12s',
                 }}
-                onMouseEnter={e => { if (hasData && !isOpen) e.currentTarget.style.background = '#FFF7F5'; }}
-                onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = day.isWeekend ? '#FAFBFC' : 'transparent'; }}
+                onMouseEnter={e => { if (hasData) e.currentTarget.style.background = '#F0F9FF'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = day.isWeekend ? '#FAFBFC' : 'transparent'; }}
               >
                 <p style={{ fontSize: '12px', fontWeight: hasData ? 600 : 400, color: day.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8', textAlign: 'center' }}>{day.label}</p>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{day.diarias > 0 ? day.diarias : '—'}</p>
@@ -2623,26 +2614,75 @@ function RelatorioTab({ companyId }) {
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorHE > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>{day.valorHE > 0 ? fmtCurrency(day.valorHE) : '—'}</p>
                 <p style={{ fontSize: '12px', fontWeight: 700, color: day.total > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{day.total > 0 ? fmtCurrency(day.total) : '—'}</p>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  {hasData && <ChevronRight size={13} style={{ color: '#FF4D0C', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />}
+                  {hasData && <ChevronRight size={13} style={{ color: '#94A3B8' }} />}
                 </div>
               </button>
+            </div>
+          );
+        })}
 
-              {/* ── Expansão inline ── */}
-              {isOpen && hasData && (
-                <div style={{ background: '#FAFBFC', borderTop: '1px solid rgba(0,0,0,0.05)', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Modal de detalhe do dia */}
+        {openDay && (() => {
+          const dayRecs = records.filter(r => r.date === openDay);
+          const ativos  = dayRecs.filter(r => r.status !== 'absent');
+          const relatorio = relatorios.find(r => r.data === openDay);
+          const isCargaDescarga = (dayRecs[0]?.tipoServico || 'entrega') === 'carga_descarga';
+          const teamStart = ativos.filter(r => r.checkIn).map(r => r.checkIn).sort()[0] ?? null;
+          const teamEnd   = ativos.filter(r => r.checkOut).map(r => r.checkOut).sort().reverse()[0] ?? null;
+          const [, mm, dd] = openDay.split('-');
+          const dow = DOW_SHORT[new Date(`${openDay}T12:00:00Z`).getUTCDay()];
+          const dayData = allDays.find(d => d.date === openDay);
+
+          return createPortal(
+            <div
+              onClick={e => e.target === e.currentTarget && setOpenDay(null)}
+              style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+            >
+              <div style={{ background: '#fff', borderRadius: '18px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', width: '100%', maxWidth: '620px', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Detalhe do dia</p>
+                    <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>{dow}, {dd}/{mm}</h2>
+                  </div>
+                  <button onClick={() => setOpenDay(null)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', color: '#64748B' }}>
+                    <X size={15} />
+                  </button>
+                </div>
+
+                {/* Resumo do dia */}
+                {dayData && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', padding: '16px 24px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                    <div style={{ padding: '12px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center' }}>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Diárias</p>
+                      <p style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A' }}>{dayData.diarias}</p>
+                    </div>
+                    <div style={{ padding: '12px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center' }}>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Val. Diárias</p>
+                      <p style={{ fontSize: '15px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(dayData.valorDiarias)}</p>
+                    </div>
+                    <div style={{ padding: '12px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center' }}>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Total</p>
+                      <p style={{ fontSize: '15px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(dayData.total)}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                  {/* Horário da equipe (carga e descarga) */}
+                  {isCargaDescarga && (teamStart || teamEnd) && (
+                    <div style={{ display: 'flex', gap: '12px', padding: '10px 14px', borderRadius: '10px', background: '#1E293B', width: 'fit-content' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#94A3B8' }}>Início: <span style={{ color: '#F1F5F9' }}>{fmtTime(teamStart)}</span></span>
+                      <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.15)' }}>|</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#94A3B8' }}>Final: <span style={{ color: '#10B981' }}>{fmtTime(teamEnd)}</span></span>
+                    </div>
+                  )}
 
                   {/* Lista de ajudantes */}
                   <div>
-                    <p style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-                      Ajudantes em serviço
-                    </p>
-                    {isCargaDescarga && (teamStart || teamEnd) && (
-                      <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', padding: '10px 14px', borderRadius: '10px', background: 'linear-gradient(160deg,#0F172A 0%,#1E293B 100%)', width: 'fit-content' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#94A3B8' }}>Início: <span style={{ color: '#F1F5F9' }}>{fmtTime(teamStart)}</span></span>
-                        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.15)' }}>|</span>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#94A3B8' }}>Final: <span style={{ color: '#10B981' }}>{fmtTime(teamEnd)}</span></span>
-                      </div>
-                    )}
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Ajudantes em serviço</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {ativos.map(rec => {
                         const emp = findEmp(employees, rec.employeeId);
@@ -2650,11 +2690,11 @@ function RelatorioTab({ companyId }) {
                           ? [{ label: 'Início', value: rec.checkIn }, { label: 'Final', value: rec.checkOut }]
                           : [{ label: 'Entrada', value: rec.checkIn }, { label: 'S. Almoço', value: rec.lunchOut }, { label: 'Retorno', value: rec.lunchReturn }, { label: 'Saída', value: rec.checkOut }];
                         return (
-                          <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7' }}>
+                          <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#F8FAFC' }}>
                             <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                               {emp?.initials}
                             </div>
-                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1, minWidth: '100px' }}>{emp?.name || '—'}</p>
+                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{emp?.name || '—'}</p>
                             <div style={{ display: 'flex', gap: '12px', flexShrink: 0 }}>
                               {TIMES.map(t => (
                                 <div key={t.label} style={{ textAlign: 'center', minWidth: '38px' }}>
@@ -2674,17 +2714,15 @@ function RelatorioTab({ companyId }) {
 
                   {/* Relatório do líder */}
                   <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '14px' }}>
-                    <p style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-                      Relatório do Líder
-                    </p>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Relatório do Líder</p>
                     {relatorio ? (
-                      <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'white', border: '1px solid rgba(0,0,0,0.07)' }}>
+                      <div style={{ padding: '12px 14px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: relatorio.observacoes ? '10px' : 0 }}>
-                          <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: relatorio.liderCor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                          <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: relatorio.liderCor || '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                             {relatorio.liderIni}
                           </div>
                           <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A', flex: 1 }}>{relatorio.liderNome}</p>
-                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: relatorio.finalizado ? '#DCFCE7' : '#FEF3C7', color: relatorio.finalizado ? '#059669' : '#D97706', flexShrink: 0 }}>
+                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: relatorio.finalizado ? '#DCFCE7' : '#EEF2F7', color: relatorio.finalizado ? '#059669' : '#64748B', flexShrink: 0 }}>
                             {relatorio.finalizado ? '✓ Finalizado' : 'Em aberto'}
                           </span>
                         </div>
@@ -2693,19 +2731,20 @@ function RelatorioTab({ companyId }) {
                         )}
                       </div>
                     ) : (
-                      <p style={{ fontSize: '12px', color: '#94A3B8', padding: '8px 0' }}>Relatório do líder não disponível para este dia.</p>
+                      <p style={{ fontSize: '12px', color: '#94A3B8' }}>Relatório do líder não disponível para este dia.</p>
                     )}
                   </div>
 
                 </div>
-              )}
-            </div>
+              </div>
+            </div>,
+            document.body
           );
-        })}
+        })()}
         </div>
 
         {/* Total cobrança + vencimento — compacto */}
-        <div style={{ padding: '12px 16px', borderTop: '2px solid #FF4D0C' }}>
+        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569' }}>Total da cobrança: </span>
