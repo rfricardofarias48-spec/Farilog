@@ -2803,33 +2803,35 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
     const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
 
     const y3    = doc.lastAutoTable.finalY + 10;
-    const cardH = 22;
-    const cardW = 182;
+    const cardH = 26;
+    const colW  = 80;   // largura de cada coluna
+    const divX  = 14 + colW;  // posição X do divisor
 
-    // Fundo branco + borda cinza
+    // Fundo branco + borda fina
     doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(220, 225, 232);
-    doc.roundedRect(14, y3, cardW, cardH, 3, 3, 'FD');
+    doc.setDrawColor(210, 214, 220);
+    doc.roundedRect(14, y3, colW * 2, cardH, 3, 3, 'FD');
 
-    // Divisor vertical central
-    doc.setDrawColor(220, 225, 232);
-    doc.line(14 + cardW / 2, y3 + 3, 14 + cardW / 2, y3 + cardH - 3);
+    // Divisor vertical
+    doc.setDrawColor(210, 214, 220);
+    doc.line(divX, y3 + 4, divX, y3 + cardH - 4);
 
-    // Coluna esquerda: Valor a pagar
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...light);
-    doc.text('VALOR A PAGAR', 20, y3 + 7);
-    doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+    // Coluna esquerda — Valor a pagar
+    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);                // #94A3B8
+    doc.text('VALOR A PAGAR', 20, y3 + 8);
+    doc.setFontSize(11); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text(fmtCurrency(totalGeral), 20, y3 + 15);
+    doc.text(fmtCurrency(totalGeral), 20, y3 + 18);
 
-    // Coluna direita: Data de pagamento
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...light);
-    doc.text('DATA DE PAGAMENTO', 14 + cardW / 2 + 6, y3 + 7);
-    doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+    // Coluna direita — Data de pagamento
+    const rightX = divX + 6;
+    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text('DATA DE PAGAMENTO', rightX, y3 + 8);
+    doc.setFontSize(11); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text(payStr, 14 + cardW / 2 + 6, y3 + 15);
+    doc.text(payStr, rightX, y3 + 18);
 
     // ── Paginação ────────────────────────────────────────────
     const pageCount = doc.getNumberOfPages();
