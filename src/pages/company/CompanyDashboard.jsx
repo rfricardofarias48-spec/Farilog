@@ -2135,20 +2135,10 @@ function EscalasProximas({ companyId }) {
                   <p style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}</p>
                 </div>
                 <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)', flexShrink: 0 }} />
-                <div style={{ display: 'flex', flex: 1, alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-                    {dateRecs.length} ajudante{dateRecs.length !== 1 ? 's' : ''}
-                  </span>
-                  {dateLider && (
-                    <>
-                      <span style={{ color: '#CBD5E1', fontSize: '10px' }}>·</span>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>{dateLider.nome}</span>
-                    </>
-                  )}
-                  <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', background: '#F1F5F9', color: '#64748B' }}>
-                    {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
-                  </span>
-                </div>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+                  {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
+                  <span style={{ fontWeight: 400, color: '#94A3B8' }}> ({dateRecs.length} ajudante{dateRecs.length !== 1 ? 's' : ''})</span>
+                </p>
               </div>
               <ChevronRight size={15} style={{ color: '#CBD5E1', flexShrink: 0 }} />
             </button>
