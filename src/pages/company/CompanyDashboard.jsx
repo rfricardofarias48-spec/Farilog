@@ -1832,15 +1832,15 @@ function Financial({ companyId }) {
           else { payDay = 5; payMonth = month + 1; payYear = year; if (payMonth > 11) { payMonth = 0; payYear += 1; } }
           const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
           return (
-            <div style={{ padding: '20px 28px', borderRadius: '16px', background: '#F0FDF4', border: '1px solid rgba(16,185,129,0.2)', display: 'inline-flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ padding: '14px 20px', borderRadius: '14px', background: '#F0FDF4', border: '1px solid rgba(16,185,129,0.2)', display: 'inline-flex', alignItems: 'center', gap: '24px' }}>
               <div>
-                <p style={{ fontSize: '11px', fontWeight: 600, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '4px' }}>Valor a pagar</p>
-                <p style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{fmtCurrency(quinzenaValue)}</p>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>Valor a pagar</p>
+                <p style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{fmtCurrency(quinzenaValue)}</p>
               </div>
-              <div style={{ height: '1px', background: 'rgba(16,185,129,0.2)' }} />
+              <div style={{ width: '1px', height: '32px', background: 'rgba(16,185,129,0.25)' }} />
               <div>
-                <p style={{ fontSize: '11px', fontWeight: 600, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '4px' }}>Data de pagamento</p>
-                <p style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{payStr}</p>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>Data de pagamento</p>
+                <p style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{payStr}</p>
               </div>
             </div>
           );
