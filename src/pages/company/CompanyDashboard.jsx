@@ -647,15 +647,15 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                 const isAbsent = rec.status === 'absent';
                 return (
                   <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 8px', borderRadius: '8px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ color: '#CBD5E1', fontSize: '9px', flexShrink: 0 }}>—</span>{emp?.name}
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                        <span style={{ color: '#CBD5E1', fontSize: '9px' }}>—</span>{emp?.name}
                       </p>
                       <input
                         value={notes[rec.id] || ''}
                         onChange={e => setNotes(p => ({ ...p, [rec.id]: e.target.value }))}
                         placeholder="Observação..."
-                        style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
+                        style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit' }}
                       />
                     </div>
                     {isAbsent && (
@@ -702,15 +702,15 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                     const isAbsent = rec.status === 'absent';
                     return (
                       <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 8px', borderRadius: '8px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p onClick={() => setPopupEmp(emp)} style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', lineHeight: 1.2 }}>
-                            {emp?.name}
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <p onClick={() => setPopupEmp(emp)} style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                            <span style={{ color: '#CBD5E1', fontSize: '9px' }}>—</span>{emp?.name}
                           </p>
                           <input
                             value={notes[rec.id] || ''}
                             onChange={e => setNotes(p => ({...p, [rec.id]: e.target.value}))}
                             placeholder="Observação..."
-                            style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
+                            style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit' }}
                           />
                         </div>
                         {isAbsent ? (
@@ -1819,13 +1819,13 @@ function EscalasHoje({ companyId }) {
                         const isAbsent = rec.status === 'absent';
                         return (
                           <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ color: '#CBD5E1', fontSize: '10px' }}>—</span>{emp?.name}</p>
+                            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}><span style={{ color: '#CBD5E1', fontSize: '10px' }}>—</span>{emp?.name}</p>
                               <input
                                 value={notes[rec.id] || ''}
                                 onChange={e => setNotes(p => ({...p, [rec.id]: e.target.value}))}
                                 placeholder="Observação..."
-                                style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
+                                style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit' }}
                               />
                             </div>
                             {isAbsent && (
@@ -1885,13 +1885,13 @@ function EscalasHoje({ companyId }) {
                     const isAbsent = rec.status === 'absent';
                     return (
                       <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
-                        <div style={{ minWidth: '100px', flexShrink: 0 }}>
-                          <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2 }}>{emp?.name}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '140px', flexShrink: 0 }}>
+                          <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}><span style={{ color: '#CBD5E1', fontSize: '10px' }}>—</span>{emp?.name}</p>
                           <input
                             value={notes[rec.id] || ''}
                             onChange={e => setNotes(p => ({...p, [rec.id]: e.target.value}))}
                             placeholder="Observação..."
-                            style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
+                            style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit' }}
                           />
                         </div>
                         <div style={{ flex: 1 }} />
@@ -2263,13 +2263,13 @@ function DiaDetalheRelModal({ date, records, onClose }) {
                   const emp = findEmp(employees, rec.employeeId);
                   return (
                     <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
-                      <div style={{ minWidth: '110px', flexShrink: 0 }}>
-                        <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', lineHeight: 1.2, display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ color: '#CBD5E1', fontSize: '10px' }}>—</span>{emp?.name}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '150px', flexShrink: 0 }}>
+                        <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}><span style={{ color: '#CBD5E1', fontSize: '10px' }}>—</span>{emp?.name}</p>
                         <input
                           value={notes[rec.id] || ''}
                           onChange={e => setNotes(p => ({...p, [rec.id]: e.target.value}))}
                           placeholder="Observação..."
-                          style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
+                          style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit' }}
                         />
                       </div>
                       <div style={{ flex: 1 }} />
