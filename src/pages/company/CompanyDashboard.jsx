@@ -2576,12 +2576,12 @@ function RelatorioTab({ companyId }) {
         {/* Cabeçalho */}
         <div style={{
           display: 'grid', gridTemplateColumns: COL,
-          padding: '8px 16px', background: '#EEF2F7',
-          borderBottom: '2px solid rgba(0,0,0,0.06)',
+          padding: '8px 16px', background: '#F8FAFC',
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
         }}>
           {['Data', 'Diárias', 'Val. Diária', 'H. Extra', 'Val. H. Extra', 'Total Dia', ''].map((h, i) => (
             <p key={i} style={{
-              fontSize: '10px', fontWeight: 700, color: '#475569',
+              fontSize: '10px', fontWeight: 600, color: '#94A3B8',
               textTransform: 'uppercase', letterSpacing: '0.05em',
               textAlign: 'center',
             }}>{h}</p>
