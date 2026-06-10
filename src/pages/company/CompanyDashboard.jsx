@@ -1822,27 +1822,26 @@ function Financial({ companyId }) {
               ))}
             </div>
 
-            {/* Valor a pagar + Data de pagamento */}
-            {(() => {
-              const { num, month, year } = quinzenaInfo;
-              let payDay, payMonth, payYear;
-              if (num === 1) { payDay = 20; payMonth = month; payYear = year; }
-              else { payDay = 5; payMonth = month + 1; payYear = year; if (payMonth > 11) { payMonth = 0; payYear += 1; } }
-              const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
-              return (
-                <div style={{ display: 'flex', gap: '32px', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                  <div>
-                    <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', marginBottom: '2px' }}>Valor a pagar</p>
-                    <p style={{ fontSize: '18px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(quinzenaValue)}</p>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', marginBottom: '2px' }}>Data de pagamento</p>
-                    <p style={{ fontSize: '18px', fontWeight: 800, color: '#059669' }}>{payStr}</p>
-                  </div>
-                </div>
-              );
-            })()}
           </div>
+
+        {/* Valor a pagar + Data de pagamento — fora da caixa do gráfico */}
+        {(() => {
+          const { num, month, year } = quinzenaInfo;
+          let payDay, payMonth, payYear;
+          if (num === 1) { payDay = 20; payMonth = month; payYear = year; }
+          else { payDay = 5; payMonth = month + 1; payYear = year; if (payMonth > 11) { payMonth = 0; payYear += 1; } }
+          const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: '#475569' }}>
+                Valor a pagar: <span style={{ fontWeight: 800, color: '#059669' }}>{fmtCurrency(quinzenaValue)}</span>
+              </p>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: '#475569' }}>
+                Data de pagamento: <span style={{ fontWeight: 800, color: '#059669' }}>{payStr}</span>
+              </p>
+            </div>
+          );
+        })()}
 
         {/* Alertas de atraso — só na quinzena atual */}
         {qOffset === 0 && myPayments.filter(p => p.status === 'overdue').map(p => (
