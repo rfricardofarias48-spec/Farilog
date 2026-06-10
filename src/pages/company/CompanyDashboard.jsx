@@ -2699,11 +2699,15 @@ function RelatorioTab({ companyId }) {
                 {dayData && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', padding: '16px 24px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                     <div style={{ padding: '12px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center' }}>
-                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Diárias</p>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                        {isCargaDescarga ? 'Descargas' : 'Diárias'}
+                      </p>
                       <p style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A' }}>{dayData.diarias}</p>
                     </div>
                     <div style={{ padding: '12px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center' }}>
-                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Val. Diárias</p>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                        {isCargaDescarga ? 'Total Descargas' : 'Val. Diárias'}
+                      </p>
                       <p style={{ fontSize: '15px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(dayData.valorDiarias)}</p>
                     </div>
                     <div style={{ padding: '12px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center' }}>
