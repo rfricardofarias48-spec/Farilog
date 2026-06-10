@@ -2650,7 +2650,22 @@ function RelatorioTab({ companyId }) {
                 onMouseLeave={e => { e.currentTarget.style.background = day.isWeekend ? '#FAFBFC' : 'transparent'; }}
               >
                 <p style={{ fontSize: '12px', fontWeight: hasData ? 600 : 400, color: day.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8', textAlign: 'center' }}>{day.label}</p>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{day.diarias > 0 ? day.diarias : '—'}</p>
+                {(() => {
+                  const dayTipo = day.recs[0]?.tipoServico || 'entrega';
+                  const tipoLabel = !tipoAtivo && day.diarias > 0
+                    ? ` (${dayTipo === 'carga_descarga' ? 'descargas' : 'diárias'})`
+                    : '';
+                  return (
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center', lineHeight: 1.3 }}>
+                      {day.diarias > 0 ? (
+                        <>
+                          {day.diarias}
+                          {tipoLabel && <span style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', display: 'block' }}>{tipoLabel.trim()}</span>}
+                        </>
+                      ) : '—'}
+                    </p>
+                  );
+                })()}
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorDiarias > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>{day.valorDiarias > 0 ? fmtCurrency(day.valorDiarias) : '—'}</p>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.heCount > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{fmtHoursCount(day.heCount)}</p>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorHE > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>{day.valorHE > 0 ? fmtCurrency(day.valorHE) : '—'}</p>
