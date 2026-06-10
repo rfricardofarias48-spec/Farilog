@@ -2305,27 +2305,39 @@ function DiaDetalheRelModal({ date, records, onClose }) {
   );
 }
 
+const TIPO_LABEL = { entrega: 'Entrega', carga_descarga: 'Carga e Descarga' };
+
 // ── Relatório ──────────────────────────────────────────────────────────────
 function RelatorioTab({ companyId }) {
   const { records, employees } = useCompanyData();
   const [offset, setOffset] = useState(0);
   const [openDay, setOpenDay] = useState(null);
+  const [tipoFilter, setTipoFilter] = useState(null);
   const [relatorios, setRelatorios] = useState([]);
 
   useEffect(() => {
     fetchRelatoriosByEmpresa(companyId).then(setRelatorios);
   }, [companyId]);
 
+  // Reset filtro ao mudar de quinzena
+  useEffect(() => { setTipoFilter(null); setOpenDay(null); }, [offset]);
+
   const { start, end, label } = getPeriodBounds('quinzena', offset);
   const [sy, sm, sday] = start.split('-').map(Number);
   const [, ,   eday]   = end.split('-').map(Number);
 
-  // Todos os dias da quinzena
+  // Tipos de serviço presentes no período
+  const periodRecords = records.filter(r => r.date >= start && r.date <= end);
+  const tiposDisponiveis = [...new Set(periodRecords.map(r => r.tipoServico || 'entrega'))];
+  const temAmbos = tiposDisponiveis.length > 1;
+  const tipoAtivo = tipoFilter || (temAmbos ? null : (tiposDisponiveis[0] || 'entrega'));
+
+  // Todos os dias da quinzena filtrados pelo tipo selecionado
   const allDays = [];
   for (let day = sday; day <= eday; day++) {
     const iso  = `${sy}-${String(sm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     const dow  = new Date(`${iso}T12:00:00Z`).getUTCDay();
-    const recs = records.filter(r => r.date === iso);
+    const recs = records.filter(r => r.date === iso && (!tipoAtivo || (r.tipoServico || 'entrega') === tipoAtivo));
     const presentes   = recs.filter(r => r.status !== 'absent');
     const diarias     = presentes.length;
     const heCount     = presentes.filter(r => r.overtime).length;
@@ -2544,6 +2556,27 @@ function RelatorioTab({ companyId }) {
         {navBtn(<ChevronRight size={15} />, () => setOffset(o => Math.min(o + 1, 0)))}
       </div>
 
+      {/* Seletor de tipo de serviço — só aparece quando há ambos */}
+      {temAmbos && (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {[null, ...tiposDisponiveis].map(tipo => {
+            const ativo = tipoFilter === tipo;
+            return (
+              <button key={tipo ?? 'todos'} onClick={() => setTipoFilter(tipo)}
+                style={{
+                  padding: '8px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+                  fontSize: '12px', fontWeight: 700, transition: 'all 0.15s',
+                  background: ativo ? '#0F172A' : '#FFFFFF',
+                  color: ativo ? '#FFFFFF' : '#64748B',
+                  boxShadow: ativo ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                }}>
+                {tipo === null ? 'Todos' : TIPO_LABEL[tipo] ?? tipo}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Caixa principal: stats + tabela + total */}
       <div className="card overflow-hidden">
 
@@ -2620,7 +2653,7 @@ function RelatorioTab({ companyId }) {
 
         {/* Modal de detalhe do dia */}
         {openDay && (() => {
-          const dayRecs = records.filter(r => r.date === openDay);
+          const dayRecs = records.filter(r => r.date === openDay && (!tipoAtivo || (r.tipoServico || 'entrega') === tipoAtivo));
           const ativos  = dayRecs.filter(r => r.status !== 'absent');
           const relatorio = relatorios.find(r => r.data === openDay);
           const isCargaDescarga = (dayRecs[0]?.tipoServico || 'entrega') === 'carga_descarga';
@@ -2640,7 +2673,9 @@ function RelatorioTab({ companyId }) {
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                   <div>
-                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Detalhe do dia</p>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
+                      {tipoAtivo ? TIPO_LABEL[tipoAtivo] : 'Detalhe do dia'}
+                    </p>
                     <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>{dow}, {dd}/{mm}</h2>
                   </div>
                   <button onClick={() => setOpenDay(null)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', color: '#64748B' }}>
