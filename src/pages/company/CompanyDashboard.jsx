@@ -2653,14 +2653,13 @@ function RelatorioTab({ companyId }) {
                 {(() => {
                   const dayTipo = day.recs[0]?.tipoServico || 'entrega';
                   const tipoLabel = !tipoAtivo && day.diarias > 0
-                    ? ` (${dayTipo === 'carga_descarga' ? 'descargas' : 'diárias'})`
+                    ? `(${dayTipo === 'carga_descarga' ? 'descargas' : 'diárias'})`
                     : '';
                   return (
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center', lineHeight: 1.3 }}>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>
                       {day.diarias > 0 ? (
                         <>
-                          {day.diarias}
-                          {tipoLabel && <span style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', display: 'block' }}>{tipoLabel.trim()}</span>}
+                          {day.diarias}{tipoLabel && <span style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', marginLeft: '4px' }}>{tipoLabel}</span>}
                         </>
                       ) : '—'}
                     </p>
