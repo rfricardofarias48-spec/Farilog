@@ -2576,12 +2576,12 @@ function RelatorioTab({ companyId }) {
         {/* Cabeçalho */}
         <div style={{
           display: 'grid', gridTemplateColumns: COL,
-          padding: '8px 16px', background: '#F8FAFC',
-          borderBottom: '1px solid rgba(0,0,0,0.06)',
+          padding: '8px 16px', background: '#E2E8F0',
+          borderBottom: '1px solid rgba(0,0,0,0.08)',
         }}>
           {['Data', 'Diárias', 'Val. Diária', 'H. Extra', 'Val. H. Extra', 'Total Dia', ''].map((h, i) => (
             <p key={i} style={{
-              fontSize: '10px', fontWeight: 600, color: '#94A3B8',
+              fontSize: '10px', fontWeight: 700, color: '#475569',
               textTransform: 'uppercase', letterSpacing: '0.05em',
               textAlign: 'center',
             }}>{h}</p>
@@ -2608,15 +2608,15 @@ function RelatorioTab({ companyId }) {
                 style={{
                   width: '100%', display: 'grid', gridTemplateColumns: COL,
                   alignItems: 'center', padding: '10px 16px', border: 'none',
-                  background: isOpen ? '#FFF2EE' : day.isWeekend ? '#F1F5F9' : 'transparent',
+                  background: isOpen ? '#FFF2EE' : day.isWeekend ? '#FAFBFC' : 'transparent',
                   cursor: hasData ? 'pointer' : 'default',
                   borderLeft: hasData ? '3px solid #FF4D0C' : '3px solid transparent',
                   transition: 'background 0.12s',
                 }}
                 onMouseEnter={e => { if (hasData && !isOpen) e.currentTarget.style.background = '#FFF7F5'; }}
-                onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = day.isWeekend ? '#F1F5F9' : 'transparent'; }}
+                onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = day.isWeekend ? '#FAFBFC' : 'transparent'; }}
               >
-                <p style={{ fontSize: '12px', fontWeight: hasData ? 600 : 400, color: day.isWeekend ? '#94A3B8' : hasData ? '#0F172A' : '#94A3B8', textAlign: 'center' }}>{day.label}</p>
+                <p style={{ fontSize: '12px', fontWeight: hasData ? 600 : 400, color: day.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8', textAlign: 'center' }}>{day.label}</p>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{day.diarias > 0 ? day.diarias : '—'}</p>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorDiarias > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>{day.valorDiarias > 0 ? fmtCurrency(day.valorDiarias) : '—'}</p>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.heCount > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{fmtHoursCount(day.heCount)}</p>
