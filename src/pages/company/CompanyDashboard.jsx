@@ -2548,31 +2548,24 @@ function RelatorioTab({ companyId }) {
       <div className="card overflow-hidden">
 
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', background: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-          {/* Diárias */}
-          <div style={{ padding: '14px 20px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
-              Diárias: <span style={{ color: '#0369A1' }}>{totalDiarias}</span>
-            </p>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
-              Valor: <span style={{ color: '#0369A1' }}>{fmtCurrency(totalValorDiarias)}</span>
-            </p>
-          </div>
-          {/* Divisor vertical */}
-          <div style={{ background: 'rgba(0,0,0,0.06)' }} />
-          {/* H. Extra */}
-          <div style={{ padding: '14px 20px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
-              Horas Extras: <span style={{ color: '#0369A1' }}>{fmtHoursCount(totalHE)}</span>
-            </p>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
-              Valor HE: <span style={{ color: '#0369A1' }}>{fmtCurrency(totalValorHE)}</span>
-            </p>
-            <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '2px 0' }} />
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
-              Total: <span style={{ color: '#0369A1' }}>{fmtCurrency(totalGeral)}</span>
-            </p>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1.3fr', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          {[
+            { label: 'Diárias',      value: totalDiarias,        fmt: v => v,                  highlight: false },
+            { label: 'Valor Diárias', value: totalValorDiarias,  fmt: fmtCurrency,             highlight: false },
+            { label: 'H. Extras',    value: fmtHoursCount(totalHE), fmt: v => v,               highlight: false },
+            { label: 'Valor HE',     value: totalValorHE,        fmt: fmtCurrency,             highlight: false },
+            { label: 'Total',        value: totalGeral,          fmt: fmtCurrency,             highlight: true  },
+          ].map(({ label, value, fmt, highlight }, i, arr) => (
+            <div key={label} style={{
+              padding: '16px 20px',
+              background: highlight ? '#0F172A' : '#FFFFFF',
+              borderLeft: i > 0 ? '1px solid rgba(0,0,0,0.06)' : 'none',
+              display: 'flex', flexDirection: 'column', gap: '4px',
+            }}>
+              <p style={{ fontSize: '10px', fontWeight: 600, color: highlight ? '#64748B' : '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+              <p style={{ fontSize: highlight ? '20px' : '16px', fontWeight: 800, color: highlight ? '#FFFFFF' : '#0F172A', lineHeight: 1 }}>{fmt(value)}</p>
+            </div>
+          ))}
         </div>
 
         {/* Tabela por dia */}
