@@ -2581,42 +2581,54 @@ function RelatorioTab({ companyId }) {
       <div className="card overflow-hidden">
 
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1.3fr', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-          {[
-            { label: 'Diárias',      value: totalDiarias,        fmt: v => v,                  highlight: false },
-            { label: 'Valor Diárias', value: totalValorDiarias,  fmt: fmtCurrency,             highlight: false },
-            { label: 'H. Extras',    value: fmtHoursCount(totalHE), fmt: v => v,               highlight: false },
-            { label: 'Valor HE',     value: totalValorHE,        fmt: fmtCurrency,             highlight: false },
-            { label: 'Total',        value: totalGeral,          fmt: fmtCurrency,             highlight: true  },
-          ].map(({ label, value, fmt, highlight }, i, arr) => (
-            <div key={label} style={{
-              padding: '16px 20px',
-              background: highlight ? '#0F172A' : '#FFFFFF',
-              borderLeft: i > 0 ? '1px solid rgba(0,0,0,0.06)' : 'none',
-              display: 'flex', flexDirection: 'column', gap: '4px',
-            }}>
-              <p style={{ fontSize: '10px', fontWeight: 600, color: highlight ? '#64748B' : '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
-              <p style={{ fontSize: highlight ? '20px' : '16px', fontWeight: 800, color: highlight ? '#FFFFFF' : '#0F172A', lineHeight: 1 }}>{fmt(value)}</p>
+        {(() => {
+          const isCD = tipoAtivo === 'carga_descarga';
+          const statItems = [
+            { label: isCD ? 'Descargas'       : 'Diárias',       value: totalDiarias,               fmt: v => v,       highlight: false },
+            { label: isCD ? 'Total Descargas' : 'Valor Diárias', value: totalValorDiarias,           fmt: fmtCurrency,  highlight: false },
+            { label: 'H. Extras',                                 value: fmtHoursCount(totalHE),     fmt: v => v,       highlight: false },
+            { label: 'Valor HE',                                  value: totalValorHE,               fmt: fmtCurrency,  highlight: false },
+            { label: 'Total',                                     value: totalGeral,                 fmt: fmtCurrency,  highlight: true  },
+          ];
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1.3fr', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              {statItems.map(({ label, value, fmt, highlight }, i) => (
+                <div key={label} style={{
+                  padding: '16px 20px',
+                  background: highlight ? '#0F172A' : '#FFFFFF',
+                  borderLeft: i > 0 ? '1px solid rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex', flexDirection: 'column', gap: '4px',
+                }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: highlight ? '#64748B' : '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+                  <p style={{ fontSize: highlight ? '20px' : '16px', fontWeight: 800, color: highlight ? '#FFFFFF' : '#0F172A', lineHeight: 1 }}>{fmt(value)}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          );
+        })()}
 
         {/* Tabela por dia */}
         <div>
         {/* Cabeçalho */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: COL,
-          padding: '8px 16px', background: '#E2E8F0',
-          borderBottom: '1px solid rgba(0,0,0,0.08)',
-        }}>
-          {['Data', 'Diárias', 'Val. Diária', 'H. Extra', 'Val. H. Extra', 'Total Dia', ''].map((h, i) => (
-            <p key={i} style={{
-              fontSize: '10px', fontWeight: 700, color: '#475569',
-              textTransform: 'uppercase', letterSpacing: '0.05em',
-              textAlign: 'center',
-            }}>{h}</p>
-          ))}
-        </div>
+        {(() => {
+          const isCD = tipoAtivo === 'carga_descarga';
+          const cols = ['Data', isCD ? 'Descargas' : 'Diárias', isCD ? 'Total Descargas' : 'Val. Diária', 'H. Extra', 'Val. H. Extra', 'Total Dia', ''];
+          return (
+            <div style={{
+              display: 'grid', gridTemplateColumns: COL,
+              padding: '8px 16px', background: '#E2E8F0',
+              borderBottom: '1px solid rgba(0,0,0,0.08)',
+            }}>
+              {cols.map((h, i) => (
+                <p key={i} style={{
+                  fontSize: '10px', fontWeight: 700, color: '#475569',
+                  textTransform: 'uppercase', letterSpacing: '0.05em',
+                  textAlign: 'center',
+                }}>{h}</p>
+              ))}
+            </div>
+          );
+        })()}
 
         {allDays.map((day, idx) => {
           const hasData = day.diarias > 0 || day.heCount > 0;
