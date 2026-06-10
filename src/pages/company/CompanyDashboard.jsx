@@ -2608,15 +2608,15 @@ function RelatorioTab({ companyId }) {
                 style={{
                   width: '100%', display: 'grid', gridTemplateColumns: COL,
                   alignItems: 'center', padding: '10px 16px', border: 'none',
-                  background: isOpen ? '#FFF2EE' : day.isWeekend ? 'rgba(238,242,247,0.6)' : 'transparent',
+                  background: isOpen ? '#FFF2EE' : day.isWeekend ? '#F1F5F9' : 'transparent',
                   cursor: hasData ? 'pointer' : 'default',
                   borderLeft: hasData ? '3px solid #FF4D0C' : '3px solid transparent',
                   transition: 'background 0.12s',
                 }}
                 onMouseEnter={e => { if (hasData && !isOpen) e.currentTarget.style.background = '#FFF7F5'; }}
-                onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = day.isWeekend ? 'rgba(238,242,247,0.6)' : 'transparent'; }}
+                onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = day.isWeekend ? '#F1F5F9' : 'transparent'; }}
               >
-                <p style={{ fontSize: '12px', fontWeight: hasData ? 600 : 400, color: day.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8', textAlign: 'center' }}>{day.label}</p>
+                <p style={{ fontSize: '12px', fontWeight: hasData ? 600 : 400, color: day.isWeekend ? '#94A3B8' : hasData ? '#0F172A' : '#94A3B8', textAlign: 'center' }}>{day.label}</p>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{day.diarias > 0 ? day.diarias : '—'}</p>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorDiarias > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>{day.valorDiarias > 0 ? fmtCurrency(day.valorDiarias) : '—'}</p>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.heCount > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{fmtHoursCount(day.heCount)}</p>
