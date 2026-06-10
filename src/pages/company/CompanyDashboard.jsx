@@ -2722,14 +2722,22 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
     doc.text(`Período: ${label}  ${pdfRange}`, 10, headerH + 9);
     doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 10, headerH + 15);
 
+    // ── Labels dinâmicos por tipo ────────────────────────────
+    const isCD    = tipoAtivo === 'carga_descarga';
+    const isTodos = !tipoAtivo && temAmbos;
+    const lbCount  = isTodos ? 'Diárias + Descargas' : isCD ? 'Descargas'       : 'Diárias';
+    const lbVal    = isTodos ? 'Valor'               : isCD ? 'Total Descargas' : 'Valor Diárias';
+    const lbValShort = isTodos ? 'Valor'             : isCD ? 'Total Descargas' : 'Val. Diária';
+    const tipoTxt  = isTodos ? 'Diárias + Descargas' : isCD ? 'Carga e Descarga' : 'Entrega';
+
     // ── Resumo do Período ────────────────────────────────────
     doc.setFontSize(10.5); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text('Resumo do Período', 10, 53);
+    doc.text(`Resumo do Período — ${tipoTxt}`, 10, 53);
 
     autoTable(doc, {
       startY: 56,
-      head: [['Diárias', 'Valor Diárias', 'H. Extras', 'Valor HE', 'Total Geral']],
+      head: [[lbCount, lbVal, 'H. Extras', 'Valor HE', 'Total Geral']],
       body: [[
         String(totalDiarias),
         fmtCurrency(totalValorDiarias),
@@ -2763,7 +2771,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
 
     autoTable(doc, {
       startY: y2 + 4,
-      head: [['Data', 'Diárias', 'Val. Diária', 'H. Extra', 'Val. HE', 'Total Dia']],
+      head: [['Data', lbCount, lbValShort, 'H. Extra', 'Val. HE', 'Total Dia']],
       body: allDays.filter(d => !d.isWeekend).map(d => [
         d.label,
         d.diarias      > 0 ? String(d.diarias)           : '—',
