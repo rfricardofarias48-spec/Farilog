@@ -1,111 +1,168 @@
 ﻿import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fmtDate } from '../../data/mockData';
-import { createEmployee, updateEmployee, deleteEmployee, fetchLideres, updateLider, deleteLider } from '../../lib/db';
+import { createEmployee, updateEmployee, deleteEmployee, fetchLideres, updateLider, deleteLider, createLider } from '../../lib/db';
 import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, KeyRound, Shield } from 'lucide-react';
 
-const EMPTY = { name: '', phone: '', email: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0, password: '', status: 'active', cidade: '' };
+const EMPTY        = { name: '', phone: '', email: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0, password: '', status: 'active', cidade: '' };
+const EMPTY_LIDER  = { name: '', phone: '', email: '', password: '', companyId: '' };
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
 
-function Modal({ employee, onSave, onClose }) {
-  const [form, setForm]               = useState(employee ? { ...employee } : { ...EMPTY });
-  const [showReset, setShowReset]     = useState(false);
+function Modal({ employee, onSave, onClose, companies = [] }) {
+  // Quando editando, detecta se é líder pela ausência de dailyRate
+  const isEditingLider = employee && employee.dailyRate === undefined;
+  const [role, setRole]           = useState(isEditingLider ? 'lider' : 'ajudante');
+  const [form, setForm]           = useState(employee ? { ...employee } : { ...EMPTY });
+  const [formLider, setFormLider] = useState(employee && isEditingLider ? { ...employee } : { ...EMPTY_LIDER });
+  const [showReset, setShowReset] = useState(false);
 
-  const fields = [
-    { key: 'name',        label: 'Nome completo',        required: true, col: 2 },
-    { key: 'phone',       label: 'Telefone',              required: true, placeholder: '(00) 00000-0000' },
-    { key: 'email',       label: 'E-mail de acesso',      required: true, type: 'email' },
-    { key: 'cidade',      label: 'Cidade/UF',             placeholder: 'Ex: Gravataí/RS' },
+  const isNew = !employee;
+
+  const fieldAjudante = [
+    { key: 'name',        label: 'Nome completo',           required: true, col: 2 },
+    { key: 'phone',       label: 'Telefone',                required: true, placeholder: '(00) 00000-0000' },
+    { key: 'email',       label: 'E-mail de acesso',        required: true, type: 'email' },
+    { key: 'cidade',      label: 'Cidade/UF',               placeholder: 'Ex: Gravataí/RS' },
     { key: 'dailyRate',   label: 'Valor da diária (R$)',     type: 'number', required: true },
-    { key: 'overtimeRate',label: 'Hora extra (R$)',           type: 'number', required: true },
-    { key: 'vtDiario',    label: 'Vale Transporte/dia (R$)',  type: 'number', placeholder: '0,00' },
-    { key: 'vrDiario',    label: 'Vale Refeição/dia (R$)',    type: 'number', placeholder: '0,00' },
-    ...(!employee ? [{ key: 'password', label: 'Senha', type: 'password', col: 2, required: true }] : []),
+    { key: 'overtimeRate',label: 'Hora extra (R$)',          type: 'number', required: true },
+    { key: 'vtDiario',    label: 'Vale Transporte/dia (R$)', type: 'number', placeholder: '0,00' },
+    { key: 'vrDiario',    label: 'Vale Refeição/dia (R$)',   type: 'number', placeholder: '0,00' },
+    ...(isNew ? [{ key: 'password', label: 'Senha', type: 'password', col: 2, required: true }] : []),
   ];
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-box animate-fade-up">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-base font-bold" style={T}>{employee ? 'Editar Funcionário' : 'Novo Funcionário'}</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-base font-bold" style={T}>{isNew ? 'Novo Cadastro' : 'Editar Cadastro'}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
             <X size={15} />
           </button>
         </div>
-        <form onSubmit={e => { e.preventDefault(); onSave(form); }} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            {fields.map(({ key, label, required, placeholder, type, col }) => (
-              <div key={key} className={col === 2 ? 'col-span-2' : ''}>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
-                <input type={type || 'text'} placeholder={placeholder} required={required}
-                  autoComplete="off" value={form[key] ?? ''}
-                  onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
-              </div>
+
+        {/* Seletor de função — só na criação */}
+        {isNew && (
+          <div className="flex gap-2 mb-5">
+            {[['ajudante', Users, 'Ajudante'], ['lider', Shield, 'Líder de Equipe']].map(([val, Icon, lbl]) => (
+              <button key={val} type="button" onClick={() => setRole(val)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold border transition-all"
+                style={{
+                  background:   role === val ? (val === 'ajudante' ? '#FFF2EE' : '#EFF6FF') : '#F8FAFC',
+                  borderColor:  role === val ? (val === 'ajudante' ? '#FF4D0C' : '#3B82F6') : 'rgba(0,0,0,0.08)',
+                  color:        role === val ? (val === 'ajudante' ? '#FF4D0C' : '#2563EB') : '#94A3B8',
+                }}>
+                <Icon size={13} /> {lbl}
+              </button>
             ))}
           </div>
-          <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Status</label>
-            <div className="flex gap-2">
-              {['active','inactive'].map(s => (
-                <button key={s} type="button" onClick={() => setForm({ ...form, status: s })}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all"
-                  style={{
-                    background: form.status === s ? (s === 'active' ? '#ECFDF5' : '#FEF2F2') : '#F8FAFC',
-                    borderColor: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : 'rgba(0,0,0,0.08)',
-                    color: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : '#94A3B8',
-                  }}>
-                  {s === 'active' ? 'Ativo' : 'Inativo'}
-                </button>
+        )}
+
+        {/* ── Formulário Ajudante ── */}
+        {role === 'ajudante' && (
+          <form onSubmit={e => { e.preventDefault(); onSave({ ...form, _role: 'ajudante' }); }} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              {fieldAjudante.map(({ key, label, required, placeholder, type, col }) => (
+                <div key={key} className={col === 2 ? 'col-span-2' : ''}>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
+                  <input type={type || 'text'} placeholder={placeholder} required={required}
+                    autoComplete="off" value={form[key] ?? ''}
+                    onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
+                </div>
               ))}
             </div>
-          </div>
-          {/* Redefinir senha — só no modo edição */}
-          {employee && (
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)' }}>
-              <button
-                type="button"
-                onClick={() => { setShowReset(v => !v); setForm(f => ({ ...f, password: '' })); }}
-                className="w-full flex items-center gap-2 px-4 py-3 text-xs font-semibold transition-colors"
-                style={{
-                  background: showReset ? '#FFF2EE' : '#F8FAFC',
-                  color: showReset ? '#FF4D0C' : '#475569',
-                  borderBottom: showReset ? '1px solid rgba(255,77,12,0.12)' : 'none',
-                }}
-              >
-                <KeyRound size={13} />
-                Redefinir senha
-              </button>
-              {showReset && (
-                <div className="px-4 py-3" style={{ background: '#FFFAF9' }}>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Nova senha</label>
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    placeholder="Digite a nova senha"
-                    value={form.password ?? ''}
-                    onChange={e => setForm({ ...form, password: e.target.value })}
-                    className="input-field"
-                  />
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Status</label>
+              <div className="flex gap-2">
+                {['active','inactive'].map(s => (
+                  <button key={s} type="button" onClick={() => setForm({ ...form, status: s })}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all"
+                    style={{
+                      background: form.status === s ? (s === 'active' ? '#ECFDF5' : '#FEF2F2') : '#F8FAFC',
+                      borderColor: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : 'rgba(0,0,0,0.08)',
+                      color: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : '#94A3B8',
+                    }}>
+                    {s === 'active' ? 'Ativo' : 'Inativo'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {!isNew && (
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)' }}>
+                <button type="button" onClick={() => { setShowReset(v => !v); setForm(f => ({ ...f, password: '' })); }}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-xs font-semibold transition-colors"
+                  style={{ background: showReset ? '#FFF2EE' : '#F8FAFC', color: showReset ? '#FF4D0C' : '#475569', borderBottom: showReset ? '1px solid rgba(255,77,12,0.12)' : 'none' }}>
+                  <KeyRound size={13} /> Redefinir senha
+                </button>
+                {showReset && (
+                  <div className="px-4 py-3" style={{ background: '#FFFAF9' }}>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Nova senha</label>
+                    <input type="password" autoComplete="new-password" required placeholder="Digite a nova senha"
+                      value={form.password ?? ''} onChange={e => setForm({ ...form, password: e.target.value })} className="input-field" />
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+              <button type="submit" className="btn-primary flex-1">{isNew ? 'Cadastrar Ajudante' : 'Salvar'}</button>
+              <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
+            </div>
+          </form>
+        )}
+
+        {/* ── Formulário Líder ── */}
+        {role === 'lider' && (
+          <form onSubmit={e => { e.preventDefault(); onSave({ ...formLider, _role: 'lider' }); }} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Nome completo</label>
+                <input required autoComplete="off" value={formLider.name ?? ''}
+                  onChange={e => setFormLider({ ...formLider, name: e.target.value })} className="input-field" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Telefone</label>
+                <input placeholder="(00) 00000-0000" autoComplete="off" value={formLider.phone ?? ''}
+                  onChange={e => setFormLider({ ...formLider, phone: e.target.value })} className="input-field" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>E-mail de acesso</label>
+                <input required type="email" autoComplete="off" value={formLider.email ?? ''}
+                  onChange={e => setFormLider({ ...formLider, email: e.target.value })} className="input-field" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Empresa</label>
+                <div className="relative">
+                  <select value={formLider.companyId ?? ''} onChange={e => setFormLider({ ...formLider, companyId: e.target.value })}
+                    className="input-field" style={{ appearance: 'none' }}>
+                    <option value="">Sem empresa</option>
+                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              {isNew && (
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Senha</label>
+                  <input required type="password" autoComplete="new-password" value={formLider.password ?? ''}
+                    onChange={e => setFormLider({ ...formLider, password: e.target.value })} className="input-field" />
                 </div>
               )}
             </div>
-          )}
-
-          <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-            <button type="submit" className="btn-primary flex-1">{employee ? 'Salvar' : 'Cadastrar funcionário'}</button>
-            <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
-          </div>
-        </form>
+            <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+              <button type="submit" className="btn-primary flex-1" style={{ background: '#2563EB', boxShadow: '0 2px 8px rgba(37,99,235,0.3)' }}>
+                {isNew ? 'Cadastrar Líder' : 'Salvar'}
+              </button>
+              <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
 }
 
 export default function AdminEmployees() {
-  const { employees, setEmployees } = useAuth();
+  const { employees, setEmployees, companies } = useAuth();
   const [modal, setModal]           = useState(null);
   const [search, setSearch]         = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -151,9 +208,31 @@ export default function AdminEmployees() {
   });
 
   const handleSave = async (form) => {
-    if (modal === 'new') {
+    const colors = ['#FF4D0C','#7C3AED','#059669','#D97706','#DC2626','#0891B2','#BE185D'];
+
+    if (form._role === 'lider') {
+      // ── Criar Líder ──
+      const initials = (form.name || '').split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase();
+      const saved = await createLider({
+        name:      form.name,
+        email:     form.email,
+        phone:     form.phone || null,
+        password:  form.password,
+        initials,
+        color:     colors[lideres.length % colors.length],
+        companyId: form.companyId || null,
+      });
+      if (saved) setLideres(prev => [...prev, {
+        ...saved,
+        name:        saved.nome,
+        initials:    saved.iniciais,
+        color:       saved.cor,
+        companyName: companies.find(c => c.id === form.companyId)?.name || '—',
+        companyIds:  form.companyId ? [form.companyId] : [],
+      }]);
+    } else if (modal === 'new') {
+      // ── Criar Ajudante ──
       const initials = form.name.split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase();
-      const colors   = ['#FF4D0C','#7C3AED','#059669','#D97706','#DC2626','#0891B2','#BE185D'];
       const saved = await createEmployee({
         ...form,
         id:           crypto.randomUUID(),
@@ -166,6 +245,7 @@ export default function AdminEmployees() {
       });
       if (saved) setEmployees(prev => [...prev, saved]);
     } else {
+      // ── Editar Ajudante ──
       const patch = { ...form, dailyRate: Number(form.dailyRate), overtimeRate: Number(form.overtimeRate), vtDiario: Number(form.vtDiario ?? 0), vrDiario: Number(form.vrDiario ?? 0) };
       if (!patch.password) delete patch.password;
       const saved = await updateEmployee(modal.id, patch);
@@ -203,11 +283,9 @@ export default function AdminEmployees() {
               </button>
             ))}
           </div>
-          {filterRole === 'ajudantes' && (
-            <button onClick={() => setModal('new')} className="btn-primary flex items-center gap-2">
-              <Plus size={14} /> Novo Funcionário
-            </button>
-          )}
+          <button onClick={() => setModal('new')} className="btn-primary flex items-center gap-2">
+            <Plus size={14} /> Novo Cadastro
+          </button>
         </div>
       </div>
 
@@ -361,7 +439,7 @@ export default function AdminEmployees() {
       )}
 
       {(modal === 'new' || (modal && modal !== 'new')) && (
-        <Modal employee={modal === 'new' ? null : modal} onSave={handleSave} onClose={() => setModal(null)} />
+        <Modal employee={modal === 'new' ? null : modal} onSave={handleSave} onClose={() => setModal(null)} companies={companies} />
       )}
       {deleteConfirm && (
         <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
