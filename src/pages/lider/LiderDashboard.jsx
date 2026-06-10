@@ -44,6 +44,83 @@ function fmtDate(iso) {
   return `${DOW[new Date(`${iso}T12:00:00Z`).getUTCDay()]}, ${d}/${m}/${y}`;
 }
 
+// ── Observações persistidas no localStorage ───────────────────────────────
+function useNotes() {
+  const [notes, setNotesState] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('farilog_notes') || '{}'); }
+    catch { return {}; }
+  });
+  const setNotes = (updater) => {
+    setNotesState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      localStorage.setItem('farilog_notes', JSON.stringify(next));
+      return next;
+    });
+  };
+  return [notes, setNotes];
+}
+
+// ── Carretas descarregadas — localStorage por escala ─────────────────────
+function useTrucks(escalaKey) {
+  const key = `farilog_trucks_${escalaKey}`;
+  const [trucks, setTrucksState] = useState(() => {
+    if (!escalaKey) return [];
+    try { return JSON.parse(localStorage.getItem(key) || '[]'); }
+    catch { return []; }
+  });
+  const setTrucks = (updater) => {
+    setTrucksState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (escalaKey) localStorage.setItem(key, JSON.stringify(next));
+      return next;
+    });
+  };
+  return [trucks, setTrucks];
+}
+
+function TrucksPanel({ escalaKey }) {
+  const [trucks, setTrucks] = useTrucks(escalaKey);
+  const add    = () => setTrucks(t => [...t, { id: Date.now().toString(), value: '' }]);
+  const remove = (id) => setTrucks(t => t.filter(x => x.id !== id));
+  const update = (id, value) => setTrucks(t => t.map(x => x.id === id ? { ...x, value } : x));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+        <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+          Descargas do Dia
+        </p>
+        <button onClick={add} style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+          + Nova
+        </button>
+      </div>
+      {trucks.length === 0 ? (
+        <button onClick={add} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 8px', borderRadius: '8px', border: '1.5px dashed #E2E8F0', background: 'transparent', cursor: 'pointer', color: '#94A3B8', fontSize: '11px', width: '100%' }}>
+          + Adicionar descarga
+        </button>
+      ) : (
+        trucks.map((truck, idx) => (
+          <div key={truck.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', borderRadius: '8px', background: '#EEF2F7' }}>
+            <span style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', flexShrink: 0, minWidth: '14px', textAlign: 'right' }}>{idx + 1}</span>
+            <input
+              value={truck.value}
+              onChange={e => update(truck.id, e.target.value)}
+              placeholder="Placa ou motorista..."
+              style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '12px', fontWeight: 600, color: '#0F172A', outline: 'none', padding: 0, fontFamily: 'inherit', minWidth: 0 }}
+            />
+            <button onClick={() => remove(truck.id)}
+              style={{ color: '#CBD5E1', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+              onMouseEnter={e => e.currentTarget.style.color = '#E11D48'}
+              onMouseLeave={e => e.currentTarget.style.color = '#CBD5E1'}>
+              <X size={12} />
+            </button>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 // ── Status badge ──────────────────────────────────────────────────────────
 const STATUS_CFG = {
   aguardando: { label: 'Aguardando', color: '#D97706', bg: '#FEF3C7' },
@@ -261,6 +338,7 @@ function ModalFinalizarDia({ user, presentes, ausentes, ocCount, onClose, onSave
 
 // ── Tab: Hoje — monitoramento (read-only) ─────────────────────────────────
 function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
+  const [notes, setNotes] = useNotes();
   const todayEscala     = escalas.find(e => e.date === TODAY);
   const ajudantes       = todayEscala?.employees || [];
   const isCargaDescarga = todayEscala?.tipoServico === 'carga_descarga';
@@ -350,7 +428,7 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
         </div>
       )}
 
-      {/* ── Equipe — layout idêntico à tela da empresa ── */}
+      {/* ── Equipe — idêntico à tela da empresa ── */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -375,32 +453,48 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
             </div>
 
           ) : isCargaDescarga ? (
-            /* ── CARGA E DESCARGA — igual empresa: botão Equipe + linhas #EEF2F7 ── */
-            <>
-              <button onClick={() => setModalSubst(true)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginBottom: '6px' }}>
-                <Users size={11} /> Equipe
-              </button>
-              {ajudantes.map(({ employeeId, status }) => {
-                const emp = employees.find(e => e.id === employeeId);
-                const isAbsent = status === 'falta';
-                return (
-                  <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
-                    <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
-                      {emp?.initials}
+            /* ── CARGA E DESCARGA: split equipe (esq) + descargas do dia (dir) ── */
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+              {/* Esquerda: equipe com obs */}
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <button onClick={() => setModalSubst(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginBottom: '2px' }}>
+                  <Users size={11} /> Equipe
+                </button>
+                {ajudantes.map(({ employeeId, status }) => {
+                  const emp = employees.find(e => e.id === employeeId);
+                  const isAbsent = status === 'falta';
+                  return (
+                    <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
+                      <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
+                        {emp?.initials}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2 }}>{emp?.name || '—'}</p>
+                        <input
+                          value={notes[employeeId] || ''}
+                          onChange={e => setNotes(p => ({ ...p, [employeeId]: e.target.value }))}
+                          placeholder="Observação..."
+                          style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
+                        />
+                      </div>
+                      {isAbsent && <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>}
                     </div>
-                    <p style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A' }}>{emp?.name || '—'}</p>
-                    {isAbsent
-                      ? <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
-                      : <StatusBadge status={status} />
-                    }
-                  </div>
-                );
-              })}
-            </>
+                  );
+                })}
+              </div>
+
+              {/* Separador */}
+              <div style={{ width: '1px', background: 'rgba(0,0,0,0.06)', alignSelf: 'stretch', flexShrink: 0 }} />
+
+              {/* Direita: descargas do dia */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <TrucksPanel escalaKey={todayEscala?.id || TODAY} />
+              </div>
+            </div>
 
           ) : (
-            /* ── ENTREGA — igual empresa: agrupado por serviço + horários à direita ── */
+            /* ── ENTREGA: agrupado por serviço + obs + horários à direita ── */
             <>
               {Object.entries(groupByService(
                 ajudantes.map(a => ({ ...a, service: todayEscala?.service || 'Serviço' }))
@@ -413,17 +507,25 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
                     const emp = employees.find(e => e.id === employeeId);
                     const isAbsent = status === 'falta';
                     const TIMES = [
-                      { label: 'Entrada',   key: entrada        },
-                      { label: 'S. Almoço', key: saidaAlmoco   },
-                      { label: 'Retorno',   key: retornoAlmoco  },
-                      { label: 'Saída',     key: saida          },
+                      { label: 'Entrada',   val: entrada       },
+                      { label: 'S. Almoço', val: saidaAlmoco  },
+                      { label: 'Retorno',   val: retornoAlmoco },
+                      { label: 'Saída',     val: saida         },
                     ];
                     return (
                       <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
                         <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
                           {emp?.initials}
                         </div>
-                        <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', minWidth: '110px', flexShrink: 0 }}>{emp?.name || '—'}</p>
+                        <div style={{ minWidth: '110px', flexShrink: 0 }}>
+                          <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2 }}>{emp?.name || '—'}</p>
+                          <input
+                            value={notes[employeeId] || ''}
+                            onChange={e => setNotes(p => ({ ...p, [employeeId]: e.target.value }))}
+                            placeholder="Observação..."
+                            style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
+                          />
+                        </div>
                         <div style={{ flex: 1 }} />
                         {isAbsent ? (
                           <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFE4E6', color: '#E11D48' }}>Falta</span>
@@ -432,9 +534,9 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
                             {TIMES.map(t => (
                               <div key={t.label} style={{ textAlign: 'center', minWidth: '40px' }}>
                                 <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 600, marginBottom: '2px' }}>{t.label}</p>
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: t.key ? '#0F172A' : '#CBD5E1' }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: t.val ? '#0F172A' : '#CBD5E1' }}>
                                   <Clock size={9} />
-                                  <span style={{ fontSize: '11px', fontWeight: 700 }}>{fmtTime(t.key) ?? '—'}</span>
+                                  <span style={{ fontSize: '11px', fontWeight: 700 }}>{fmtTime(t.val) ?? '—'}</span>
                                 </div>
                               </div>
                             ))}
