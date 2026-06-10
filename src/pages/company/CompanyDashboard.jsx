@@ -143,8 +143,8 @@ function TrucksPanel({ escalaKey, escalaId, readOnly = false }) {
   const update = (id, value) => setTrucks(t => t.map(x => x.id === id ? { ...x, value } : x));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
         <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
           Descargas do Dia
         </p>
@@ -641,7 +641,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <button
                 onClick={() => onVerMais ? onVerMais() : setShowModal(true)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginBottom: '2px' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginBottom: '10px' }}>
                 <Users size={11} /> Equipe
               </button>
               {records.map(rec => {
