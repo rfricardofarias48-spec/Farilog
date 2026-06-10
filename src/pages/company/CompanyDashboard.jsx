@@ -2059,10 +2059,9 @@ function EscalasTab({ companyId }) {
   // REGRA: empresas só podem ver o relatório do líder.
   // Reportes individuais dos ajudantes (ocorrências) são visíveis apenas para Líder e Admin.
   const SUBS = [
-    { key: 'hoje',       label: 'Hoje' },
-    { key: 'proximas',   label: 'Próximas Escalas' },
-    { key: 'historico',  label: 'Histórico' },
-    { key: 'relatorios', label: 'Relatórios do Líder' },
+    { key: 'hoje',      label: 'Hoje' },
+    { key: 'proximas',  label: 'Próximas Escalas' },
+    { key: 'historico', label: 'Histórico' },
   ];
 
   return (
@@ -2081,10 +2080,9 @@ function EscalasTab({ companyId }) {
         ))}
       </div>
 
-      {sub === 'hoje'       && <EscalasHoje     companyId={companyId} />}
-      {sub === 'proximas'   && <EscalasProximas companyId={companyId} />}
-      {sub === 'historico'  && <HistoryTab      companyId={companyId} />}
-      {sub === 'relatorios' && <EquipeTab        companyId={companyId} />}
+      {sub === 'hoje'      && <EscalasHoje     companyId={companyId} />}
+      {sub === 'proximas'  && <EscalasProximas companyId={companyId} />}
+      {sub === 'historico' && <HistoryTab      companyId={companyId} />}
     </div>
   );
 }
