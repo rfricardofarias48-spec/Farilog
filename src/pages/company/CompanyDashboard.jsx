@@ -2733,7 +2733,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
     // ── Resumo do Período ────────────────────────────────────
     doc.setFontSize(10.5); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text(`Resumo do Período — ${tipoTxt}`, 10, 53);
+    doc.text('Resumo do Período', 10, 53);
 
     autoTable(doc, {
       startY: 56,
