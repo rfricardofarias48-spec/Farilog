@@ -2743,27 +2743,24 @@ function RelatorioTab({ companyId }) {
         })()}
         </div>
 
-        {/* Total cobrança + vencimento — compacto */}
-        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+        {/* Total cobrança + vencimento */}
+        <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569' }}>Total da cobrança: </span>
-              <span style={{ fontSize: '15px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(totalGeral)}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total da cobrança</span>
+              <span style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>{fmtCurrency(totalGeral)}</span>
             </div>
             {payment ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569' }}>
-                  {payment.status === 'paid' ? 'Pago em:' : 'Vencimento:'}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {payment.status === 'paid' ? 'Pago em' : 'Vencimento'}
                 </span>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: payment.status === 'paid' ? '#059669' : payment.status === 'overdue' ? '#E11D48' : '#D97706' }}>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: payment.status === 'paid' ? '#4ADE80' : payment.status === 'overdue' ? '#F87171' : '#94A3B8' }}>
                   {payment.status === 'paid' && payment.paidDate ? fmtDate(payment.paidDate) : fmtDate(payment.dueDate)}
                 </span>
-                {payment.status === 'overdue' && (
-                  <span className="badge badge-overdue">Atrasado</span>
-                )}
               </div>
             ) : (
-              <span style={{ fontSize: '11px', color: '#94A3B8' }}>Vencimento a definir</span>
+              <span style={{ fontSize: '11px', color: '#475569' }}>Vencimento a definir</span>
             )}
           </div>
         </div>
