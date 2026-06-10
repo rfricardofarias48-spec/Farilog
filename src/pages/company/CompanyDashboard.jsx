@@ -127,7 +127,7 @@ function useTrucks(escalaKey) {
 }
 
 // ── Painel de carretas (reutilizável) ─────────────────────────────────────
-function TrucksPanel({ escalaKey }) {
+function TrucksPanel({ escalaKey, readOnly = false }) {
   const [trucks, setTrucks] = useTrucks(escalaKey);
   const add    = () => setTrucks(t => [...t, { id: Date.now().toString(), value: '' }]);
   const remove = (id) => setTrucks(t => t.filter(x => x.id !== id));
@@ -135,57 +135,61 @@ function TrucksPanel({ escalaKey }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      {/* Cabeçalho — mesmo estilo do título "Equipe" */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
         <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
           Descargas do Dia
         </p>
-        <button onClick={add}
-          style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-          + Nova
-        </button>
+        {!readOnly && (
+          <button onClick={add}
+            style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            + Nova
+          </button>
+        )}
       </div>
 
       {trucks.length === 0 ? (
-        /* Estado vazio — mesmo tamanho de uma linha */
-        <button onClick={add} style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '6px 8px', borderRadius: '8px',
-          border: '1.5px dashed #E2E8F0', background: 'transparent',
-          cursor: 'pointer', color: '#94A3B8', fontSize: '11px', width: '100%',
-        }}>
-          + Adicionar carreta
-        </button>
+        readOnly ? (
+          <p style={{ fontSize: '11px', color: '#CBD5E1', padding: '6px 0' }}>Nenhuma descarga registrada</p>
+        ) : (
+          <button onClick={add} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '6px 8px', borderRadius: '8px',
+            border: '1.5px dashed #E2E8F0', background: 'transparent',
+            cursor: 'pointer', color: '#94A3B8', fontSize: '11px', width: '100%',
+          }}>
+            + Adicionar carreta
+          </button>
+        )
       ) : (
         trucks.map((truck, idx) => (
-          /* Linha no estilo das linhas de ajudantes, sem ícone */
           <div key={truck.id} style={{
             display: 'flex', alignItems: 'center', gap: '8px',
             padding: '6px 10px', borderRadius: '8px', background: '#EEF2F7',
           }}>
-            {/* Número */}
             <span style={{
               fontSize: '10px', fontWeight: 700, color: '#94A3B8',
               flexShrink: 0, minWidth: '14px', textAlign: 'right',
             }}>{idx + 1}</span>
-            {/* Input livre */}
             <input
               value={truck.value}
-              onChange={e => update(truck.id, e.target.value)}
+              onChange={e => !readOnly && update(truck.id, e.target.value)}
+              readOnly={readOnly}
               placeholder="Placa ou motorista..."
               style={{
                 flex: 1, border: 'none', background: 'transparent',
                 fontSize: '12px', fontWeight: 600, color: '#0F172A',
                 outline: 'none', padding: 0, fontFamily: 'inherit', minWidth: 0,
+                cursor: readOnly ? 'default' : 'text',
               }}
             />
-            {/* Remover */}
-            <button onClick={() => remove(truck.id)}
-              style={{ color: '#CBD5E1', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
-              onMouseEnter={e => e.currentTarget.style.color = '#E11D48'}
-              onMouseLeave={e => e.currentTarget.style.color = '#CBD5E1'}>
-              <X size={12} />
-            </button>
+            {!readOnly && (
+              <button onClick={() => remove(truck.id)}
+                style={{ color: '#CBD5E1', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                onMouseEnter={e => e.currentTarget.style.color = '#E11D48'}
+                onMouseLeave={e => e.currentTarget.style.color = '#CBD5E1'}>
+                <X size={12} />
+              </button>
+            )}
           </div>
         ))
       )}
@@ -662,7 +666,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
 
             {/* Direita: carretas descarregadas */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <TrucksPanel escalaKey={escalaId || date} />
+              <TrucksPanel escalaKey={escalaId || date} readOnly={true} />
             </div>
 
           </div>
@@ -1839,7 +1843,7 @@ function EscalasHoje({ companyId }) {
 
                   {/* Direita: carretas descarregadas */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <TrucksPanel escalaKey={todayEscala?.id || TODAY} />
+                    <TrucksPanel escalaKey={todayEscala?.id || TODAY} readOnly={true} />
                   </div>
 
                 </div>
