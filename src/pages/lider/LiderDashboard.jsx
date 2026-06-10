@@ -8,6 +8,7 @@ import {
   fetchEmpresasDoLider, fetchRelatoriosDiarios,
   uploadFotoRelatorio, fetchTodosAjudantes, createSolicitacaoAjudantes,
   fetchTarefasParaLider, concluirTarefaAdmin,
+  fetchCarretasByEscala, addCarreta, updateCarreta, deleteCarreta,
 } from '../../lib/db';
 import {
   Users, Calendar, CheckCircle2, AlertCircle, AlertTriangle,
@@ -60,29 +61,33 @@ function useNotes() {
   return [notes, setNotes];
 }
 
-// ── Carretas descarregadas — localStorage por escala ─────────────────────
-function useTrucks(escalaKey) {
-  const key = `farilog_trucks_${escalaKey}`;
-  const [trucks, setTrucksState] = useState(() => {
-    if (!escalaKey) return [];
-    try { return JSON.parse(localStorage.getItem(key) || '[]'); }
-    catch { return []; }
-  });
-  const setTrucks = (updater) => {
-    setTrucksState(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      if (escalaKey) localStorage.setItem(key, JSON.stringify(next));
-      return next;
-    });
-  };
-  return [trucks, setTrucks];
-}
+// ── Carretas descarregadas — banco de dados ───────────────────────────────
+function TrucksPanel({ escalaId }) {
+  const [trucks, setTrucks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-function TrucksPanel({ escalaKey }) {
-  const [trucks, setTrucks] = useTrucks(escalaKey);
-  const add    = () => setTrucks(t => [...t, { id: Date.now().toString(), value: '' }]);
-  const remove = (id) => setTrucks(t => t.filter(x => x.id !== id));
-  const update = (id, value) => setTrucks(t => t.map(x => x.id === id ? { ...x, value } : x));
+  useEffect(() => {
+    if (!escalaId) { setLoading(false); return; }
+    fetchCarretasByEscala(escalaId).then(data => { setTrucks(data); setLoading(false); });
+  }, [escalaId]);
+
+  const add = async () => {
+    if (!escalaId) return;
+    const nova = await addCarreta(escalaId, '');
+    if (nova) setTrucks(t => [...t, nova]);
+  };
+
+  const remove = async (id) => {
+    await deleteCarreta(id);
+    setTrucks(t => t.filter(x => x.id !== id));
+  };
+
+  const update = (id, value) => {
+    setTrucks(t => t.map(x => x.id === id ? { ...x, value } : x));
+    updateCarreta(id, value);
+  };
+
+  if (loading) return null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -489,7 +494,7 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
 
               {/* Direita: descargas do dia */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <TrucksPanel escalaKey={todayEscala?.id || TODAY} />
+                <TrucksPanel escalaId={todayEscala?.id} />
               </div>
             </div>
 

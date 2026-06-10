@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { fmtCurrency } from '../../data/mockData';
 import { createCompany, updateCompany, deleteCompany } from '../../lib/db';
 import { Plus, Edit2, Trash2, X, Building2, Search, Phone, Mail } from 'lucide-react';
-const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', dailyRate: 150 };
+const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', dailyRate: 150, valorDescarga: 0 };
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
@@ -39,7 +39,7 @@ function Modal({ company, onSave, onClose }) {
             <X size={15} />
           </button>
         </div>
-        <form onSubmit={e => { e.preventDefault(); onSave({ ...form, dailyRate: Number(form.dailyRate) }); }} className="space-y-3" autoComplete="off">
+        <form onSubmit={e => { e.preventDefault(); onSave({ ...form, dailyRate: Number(form.dailyRate), valorDescarga: Number(form.valorDescarga ?? 0) }); }} className="space-y-3" autoComplete="off">
           <div className="grid grid-cols-2 gap-3">
             {/* Linha 1: nome (full) */}
             {field('name',     'Razão Social',     { required: true, col: 2 })}
@@ -55,6 +55,14 @@ function Modal({ company, onSave, onClose }) {
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Diária (R$)</label>
               <input type="number" required value={form.dailyRate ?? 150}
                 onChange={e => setForm({ ...form, dailyRate: e.target.value })} className="input-field" />
+            </div>
+            {/* Linha 5: Valor Descarga (full) */}
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Valor por Descarga (R$)</label>
+              <input type="number" min="0" step="0.01" value={form.valorDescarga ?? 0}
+                onChange={e => setForm({ ...form, valorDescarga: e.target.value })} className="input-field"
+                placeholder="0.00" />
+              <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>Valor cobrado por carreta descarregada. Usado no cálculo de serviços de carga e descarga.</p>
             </div>
             {/* Linha 5: Endereço (full) */}
             {field('address',  'Endereço completo', { col: 2 })}
@@ -129,7 +137,7 @@ export default function AdminCompanies() {
       <div className="card overflow-hidden animate-fade-up delay-2">
         <div className="px-5 py-3 grid text-xs font-semibold"
           style={{ gridTemplateColumns: '1fr auto auto auto', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
-          <span>Empresa</span><span>Diária</span><span>HE 50%</span><span>Ações</span>
+          <span>Empresa</span><span>Diária</span><span>Val. Descarga</span><span>HE 50%</span><span>Ações</span>
         </div>
         {filtered.length === 0 ? (
           <div className="py-14 text-center">
@@ -140,7 +148,7 @@ export default function AdminCompanies() {
           filtered.map(c => {
             const stats = getStats(c.id);
             return (
-              <div key={c.id} className="table-row" style={{ gridTemplateColumns: '1fr auto auto auto', gap: '16px' }}>
+              <div key={c.id} className="table-row" style={{ gridTemplateColumns: '1fr auto auto auto auto', gap: '16px' }}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="avatar flex-shrink-0"
                     style={{ background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', width: '36px', height: '36px', borderRadius: '10px', fontSize: '11px' }}>
@@ -155,6 +163,7 @@ export default function AdminCompanies() {
                   </div>
                 </div>
                 <span className="text-xs font-semibold" style={{ color: '#FF4D0C' }}>R$ {c.dailyRate ?? 150}</span>
+                <span className="text-xs font-semibold" style={{ color: '#059669' }}>R$ {Number(c.valorDescarga ?? 0).toFixed(2)}</span>
                 <span className="text-xs font-semibold" style={{ color: '#7C3AED' }}>
                   R$ {((Number(c.dailyRate ?? 150) / 8) * 1.5).toFixed(2)}/h
                 </span>

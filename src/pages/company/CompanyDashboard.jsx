@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, createContext, useContext, useCallback } f
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { STATUS_CONFIG } from '../admin/AdminDemanda';
-import { fetchCompanyRecords, subscribeToCompanyRecords, fetchEscalaHojeByEmpresa, fetchRelatoriosByEmpresa, fetchEscalasComLiderByEmpresa } from '../../lib/db';
+import { fetchCompanyRecords, subscribeToCompanyRecords, fetchEscalaHojeByEmpresa, fetchRelatoriosByEmpresa, fetchEscalasComLiderByEmpresa, fetchCarretasByEscala, fetchCarretasByEscalas } from '../../lib/db';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { PAYMENTS, fmtCurrency, fmtDate, WEEKDAYS, MONTHS } from '../../data/mockData';
@@ -127,8 +127,17 @@ function useTrucks(escalaKey) {
 }
 
 // ── Painel de carretas (reutilizável) ─────────────────────────────────────
-function TrucksPanel({ escalaKey, readOnly = false }) {
+function TrucksPanel({ escalaKey, escalaId, readOnly = false }) {
   const [trucks, setTrucks] = useTrucks(escalaKey);
+
+  // Se for modo banco (escalaId fornecido), carrega do banco
+  const [dbTrucks, setDbTrucks] = useState(null);
+  useEffect(() => {
+    if (!escalaId) return;
+    fetchCarretasByEscala(escalaId).then(setDbTrucks);
+  }, [escalaId]);
+
+  const displayTrucks = escalaId ? (dbTrucks ?? []) : trucks;
   const add    = () => setTrucks(t => [...t, { id: Date.now().toString(), value: '' }]);
   const remove = (id) => setTrucks(t => t.filter(x => x.id !== id));
   const update = (id, value) => setTrucks(t => t.map(x => x.id === id ? { ...x, value } : x));
@@ -147,7 +156,7 @@ function TrucksPanel({ escalaKey, readOnly = false }) {
         )}
       </div>
 
-      {trucks.length === 0 ? (
+      {displayTrucks.length === 0 ? (
         readOnly ? (
           <p style={{ fontSize: '11px', color: '#CBD5E1', padding: '6px 0' }}>Nenhuma descarga registrada</p>
         ) : (
@@ -161,7 +170,7 @@ function TrucksPanel({ escalaKey, readOnly = false }) {
           </button>
         )
       ) : (
-        trucks.map((truck, idx) => (
+        displayTrucks.map((truck, idx) => (
           <div key={truck.id} style={{
             display: 'flex', alignItems: 'center', gap: '8px',
             padding: '6px 10px', borderRadius: '8px', background: '#EEF2F7',
@@ -666,7 +675,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
 
             {/* Direita: carretas descarregadas */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <TrucksPanel escalaKey={escalaId || date} readOnly={true} />
+              <TrucksPanel escalaKey={escalaId || date} escalaId={escalaId} readOnly={true} />
             </div>
 
           </div>
@@ -1843,7 +1852,7 @@ function EscalasHoje({ companyId }) {
 
                   {/* Direita: carretas descarregadas */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <TrucksPanel escalaKey={todayEscala?.id || TODAY} readOnly={true} />
+                    <TrucksPanel escalaKey={todayEscala?.id || TODAY} escalaId={todayEscala?.id} readOnly={true} />
                   </div>
 
                 </div>
@@ -2308,12 +2317,13 @@ function DiaDetalheRelModal({ date, records, onClose }) {
 const TIPO_LABEL = { entrega: 'Entrega', carga_descarga: 'Carga e Descarga' };
 
 // ── Relatório ──────────────────────────────────────────────────────────────
-function RelatorioTab({ companyId }) {
-  const { records, employees } = useCompanyData();
+function RelatorioTab({ companyId, valorDescarga = 0 }) {
+  const { records, employees, escalas } = useCompanyData();
   const [offset, setOffset] = useState(0);
   const [openDay, setOpenDay] = useState(null);
   const [tipoFilter, setTipoFilter] = useState(null);
   const [relatorios, setRelatorios] = useState([]);
+  const [carretasMap, setCarretasMap] = useState({}); // escalaId → carreta[]
 
   useEffect(() => {
     fetchRelatoriosByEmpresa(companyId).then(setRelatorios);
@@ -2325,6 +2335,22 @@ function RelatorioTab({ companyId }) {
   const { start, end, label } = getPeriodBounds('quinzena', offset);
   const [sy, sm, sday] = start.split('-').map(Number);
   const [, ,   eday]   = end.split('-').map(Number);
+
+  // Busca carretas de todas as escalas do período
+  useEffect(() => {
+    const escalaIds = escalas
+      .filter(e => e.date >= start && e.date <= end && e.tipoServico === 'carga_descarga')
+      .map(e => e.id);
+    if (!escalaIds.length) { setCarretasMap({}); return; }
+    fetchCarretasByEscalas(escalaIds).then(all => {
+      const map = {};
+      all.forEach(c => {
+        if (!map[c.escalaId]) map[c.escalaId] = [];
+        map[c.escalaId].push(c);
+      });
+      setCarretasMap(map);
+    });
+  }, [escalas, start, end]);
 
   // Tipos de serviço presentes no período
   const periodRecords = records.filter(r => r.date >= start && r.date <= end);
@@ -2338,11 +2364,28 @@ function RelatorioTab({ companyId }) {
     const iso  = `${sy}-${String(sm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     const dow  = new Date(`${iso}T12:00:00Z`).getUTCDay();
     const recs = records.filter(r => r.date === iso && (!tipoAtivo || (r.tipoServico || 'entrega') === tipoAtivo));
-    const presentes   = recs.filter(r => r.status !== 'absent');
-    const diarias     = presentes.length;
-    const heCount     = presentes.filter(r => r.overtime).length;
-    const valorDiarias = presentes.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0);
-    const valorHE     = heCount  * VALOR_HORA_EXTRA;
+    const dayTipo = recs[0]?.tipoServico || 'entrega';
+    const isCD = dayTipo === 'carga_descarga';
+
+    // Escalas do dia para este tipo
+    const dayEscalas = escalas.filter(e => e.date === iso && (!tipoAtivo || e.tipoServico === tipoAtivo));
+
+    let diarias, heCount, valorDiarias, valorHE;
+    if (isCD) {
+      // Carga e descarga: conta carretas × valor por descarga
+      const carretas = dayEscalas.flatMap(e => carretasMap[e.id] || []);
+      diarias      = carretas.length;
+      heCount      = 0;
+      valorDiarias = diarias * valorDescarga;
+      valorHE      = 0;
+    } else {
+      const presentes = recs.filter(r => r.status !== 'absent');
+      diarias      = presentes.length;
+      heCount      = presentes.filter(r => r.overtime).length;
+      valorDiarias = presentes.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0);
+      valorHE      = heCount * VALOR_HORA_EXTRA;
+    }
+
     allDays.push({
       date: iso, dow, dayNum: day,
       label: `${DOW_SHORT[dow]}, ${String(day).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
@@ -2350,6 +2393,7 @@ function RelatorioTab({ companyId }) {
       isToday: iso === TODAY,
       recs, diarias, heCount, valorDiarias, valorHE,
       total: valorDiarias + valorHE,
+      isCD,
     });
   }
 
@@ -2964,7 +3008,7 @@ export default function CompanyDashboard() {
         {tab === 'panel'     && <Panel       companyId={companyId} setTab={setTab} companyName={user.name} />}
         {tab === 'escalas'   && <EscalasTab  companyId={companyId} />}
         {tab === 'financial' && <Financial   companyId={companyId} />}
-        {tab === 'relatorio' && <RelatorioTab companyId={companyId} />}
+        {tab === 'relatorio' && <RelatorioTab companyId={companyId} valorDescarga={Number(user?.valorDescarga ?? 0)} />}
         {tab === 'settings'  && <SettingsTab company={user} />}
       </div>
     </CompanyDataCtx.Provider>

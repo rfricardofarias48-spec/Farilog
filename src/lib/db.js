@@ -65,8 +65,9 @@ function mapCompany(r) {
     contact:   r.responsavel,
     address:   r.endereco,
     location:  r.localizacao,
-    dailyRate: Number(r.diaria ?? 150),
-    isActive:  r.ativo,
+    dailyRate:      Number(r.diaria ?? 150),
+    valorDescarga:  Number(r.valor_descarga ?? 0),
+    isActive:       r.ativo,
   };
 }
 
@@ -266,7 +267,8 @@ export async function createCompany(co) {
       responsavel: co.contact || null,
       endereco:    co.address || null,
       localizacao: co.location || null,
-      diaria:      co.dailyRate ?? 150,
+      diaria:          co.dailyRate ?? 150,
+      valor_descarga:  co.valorDescarga ?? 0,
     })
     .select()
     .single();
@@ -284,7 +286,8 @@ export async function updateCompany(id, co) {
   if (co.contact   !== undefined) patch.responsavel = co.contact;
   if (co.address   !== undefined) patch.endereco    = co.address;
   if (co.location  !== undefined) patch.localizacao = co.location;
-  if (co.dailyRate !== undefined) patch.diaria      = co.dailyRate;
+  if (co.dailyRate      !== undefined) patch.diaria          = co.dailyRate;
+  if (co.valorDescarga  !== undefined) patch.valor_descarga  = co.valorDescarga;
 
   const { data, error } = await supabase
     .from('empresas')
@@ -1130,4 +1133,51 @@ export async function createRecargasLote(items) {
   const { error } = await supabase.from('beneficios_recargas').insert(rows);
   if (error) { console.error('[db] createRecargasLote:', error.message); return false; }
   return true;
+}
+
+// ── Carretas ───────────────────────────────────────────────────────────────
+
+export async function fetchCarretasByEscala(escalaId) {
+  if (!escalaId) return [];
+  const { data, error } = await supabase
+    .from('carretas')
+    .select('*')
+    .eq('escala_id', escalaId)
+    .order('criado_em', { ascending: true });
+  if (error) { console.error('[db] fetchCarretasByEscala:', error.message); return []; }
+  return (data || []).map(r => ({ id: r.id, value: r.valor }));
+}
+
+export async function addCarreta(escalaId, valor = '') {
+  const { data, error } = await supabase
+    .from('carretas')
+    .insert({ escala_id: escalaId, valor })
+    .select()
+    .single();
+  if (error) { console.error('[db] addCarreta:', error.message); return null; }
+  return { id: data.id, value: data.valor };
+}
+
+export async function updateCarreta(id, valor) {
+  const { error } = await supabase
+    .from('carretas')
+    .update({ valor })
+    .eq('id', id);
+  if (error) { console.error('[db] updateCarreta:', error.message); }
+}
+
+export async function deleteCarreta(id) {
+  const { error } = await supabase.from('carretas').delete().eq('id', id);
+  if (error) { console.error('[db] deleteCarreta:', error.message); }
+}
+
+export async function fetchCarretasByEscalas(escalaIds) {
+  if (!escalaIds?.length) return [];
+  const { data, error } = await supabase
+    .from('carretas')
+    .select('*')
+    .in('escala_id', escalaIds)
+    .order('criado_em', { ascending: true });
+  if (error) { console.error('[db] fetchCarretasByEscalas:', error.message); return []; }
+  return (data || []).map(r => ({ id: r.id, escalaId: r.escala_id, value: r.valor }));
 }
