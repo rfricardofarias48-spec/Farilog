@@ -108,6 +108,69 @@ function useNotes() {
   return [notes, setNotes];
 }
 
+// ── Carretas descarregadas — persistidas no localStorage por escala ────────
+function useTrucks(escalaKey) {
+  const key = `farilog_trucks_${escalaKey}`;
+  const [trucks, setTrucksState] = useState(() => {
+    if (!escalaKey) return [];
+    try { return JSON.parse(localStorage.getItem(key) || '[]'); }
+    catch { return []; }
+  });
+  const setTrucks = (updater) => {
+    setTrucksState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (escalaKey) localStorage.setItem(key, JSON.stringify(next));
+      return next;
+    });
+  };
+  return [trucks, setTrucks];
+}
+
+// ── Painel de carretas (reutilizável) ─────────────────────────────────────
+function TrucksPanel({ escalaKey }) {
+  const [trucks, setTrucks] = useTrucks(escalaKey);
+  const add    = () => setTrucks(t => [...t, { id: Date.now().toString(), value: '' }]);
+  const remove = (id) => setTrucks(t => t.filter(x => x.id !== id));
+  const update = (id, value) => setTrucks(t => t.map(x => x.id === id ? { ...x, value } : x));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      {/* Cabeçalho */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+          Carretas
+        </p>
+        <button onClick={add} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 700, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}>
+          + Nova
+        </button>
+      </div>
+
+      {trucks.length === 0 ? (
+        <button onClick={add} style={{ padding: '10px 8px', borderRadius: '8px', border: '1.5px dashed #E2E8F0', background: 'transparent', cursor: 'pointer', color: '#94A3B8', fontSize: '11px', width: '100%', textAlign: 'center' }}>
+          + Adicionar carreta
+        </button>
+      ) : (
+        trucks.map((truck, idx) => (
+          <div key={truck.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '9px', fontWeight: 600, color: '#CBD5E1', width: '14px', textAlign: 'right', flexShrink: 0 }}>{idx + 1}</span>
+            <input
+              value={truck.value}
+              onChange={e => update(truck.id, e.target.value)}
+              placeholder="Placa ou motorista..."
+              style={{ flex: 1, padding: '6px 8px', borderRadius: '7px', border: '1px solid rgba(0,0,0,0.09)', background: '#F8FAFC', fontSize: '11px', color: '#0F172A', outline: 'none', minWidth: 0, fontFamily: 'inherit' }}
+            />
+            <button onClick={() => remove(truck.id)} style={{ color: '#CBD5E1', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', flexShrink: 0, display: 'flex', alignItems: 'center', lineHeight: 1 }}
+              onMouseEnter={e => e.currentTarget.style.color = '#E11D48'}
+              onMouseLeave={e => e.currentTarget.style.color = '#CBD5E1'}>
+              <X size={11} />
+            </button>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 // Converte contagem de horas extras para formato HH:MM (ex: 3 → "03:00")
 const fmtHoursCount = (n) => {
   if (!n) return '—';
@@ -404,7 +467,7 @@ const OPER_STATUS_CFG = {
   finalizado:   { label: 'Finalizado',   color: '#059669', bg: '#DCFCE7', dot: '#10B981' },
 };
 
-function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday, lider, onVerMais, tipoServico }) {
+function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday, lider, onVerMais, tipoServico, escalaId }) {
   const { employees } = useCompanyData();
   const [showModal, setShowModal] = useState(false);
   const [popupEmp, setPopupEmp] = useState(null);
@@ -530,39 +593,56 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
 
       {/* ── Conteúdo principal ── */}
       {isCargaDescarga ? (
-        /* ── CARGA E DESCARGA: equipe em largura total ── */
+        /* ── CARGA E DESCARGA: equipe (esq) + carretas (dir) ── */
         records.length === 0 ? (
           <p style={{ fontSize: '12px', color: '#CBD5E1', textAlign: 'center', padding: '20px 0' }}>
             {isToday ? 'Nenhum ajudante hoje' : 'Nenhuma escala agendada'}
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {/* Botão "Equipe" */}
-            <button
-              onClick={() => onVerMais ? onVerMais() : setShowModal(true)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer', alignSelf: 'flex-start' }}>
-              <Users size={11} /> Equipe
-            </button>
-            {/* Membros */}
-            {records.map(rec => {
-              const emp = findEmp(employees, rec.employeeId);
-              const isAbsent = rec.status === 'absent';
-              return (
-                <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 8px', borderRadius: '8px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
-                  <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
-                    {emp?.initials}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+
+            {/* Esquerda: equipe com observações */}
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <button
+                onClick={() => onVerMais ? onVerMais() : setShowModal(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginBottom: '2px' }}>
+                <Users size={11} /> Equipe
+              </button>
+              {records.map(rec => {
+                const emp = findEmp(employees, rec.employeeId);
+                const isAbsent = rec.status === 'absent';
+                return (
+                  <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 8px', borderRadius: '8px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
+                      {emp?.initials}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {emp?.name}
+                      </p>
+                      <input
+                        value={notes[rec.id] || ''}
+                        onChange={e => setNotes(p => ({ ...p, [rec.id]: e.target.value }))}
+                        placeholder="Observação..."
+                        style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
+                      />
+                    </div>
+                    {isAbsent && (
+                      <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
+                    )}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {emp?.name}
-                    </p>
-                  </div>
-                  {isAbsent && (
-                    <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {/* Separador */}
+            <div style={{ width: '1px', background: 'rgba(0,0,0,0.06)', alignSelf: 'stretch', flexShrink: 0 }} />
+
+            {/* Direita: carretas descarregadas */}
+            <div style={{ width: '140px', flexShrink: 0 }}>
+              <TrucksPanel escalaKey={escalaId || date} />
+            </div>
+
           </div>
         )
       ) : (
@@ -683,6 +763,7 @@ function Panel({ companyId, setTab, companyName }) {
           isToday={true}
           lider={todayLider}
           tipoServico={todayTipo}
+          escalaId={todayEscala?.id}
           onVerMais={() => setTab('escalas')}
         />
         <EscalaCard
@@ -695,6 +776,7 @@ function Panel({ companyId, setTab, companyName }) {
           isToday={false}
           lider={nextLider}
           tipoServico={nextTipo}
+          escalaId={nextEscala?.id}
         />
       </div>
     </div>
@@ -1694,8 +1776,11 @@ function EscalasHoje({ companyId }) {
               <div className="p-8 text-center text-sm" style={TM}>Nenhum ajudante alocado hoje</div>
             ) : (
               <>
-                {/* Lista de nomes (sem horários individuais) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {/* Split: equipe (esq) + carretas (dir) */}
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+
+                  {/* Esquerda: lista com obs */}
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {Object.entries(groupByService(todayRecords)).map(([service, recs], gIdx) => (
                     <div key={service}>
                       <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>
@@ -1724,6 +1809,16 @@ function EscalasHoje({ companyId }) {
                       })}
                     </div>
                   ))}
+                  </div>
+
+                  {/* Separador */}
+                  <div style={{ width: '1px', background: 'rgba(0,0,0,0.06)', alignSelf: 'stretch', flexShrink: 0 }} />
+
+                  {/* Direita: carretas descarregadas */}
+                  <div style={{ width: '220px', flexShrink: 0 }}>
+                    <TrucksPanel escalaKey={todayEscala?.id || TODAY} />
+                  </div>
+
                 </div>
               </>
             )}
