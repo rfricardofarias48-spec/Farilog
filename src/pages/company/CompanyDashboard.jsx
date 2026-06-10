@@ -413,7 +413,7 @@ function AjudantesModal({ records, escala, faltas, atrasos, date, tipoServico: t
               const gridCols = isCargaDescarga ? 'auto 160px 1fr 1fr auto' : 'auto 160px 1fr 1fr 1fr 1fr 1fr auto';
               return (
                 <div key={rec.id} className="table-row" style={{ gridTemplateColumns: gridCols }}>
-                  <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
+                  <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
                   <div className="px-3">
                     <p className="text-xs font-semibold" style={{ color: '#0F172A' }}>{emp?.name}</p>
                     <p className="text-xs" style={{ color: '#94A3B8' }}>{rec.service}</p>
@@ -649,19 +649,13 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                 const isAbsent = rec.status === 'absent';
                 return (
                   <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 8px', borderRadius: '8px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
-                    <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
                       {emp?.initials}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {emp?.name}
                       </p>
-                      <input
-                        value={notes[rec.id] || ''}
-                        onChange={e => setNotes(p => ({ ...p, [rec.id]: e.target.value }))}
-                        placeholder="Observação..."
-                        style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
-                      />
                     </div>
                     {isAbsent && (
                       <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
@@ -707,19 +701,13 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                     const isAbsent = rec.status === 'absent';
                     return (
                       <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 8px', borderRadius: '8px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
-                        <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
+                        <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
                           {emp?.initials}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p onClick={() => setPopupEmp(emp)} style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', lineHeight: 1.2 }}>
                             {emp?.name}
                           </p>
-                          <input
-                            value={notes[rec.id] || ''}
-                            onChange={e => setNotes(p => ({...p, [rec.id]: e.target.value}))}
-                            placeholder="Observação..."
-                            style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
-                          />
                         </div>
                         {isAbsent ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
@@ -888,7 +876,7 @@ function DiaModal({ date, records, onClose }) {
             const gridCols = isCargaDescarga ? 'auto 160px 1fr 1fr auto' : 'auto 160px 1fr 1fr 1fr 1fr 1fr auto';
             return (
               <div key={rec.id} className="table-row" style={{ gridTemplateColumns: gridCols }}>
-                <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
+                <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
                 <div className="px-3">
                   <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
                   <p className="text-xs" style={TM}>{rec.service}</p>
@@ -1829,15 +1817,9 @@ function EscalasHoje({ companyId }) {
                         const isAbsent = rec.status === 'absent';
                         return (
                           <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
-                            <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
+                            <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : '#64748B', color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A' }}>{emp?.name}</p>
-                              <input
-                                value={notes[rec.id] || ''}
-                                onChange={e => setNotes(p => ({...p, [rec.id]: e.target.value}))}
-                                placeholder="Observação..."
-                                style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
-                              />
                             </div>
                             {isAbsent && (
                               <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
@@ -1896,15 +1878,9 @@ function EscalasHoje({ companyId }) {
                     const isAbsent = rec.status === 'absent';
                     return (
                       <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
-                        <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
+                        <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : '#64748B', color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
                         <div style={{ minWidth: '100px', flexShrink: 0 }}>
                           <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2 }}>{emp?.name}</p>
-                          <input
-                            value={notes[rec.id] || ''}
-                            onChange={e => setNotes(p => ({...p, [rec.id]: e.target.value}))}
-                            placeholder="Observação..."
-                            style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
-                          />
                         </div>
                         <div style={{ flex: 1 }} />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
@@ -2046,7 +2022,7 @@ function EscalasProximas({ companyId }) {
                       borderBottom: rIdx < dateRecs.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                       background: 'transparent',
                     }}>
-                      <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
+                      <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
                       <div className="px-3 flex items-center gap-2">
                         <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
                         <span className="text-xs" style={{ color: '#94A3B8' }}>·</span>
@@ -2276,15 +2252,9 @@ function DiaDetalheRelModal({ date, records, onClose }) {
                   const emp = findEmp(employees, rec.employeeId);
                   return (
                     <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
-                      <div className="avatar" style={{ background: emp?.color || '#94A3B8' }}>{emp?.initials}</div>
+                      <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
                       <div style={{ minWidth: '110px', flexShrink: 0 }}>
                         <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', lineHeight: 1.2 }}>{emp?.name}</p>
-                        <input
-                          value={notes[rec.id] || ''}
-                          onChange={e => setNotes(p => ({...p, [rec.id]: e.target.value}))}
-                          placeholder="Observação..."
-                          style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
-                        />
                       </div>
                       <div style={{ flex: 1 }} />
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
@@ -2800,7 +2770,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                           : [{ label: 'Entrada', value: rec.checkIn }, { label: 'S. Almoço', value: rec.lunchOut }, { label: 'Retorno', value: rec.lunchReturn }, { label: 'Saída', value: rec.checkOut }];
                         return (
                           <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#F8FAFC' }}>
-                            <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                            <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                               {emp?.initials}
                             </div>
                             <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{emp?.name || '—'}</p>
