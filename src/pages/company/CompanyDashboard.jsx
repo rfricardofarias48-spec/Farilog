@@ -2028,14 +2028,8 @@ function EscalasProximas({ companyId }) {
 
             {/* Equipe + Descargas */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Equipe escalada</p>
-                {dateRecs.length > 0 && (
-                  <button onClick={() => setShowAjudantes(true)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', fontWeight: 600, color: '#64748B', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                    Ver detalhes <ChevronRight size={12} />
-                  </button>
-                )}
               </div>
 
               {dateRecs.length === 0 ? (
