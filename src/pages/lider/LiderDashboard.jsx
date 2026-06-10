@@ -400,11 +400,11 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
           </div>
           <div className="card" style={{ padding: '14px 12px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.08)' }}>
             <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Início</p>
-            <p style={{ fontSize: '22px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{teamStart ?? '—'}</p>
+            <p style={{ fontSize: '22px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{fmtTime(teamStart) ?? '—'}</p>
           </div>
           <div className="card" style={{ padding: '14px 12px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.08)' }}>
             <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Final</p>
-            <p style={{ fontSize: '22px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1 }}>{teamEnd ?? '—'}</p>
+            <p style={{ fontSize: '22px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1 }}>{fmtTime(teamEnd) ?? '—'}</p>
           </div>
           <div style={{ padding: '14px 12px', textAlign: 'center', borderRadius: '12px', background: 'linear-gradient(160deg, #0F172A 0%, #1E293B 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: operCfg.dot }} />
@@ -1042,10 +1042,10 @@ function EscalaDetalhe({ escala, employees, flat = false }) {
           {isCargaDescarga && (teamStart || teamEnd) && (
             <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>
-                Início: <span style={{ color: '#2563EB' }}>{teamStart || '—'}</span>
+                Início: <span style={{ color: '#2563EB' }}>{fmtTime(teamStart) || '—'}</span>
               </span>
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>
-                Final: <span style={{ color: '#059669' }}>{teamEnd || '—'}</span>
+                Final: <span style={{ color: '#059669' }}>{fmtTime(teamEnd) || '—'}</span>
               </span>
             </div>
           )}
@@ -1069,7 +1069,7 @@ function EscalaDetalhe({ escala, employees, flat = false }) {
                 {batidas.map(({ label, key }) => (
                   <div key={key} style={{ textAlign: 'center', padding: '5px 3px', background: vals[key] ? '#F0FDF4' : '#F8FAFC', borderRadius: '7px', margin: '0 2px' }}>
                     <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '2px' }}>{label}</p>
-                    <p style={{ fontSize: '12px', fontWeight: 700, color: vals[key] ? '#059669' : '#CBD5E1' }}>{vals[key] || '—'}</p>
+                    <p style={{ fontSize: '12px', fontWeight: 700, color: vals[key] ? '#059669' : '#CBD5E1' }}>{fmtTime(vals[key]) || '—'}</p>
                   </div>
                 ))}
               </div>
