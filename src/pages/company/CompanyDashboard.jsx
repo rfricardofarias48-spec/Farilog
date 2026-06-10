@@ -693,9 +693,6 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
               {Object.entries(groupByService(records)).map(([service, recs], gIdx) => (
                 <div key={service}>
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>
-                    {service}
-                  </p>
                   {recs.map(rec => {
                     const emp = findEmp(employees, rec.employeeId);
                     const isAbsent = rec.status === 'absent';
@@ -1450,7 +1447,6 @@ function HistoryTab({ companyId }) {
                       <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:'4px' }}>
                         {Object.entries(groupByService(presentes)).map(([service, recs], gIdx) => (
                           <div key={service}>
-                            <p style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>{service}</p>
                             {recs.map(rec => {
                               const emp = findEmp(employees, rec.employeeId);
                               return (
@@ -1472,7 +1468,6 @@ function HistoryTab({ companyId }) {
                     <div style={{ display:'flex', flexDirection:'column', gap:'4px' }}>
                       {Object.entries(groupByService(dateRecs)).map(([service, recs], gIdx) => (
                         <div key={service}>
-                          <p style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>{service}</p>
                           {recs.map(rec => {
                             const emp = findEmp(employees, rec.employeeId);
                             const isAbsent = rec.status === 'absent';
@@ -1958,7 +1953,6 @@ function EscalasHoje({ companyId }) {
                   {Object.entries(groupByService(todayRecords)).map(([service, recs], gIdx) => (
                     <div key={service}>
                       <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>
-                        {service}
                       </p>
                       {recs.map(rec => {
                         const emp = findEmp(employees, rec.employeeId);
@@ -2019,7 +2013,6 @@ function EscalasHoje({ companyId }) {
               return (
                 <div key={service}>
                   <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '10px 0 5px' : '0 0 5px' }}>
-                    {service}
                   </p>
                   {recs.map(rec => {
                     const emp = findEmp(employees, rec.employeeId);
@@ -2196,7 +2189,6 @@ function EscalasProximas({ companyId }) {
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {Object.entries(groupByService(dateRecs)).map(([service, recs], gIdx) => (
                       <div key={service}>
-                        <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>{service}</p>
                         {recs.map(rec => {
                           const emp = findEmp(employees, rec.employeeId);
                           return (
@@ -2221,7 +2213,6 @@ function EscalasProximas({ companyId }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {Object.entries(groupByService(dateRecs)).map(([service, recs], gIdx) => (
                     <div key={service}>
-                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>{service}</p>
                       {recs.map(rec => {
                         const emp = findEmp(employees, rec.employeeId);
                         return (
@@ -2491,7 +2482,6 @@ function DiaDetalheRelModal({ date, records, onClose }) {
             return (
               <div key={service}>
                 <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '10px 0 5px' : '0 0 5px' }}>
-                  {service}
                 </p>
                 {recs.map(rec => {
                   const emp = findEmp(employees, rec.employeeId);
