@@ -2802,47 +2802,34 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
     else { payDay = 5; payMonth = qMonth + 1; payYear = qYear; if (payMonth > 11) { payMonth = 0; payYear += 1; } }
     const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
 
-    const y3    = doc.lastAutoTable.finalY + 10;
-    const cardH = 26;
-    const colW  = 80;   // largura de cada coluna
-    const divX  = 14 + colW;  // posição X do divisor
+    const y3    = doc.lastAutoTable.finalY + 8;
+    const cardH = 18;
+    const colW  = 60;
+    const divX  = 14 + colW;
 
-    // Fundo branco + borda fina
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(210, 214, 220);
-    doc.roundedRect(14, y3, colW * 2, cardH, 3, 3, 'FD');
+    doc.roundedRect(14, y3, colW * 2, cardH, 2, 2, 'FD');
 
-    // Divisor vertical
     doc.setDrawColor(210, 214, 220);
-    doc.line(divX, y3 + 4, divX, y3 + cardH - 4);
+    doc.line(divX, y3 + 3, divX, y3 + cardH - 3);
 
     // Coluna esquerda — Valor a pagar
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
-    doc.setTextColor(148, 163, 184);                // #94A3B8
-    doc.text('VALOR A PAGAR', 20, y3 + 8);
-    doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6); doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text('VALOR A PAGAR', 18, y3 + 6);
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text(fmtCurrency(totalGeral), 20, y3 + 18);
+    doc.text(fmtCurrency(totalGeral), 18, y3 + 13);
 
     // Coluna direita — Data de pagamento
-    const rightX = divX + 6;
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+    const rightX = divX + 5;
+    doc.setFontSize(6); doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184);
-    doc.text('DATA DE PAGAMENTO', rightX, y3 + 8);
-    doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+    doc.text('DATA DE PAGAMENTO', rightX, y3 + 6);
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text(payStr, rightX, y3 + 18);
-
-    // ── Paginação ────────────────────────────────────────────
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8); doc.setTextColor(...light);
-      doc.text(
-        `FariLog © ${new Date().getFullYear()}   |   Página ${i} de ${pageCount}`,
-        105, 290, { align: 'center' }
-      );
-    }
+    doc.text(payStr, rightX, y3 + 13);
     doc.save(`Relatorio ${label}.pdf`);
   };
 
