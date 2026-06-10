@@ -1106,10 +1106,9 @@ function HistoryTab({ companyId }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Reset offset when switching period
   const handlePeriod = (p) => { setPeriod(p); setOffset(0); setShowCal(false); };
 
-  const { records, employees } = useCompanyData();
+  const { records, employees, escalas } = useCompanyData();
   const allRecords = records;
   const { start, end, label } = getPeriodBounds(period, offset);
 
@@ -1296,12 +1295,12 @@ function HistoryTab({ companyId }) {
         {days.length === 0 ? (
           <div className="p-10 text-center text-sm" style={TM}>Nenhum registro neste período</div>
         ) : days.map(([date, recs], idx) => {
-          const escala   = recs.length;
-          const faltas   = recs.filter(r => r.status === 'absent').length;
-          const atrasos  = recs.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
-          const isToday  = date === TODAY;
-          const [, m, d] = date.split('-');
-          const dow      = DOW_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
+          const escala      = recs.length;
+          const isToday     = date === TODAY;
+          const [, m, d]    = date.split('-');
+          const dow         = DOW_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
+          const dateEscala  = escalas.find(e => e.date === date);
+          const isCargaDescarga = (dateEscala?.tipoServico || recs[0]?.tipoServico || 'entrega') === 'carga_descarga';
 
           return (
             <button key={date} onClick={() => setSelectedDay(date)}
@@ -1314,19 +1313,15 @@ function HistoryTab({ companyId }) {
               onMouseEnter={e => e.currentTarget.style.background='#F8FAFC'}
               onMouseLeave={e => e.currentTarget.style.background='transparent'}>
               <div style={{ display:'grid', gridTemplateColumns:'52px 1px 1fr', columnGap:'14px', alignItems:'center', flex:1 }}>
-                {/* Data — largura fixa para manter o traço sempre no mesmo ponto */}
                 <div style={{ textAlign:'center' }}>
                   <p className="text-xs uppercase font-semibold" style={{ color:'#94A3B8', letterSpacing:'0.05em' }}>{dow}</p>
                   <p className="text-lg font-black leading-tight" style={{ color: isToday ? '#FF4D0C' : '#0F172A' }}>{d}/{m}</p>
                 </div>
-                {/* Separador */}
                 <div style={{ width:'1px', height:'28px', background:'rgba(0,0,0,0.08)', justifySelf:'center' }} />
-                {/* Info */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs" style={{ color:'#475569' }}>{escala} ajudante{escala !== 1 ? 's' : ''}</span>
-                  {faltas  > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#FFE4E6', color:'#BE123C' }}>{faltas} falta{faltas !== 1 ? 's' : ''}</span>}
-                  {atrasos > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#FEF3C7', color:'#B45309' }}>{atrasos} atraso{atrasos !== 1 ? 's' : ''}</span>}
-                </div>
+                <p style={{ fontSize:'13px', fontWeight:600, color:'#475569' }}>
+                  {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
+                  <span style={{ fontWeight:400, color:'#94A3B8' }}> ({escala} ajudante{escala !== 1 ? 's' : ''})</span>
+                </p>
               </div>
               <ChevronRight size={14} style={{ color:'#CBD5E1', flexShrink:0, marginLeft:'8px' }} />
             </button>
@@ -1334,13 +1329,173 @@ function HistoryTab({ companyId }) {
         })}
       </div>
 
-      {selectedDay && (
-        <DiaModal
-          date={selectedDay}
-          records={WORK_RECORDS.filter(r => r.companyId === companyId && r.date === selectedDay)}
-          onClose={() => setSelectedDay(null)}
-        />
-      )}
+      {/* Modal de detalhe do dia — mesmo design das escalas */}
+      {selectedDay && (() => {
+        const date       = selectedDay;
+        const dateRecs   = records.filter(r => r.date === date);
+        const dateEscala = escalas.find(e => e.date === date);
+        const dateLider  = dateEscala?.lider || null;
+        const isCargaDescarga = (dateEscala?.tipoServico || dateRecs[0]?.tipoServico || 'entrega') === 'carga_descarga';
+        const escala  = dateRecs.length;
+        const faltas  = dateRecs.filter(r => r.status === 'absent').length;
+        const atrasos = dateRecs.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
+        const presentes = dateRecs.filter(r => r.status !== 'absent');
+        const pct = escala > 0 ? Math.round((presentes.length / escala) * 100) : 0;
+        const teamStart = presentes.filter(r => r.checkIn).map(r => r.checkIn).sort()[0] ?? null;
+        const teamEnd   = presentes.filter(r => r.checkOut).map(r => r.checkOut).sort().reverse()[0] ?? null;
+        const operStatus = !teamStart ? 'agendado' : !teamEnd ? 'em_andamento' : 'finalizado';
+        const operCfg    = OPER_STATUS_CFG[operStatus];
+        const [y, m, d]  = date.split('-').map(Number);
+        const dow = DOW_FULL[new Date(y, m - 1, d).getDay()];
+
+        return createPortal(
+          <div onClick={e => e.target === e.currentTarget && setSelectedDay(null)}
+            style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(15,23,42,0.45)', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+            <div style={{ background:'#fff', borderRadius:'18px', boxShadow:'0 20px 60px rgba(0,0,0,0.18)', width:'100%', maxWidth:'820px', height:'90vh', overflowY:'auto', display:'flex', flexDirection:'column' }}>
+
+              {/* Header */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 24px 16px', borderBottom:'1px solid rgba(0,0,0,0.06)' }}>
+                <div>
+                  <p style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'4px' }}>Histórico</p>
+                  <h2 style={{ fontSize:'18px', fontWeight:800, color:'#0F172A' }}>{dow}, {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{y}</h2>
+                </div>
+                <button onClick={() => setSelectedDay(null)} style={{ background:'#F1F5F9', border:'none', borderRadius:'8px', padding:'6px', cursor:'pointer', display:'flex', color:'#64748B' }}>
+                  <X size={15} />
+                </button>
+              </div>
+
+              <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:'16px' }}>
+
+                {/* Líder */}
+                {dateLider ? (
+                  <div style={{ display:'flex', alignItems:'center', gap:'12px', padding:'10px 12px', borderRadius:'12px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.07)' }}>
+                    <div style={{ width:'40px', height:'40px', borderRadius:'12px', background: dateLider.cor || '#64748B', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:800, color:'white', flexShrink:0 }}>
+                      {dateLider.iniciais}
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'1px' }}>Líder de Equipe</p>
+                      <p style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>{dateLider.nome}</p>
+                    </div>
+                    {whatsappLink(dateLider.telefone) && (
+                      <a href={whatsappLink(dateLider.telefone)} target="_blank" rel="noopener noreferrer"
+                        style={{ display:'flex', alignItems:'center', gap:'5px', padding:'7px 12px', borderRadius:'9px', background:'#DCFCE7', color:'#15803D', textDecoration:'none', fontSize:'12px', fontWeight:700, flexShrink:0 }}>
+                        <WaSVG size={13} /> WhatsApp
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'12px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.07)' }}>
+                    <div style={{ width:'40px', height:'40px', borderRadius:'12px', background:'#E2E8F0', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <Users size={18} style={{ color:'#94A3B8' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'1px' }}>Líder de Equipe</p>
+                      <p style={{ fontSize:'13px', fontWeight:600, color:'#94A3B8' }}>Não atribuído</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* KPI cards */}
+                {isCargaDescarga ? (
+                  <div style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr 1fr 1.1fr', gap:'8px' }}>
+                    <div style={{ padding:'10px 8px', borderRadius:'10px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Escala</p>
+                      <p style={{ fontSize:'24px', fontWeight:800, color:'#0F172A', lineHeight:1 }}>{escala}</p>
+                    </div>
+                    <div style={{ padding:'10px 6px', borderRadius:'10px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Início</p>
+                      <p style={{ fontSize:'16px', fontWeight:800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight:1 }}>{teamStart ?? '—'}</p>
+                    </div>
+                    <div style={{ padding:'10px 6px', borderRadius:'10px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Final</p>
+                      <p style={{ fontSize:'16px', fontWeight:800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight:1 }}>{teamEnd ?? '—'}</p>
+                    </div>
+                    <div style={{ padding:'10px 8px', borderRadius:'10px', background: operCfg.bg, border:`1px solid ${operCfg.border}`, textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'6px' }}>
+                      <span style={{ width:'8px', height:'8px', borderRadius:'50%', background: operCfg.dot, boxShadow:`0 0 0 3px ${operCfg.dot}33` }} />
+                      <span style={{ fontSize:'11px', fontWeight:800, color: operCfg.color, lineHeight:1.2 }}>{operCfg.label}</span>
+                      <span style={{ fontSize:'9px', fontWeight:500, color: operCfg.color, opacity:0.7 }}>{operCfg.sublabel}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px' }}>
+                    <div style={{ padding:'10px 8px', borderRadius:'10px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Escala</p>
+                      <p style={{ fontSize:'24px', fontWeight:800, color:'#0F172A', lineHeight:1 }}>{escala}</p>
+                    </div>
+                    <div style={{ padding:'10px 8px', borderRadius:'10px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.06)', display:'flex', flexDirection:'column', justifyContent:'center', gap:'6px' }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <span style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8' }}>Faltas</span>
+                        <span style={{ fontSize:'16px', fontWeight:800, color: faltas > 0 ? '#E11D48' : '#CBD5E1' }}>{faltas}</span>
+                      </div>
+                      <div style={{ height:'1px', background:'rgba(0,0,0,0.07)' }} />
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <span style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8' }}>Atrasos</span>
+                        <span style={{ fontSize:'16px', fontWeight:800, color: atrasos > 0 ? '#D97706' : '#CBD5E1' }}>{atrasos}</span>
+                      </div>
+                    </div>
+                    <div style={{ padding:'10px 8px', borderRadius:'10px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Presença</p>
+                      <p style={{ fontSize:'20px', fontWeight:800, color: escala > 0 ? '#0F172A' : '#CBD5E1', lineHeight:1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Equipe + Descargas */}
+                <div>
+                  <p style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'10px' }}>Equipe</p>
+                  {dateRecs.length === 0 ? (
+                    <p style={{ fontSize:'12px', color:'#94A3B8' }}>Nenhum registro neste dia</p>
+                  ) : isCargaDescarga ? (
+                    <div style={{ display:'flex', gap:'16px', alignItems:'flex-start' }}>
+                      <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:'4px' }}>
+                        {Object.entries(groupByService(presentes)).map(([service, recs], gIdx) => (
+                          <div key={service}>
+                            <p style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>{service}</p>
+                            {recs.map(rec => {
+                              const emp = findEmp(employees, rec.employeeId);
+                              return (
+                                <div key={rec.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 12px', borderRadius:'10px', background:'#EEF2F7', marginBottom:'3px' }}>
+                                  <div className="avatar" style={{ background:'#64748B' }}>{emp?.initials}</div>
+                                  <p style={{ fontSize:'12px', fontWeight:700, color:'#0F172A', flex:1 }}>{emp?.name}</p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ width:'1px', background:'rgba(0,0,0,0.06)', alignSelf:'stretch', flexShrink:0 }} />
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <TrucksPanel escalaKey={dateEscala?.id || date} escalaId={dateEscala?.id} readOnly={true} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display:'flex', flexDirection:'column', gap:'4px' }}>
+                      {Object.entries(groupByService(dateRecs)).map(([service, recs], gIdx) => (
+                        <div key={service}>
+                          <p style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>{service}</p>
+                          {recs.map(rec => {
+                            const emp = findEmp(employees, rec.employeeId);
+                            const isAbsent = rec.status === 'absent';
+                            return (
+                              <div key={rec.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 12px', borderRadius:'10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom:'3px' }}>
+                                <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : '#64748B', color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
+                                <p style={{ fontSize:'12px', fontWeight:700, color: isAbsent ? '#94A3B8' : '#0F172A', flex:1 }}>{emp?.name}</p>
+                                {isAbsent && <span style={{ fontSize:'10px', fontWeight:700, padding:'2px 8px', borderRadius:'6px', background:'#FFE4E6', color:'#E11D48', flexShrink:0 }}>Falta</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
     </div>
   );
 }
