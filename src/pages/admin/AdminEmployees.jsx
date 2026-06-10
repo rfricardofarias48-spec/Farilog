@@ -13,10 +13,11 @@ const TM = { color: '#94A3B8' };
 function Modal({ employee, onSave, onClose, companies = [] }) {
   // Quando editando, detecta se é líder pela ausência de dailyRate
   const isEditingLider = employee && employee.dailyRate === undefined;
-  const [role, setRole]           = useState(isEditingLider ? 'lider' : 'ajudante');
-  const [form, setForm]           = useState(employee ? { ...employee } : { ...EMPTY });
-  const [formLider, setFormLider] = useState(employee && isEditingLider ? { ...employee } : { ...EMPTY_LIDER });
-  const [showReset, setShowReset] = useState(false);
+  const [role, setRole]                 = useState(isEditingLider ? 'lider' : 'ajudante');
+  const [form, setForm]                 = useState(employee ? { ...employee } : { ...EMPTY });
+  const [formLider, setFormLider]       = useState(employee && isEditingLider ? { ...employee } : { ...EMPTY_LIDER });
+  const [showReset, setShowReset]       = useState(false);
+  const [showResetLider, setShowResetLider] = useState(false);
 
   const isNew = !employee;
 
@@ -148,9 +149,30 @@ function Modal({ employee, onSave, onClose, companies = [] }) {
                 </div>
               )}
             </div>
+            {/* Redefinir senha — só no modo edição */}
+            {!isNew && (
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)' }}>
+                <button type="button"
+                  onClick={() => { setShowResetLider(v => !v); setFormLider(f => ({ ...f, password: '' })); }}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-xs font-semibold transition-colors"
+                  style={{ background: showResetLider ? '#EFF6FF' : '#F8FAFC', color: showResetLider ? '#2563EB' : '#475569', borderBottom: showResetLider ? '1px solid rgba(37,99,235,0.12)' : 'none' }}>
+                  <KeyRound size={13} /> Redefinir senha
+                </button>
+                {showResetLider && (
+                  <div className="px-4 py-3" style={{ background: '#F8FBFF' }}>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Nova senha</label>
+                    <input type="password" autoComplete="new-password" required
+                      placeholder="Digite a nova senha"
+                      value={formLider.password ?? ''}
+                      onChange={e => setFormLider({ ...formLider, password: e.target.value })}
+                      className="input-field" />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
               <button type="submit" className="btn-primary flex-1" style={{ background: '#2563EB', boxShadow: '0 2px 8px rgba(37,99,235,0.3)' }}>
-                {isNew ? 'Cadastrar Líder' : 'Salvar'}
+                {isNew ? 'Cadastrar Líder' : 'Salvar Alterações'}
               </button>
               <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
             </div>
@@ -211,25 +233,32 @@ export default function AdminEmployees() {
     const colors = ['#FF4D0C','#7C3AED','#059669','#D97706','#DC2626','#0891B2','#BE185D'];
 
     if (form._role === 'lider') {
-      // ── Criar Líder ──
-      const initials = (form.name || '').split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase();
-      const saved = await createLider({
-        name:      form.name,
-        email:     form.email,
-        phone:     form.phone || null,
-        password:  form.password,
-        initials,
-        color:     colors[lideres.length % colors.length],
-        companyId: form.companyId || null,
-      });
-      if (saved) setLideres(prev => [...prev, {
-        ...saved,
-        name:        saved.nome,
-        initials:    saved.iniciais,
-        color:       saved.cor,
-        companyName: companies.find(c => c.id === form.companyId)?.name || '—',
-        companyIds:  form.companyId ? [form.companyId] : [],
-      }]);
+      if (modal === 'new') {
+        // ── Criar Líder ──
+        const initials = (form.name || '').split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase();
+        const saved = await createLider({
+          name: form.name, email: form.email, phone: form.phone || null,
+          password: form.password, initials,
+          color: colors[lideres.length % colors.length],
+          companyId: form.companyId || null,
+        });
+        if (saved) setLideres(prev => [...prev, {
+          ...saved,
+          name: saved.nome, initials: saved.iniciais, color: saved.cor,
+          companyName: companies.find(c => c.id === form.companyId)?.name || '—',
+          companyIds: form.companyId ? [form.companyId] : [],
+        }]);
+      } else {
+        // ── Editar Líder ──
+        const patch = { name: form.name, email: form.email, phone: form.phone, companyId: form.companyId || null };
+        if (form.password) patch.password = form.password;
+        const ok = await updateLider(modal.id, patch);
+        if (ok) setLideres(prev => prev.map(l => l.id === modal.id ? {
+          ...l, ...patch,
+          companyName: companies.find(c => c.id === form.companyId)?.name || '—',
+          telefone: form.phone,
+        } : l));
+      }
     } else if (modal === 'new') {
       // ── Criar Ajudante ──
       const initials = form.name.split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase();
@@ -370,6 +399,10 @@ export default function AdminEmployees() {
                 }
               </button>
               <div className="flex items-center gap-1">
+                <button onClick={() => setModal({ ...lider, phone: lider.telefone, companyId: lider.empresa_id || lider.companyIds?.[0] || '' })}
+                  className="p-1.5 rounded-lg" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
+                  <Edit2 size={13}/>
+                </button>
                 <button onClick={() => setDeleteConfirmLider(lider.id)} className="p-1.5 rounded-lg"
                   style={{ color: '#94A3B8', background: '#F1F5F9' }}><Trash2 size={13}/></button>
               </div>
