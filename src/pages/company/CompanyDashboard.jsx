@@ -2795,24 +2795,41 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
       margin: { left: 10, right: 10 },
     });
 
-    // ── Rodapé: total + vencimento ───────────────────────────
-    const y3 = doc.lastAutoTable.finalY + 8;
-    doc.setFillColor(...rowAlt);
-    doc.setDrawColor(200, 210, 220);
-    doc.roundedRect(14, y3, 182, 20, 2, 2, 'FD');
+    // ── Rodapé: card Valor a pagar + Data de pagamento ───────
+    const { num: qNum, month: qMonth, year: qYear } = getQuinzenaInfoByOffset(offset);
+    let payDay, payMonth, payYear;
+    if (qNum === 1) { payDay = 20; payMonth = qMonth; payYear = qYear; }
+    else { payDay = 5; payMonth = qMonth + 1; payYear = qYear; if (payMonth > 11) { payMonth = 0; payYear += 1; } }
+    const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
 
+    const y3    = doc.lastAutoTable.finalY + 10;
+    const cardH = 22;
+    const cardW = 182;
+
+    // Fundo branco + borda cinza
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(220, 225, 232);
+    doc.roundedRect(14, y3, cardW, cardH, 3, 3, 'FD');
+
+    // Divisor vertical central
+    doc.setDrawColor(220, 225, 232);
+    doc.line(14 + cardW / 2, y3 + 3, 14 + cardW / 2, y3 + cardH - 3);
+
+    // Coluna esquerda: Valor a pagar
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...light);
+    doc.text('VALOR A PAGAR', 20, y3 + 7);
     doc.setFontSize(10); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text(`Total da Cobrança: ${fmtCurrency(totalGeral)}`, 16, y3 + 10);
+    doc.text(fmtCurrency(totalGeral), 20, y3 + 15);
 
-    if (payment?.dueDate) {
-      const lbl = payment.status === 'paid'
-        ? `Pago em: ${fmtDate(payment.paidDate)}`
-        : `Vencimento: ${fmtDate(payment.dueDate)}`;
-      doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...mid);
-      doc.text(lbl, 16, y3 + 18);
-    }
+    // Coluna direita: Data de pagamento
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...light);
+    doc.text('DATA DE PAGAMENTO', 14 + cardW / 2 + 6, y3 + 7);
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...dark);
+    doc.text(payStr, 14 + cardW / 2 + 6, y3 + 15);
 
     // ── Paginação ────────────────────────────────────────────
     const pageCount = doc.getNumberOfPages();
