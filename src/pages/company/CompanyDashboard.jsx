@@ -497,9 +497,9 @@ function fmtDateShort(iso) {
 }
 
 const OPER_STATUS_CFG = {
-  agendado:     { label: 'Agendado',     color: '#64748B', bg: '#F1F5F9', dot: '#94A3B8' },
-  em_andamento: { label: 'Em andamento', color: '#D97706', bg: '#FEF3C7', dot: '#F59E0B' },
-  finalizado:   { label: 'Finalizado',   color: '#059669', bg: '#DCFCE7', dot: '#10B981' },
+  agendado:     { label: 'Agendado',     sublabel: 'Aguardando início', color: '#475569', bg: '#F1F5F9', border: 'rgba(100,116,139,0.15)', dot: '#94A3B8' },
+  em_andamento: { label: 'Em andamento', sublabel: 'Operação ativa',    color: '#92400E', bg: '#FEF3C7', border: 'rgba(245,158,11,0.25)',  dot: '#F59E0B' },
+  finalizado:   { label: 'Finalizado',   sublabel: 'Concluído',         color: '#166534', bg: '#DCFCE7', border: 'rgba(16,185,129,0.25)',  dot: '#10B981' },
 };
 
 function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday, lider, onVerMais, tipoServico, escalaId }) {
@@ -580,9 +580,10 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
             <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
             <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
           </div>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: 'linear-gradient(160deg, #0F172A 0%, #1E293B 100%)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: operCfg.dot }} />
-            <span style={{ fontSize: '10px', fontWeight: 700, color: operCfg.color, lineHeight: 1.3 }}>{operCfg.label}</span>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: operCfg.bg, border: `1px solid ${operCfg.border}`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: operCfg.dot, boxShadow: `0 0 0 3px ${operCfg.dot}33`, flexShrink: 0 }} />
+            <span style={{ fontSize: '11px', fontWeight: 800, color: operCfg.color, lineHeight: 1.2 }}>{operCfg.label}</span>
+            <span style={{ fontSize: '9px', fontWeight: 500, color: operCfg.color, opacity: 0.7, lineHeight: 1 }}>{operCfg.sublabel}</span>
           </div>
         </div>
       ) : isToday ? (
@@ -1758,9 +1759,10 @@ function EscalasHoje({ companyId }) {
             <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
             <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
           </div>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: 'linear-gradient(160deg, #0F172A 0%, #1E293B 100%)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: operCfg.dot }} />
-            <span style={{ fontSize: '10px', fontWeight: 700, color: operCfg.color, lineHeight: 1.3 }}>{operCfg.label}</span>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: operCfg.bg, border: `1px solid ${operCfg.border}`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: operCfg.dot, boxShadow: `0 0 0 3px ${operCfg.dot}33`, flexShrink: 0 }} />
+            <span style={{ fontSize: '11px', fontWeight: 800, color: operCfg.color, lineHeight: 1.2 }}>{operCfg.label}</span>
+            <span style={{ fontSize: '9px', fontWeight: 500, color: operCfg.color, opacity: 0.7, lineHeight: 1 }}>{operCfg.sublabel}</span>
           </div>
         </div>
       ) : (
