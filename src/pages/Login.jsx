@@ -79,12 +79,12 @@ export default function Login() {
               required
               style={{
                 width: '100%', padding: '13px 16px',
-                background: '#252529', border: '1.5px solid rgba(255,255,255,0.06)',
-                borderRadius: '12px', color: '#F0F4FA', fontSize: '14px',
+                background: '#F8FAFC', border: '1.5px solid rgba(0,0,0,0.10)',
+                borderRadius: '12px', color: '#0F172A', fontSize: '14px',
                 fontFamily: 'Inter, sans-serif', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.18s',
               }}
               onFocus={e => e.target.style.borderColor = 'rgba(255,77,12,0.7)'}
-              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.06)'}
+              onBlur={e => e.target.style.borderColor = 'rgba(0,0,0,0.10)'}
             />
           </div>
 
@@ -107,14 +107,14 @@ export default function Login() {
                 required
                 style={{
                   width: '100%', padding: '13px 44px 13px 16px',
-                  background: '#252529', border: '1.5px solid rgba(255,255,255,0.06)',
-                  borderRadius: '12px', color: '#F0F4FA', fontSize: '14px',
+                  background: '#F8FAFC', border: '1.5px solid rgba(0,0,0,0.10)',
+                  borderRadius: '12px', color: '#0F172A', fontSize: '14px',
                   fontFamily: 'Inter, sans-serif', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.18s',
                 }}
                 onFocus={e => e.target.style.borderColor = 'rgba(255,77,12,0.7)'}
-                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.06)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(0,0,0,0.10)'}
               />
-              <button type="button" onClick={() => setShowPwd(!showPwd)} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#4B5563', cursor: 'pointer', display: 'flex', padding: '2px' }}>
+              <button type="button" onClick={() => setShowPwd(!showPwd)} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', display: 'flex', padding: '2px' }}>
                 {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
