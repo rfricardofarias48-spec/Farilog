@@ -1955,7 +1955,7 @@ function EscalasProximas({ companyId }) {
     return createPortal(
       <div onClick={e => e.target === e.currentTarget && onClose()}
         style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-        <div style={{ background: '#fff', borderRadius: '18px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', width: '100%', maxWidth: '560px', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ background: '#fff', borderRadius: '18px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', width: '100%', maxWidth: '820px', height: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
@@ -2033,9 +2033,9 @@ function EscalasProximas({ companyId }) {
               </div>
             )}
 
-            {/* Lista de ajudantes */}
+            {/* Equipe + Descargas */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Equipe escalada</p>
                 {dateRecs.length > 0 && (
                   <button onClick={() => setShowAjudantes(true)}
@@ -2044,9 +2044,38 @@ function EscalasProximas({ companyId }) {
                   </button>
                 )}
               </div>
+
               {dateRecs.length === 0 ? (
                 <p style={{ fontSize: '12px', color: '#94A3B8', padding: '8px 0' }}>Nenhum ajudante escalado</p>
+              ) : isCargaDescarga ? (
+                /* Carga e Descarga: split equipe | carretas */
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                  {/* Esquerda: ajudantes */}
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {Object.entries(groupByService(dateRecs)).map(([service, recs], gIdx) => (
+                      <div key={service}>
+                        <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>{service}</p>
+                        {recs.map(rec => {
+                          const emp = findEmp(employees, rec.employeeId);
+                          return (
+                            <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
+                              <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
+                              <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{emp?.name}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                  {/* Separador */}
+                  <div style={{ width: '1px', background: 'rgba(0,0,0,0.06)', alignSelf: 'stretch', flexShrink: 0 }} />
+                  {/* Direita: carretas */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <TrucksPanel escalaKey={dateEscala?.id || date} escalaId={dateEscala?.id} readOnly={true} />
+                  </div>
+                </div>
               ) : (
+                /* Entrega: lista simples */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {Object.entries(groupByService(dateRecs)).map(([service, recs], gIdx) => (
                     <div key={service}>
