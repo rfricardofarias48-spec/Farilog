@@ -2524,7 +2524,7 @@ function RelatorioTab({ companyId }) {
     </button>
   );
 
-  const COL = '130px 1fr 1fr 1fr 1fr 1fr 24px';
+  const COL = '130px 1.1fr 1.3fr 0.85fr 1.05fr 1.05fr 24px';
 
   return (
     <div className="space-y-5">
@@ -2623,7 +2623,8 @@ function RelatorioTab({ companyId }) {
                 <p key={i} style={{
                   fontSize: '10px', fontWeight: 700, color: '#475569',
                   textTransform: 'uppercase', letterSpacing: '0.05em',
-                  textAlign: 'center',
+                  textAlign: 'center', whiteSpace: 'nowrap',
+                  overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{h}</p>
               ))}
             </div>
@@ -2656,7 +2657,7 @@ function RelatorioTab({ companyId }) {
                     ? `(${dayTipo === 'carga_descarga' ? 'descargas' : 'diárias'})`
                     : '';
                   return (
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {day.diarias > 0 ? (
                         <>
                           {day.diarias}{tipoLabel && <span style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', marginLeft: '4px' }}>{tipoLabel}</span>}
