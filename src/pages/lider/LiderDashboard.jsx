@@ -87,6 +87,11 @@ function TrucksPanel({ escalaId }) {
     updateCarreta(id, value);
   };
 
+  // Auto-remove linha em branco ao sair do campo
+  const handleBlur = (id, value) => {
+    if (!value?.trim()) remove(id);
+  };
+
   if (loading) return null;
 
   return (
@@ -110,6 +115,7 @@ function TrucksPanel({ escalaId }) {
             <input
               value={truck.value}
               onChange={e => update(truck.id, e.target.value)}
+              onBlur={e => handleBlur(truck.id, e.target.value)}
               placeholder="Placa ou motorista..."
               style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '12px', fontWeight: 600, color: '#0F172A', outline: 'none', padding: 0, fontFamily: 'inherit', minWidth: 0 }}
             />

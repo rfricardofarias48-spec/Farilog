@@ -2631,7 +2631,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
     let diarias, heCount, valorDiarias, valorHE;
     if (isCD) {
       // Carga e descarga: conta carretas × valor por descarga
-      const carretas = dayEscalas.flatMap(e => carretasMap[e.id] || []);
+      const carretas = dayEscalas.flatMap(e => carretasMap[e.id] || []).filter(c => c.value?.trim());
       diarias      = carretas.length;
       heCount      = 0;
       valorDiarias = diarias * valorDescarga;
