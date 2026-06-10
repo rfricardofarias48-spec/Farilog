@@ -3152,27 +3152,29 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
         })()}
         </div>
 
-        {/* Total cobrança + vencimento */}
-        <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total da cobrança</span>
-              <span style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>{fmtCurrency(totalGeral)}</span>
-            </div>
-            {payment ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {payment.status === 'paid' ? 'Pago em' : 'Vencimento'}
-                </span>
-                <span style={{ fontSize: '14px', fontWeight: 700, color: payment.status === 'paid' ? '#4ADE80' : payment.status === 'overdue' ? '#F87171' : '#94A3B8' }}>
-                  {payment.status === 'paid' && payment.paidDate ? fmtDate(payment.paidDate) : fmtDate(payment.dueDate)}
-                </span>
+        {/* Total cobrança + data — mesmo design do financeiro */}
+        {(() => {
+          const { num, month, year } = getQuinzenaInfoByOffset(offset);
+          let payDay, payMonth, payYear;
+          if (num === 1) { payDay = 20; payMonth = month; payYear = year; }
+          else { payDay = 5; payMonth = month + 1; payYear = year; if (payMonth > 11) { payMonth = 0; payYear += 1; } }
+          const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
+          return (
+            <div style={{ padding: '14px 20px', borderTop: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: '0' }}>
+              <div style={{ padding: '14px 20px', borderRadius: '12px', background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', display: 'inline-flex', alignItems: 'center', gap: '24px' }}>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>Valor a pagar</p>
+                  <p style={{ fontSize: '17px', fontWeight: 700, color: '#0F172A', lineHeight: 1 }}>{fmtCurrency(totalGeral)}</p>
+                </div>
+                <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)' }} />
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>Data de pagamento</p>
+                  <p style={{ fontSize: '17px', fontWeight: 700, color: '#0F172A', lineHeight: 1 }}>{payStr}</p>
+                </div>
               </div>
-            ) : (
-              <span style={{ fontSize: '11px', color: '#475569' }}>Vencimento a definir</span>
-            )}
-          </div>
-        </div>
+            </div>
+          );
+        })()}
 
       </div>
 
