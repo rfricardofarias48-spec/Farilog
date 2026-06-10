@@ -1918,13 +1918,14 @@ function EscalasHoje({ companyId }) {
 
 function EscalasProximas({ companyId }) {
   const { records, employees, escalas } = useCompanyData();
+  const [notes, setNotes] = useNotes();
+  const [selectedDate, setSelectedDate] = useState(null);
+
   const futureDates = [...new Set(
     records
       .filter(r => r.date > TODAY && r.status === 'scheduled')
       .map(r => r.date)
   )].sort();
-
-  const [openDate, setOpenDate] = useState(null);
 
   if (futureDates.length === 0) {
     return (
@@ -1935,123 +1936,208 @@ function EscalasProximas({ companyId }) {
     );
   }
 
-  return (
-    <div className="card overflow-hidden">
-      {futureDates.map((date, idx) => {
-        const dateRecs = records.filter(r => r.date === date && r.status === 'scheduled');
-        const [y, m, d] = date.split('-').map(Number);
-        const dow = DOW_FULL[new Date(y, m - 1, d).getDay()];
-        const isOpen = openDate === date;
-        const dateLider = escalas.find(e => e.date === date)?.lider || null;
+  // ── Modal de detalhe da escala futura ─────────────────────────────
+  const ModalDetalhe = ({ date, onClose }) => {
+    const dateRecs = records.filter(r => r.date === date);
+    const dateEscala = escalas.find(e => e.date === date);
+    const dateLider  = dateEscala?.lider || null;
+    const isCargaDescarga = (dateEscala?.tipoServico || dateRecs[0]?.tipoServico || 'entrega') === 'carga_descarga';
+    const escala = dateRecs.length;
+    const presentes = dateRecs.filter(r => r.status !== 'absent');
+    const teamStart = presentes.filter(r => r.checkIn).map(r => r.checkIn).sort()[0] ?? null;
+    const teamEnd   = presentes.filter(r => r.checkOut).map(r => r.checkOut).sort().reverse()[0] ?? null;
+    const operStatus = !teamStart ? 'agendado' : !teamEnd ? 'em_andamento' : 'finalizado';
+    const operCfg    = OPER_STATUS_CFG[operStatus];
+    const [y, m, d] = date.split('-').map(Number);
+    const dow = DOW_FULL[new Date(y, m - 1, d).getDay()];
+    const [showAjudantes, setShowAjudantes] = useState(false);
 
-        return (
-          <div key={date} style={{ borderBottom: idx < futureDates.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
-            {/* Header row — clicável */}
-            <button
-              onClick={() => setOpenDate(isOpen ? null : date)}
-              className="w-full text-left transition-colors"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'transparent', border: 'none', cursor: 'pointer' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <div className="flex items-center gap-3">
-                <div style={{ textAlign: 'center', minWidth: '44px' }}>
-                  <p className="text-xs uppercase font-semibold" style={{ color: '#94A3B8', letterSpacing: '0.05em' }}>{dow}</p>
-                  <p className="text-lg font-black leading-tight" style={{ color: '#0F172A' }}>{String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}</p>
-                </div>
-                <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)' }} />
-                <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ background: '#FFF2EE', color: '#FF4D0C' }}>
-                  {dateRecs.length} escalado{dateRecs.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-              <ChevronRight size={15} style={{ color: '#94A3B8', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+    return createPortal(
+      <div onClick={e => e.target === e.currentTarget && onClose()}
+        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        <div style={{ background: '#fff', borderRadius: '18px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', width: '100%', maxWidth: '560px', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+            <div>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Próxima Escala</p>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>{dow}, {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{y}</h2>
+            </div>
+            <button onClick={onClose} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', color: '#64748B' }}>
+              <X size={15} />
             </button>
+          </div>
 
-            {/* Líder — bloco destacado abaixo do header */}
-            <div style={{ padding: '0 20px 14px' }}>
-              {dateLider ? (() => {
-                const waLink = whatsappLink(dateLider.telefone);
-                return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-                    <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: dateLider.cor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
-                      {dateLider.iniciais}
+          <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+            {/* Líder */}
+            {dateLider ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: dateLider.cor || '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+                  {dateLider.iniciais}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{dateLider.nome}</p>
+                </div>
+                {whatsappLink(dateLider.telefone) && (
+                  <a href={whatsappLink(dateLider.telefone)} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
+                    <WaSVG size={13} /> WhatsApp
+                  </a>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Users size={18} style={{ color: '#94A3B8' }} />
+                </div>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Não atribuído</p>
+                </div>
+              </div>
+            )}
+
+            {/* KPI cards */}
+            {isCargaDescarga ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.1fr', gap: '8px' }}>
+                <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
+                  <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+                </div>
+                <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
+                  <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{teamStart ?? '—'}</p>
+                </div>
+                <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
+                  <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1 }}>{teamEnd ?? '—'}</p>
+                </div>
+                <div style={{ padding: '10px 8px', borderRadius: '10px', background: operCfg.bg, border: `1px solid ${operCfg.border}`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: operCfg.dot, boxShadow: `0 0 0 3px ${operCfg.dot}33` }} />
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: operCfg.color, lineHeight: 1.2 }}>{operCfg.label}</span>
+                  <span style={{ fontSize: '9px', fontWeight: 500, color: operCfg.color, opacity: 0.7 }}>{operCfg.sublabel}</span>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
+                  <p style={{ fontSize: '28px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+                </div>
+                <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</p>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>Agendado</span>
+                </div>
+              </div>
+            )}
+
+            {/* Lista de ajudantes */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Equipe escalada</p>
+                {dateRecs.length > 0 && (
+                  <button onClick={() => setShowAjudantes(true)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', fontWeight: 600, color: '#64748B', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    Ver detalhes <ChevronRight size={12} />
+                  </button>
+                )}
+              </div>
+              {dateRecs.length === 0 ? (
+                <p style={{ fontSize: '12px', color: '#94A3B8', padding: '8px 0' }}>Nenhum ajudante escalado</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {Object.entries(groupByService(dateRecs)).map(([service, recs], gIdx) => (
+                    <div key={service}>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>{service}</p>
+                      {recs.map(rec => {
+                        const emp = findEmp(employees, rec.employeeId);
+                        return (
+                          <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
+                            <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
+                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{emp?.name}</p>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-                      <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dateLider.nome}</p>
-                    </div>
-                    {waLink ? (
-                      <a href={waLink} target="_blank" rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
-                        <WaSVG size={13} /> WhatsApp
-                      </a>
-                    ) : (
-                      <span style={{ fontSize: '10px', color: '#CBD5E1', flexShrink: 0 }}>sem telefone</span>
-                    )}
-                  </div>
-                );
-              })() : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Users size={17} style={{ color: '#94A3B8' }} />
-                  </div>
-                  <div>
-                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Não atribuído</p>
-                  </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* Detalhe expandido */}
-            {isOpen && (
-              <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)', background: '#FAFBFC' }}>
-                {dateRecs.map((rec, rIdx) => {
-                  const emp = findEmp(employees, rec.employeeId);
-                  const times = [
-                    { label: 'Entrada',   value: rec.checkIn },
-                    { label: 'S. Almoço', value: rec.lunchOut },
-                    { label: 'Retorno',   value: rec.lunchReturn },
-                    { label: 'Saída',     value: rec.checkOut },
-                    { label: 'H. Extra',  value: rec.overtime },
-                  ];
-                  return (
-                    <div key={rec.id} className="table-row" style={{
-                      gridTemplateColumns: 'auto 1fr 1fr auto',
-                      borderBottom: rIdx < dateRecs.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
-                      background: 'transparent',
-                    }}>
-                      <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
-                      <div className="px-3 flex items-center gap-2">
-                        <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
-                        <span className="text-xs" style={{ color: '#94A3B8' }}>·</span>
-                        <p className="text-xs" style={TM}>{rec.service}</p>
-                      </div>
-                      <div className="flex items-center justify-center gap-8">
-                        {times.map(t => (
-                          <div key={t.label} className="text-center">
-                            <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 500, marginBottom: '4px' }}>{t.label}</p>
-                            <span style={{
-                              fontSize: '15px', fontWeight: 700,
-                              color: !t.value ? '#CBD5E1' : t.label === 'H. Extra' ? '#059669' : '#0F172A'
-                            }}>
-                              {t.value ?? '—'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-lg" style={{ background: '#FEF3C7', color: '#D97706', whiteSpace: 'nowrap' }}>Agendado</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
-        );
-      })}
-    </div>
+        </div>
+        {showAjudantes && (
+          <AjudantesModal
+            records={dateRecs}
+            escala={escala}
+            faltas={0}
+            atrasos={0}
+            date={date}
+            tipoServico={dateEscala?.tipoServico}
+            onClose={() => setShowAjudantes(false)}
+          />
+        )}
+      </div>,
+      document.body
+    );
+  };
+
+  // ── Lista de datas ─────────────────────────────────────────────────
+  return (
+    <>
+      <div className="card overflow-hidden">
+        {futureDates.map((date, idx) => {
+          const dateRecs = records.filter(r => r.date === date && r.status === 'scheduled');
+          const [y, m, d] = date.split('-').map(Number);
+          const dow = DOW_FULL[new Date(y, m - 1, d).getDay()];
+          const dateLider = escalas.find(e => e.date === date)?.lider || null;
+          const isCargaDescarga = (escalas.find(e => e.date === date)?.tipoServico || 'entrega') === 'carga_descarga';
+
+          return (
+            <button key={date}
+              onClick={() => setSelectedDate(date)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '14px 20px', background: 'transparent', border: 'none', cursor: 'pointer',
+                borderBottom: idx < futureDates.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
+                textAlign: 'left', transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ textAlign: 'center', minWidth: '44px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{dow}</p>
+                  <p style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}</p>
+                </div>
+                <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)', flexShrink: 0 }} />
+                <div style={{ display: 'flex', flex: 1, alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                    {dateRecs.length} ajudante{dateRecs.length !== 1 ? 's' : ''}
+                  </span>
+                  {dateLider && (
+                    <>
+                      <span style={{ color: '#CBD5E1', fontSize: '10px' }}>·</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>{dateLider.nome}</span>
+                    </>
+                  )}
+                  <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', background: '#F1F5F9', color: '#64748B' }}>
+                    {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={15} style={{ color: '#CBD5E1', flexShrink: 0 }} />
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedDate && <ModalDetalhe date={selectedDate} onClose={() => setSelectedDate(null)} />}
+    </>
   );
+
 }
 
 function EscalasTab({ companyId }) {
