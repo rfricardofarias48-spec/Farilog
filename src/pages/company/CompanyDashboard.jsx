@@ -2610,7 +2610,7 @@ function RelatorioTab({ companyId }) {
                   alignItems: 'center', padding: '10px 16px', border: 'none',
                   background: isOpen ? '#FFF2EE' : day.isWeekend ? '#FAFBFC' : 'transparent',
                   cursor: hasData ? 'pointer' : 'default',
-                  borderLeft: hasData ? '3px solid #FF4D0C' : '3px solid transparent',
+                  borderLeft: 'none',
                   transition: 'background 0.12s',
                 }}
                 onMouseEnter={e => { if (hasData && !isOpen) e.currentTarget.style.background = '#FFF7F5'; }}
@@ -2709,7 +2709,7 @@ function RelatorioTab({ companyId }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569' }}>Total da cobrança: </span>
-              <span style={{ fontSize: '15px', fontWeight: 800, color: '#FF4D0C' }}>{fmtCurrency(totalGeral)}</span>
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(totalGeral)}</span>
             </div>
             {payment ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
