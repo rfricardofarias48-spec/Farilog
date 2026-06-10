@@ -759,11 +759,11 @@ export async function assignLiderToEscala(escalaId, liderId) {
   if (error) { console.error('[db] assignLiderToEscala:', error.message); }
 }
 
-export async function createEscalaByLider({ liderId, companyId, date, time, service, employees, responsavelDia, contatoDia }) {
+export async function createEscalaByLider({ liderId, companyId, date, time, service, employees, responsavelDia, contatoDia, tipoServico }) {
   const escalaId = crypto.randomUUID();
   const { data: escala, error: escErr } = await supabase
     .from('escalas')
-    .insert({ id: escalaId, empresa_id: companyId, data: date, horario: time || null, servico: service || null, status: 'scheduled', lider_id: liderId, responsavel_dia: responsavelDia || null, contato_dia: contatoDia || null })
+    .insert({ id: escalaId, empresa_id: companyId, data: date, horario: time || null, servico: service || null, tipo_servico: tipoServico || 'entrega', status: 'scheduled', lider_id: liderId, responsavel_dia: responsavelDia || null, contato_dia: contatoDia || null })
     .select()
     .single();
   if (escErr) { console.error('[db] createEscalaByLider:', escErr.message); return null; }
@@ -781,10 +781,10 @@ export async function createEscalaByLider({ liderId, companyId, date, time, serv
   return mapDemand({ ...escala, registros: [] });
 }
 
-export async function updateEscalaByLider({ escalaId, time, service, responsavelDia, contatoDia, newEmployees, companyId, date }) {
+export async function updateEscalaByLider({ escalaId, time, service, responsavelDia, contatoDia, newEmployees, companyId, date, tipoServico }) {
   const { error: upErr } = await supabase
     .from('escalas')
-    .update({ horario: time || null, servico: service || null, responsavel_dia: responsavelDia || null, contato_dia: contatoDia || null })
+    .update({ horario: time || null, servico: service || null, tipo_servico: tipoServico || 'entrega', responsavel_dia: responsavelDia || null, contato_dia: contatoDia || null })
     .eq('id', escalaId);
   if (upErr) { console.error('[db] updateEscalaByLider:', upErr.message); return false; }
 

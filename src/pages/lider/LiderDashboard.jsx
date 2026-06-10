@@ -44,6 +44,20 @@ function StatusBadge({ status }) {
   );
 }
 
+// ── Badge de tipo de serviço ──────────────────────────────────────────────
+const TIPO_CFG = {
+  entrega:        { label: 'Entrega',          color: '#2563EB', bg: '#EFF6FF' },
+  carga_descarga: { label: 'Carga e Descarga', color: '#64748B', bg: '#F1F5F9' },
+};
+function TipoBadge({ tipo }) {
+  const cfg = TIPO_CFG[tipo] || TIPO_CFG.entrega;
+  return (
+    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 9px', borderRadius: '6px', background: cfg.bg, color: cfg.color, whiteSpace: 'nowrap' }}>
+      {tipo === 'carga_descarga' ? '📦' : '🚚'} {cfg.label}
+    </span>
+  );
+}
+
 // ── Modal Substituto ──────────────────────────────────────────────────────
 function ModalSubstituto({ escala, onClose, onRefresh }) {
   const [disponiveis, setDisponiveis] = useState([]);
@@ -229,8 +243,9 @@ function ModalFinalizarDia({ user, presentes, ausentes, ocCount, onClose, onSave
 
 // ── Tab: Hoje — monitoramento (read-only) ─────────────────────────────────
 function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
-  const todayEscala = escalas.find(e => e.date === TODAY);
-  const ajudantes   = todayEscala?.employees || [];
+  const todayEscala     = escalas.find(e => e.date === TODAY);
+  const ajudantes       = todayEscala?.employees || [];
+  const isCargaDescarga = todayEscala?.tipoServico === 'carga_descarga';
 
   const [modalSubst, setModalSubst]   = useState(false);
   const [ocorrencias, setOcorrencias] = useState([]);
@@ -239,6 +254,14 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
   const ausentes    = ajudantes.filter(a => a.status === 'falta').length;
   const total       = ajudantes.length;
   const sla         = total > 0 ? Math.round((confirmados / total) * 100) : null;
+
+  // Horário da equipe (carga_descarga)
+  const presRecs  = ajudantes.filter(a => a.status !== 'falta');
+  const teamStart = presRecs.filter(a => a.entrada).map(a => a.entrada).sort()[0] ?? null;
+  const teamEnd   = presRecs.filter(a => a.saida).map(a => a.saida).sort().reverse()[0] ?? null;
+  const operStatus = !teamStart ? 'agendado' : !teamEnd ? 'em_andamento' : 'finalizado';
+  const OPER_CFG = { agendado: { label: 'Agendado', color: '#64748B', bg: '#F1F5F9', dot: '#94A3B8' }, em_andamento: { label: 'Em andamento', color: '#D97706', bg: '#FEF3C7', dot: '#F59E0B' }, finalizado: { label: 'Finalizado', color: '#059669', bg: '#DCFCE7', dot: '#10B981' } };
+  const operCfg = OPER_CFG[operStatus];
 
   useEffect(() => {
     if (todayEscala?.id) {
@@ -271,31 +294,50 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
         </div>
       )}
 
-      {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-        {[
-          { label: 'Escalados',   value: total,       color: '#0F172A' },
-          { label: 'Presentes',   value: confirmados, color: '#059669' },
-          { label: 'Ausentes',    value: ausentes,    color: ausentes > 0 ? '#E11D48' : '#CBD5E1' },
-          { label: 'Presença',     value: sla !== null ? `${sla}%` : '—', color: sla === null ? '#CBD5E1' : sla >= 80 ? '#059669' : sla >= 60 ? '#D97706' : '#E11D48' },
-        ].map((k, i) => (
-          <div key={i} className="card" style={{ padding: '16px 12px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.08)' }}>
-            <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{k.label}</p>
-            <p style={{ fontSize: '26px', fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</p>
+      {/* KPIs — layout diferente por tipo */}
+      {isCargaDescarga ? (
+        /* Carga/Descarga: Escalados | Início | Final | Status */
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.2fr', gap: '10px' }}>
+          <div className="card" style={{ padding: '14px 12px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.08)' }}>
+            <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Escalados</p>
+            <p style={{ fontSize: '26px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{total}</p>
           </div>
-        ))}
-      </div>
+          <div className="card" style={{ padding: '14px 12px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.08)' }}>
+            <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Início</p>
+            <p style={{ fontSize: '22px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{teamStart ?? '—'}</p>
+          </div>
+          <div className="card" style={{ padding: '14px 12px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.08)' }}>
+            <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Final</p>
+            <p style={{ fontSize: '22px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1 }}>{teamEnd ?? '—'}</p>
+          </div>
+          <div style={{ padding: '14px 12px', textAlign: 'center', borderRadius: '12px', background: 'linear-gradient(160deg, #0F172A 0%, #1E293B 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: operCfg.dot }} />
+            <span style={{ fontSize: '11px', fontWeight: 700, color: operCfg.color }}>{operCfg.label}</span>
+          </div>
+        </div>
+      ) : (
+        /* Entrega: Escalados, Presentes, Ausentes, Presença */
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+          {[
+            { label: 'Escalados', value: total,       color: '#0F172A' },
+            { label: 'Presentes', value: confirmados, color: '#059669' },
+            { label: 'Ausentes',  value: ausentes,    color: ausentes > 0 ? '#E11D48' : '#CBD5E1' },
+            { label: 'Presença',  value: sla !== null ? `${sla}%` : '—', color: sla === null ? '#CBD5E1' : sla >= 80 ? '#059669' : sla >= 60 ? '#D97706' : '#E11D48' },
+          ].map((k, i) => (
+            <div key={i} className="card" style={{ padding: '16px 12px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.08)' }}>
+              <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{k.label}</p>
+              <p style={{ fontSize: '26px', fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
-      {/* Lista da equipe — read-only */}
+      {/* Lista da equipe — layout diferente por tipo */}
       <div className="card overflow-hidden">
         <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Equipe — {fmtDate(TODAY)}</p>
-            {todayEscala?.time && (
-              <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Clock size={10} /> Início: {todayEscala.time}
-              </p>
-            )}
+            {todayEscala && <TipoBadge tipo={todayEscala.tipoServico || 'entrega'} />}
           </div>
           {todayEscala && (
             <button onClick={() => setModalSubst(true)}
@@ -310,38 +352,51 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
             <Users size={28} style={{ color: '#CBD5E1', margin: '0 auto 10px' }} />
             <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhuma escala para hoje</p>
           </div>
-        ) : ajudantes.map(({ employeeId, status, entrada, saida, saidaAlmoco, retornoAlmoco }) => {
-          const emp = employees.find(e => e.id === employeeId);
-          const batidas = [
-            { label: 'Entrada',   value: entrada        },
-            { label: 'Saída alm.', value: saidaAlmoco  },
-            { label: 'Retorno',   value: retornoAlmoco  },
-            { label: 'Saída',     value: saida          },
-          ];
-          return (
-            <div key={employeeId} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-              {/* Linha principal: avatar + nome + status badge */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px 8px' }}>
+        ) : isCargaDescarga ? (
+          /* CARGA E DESCARGA: apenas nome + status (sem batidas) */
+          ajudantes.map(({ employeeId, status }) => {
+            const emp = employees.find(e => e.id === employeeId);
+            return (
+              <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                 <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                   {emp?.initials}
                 </div>
                 <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
                 <StatusBadge status={status} />
               </div>
-              {/* Linha de batidas de ponto */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0', paddingBottom: '10px', paddingLeft: '62px', paddingRight: '16px' }}>
-                {batidas.map(({ label, value }) => (
-                  <div key={label} style={{ textAlign: 'center', padding: '6px 4px', background: value ? '#F0FDF4' : '#F8FAFC', borderRadius: '8px', margin: '0 3px' }}>
-                    <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>{label}</p>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: value ? '#059669' : '#CBD5E1', lineHeight: 1 }}>
-                      {value || '—'}
-                    </p>
+            );
+          })
+        ) : (
+          /* ENTREGA: nome + batidas de ponto individuais */
+          ajudantes.map(({ employeeId, status, entrada, saida, saidaAlmoco, retornoAlmoco }) => {
+            const emp = employees.find(e => e.id === employeeId);
+            const batidas = [
+              { label: 'Entrada',    value: entrada       },
+              { label: 'Saída alm.', value: saidaAlmoco  },
+              { label: 'Retorno',    value: retornoAlmoco },
+              { label: 'Saída',      value: saida         },
+            ];
+            return (
+              <div key={employeeId} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px 8px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                    {emp?.initials}
                   </div>
-                ))}
+                  <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
+                  <StatusBadge status={status} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0', paddingBottom: '10px', paddingLeft: '62px', paddingRight: '16px' }}>
+                  {batidas.map(({ label, value }) => (
+                    <div key={label} style={{ textAlign: 'center', padding: '6px 4px', background: value ? '#F0FDF4' : '#F8FAFC', borderRadius: '8px', margin: '0 3px' }}>
+                      <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>{label}</p>
+                      <p style={{ fontSize: '13px', fontWeight: 700, color: value ? '#059669' : '#CBD5E1', lineHeight: 1 }}>{value || '—'}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* Reportes dos ajudantes */}
@@ -442,9 +497,12 @@ function TabHistorico({ user, escalas, employees }) {
                 <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{d}/{m}</p>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{escala.companyName || '—'}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{escala.companyName || '—'}</p>
+                  <TipoBadge tipo={escala.tipoServico || 'entrega'} />
+                </div>
                 <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
-                  {escala.time || '—'} · {escala.service || '—'} · {total} ajudante{total !== 1 ? 's' : ''}
+                  {escala.time || '—'} · {total} ajudante{total !== 1 ? 's' : ''}
                 </p>
               </div>
               {/* SLA badge */}
@@ -556,7 +614,7 @@ function getQuinzenaOffset(offset) {
 
 // ── Tab: Escala (com sub-abas Hoje / Agendadas / Histórico) ───────────────
 function NovaEscalaForm({ user, onSaved, onCancel }) {
-  const [form, setForm]             = useState({ date: TODAY, time: '07:00', service: '', companyId: '' });
+  const [form, setForm]             = useState({ date: TODAY, time: '07:00', service: '', companyId: '', tipoServico: 'entrega' });
   const [responsavelDia, setResp]   = useState('');
   const [contatoDia, setContato]    = useState('');
   const [empresas, setEmpresas]     = useState([]);
@@ -602,7 +660,7 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
     await createEscalaByLider({
       liderId: user.id, companyId: form.companyId, date: form.date,
       time: form.time, service: form.service, employees: selected,
-      responsavelDia, contatoDia,
+      responsavelDia, contatoDia, tipoServico: form.tipoServico,
     });
     setSaving(false);
     onSaved();
@@ -658,6 +716,27 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
           </label>
           <input className="input-field" placeholder="Telefone ou e-mail..."
             value={contatoDia} onChange={e => setContato(e.target.value)} />
+        </div>
+      </div>
+
+      {/* Tipo de operação */}
+      <div>
+        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '8px' }}>Tipo de Operação *</label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {[
+            { val: 'entrega',        label: 'Entrega',          icon: '🚚', desc: 'Horário completo por ajudante' },
+            { val: 'carga_descarga', label: 'Carga e Descarga', icon: '📦', desc: 'Horário da equipe (início/final)' },
+          ].map(opt => {
+            const sel = form.tipoServico === opt.val;
+            return (
+              <button key={opt.val} type="button" onClick={() => setForm(f => ({ ...f, tipoServico: opt.val }))}
+                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px', padding: '10px 14px', borderRadius: '12px', border: `1.5px solid ${sel ? '#FF4D0C' : 'rgba(0,0,0,0.1)'}`, background: sel ? '#FFF5F2' : '#F8FAFC', cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s' }}>
+                <span style={{ fontSize: '16px' }}>{opt.icon}</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: sel ? '#FF4D0C' : '#0F172A' }}>{opt.label}</span>
+                <span style={{ fontSize: '10px', color: sel ? '#FF7043' : '#94A3B8' }}>{opt.desc}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -778,23 +857,44 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
 }
 
 function EscalaDetalhe({ escala, employees, flat = false }) {
+  const isCargaDescarga = escala.tipoServico === 'carga_descarga';
   const batidas = [
-    { label: 'Entrada',    key: 'entrada'        },
-    { label: 'Saída alm.', key: 'saidaAlmoco'   },
-    { label: 'Retorno',    key: 'retornoAlmoco'  },
-    { label: 'Saída',      key: 'saida'          },
+    { label: 'Entrada',    key: 'entrada'       },
+    { label: 'Saída alm.', key: 'saidaAlmoco'  },
+    { label: 'Retorno',    key: 'retornoAlmoco' },
+    { label: 'Saída',      key: 'saida'         },
   ];
+
+  // Horário da equipe para carga_descarga
+  const presentes   = (escala.employees || []).filter(e => e.status !== 'falta');
+  const teamStart   = presentes.filter(e => e.entrada).map(e => e.entrada).sort()[0] ?? null;
+  const teamEnd     = presentes.filter(e => e.saida).map(e => e.saida).sort().reverse()[0] ?? null;
+
   return (
     <div className={flat ? '' : 'card overflow-hidden'}>
       {!flat && (
         <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-          <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
-            {escala.companyName || '—'} — {fmtDate(escala.date)}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+              {escala.companyName || '—'} — {fmtDate(escala.date)}
+            </p>
+            <TipoBadge tipo={escala.tipoServico || 'entrega'} />
+          </div>
           {escala.time && (
             <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Clock size={10} /> {escala.time}{escala.service ? ` · ${escala.service}` : ''}
             </p>
+          )}
+          {/* Horário da equipe para carga/descarga */}
+          {isCargaDescarga && (teamStart || teamEnd) && (
+            <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>
+                Início: <span style={{ color: '#2563EB' }}>{teamStart || '—'}</span>
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>
+                Final: <span style={{ color: '#059669' }}>{teamEnd || '—'}</span>
+              </span>
+            </div>
           )}
         </div>
       )}
@@ -803,21 +903,24 @@ function EscalaDetalhe({ escala, employees, flat = false }) {
         const vals = { entrada, saidaAlmoco, retornoAlmoco, saida };
         return (
           <div key={employeeId} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px 6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: isCargaDescarga ? '12px 16px' : '10px 16px 6px' }}>
               <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                 {emp?.initials}
               </div>
               <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
               <StatusBadge status={status} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0', padding: '0 16px 10px 62px' }}>
-              {batidas.map(({ label, key }) => (
-                <div key={key} style={{ textAlign: 'center', padding: '5px 3px', background: vals[key] ? '#F0FDF4' : '#F8FAFC', borderRadius: '7px', margin: '0 2px' }}>
-                  <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '2px' }}>{label}</p>
-                  <p style={{ fontSize: '12px', fontWeight: 700, color: vals[key] ? '#059669' : '#CBD5E1' }}>{vals[key] || '—'}</p>
-                </div>
-              ))}
-            </div>
+            {/* Batidas individuais só para entrega */}
+            {!isCargaDescarga && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0', padding: '0 16px 10px 62px' }}>
+                {batidas.map(({ label, key }) => (
+                  <div key={key} style={{ textAlign: 'center', padding: '5px 3px', background: vals[key] ? '#F0FDF4' : '#F8FAFC', borderRadius: '7px', margin: '0 2px' }}>
+                    <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '2px' }}>{label}</p>
+                    <p style={{ fontSize: '12px', fontWeight: 700, color: vals[key] ? '#059669' : '#CBD5E1' }}>{vals[key] || '—'}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
