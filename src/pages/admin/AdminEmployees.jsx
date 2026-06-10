@@ -1,8 +1,8 @@
-﻿import { useState, useMemo } from 'react';
+﻿import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fmtDate } from '../../data/mockData';
-import { createEmployee, updateEmployee, deleteEmployee } from '../../lib/db';
-import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, KeyRound } from 'lucide-react';
+import { createEmployee, updateEmployee, deleteEmployee, fetchLideres, updateLider, deleteLider } from '../../lib/db';
+import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, KeyRound, Shield } from 'lucide-react';
 
 const EMPTY = { name: '', phone: '', email: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0, password: '', status: 'active', cidade: '' };
 const T  = { color: '#0F172A' };
@@ -112,6 +112,29 @@ export default function AdminEmployees() {
   const [filterCity,   setFilterCity]   = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  // ── Filtro Ajudantes / Líderes ─────────────────────────────────────
+  const [filterRole, setFilterRole]           = useState('ajudantes');
+  const [lideres, setLideres]                 = useState([]);
+  const [loadingLideres, setLoadingLideres]   = useState(false);
+  const [deleteConfirmLider, setDeleteConfirmLider] = useState(null);
+
+  useEffect(() => {
+    if (filterRole === 'lideres') {
+      setLoadingLideres(true);
+      fetchLideres().then(l => { setLideres(l || []); setLoadingLideres(false); });
+    }
+  }, [filterRole]);
+
+  const filteredLideres = useMemo(() => {
+    const q = search.toLowerCase();
+    return lideres.filter(l =>
+      (l.name || '').toLowerCase().includes(q) ||
+      (l.companyName || '').toLowerCase().includes(q) ||
+      (l.telefone || '').includes(search)
+    );
+  }, [lideres, search]);
+  // ──────────────────────────────────────────────────────────────────
+
   const cities = useMemo(() =>
     [...new Set(employees.map(e => e.cidade).filter(Boolean))].sort(),
     [employees]
@@ -159,12 +182,33 @@ export default function AdminEmployees() {
         <div>
           <h1 className="text-xl font-bold" style={T}>Funcionários</h1>
           <p className="text-xs mt-0.5" style={TM}>
-            {employees.filter(e => e.status === 'active').length} ativos de {employees.length} cadastrados
+            {filterRole === 'ajudantes'
+              ? `${employees.filter(e => e.status === 'active').length} ativos de ${employees.length} cadastrados`
+              : `${lideres.length} líder${lideres.length !== 1 ? 'es' : ''} cadastrado${lideres.length !== 1 ? 's' : ''}`
+            }
           </p>
         </div>
-        <button onClick={() => setModal('new')} className="btn-primary flex items-center gap-2">
-          <Plus size={14} /> Novo Funcionário
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Filtro Ajudantes / Líderes */}
+          <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
+            {[['ajudantes', Users, 'Ajudantes'], ['lideres', Shield, 'Líderes']].map(([val, Icon, lbl]) => (
+              <button key={val} onClick={() => { setFilterRole(val); setSearch(''); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                style={{
+                  background: filterRole === val ? '#0F172A' : 'transparent',
+                  color:      filterRole === val ? 'white'   : '#64748B',
+                  border: 'none', cursor: 'pointer',
+                }}>
+                <Icon size={12} /> {lbl}
+              </button>
+            ))}
+          </div>
+          {filterRole === 'ajudantes' && (
+            <button onClick={() => setModal('new')} className="btn-primary flex items-center gap-2">
+              <Plus size={14} /> Novo Funcionário
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-3 animate-fade-up delay-1">
@@ -212,6 +256,52 @@ export default function AdminEmployees() {
         </div>
       )}
 
+      {/* ── Tabela de Líderes ── */}
+      {filterRole === 'lideres' && (
+        <div className="card overflow-hidden animate-fade-up delay-2">
+          <div className="px-5 py-3 grid text-xs font-semibold"
+            style={{ gridTemplateColumns: '1fr auto auto auto auto', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
+            <span>Líder</span><span>Empresa</span><span>Telefone</span><span>Status</span><span>Ações</span>
+          </div>
+          {loadingLideres ? (
+            <div className="py-10 text-center text-sm" style={{ color: '#94A3B8' }}>Carregando...</div>
+          ) : filteredLideres.length === 0 ? (
+            <div className="py-14 text-center">
+              <Shield size={32} className="mx-auto mb-3" style={{ color: '#CBD5E1' }} />
+              <p className="text-sm" style={TM}>Nenhum líder encontrado</p>
+            </div>
+          ) : filteredLideres.map(lider => (
+            <div key={lider.id} className="table-row" style={{ gridTemplateColumns: '1fr auto auto auto auto', gap: '16px' }}>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="avatar flex-shrink-0" style={{ background: lider.color || '#FF4D0C' }}>{lider.initials}</div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold truncate" style={T}>{lider.name}</p>
+                  <p className="text-xs truncate" style={TM}>{lider.email || '—'}</p>
+                </div>
+              </div>
+              <span className="text-xs font-medium" style={T2}>{lider.companyName || '—'}</span>
+              <span className="text-xs" style={T2}>{lider.telefone || '—'}</span>
+              <button onClick={async () => {
+                const newStatus = lider.status === 'active' ? 'inactive' : 'active';
+                const ok = await updateLider(lider.id, { status: newStatus });
+                if (ok) setLideres(prev => prev.map(l => l.id === lider.id ? { ...l, status: newStatus } : l));
+              }} className="flex items-center gap-1.5 text-xs font-medium">
+                {lider.status === 'active'
+                  ? <><ToggleRight size={20} style={{ color: '#059669' }} /><span style={{ color: '#059669' }}>Ativo</span></>
+                  : <><ToggleLeft  size={20} style={{ color: '#94A3B8' }} /><span style={TM}>Inativo</span></>
+                }
+              </button>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setDeleteConfirmLider(lider.id)} className="p-1.5 rounded-lg"
+                  style={{ color: '#94A3B8', background: '#F1F5F9' }}><Trash2 size={13}/></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Tabela de Ajudantes ── */}
+      {filterRole === 'ajudantes' && (
       <div className="card overflow-hidden animate-fade-up delay-2">
         <div className="px-5 py-3 grid text-xs font-semibold"
           style={{ gridTemplateColumns: '1fr auto auto auto auto', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
@@ -268,6 +358,8 @@ export default function AdminEmployees() {
         )}
       </div>
 
+      )}
+
       {(modal === 'new' || (modal && modal !== 'new')) && (
         <Modal employee={modal === 'new' ? null : modal} onSave={handleSave} onClose={() => setModal(null)} />
       )}
@@ -280,6 +372,19 @@ export default function AdminEmployees() {
               <button onClick={async () => { await deleteEmployee(deleteConfirm); setEmployees(prev => prev.filter(e => e.id !== deleteConfirm)); setDeleteConfirm(null); }}
                 className="btn-danger flex-1 py-2.5">Remover</button>
               <button onClick={() => setDeleteConfirm(null)} className="btn-ghost flex-1">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {deleteConfirmLider && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirmLider(null)}>
+          <div className="modal-box max-w-sm animate-fade-up" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-bold mb-2" style={T}>Remover líder?</h3>
+            <p className="text-sm mb-5" style={T2}>Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-2">
+              <button onClick={async () => { await deleteLider(deleteConfirmLider); setLideres(prev => prev.filter(l => l.id !== deleteConfirmLider)); setDeleteConfirmLider(null); }}
+                className="btn-danger flex-1 py-2.5">Remover</button>
+              <button onClick={() => setDeleteConfirmLider(null)} className="btn-ghost flex-1">Cancelar</button>
             </div>
           </div>
         </div>
