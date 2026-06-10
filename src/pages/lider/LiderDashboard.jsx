@@ -20,6 +20,24 @@ const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }
 const DOW   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const MONTHS_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
+// Normaliza para HH:MM
+const fmtTime = (t) => {
+  if (!t) return null;
+  const parts = String(t).split(':');
+  return `${String(parts[0]).padStart(2,'0')}:${String(parts[1] ?? '00').padStart(2,'0')}`;
+};
+
+// Agrupa registros por serviço
+function groupByService(records) {
+  const sorted = [...records].sort((a, b) => (a.service || '').localeCompare(b.service || ''));
+  return sorted.reduce((acc, rec) => {
+    const k = rec.service || rec.servico || 'Geral';
+    if (!acc[k]) acc[k] = [];
+    acc[k].push(rec);
+    return acc;
+  }, {});
+}
+
 function fmtDate(iso) {
   if (!iso) return '—';
   const [y, m, d] = iso.split('-');
@@ -332,11 +350,13 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
         </div>
       )}
 
-      {/* Lista da equipe — layout diferente por tipo */}
-      <div className="card overflow-hidden">
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* ── Equipe — layout idêntico à tela da empresa ── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Equipe — {fmtDate(TODAY)}</p>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
+              {isCargaDescarga ? 'Equipe em Serviço Agora' : 'Ajudantes em Serviço Agora'}
+            </h3>
             {todayEscala && <TipoBadge tipo={todayEscala.tipoServico || 'entrega'} />}
           </div>
           {todayEscala && (
@@ -347,56 +367,87 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
           )}
         </div>
 
-        {ajudantes.length === 0 ? (
-          <div style={{ padding: '40px 16px', textAlign: 'center' }}>
-            <Users size={28} style={{ color: '#CBD5E1', margin: '0 auto 10px' }} />
-            <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhuma escala para hoje</p>
-          </div>
-        ) : isCargaDescarga ? (
-          /* CARGA E DESCARGA: apenas nome + status (sem batidas) */
-          ajudantes.map(({ employeeId, status }) => {
-            const emp = employees.find(e => e.id === employeeId);
-            return (
-              <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                  {emp?.initials}
-                </div>
-                <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
-                <StatusBadge status={status} />
-              </div>
-            );
-          })
-        ) : (
-          /* ENTREGA: nome + batidas de ponto individuais */
-          ajudantes.map(({ employeeId, status, entrada, saida, saidaAlmoco, retornoAlmoco }) => {
-            const emp = employees.find(e => e.id === employeeId);
-            const batidas = [
-              { label: 'Entrada',    value: entrada       },
-              { label: 'Saída alm.', value: saidaAlmoco  },
-              { label: 'Retorno',    value: retornoAlmoco },
-              { label: 'Saída',      value: saida         },
-            ];
-            return (
-              <div key={employeeId} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px 8px' }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                    {emp?.initials}
-                  </div>
-                  <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
-                  <StatusBadge status={status} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0', paddingBottom: '10px', paddingLeft: '62px', paddingRight: '16px' }}>
-                  {batidas.map(({ label, value }) => (
-                    <div key={label} style={{ textAlign: 'center', padding: '6px 4px', background: value ? '#F0FDF4' : '#F8FAFC', borderRadius: '8px', margin: '0 3px' }}>
-                      <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>{label}</p>
-                      <p style={{ fontSize: '13px', fontWeight: 700, color: value ? '#059669' : '#CBD5E1', lineHeight: 1 }}>{value || '—'}</p>
+        <div className="card p-4" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          {ajudantes.length === 0 ? (
+            <div style={{ padding: '32px 0', textAlign: 'center' }}>
+              <Users size={28} style={{ color: '#CBD5E1', margin: '0 auto 10px' }} />
+              <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhuma escala para hoje</p>
+            </div>
+
+          ) : isCargaDescarga ? (
+            /* ── CARGA E DESCARGA — igual empresa: botão Equipe + linhas #EEF2F7 ── */
+            <>
+              <button onClick={() => setModalSubst(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginBottom: '6px' }}>
+                <Users size={11} /> Equipe
+              </button>
+              {ajudantes.map(({ employeeId, status }) => {
+                const emp = employees.find(e => e.id === employeeId);
+                const isAbsent = status === 'falta';
+                return (
+                  <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
+                      {emp?.initials}
                     </div>
-                  ))}
+                    <p style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A' }}>{emp?.name || '—'}</p>
+                    {isAbsent
+                      ? <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
+                      : <StatusBadge status={status} />
+                    }
+                  </div>
+                );
+              })}
+            </>
+
+          ) : (
+            /* ── ENTREGA — igual empresa: agrupado por serviço + horários à direita ── */
+            <>
+              {Object.entries(groupByService(
+                ajudantes.map(a => ({ ...a, service: todayEscala?.service || 'Serviço' }))
+              )).map(([service, recs], gIdx) => (
+                <div key={service}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>
+                    {service}
+                  </p>
+                  {recs.map(({ employeeId, status, entrada, saida, saidaAlmoco, retornoAlmoco }) => {
+                    const emp = employees.find(e => e.id === employeeId);
+                    const isAbsent = status === 'falta';
+                    const TIMES = [
+                      { label: 'Entrada',   key: entrada        },
+                      { label: 'S. Almoço', key: saidaAlmoco   },
+                      { label: 'Retorno',   key: retornoAlmoco  },
+                      { label: 'Saída',     key: saida          },
+                    ];
+                    return (
+                      <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
+                        <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
+                          {emp?.initials}
+                        </div>
+                        <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', minWidth: '110px', flexShrink: 0 }}>{emp?.name || '—'}</p>
+                        <div style={{ flex: 1 }} />
+                        {isAbsent ? (
+                          <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFE4E6', color: '#E11D48' }}>Falta</span>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
+                            {TIMES.map(t => (
+                              <div key={t.label} style={{ textAlign: 'center', minWidth: '40px' }}>
+                                <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 600, marginBottom: '2px' }}>{t.label}</p>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: t.key ? '#0F172A' : '#CBD5E1' }}>
+                                  <Clock size={9} />
+                                  <span style={{ fontSize: '11px', fontWeight: 700 }}>{fmtTime(t.key) ?? '—'}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-            );
-          })
-        )}
+              ))}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Reportes dos ajudantes */}
