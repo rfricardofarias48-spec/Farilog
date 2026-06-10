@@ -9,7 +9,7 @@ import autoTable from 'jspdf-autotable';
 import { PAYMENTS, fmtCurrency, fmtDate, WEEKDAYS, MONTHS } from '../../data/mockData';
 
 // ── Contexto interno de dados da empresa ──────────────────────────────────
-const CompanyDataCtx = createContext({ records: [], employees: [], escalas: [] });
+const CompanyDataCtx = createContext({ records: [], employees: [], escalas: [], relatorios: [] });
 const useCompanyData = () => useContext(CompanyDataCtx);
 
 // ── Helper WhatsApp ────────────────────────────────────────────────────────
@@ -2065,6 +2065,9 @@ function EscalasHoje({ companyId }) {
         </div>
       )}
 
+      {/* Relatório do Líder */}
+      <LiderReportBlock date={TODAY} />
+
       {showModal && (
         <AjudantesModal
           records={todayRecords}
@@ -2543,6 +2546,35 @@ function DiaDetalheRelModal({ date, records, onClose }) {
 }
 
 const TIPO_LABEL = { entrega: 'Entrega', carga_descarga: 'Carga e Descarga' };
+
+// ── Bloco reutilizável: Relatório do Líder ────────────────────────────────
+function LiderReportBlock({ date }) {
+  const { relatorios } = useCompanyData();
+  const relatorio = relatorios.find(r => r.data === date);
+  return (
+    <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '14px' }}>
+      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Relatório do Líder</p>
+      {relatorio ? (
+        <div style={{ padding: '12px 14px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: relatorio.observacoes ? '10px' : 0 }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: relatorio.liderCor || '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+              {relatorio.liderIni}
+            </div>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A', flex: 1 }}>{relatorio.liderNome}</p>
+            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: relatorio.finalizado ? '#DCFCE7' : '#EEF2F7', color: relatorio.finalizado ? '#059669' : '#64748B', flexShrink: 0 }}>
+              {relatorio.finalizado ? '✓ Finalizado' : 'Em aberto'}
+            </span>
+          </div>
+          {relatorio.observacoes && (
+            <p style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6, paddingLeft: '36px' }}>{relatorio.observacoes}</p>
+          )}
+        </div>
+      ) : (
+        <p style={{ fontSize: '12px', color: '#94A3B8' }}>Relatório do líder não disponível para este dia.</p>
+      )}
+    </div>
+  );
+}
 
 // ── Relatório ──────────────────────────────────────────────────────────────
 function RelatorioTab({ companyId, valorDescarga = 0 }) {
@@ -3102,28 +3134,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                     )}
                   </div>
 
-                  {/* Relatório do líder */}
-                  <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '14px' }}>
-                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Relatório do Líder</p>
-                    {relatorio ? (
-                      <div style={{ padding: '12px 14px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: relatorio.observacoes ? '10px' : 0 }}>
-                          <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: relatorio.liderCor || '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                            {relatorio.liderIni}
-                          </div>
-                          <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A', flex: 1 }}>{relatorio.liderNome}</p>
-                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: relatorio.finalizado ? '#DCFCE7' : '#EEF2F7', color: relatorio.finalizado ? '#059669' : '#64748B', flexShrink: 0 }}>
-                            {relatorio.finalizado ? '✓ Finalizado' : 'Em aberto'}
-                          </span>
-                        </div>
-                        {relatorio.observacoes && (
-                          <p style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6, paddingLeft: '36px' }}>{relatorio.observacoes}</p>
-                        )}
-                      </div>
-                    ) : (
-                      <p style={{ fontSize: '12px', color: '#94A3B8' }}>Relatório do líder não disponível para este dia.</p>
-                    )}
-                  </div>
+                  <LiderReportBlock date={openDay || date || selectedDay} />
 
                 </div>
               </div>
@@ -3269,8 +3280,9 @@ function EquipeTab({ companyId }) {
 export default function CompanyDashboard() {
   const { user, employees } = useAuth();
   const { tab, setTab } = useOutletContext();
-  const [records, setRecords]   = useState([]);
-  const [escalas, setEscalas]   = useState([]);
+  const [records, setRecords]     = useState([]);
+  const [escalas, setEscalas]     = useState([]);
+  const [relatorios, setRelatorios] = useState([]);
 
   const companyId = user?.id;
 
@@ -3278,6 +3290,7 @@ export default function CompanyDashboard() {
     if (!companyId) return;
     fetchCompanyRecords(companyId).then(setRecords);
     fetchEscalasComLiderByEmpresa(companyId).then(setEscalas);
+    fetchRelatoriosByEmpresa(companyId).then(setRelatorios);
     const unsub = subscribeToCompanyRecords(companyId, r => {
       setRecords(r);
       fetchEscalasComLiderByEmpresa(companyId).then(setEscalas);
@@ -3286,7 +3299,7 @@ export default function CompanyDashboard() {
   }, [companyId]);
 
   return (
-    <CompanyDataCtx.Provider value={{ records, employees, escalas }}>
+    <CompanyDataCtx.Provider value={{ records, employees, escalas, relatorios }}>
       <div className="animate-fade-up">
         {tab === 'panel'     && <Panel       companyId={companyId} setTab={setTab} companyName={user.name} />}
         {tab === 'escalas'   && <EscalasTab  companyId={companyId} />}
