@@ -1787,15 +1787,8 @@ function EscalasHoje({ companyId }) {
       {/* ── CARGA E DESCARGA: horário da equipe + lista de nomes ── */}
       {isCargaDescarga ? (
         <div>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center mb-3">
             <h3 className="text-sm font-semibold" style={T}>Equipe em Serviço Agora</h3>
-            {todayRecords.length > 0 && (
-              <button onClick={() => setShowModal(true)}
-                className="flex items-center gap-1 text-xs font-semibold"
-                style={{ color: '#64748B', background: 'none', border: 'none', cursor: 'pointer' }}>
-                Ver mais <ChevronRight size={13} />
-              </button>
-            )}
           </div>
           <div className="card p-4" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {todayRecords.length === 0 ? (
