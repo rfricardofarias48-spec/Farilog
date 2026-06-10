@@ -468,27 +468,23 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
 
       {/* ── Stats ── */}
       {isCargaDescarga ? (
-        /* Carga/Descarga: Escala (maior) | Início | Final | Status (dark) */
+        /* Carga/Descarga: Escala | Início | Final | Status (dark) — compacto */
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.1fr', gap: '8px', alignItems: 'stretch' }}>
-          {/* Escala — card claro, número grande */}
-          <div style={{ padding: '14px 10px', borderRadius: '12px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '5px' }}>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
             <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
-            <p style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
           </div>
-          {/* Início — card claro */}
-          <div style={{ padding: '14px 8px', borderRadius: '12px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '5px' }}>
+          <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
             <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamStart ?? '—'}</p>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamStart ?? '—'}</p>
           </div>
-          {/* Final — card claro */}
-          <div style={{ padding: '14px 8px', borderRadius: '12px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '5px' }}>
+          <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
             <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
           </div>
-          {/* Status — único card escuro */}
-          <div style={{ padding: '14px 8px', borderRadius: '12px', background: 'linear-gradient(160deg, #0F172A 0%, #1E293B 100%)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: operCfg.dot, flexShrink: 0 }} />
-            <span style={{ fontSize: '11px', fontWeight: 700, color: operCfg.color, lineHeight: 1.3 }}>{operCfg.label}</span>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: 'linear-gradient(160deg, #0F172A 0%, #1E293B 100%)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: operCfg.dot }} />
+            <span style={{ fontSize: '10px', fontWeight: 700, color: operCfg.color, lineHeight: 1.3 }}>{operCfg.label}</span>
           </div>
         </div>
       ) : isToday ? (
@@ -1621,39 +1617,64 @@ function EscalasHoje({ companyId }) {
   const teamEnd = presentes.length > 0
     ? presentes.filter(r => r.checkOut).map(r => r.checkOut).sort().reverse()[0] ?? null
     : null;
+  const operStatus = !teamStart ? 'agendado' : !teamEnd ? 'em_andamento' : 'finalizado';
+  const operCfg    = OPER_STATUS_CFG[operStatus];
 
   return (
     <div className="space-y-4">
       {todayLider && <LiderBadge lider={todayLider} />}
 
       {/* KPI cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.18)', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
-          <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Escala</p>
-          <p style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
-        </div>
-        <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.18)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px', minHeight: '80px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Faltas</span>
-            <span style={{ fontSize: '16px', fontWeight: 800, color: faltas > 0 ? '#E11D48' : '#CBD5E1' }}>{faltas}</span>
+      {isCargaDescarga ? (
+        /* Carga/Descarga: Escala | Início | Final | Status */
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.1fr', gap: '8px', alignItems: 'stretch' }}>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
+            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
           </div>
-          <div style={{ height: '1px', background: 'rgba(0,0,0,0.07)' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Atrasos</span>
-            <span style={{ fontSize: '16px', fontWeight: 800, color: atrasos > 0 ? '#D97706' : '#CBD5E1' }}>{atrasos}</span>
+          <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamStart ?? '—'}</p>
+          </div>
+          <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
+          </div>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: 'linear-gradient(160deg, #0F172A 0%, #1E293B 100%)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: operCfg.dot }} />
+            <span style={{ fontSize: '10px', fontWeight: 700, color: operCfg.color, lineHeight: 1.3 }}>{operCfg.label}</span>
           </div>
         </div>
-        <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.18)', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
-          <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Presença</p>
-          <p style={{ fontSize: '24px', fontWeight: 800, color: escala > 0 ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
-          <p style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8' }}>{escala > 0 ? `${presenteCount}/${escala}` : '0/0'}</p>
-          {escala > 0 && (
-            <div style={{ height: '3px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)', marginTop: '2px' }}>
-              <div style={{ height: '100%', borderRadius: '4px', background: '#0F172A', width: `${pct}%`, transition: 'width 0.4s ease' }} />
+      ) : (
+        /* Entrega: Escala | Faltas/Atrasos | Presença */
+        <div className="grid grid-cols-3 gap-4">
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.18)', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Escala</p>
+            <p style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+          </div>
+          <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.18)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px', minHeight: '80px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Faltas</span>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: faltas > 0 ? '#E11D48' : '#CBD5E1' }}>{faltas}</span>
             </div>
-          )}
+            <div style={{ height: '1px', background: 'rgba(0,0,0,0.07)' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Atrasos</span>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: atrasos > 0 ? '#D97706' : '#CBD5E1' }}>{atrasos}</span>
+            </div>
+          </div>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.18)', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Presença</p>
+            <p style={{ fontSize: '24px', fontWeight: 800, color: escala > 0 ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
+            <p style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8' }}>{escala > 0 ? `${presenteCount}/${escala}` : '0/0'}</p>
+            {escala > 0 && (
+              <div style={{ height: '3px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)', marginTop: '2px' }}>
+                <div style={{ height: '100%', borderRadius: '4px', background: '#0F172A', width: `${pct}%`, transition: 'width 0.4s ease' }} />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── CARGA E DESCARGA: horário da equipe + lista de nomes ── */}
       {isCargaDescarga ? (
@@ -1673,19 +1694,6 @@ function EscalasHoje({ companyId }) {
               <div className="p-8 text-center text-sm" style={TM}>Nenhum ajudante alocado hoje</div>
             ) : (
               <>
-                {/* Horário da equipe */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0', background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', borderRadius: '14px', overflow: 'hidden' }}>
-                  <div style={{ flex: 1, padding: '16px 20px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Início</p>
-                    <p style={{ fontSize: '30px', fontWeight: 800, color: teamStart ? '#F1F5F9' : '#334155', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamStart ?? '—'}</p>
-                  </div>
-                  <div style={{ width: '1px', height: '60px', background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
-                  <div style={{ flex: 1, padding: '16px 20px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Final</p>
-                    <p style={{ fontSize: '30px', fontWeight: 800, color: teamEnd ? '#10B981' : '#334155', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
-                  </div>
-                </div>
-
                 {/* Lista de nomes (sem horários individuais) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {Object.entries(groupByService(todayRecords)).map(([service, recs], gIdx) => (
