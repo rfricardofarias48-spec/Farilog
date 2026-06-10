@@ -1716,8 +1716,8 @@ function Financial({ companyId }) {
             style={{ width: '32px', height: '32px', borderRadius: '9px', background: '#F1F5F9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
             <ChevronLeft size={16} />
           </button>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', minWidth: '220px', textAlign: 'center' }}>
-            {quinzenaInfo.badgeLabel} <span style={{ fontWeight: 400, color: '#64748B' }}>({quinzenaInfo.rangeLabel})</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', minWidth: '160px', textAlign: 'center' }}>
+            {quinzenaInfo.badgeLabel}
           </span>
           <button onClick={() => setQOffset(o => Math.min(o + 1, 0))} disabled={qOffset >= 0}
             style={{ width: '32px', height: '32px', borderRadius: '9px', background: qOffset < 0 ? '#F1F5F9' : 'transparent', border: 'none', cursor: qOffset < 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: qOffset < 0 ? '#64748B' : '#CBD5E1' }}>
@@ -1759,9 +1759,8 @@ function Financial({ companyId }) {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <span style={{ fontSize:'12px', fontWeight:700, padding:'3px 12px', borderRadius:'20px', background:'#FFF7ED', color:'#FB923C' }}>
-                  {quinzenaInfo.badgeLabel}
+                  {quinzenaInfo.badgeLabel} ({quinzenaInfo.rangeLabel})
                 </span>
-                <p className="text-xs mt-1.5" style={TM}>{quinzenaInfo.rangeLabel}</p>
               </div>
               <div className="text-right">
                 <p className="text-xs" style={TM}>Faturado na quinzena</p>
