@@ -2064,10 +2064,13 @@ function EscalasProximas({ companyId }) {
 
 function EscalasTab({ companyId }) {
   const [sub, setSub] = useState('hoje');
+  // REGRA: empresas só podem ver o relatório do líder.
+  // Reportes individuais dos ajudantes (ocorrências) são visíveis apenas para Líder e Admin.
   const SUBS = [
-    { key: 'hoje',      label: 'Hoje' },
-    { key: 'proximas',  label: 'Próximas Escalas' },
-    { key: 'historico', label: 'Histórico' },
+    { key: 'hoje',       label: 'Hoje' },
+    { key: 'proximas',   label: 'Próximas Escalas' },
+    { key: 'historico',  label: 'Histórico' },
+    { key: 'relatorios', label: 'Relatórios do Líder' },
   ];
 
   return (
@@ -2086,9 +2089,10 @@ function EscalasTab({ companyId }) {
         ))}
       </div>
 
-      {sub === 'hoje'      && <EscalasHoje     companyId={companyId} />}
-      {sub === 'proximas'  && <EscalasProximas companyId={companyId} />}
-      {sub === 'historico' && <HistoryTab      companyId={companyId} />}
+      {sub === 'hoje'       && <EscalasHoje     companyId={companyId} />}
+      {sub === 'proximas'   && <EscalasProximas companyId={companyId} />}
+      {sub === 'historico'  && <HistoryTab      companyId={companyId} />}
+      {sub === 'relatorios' && <EquipeTab        companyId={companyId} />}
     </div>
   );
 }
@@ -2755,7 +2759,7 @@ function EquipeTab({ companyId }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{fmtD(r.data)}</p>
                 <p style={{ fontSize: '11px', color: '#64748B', marginTop: '1px' }}>
-                  {r.presentes} presentes · {r.ausentes} falta{r.ausentes !== 1 ? 's' : ''} · Líder: {r.liderNome}
+                  Líder: {r.liderNome}
                 </p>
               </div>
               <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: r.finalizado ? '#DCFCE7' : '#FEF3C7', color: r.finalizado ? '#059669' : '#D97706', flexShrink: 0 }}>
