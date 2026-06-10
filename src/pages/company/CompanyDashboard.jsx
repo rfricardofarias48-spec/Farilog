@@ -138,7 +138,7 @@ function TrucksPanel({ escalaKey }) {
       {/* Cabeçalho — mesmo estilo do título "Equipe" */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
         <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
-          Carretas
+          Descargas do Dia
         </p>
         <button onClick={add}
           style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
