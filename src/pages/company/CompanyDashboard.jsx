@@ -1821,6 +1821,27 @@ function Financial({ companyId }) {
                 </div>
               ))}
             </div>
+
+            {/* Valor a pagar + Data de pagamento */}
+            {(() => {
+              const { num, month, year } = quinzenaInfo;
+              let payDay, payMonth, payYear;
+              if (num === 1) { payDay = 20; payMonth = month; payYear = year; }
+              else { payDay = 5; payMonth = month + 1; payYear = year; if (payMonth > 11) { payMonth = 0; payYear += 1; } }
+              const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
+              return (
+                <div style={{ display: 'flex', gap: '32px', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                  <div>
+                    <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', marginBottom: '2px' }}>Valor a pagar</p>
+                    <p style={{ fontSize: '18px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(quinzenaValue)}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', marginBottom: '2px' }}>Data de pagamento</p>
+                    <p style={{ fontSize: '18px', fontWeight: 800, color: '#059669' }}>{payStr}</p>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
         {/* Alertas de atraso — só na quinzena atual */}
