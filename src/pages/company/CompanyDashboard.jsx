@@ -3171,29 +3171,6 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
         })()}
         </div>
 
-        {/* Total cobrança + data — mesmo design do financeiro */}
-        {(() => {
-          const { num, month, year } = getQuinzenaInfoByOffset(offset);
-          let payDay, payMonth, payYear;
-          if (num === 1) { payDay = 20; payMonth = month; payYear = year; }
-          else { payDay = 5; payMonth = month + 1; payYear = year; if (payMonth > 11) { payMonth = 0; payYear += 1; } }
-          const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
-          return (
-            <div style={{ padding: '14px 20px', borderTop: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: '0' }}>
-              <div style={{ padding: '14px 20px', borderRadius: '12px', background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', display: 'inline-flex', alignItems: 'center', gap: '24px' }}>
-                <div>
-                  <p style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>Valor a pagar</p>
-                  <p style={{ fontSize: '17px', fontWeight: 700, color: '#0F172A', lineHeight: 1 }}>{fmtCurrency(totalGeral)}</p>
-                </div>
-                <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)' }} />
-                <div>
-                  <p style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>Data de pagamento</p>
-                  <p style={{ fontSize: '17px', fontWeight: 700, color: '#0F172A', lineHeight: 1 }}>{payStr}</p>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
 
       </div>
 
