@@ -497,9 +497,9 @@ function fmtDateShort(iso) {
 }
 
 const OPER_STATUS_CFG = {
-  agendado:     { label: 'Agendado',     sublabel: 'Aguardando início', color: '#475569', bg: '#F1F5F9', border: 'rgba(100,116,139,0.15)', dot: '#94A3B8' },
-  em_andamento: { label: 'Em andamento', sublabel: 'Operação ativa',    color: '#92400E', bg: '#FEF3C7', border: 'rgba(245,158,11,0.25)',  dot: '#F59E0B' },
-  finalizado:   { label: 'Finalizado',   sublabel: 'Concluído',         color: '#166534', bg: '#DCFCE7', border: 'rgba(16,185,129,0.25)',  dot: '#10B981' },
+  agendado:     { label: 'Agendado',     sublabel: 'Aguardando início', color: '#94A3B8', bg: '#1E293B', border: 'rgba(148,163,184,0.15)', dot: '#64748B' },
+  em_andamento: { label: 'Em andamento', sublabel: 'Operação ativa',    color: '#FCD34D', bg: '#78350F', border: 'rgba(245,158,11,0.3)',   dot: '#F59E0B' },
+  finalizado:   { label: 'Finalizado',   sublabel: 'Concluído',         color: '#86EFAC', bg: '#14532D', border: 'rgba(16,185,129,0.3)',   dot: '#10B981' },
 };
 
 function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday, lider, onVerMais, tipoServico, escalaId }) {
