@@ -2666,7 +2666,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
     return p.companyId === companyId && ps === start;
   }) || null;
 
-  const rangeStr = `${String(sday).padStart(2,'0')}/${String(sm).padStart(2,'0')} — ${String(eday).padStart(2,'0')}/${String(sm).padStart(2,'0')}/${sy}`;
+  const rangeStr = `${String(sday).padStart(2,'0')}/${String(sm).padStart(2,'0')} a ${String(eday).padStart(2,'0')}/${String(sm).padStart(2,'0')}`;
 
   // PDF — paleta minimalista (preto/cinza)
   const exportPDF = async () => {
@@ -2956,7 +2956,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                 {(() => {
                   const dayTipo = day.recs[0]?.tipoServico || 'entrega';
                   const tipoLabel = !tipoAtivo && day.diarias > 0
-                    ? `(${dayTipo === 'carga_descarga' ? 'descargas' : 'diárias'})`
+                    ? `/ ${dayTipo === 'carga_descarga' ? 'descargas' : 'diárias'}`
                     : '';
                   return (
                     <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center', whiteSpace: 'nowrap' }}>
