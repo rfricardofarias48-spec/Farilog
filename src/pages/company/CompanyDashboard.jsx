@@ -1832,18 +1832,15 @@ function Financial({ companyId }) {
           else { payDay = 5; payMonth = month + 1; payYear = year; if (payMonth > 11) { payMonth = 0; payYear += 1; } }
           const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              {/* Valor a pagar */}
-              <div style={{ padding: '20px 24px', borderRadius: '16px', background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Valor a pagar</p>
-                <p style={{ fontSize: '28px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>{fmtCurrency(quinzenaValue)}</p>
-                <p style={{ fontSize: '11px', fontWeight: 500, color: '#475569' }}>{quinzenaInfo.badgeLabel}</p>
+            <div style={{ padding: '20px 28px', borderRadius: '16px', background: '#F0FDF4', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', gap: '40px', alignItems: 'center' }}>
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 600, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '4px' }}>Valor a pagar</p>
+                <p style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{fmtCurrency(quinzenaValue)}</p>
               </div>
-              {/* Data de pagamento */}
-              <div style={{ padding: '20px 24px', borderRadius: '16px', background: '#F0FDF4', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <p style={{ fontSize: '11px', fontWeight: 600, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Data de pagamento</p>
-                <p style={{ fontSize: '28px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{payStr}</p>
-                <p style={{ fontSize: '11px', fontWeight: 500, color: '#64748B' }}>Vencimento previsto</p>
+              <div style={{ width: '1px', height: '40px', background: 'rgba(16,185,129,0.2)' }} />
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 600, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '4px' }}>Data de pagamento</p>
+                <p style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{payStr}</p>
               </div>
             </div>
           );
