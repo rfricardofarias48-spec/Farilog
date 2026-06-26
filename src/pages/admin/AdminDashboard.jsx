@@ -6,7 +6,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-import { TrendingUp, Users, Building2, DollarSign, Activity, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, Users, Building2, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // ── Constantes ─────────────────────────────────────────────────────────────
 const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -104,7 +104,6 @@ export default function AdminDashboard() {
   const activeToday     = records.filter(r => r.date === TODAY && r.status === 'active').length;
   const activeEmployees = employees.filter(e => e.status === 'active').length;
   const periodRevenue   = periodRecs.reduce((s, r) => s + Number(r.value || 0), 0);
-  const periodDiarias   = periodRecs.length;
   const periodHE        = periodRecs.filter(r => r.overtime).length;
 
   // ── Dados dos gráficos ────────────────────────────────────────────────────
@@ -201,13 +200,12 @@ export default function AdminDashboard() {
       ) : (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up delay-1">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-up delay-1">
             {[
               { label: `Faturamento (${period === 'ano' ? label : period === 'mes' ? MONTH_SHORT[tMonth] : 'Quinzena'})`,
                 value: fmtCurrency(periodRevenue), icon: DollarSign, small: true },
               { label: 'Func. ativos',        value: activeEmployees, icon: Users },
               { label: 'Empresas',             value: companies.length, icon: Building2 },
-              { label: 'Diárias no período',   value: periodDiarias,  icon: Activity },
             ].map((k, i) => (
               <div key={i} className="stat-card" style={{ border: '1px solid rgba(0,0,0,0.18)' }}>
                 <div className="flex items-start justify-between mb-3">

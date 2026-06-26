@@ -83,9 +83,10 @@ function ResumoDia() {
     return s + Number(emp?.dailyRate ?? r.value ?? 150) + (r.overtime ? Number(emp?.overtimeRate ?? 50) : 0);
   }, 0);
 
-  const totalEscalados = todayDemands.reduce((s, d) => s + (d.employees?.length ?? 0), 0);
-  const totalFaltas    = todayDemands.reduce((s, d) => s + (d.employees?.filter(e => e.status === 'falta').length ?? 0), 0);
-  const assertividade  = totalEscalados > 0 ? Math.round(((totalEscalados - totalFaltas) / totalEscalados) * 100) : null;
+  // Assertividade = % de presença do dia, a partir da escala (registros confirmados vs. faltas)
+  const totalEscalados = presenca.reduce((s, p) => s + p.total, 0);
+  const totalPresentes = presenca.reduce((s, p) => s + p.presentes, 0);
+  const assertividade  = totalEscalados > 0 ? Math.round((totalPresentes / totalEscalados) * 100) : null;
 
   const dateLabel = `${DOW_PT[TODAY_DATE.getUTCDay()]}, ${TODAY_DATE.getUTCDate()} de ${MONTH_FULL[TODAY_DATE.getUTCMonth()]}`;
 

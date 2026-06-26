@@ -92,7 +92,7 @@ function StatusBadge({ status, onChangeStatus }) {
 }
 
 // ── Formulário de demanda (nova e edição) ─────────────────────────────────
-function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCancel, submitLabel = 'Lançar Demanda' }) {
+function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCancel, submitLabel = 'Lançar Demanda', twoColumn = false }) {
   const activeEmployees = employees.filter(e => e.status === 'active');
   const [form, setForm] = useState(initialData || {
     companyId: '', date: new Date().toISOString().slice(0, 10), time: '07:30', service: '', selectedEmployees: [], liderId: '', tipoServico: 'entrega',
@@ -140,14 +140,15 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
 
   const canSubmit = form.companyId && form.liderId && form.selectedEmployees.length > 0 && !saving;
 
-  return (
-    <form onSubmit={handleSubmit} className="card p-5 space-y-5">
-      <h2 className="text-sm font-bold flex items-center gap-2" style={T}>
-        <Send size={14} style={{ color: '#FF4D0C' }} />
-        {submitLabel === 'Lançar Demanda' ? 'Nova Demanda' : 'Editar Demanda'}
-      </h2>
+  const headingBlock = (
+    <h2 className="text-sm font-bold flex items-center gap-2" style={T}>
+      <Send size={14} style={{ color: '#FF4D0C' }} />
+      {submitLabel === 'Lançar Demanda' ? 'Nova Demanda' : 'Editar Demanda'}
+    </h2>
+  );
 
-      {/* Empresa */}
+  const empresaBlock = (
+      /* Empresa */
       <div>
         <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Empresa</label>
         <div className="relative">
@@ -160,8 +161,10 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
           <ChevronDown size={13} style={{ position: 'absolute', right: '11px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
         </div>
       </div>
+  );
 
-      {/* Líder responsável */}
+  const liderBlock = (
+      /* Líder responsável */
       <div>
         <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>
           Líder responsável <span style={{ color: '#E11D48' }}>*</span>
@@ -202,8 +205,10 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
           </div>
         )}
       </div>
+  );
 
-      {/* Data + Horário */}
+  const dataHorarioBlock = (
+      /* Data + Horário */
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Data</label>
@@ -216,8 +221,10 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
             onChange={e => setForm(f => ({ ...f, time: e.target.value }))} required />
         </div>
       </div>
+  );
 
-      {/* Modalidade */}
+  const modalidadeBlock = (
+      /* Modalidade */
       <div>
         <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Modalidade</label>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -243,8 +250,10 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
           })}
         </div>
       </div>
+  );
 
-      {/* Serviço */}
+  const servicoBlock = (
+      /* Serviço */
       <div>
         <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Tipo de Serviço</label>
         <div className="relative">
@@ -257,8 +266,10 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
           </datalist>
         </div>
       </div>
+  );
 
-      {/* Ajudantes */}
+  const ajudantesBlock = (
+      /* Ajudantes */
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="text-xs font-semibold" style={{ color: '#64748B' }}>Ajudantes</label>
@@ -273,7 +284,7 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
           <input className="input-field" style={{ paddingLeft: '30px', paddingTop: '7px', paddingBottom: '7px', fontSize: '12px' }}
             placeholder="Buscar ajudante..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <div style={{ maxHeight: '210px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div style={{ maxHeight: twoColumn ? '560px' : '210px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {filtered.length === 0
             ? <p className="text-xs text-center py-4" style={TM}>Nenhum ajudante encontrado</p>
             : filtered.map(emp => {
@@ -309,7 +320,10 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
             })}
         </div>
       </div>
+  );
 
+  const footerBlock = (
+    <>
       {error && (
         <div className="flex items-center gap-2 text-xs" style={{ color: '#E11D48' }}>
           <AlertCircle size={13} /> {error}
@@ -344,6 +358,45 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
           <CheckCircle2 size={14} /> Demanda lançada! Aguardando confirmações.
         </div>
       )}
+    </>
+  );
+
+  if (twoColumn) {
+    return (
+      <form onSubmit={handleSubmit} className="card p-5">
+        {headingBlock}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-5 mt-5">
+          {/* Coluna esquerda — dados da demanda */}
+          <div className="space-y-5">
+            {empresaBlock}
+            {liderBlock}
+            {dataHorarioBlock}
+            {modalidadeBlock}
+            {servicoBlock}
+          </div>
+          {/* Coluna direita — ajudantes */}
+          <div className="space-y-5">
+            {ajudantesBlock}
+          </div>
+          {/* Rodapé — largura total */}
+          <div className="lg:col-span-2 space-y-5">
+            {footerBlock}
+          </div>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="card p-5 space-y-5">
+      {headingBlock}
+      {empresaBlock}
+      {liderBlock}
+      {dataHorarioBlock}
+      {modalidadeBlock}
+      {servicoBlock}
+      {ajudantesBlock}
+      {footerBlock}
     </form>
   );
 }
@@ -716,12 +769,13 @@ export default function AdminDemanda() {
       </div>
 
       {subTab === 'nova' && (
-        <div className="max-w-lg animate-fade-up">
+        <div className="max-w-4xl animate-fade-up">
           <DemandForm
             employees={employees}
             companies={companies}
             lideres={lideres}
             onSubmit={handleNewDemand}
+            twoColumn
           />
         </div>
       )}
