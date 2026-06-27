@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import {
-  loginAdmin, loginEmployee, loginCompany, loginLider,
+  loginAdmin, loginCompany,
   fetchEmployees, fetchCompanies, fetchDemands,
   createDemand, updateDemandEmployeeStatus, deleteDemand, archiveDemand, editDemand,
 } from '../lib/db';
@@ -24,8 +24,8 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const addDemand = async ({ companyId, date, time, service, employeeIds, liderId, tipoServico }) => {
-    const saved = await createDemand({ companyId, date, time, service, employeeIds, adminId: user?.id ?? null, liderId, tipoServico });
+  const addDemand = async ({ companyId, date, time, service, employeeIds, tipoServico }) => {
+    const saved = await createDemand({ companyId, date, time, service, employeeIds, adminId: user?.id ?? null, liderId: null, tipoServico });
     if (saved) {
       const company = companies.find(c => c.id === companyId);
       setDemands(prev => [{ ...saved, companyName: company?.name }, ...prev]);
@@ -55,7 +55,7 @@ export function AuthProvider({ children }) {
   };
 
   const changeDemand = async (id, form) => {
-    const ok = await editDemand(id, { ...form, liderId: form.liderId, tipoServico: form.tipoServico });
+    const ok = await editDemand(id, { ...form, liderId: null, tipoServico: form.tipoServico });
     if (ok) {
       const company = companies.find(c => c.id === form.companyId);
       setDemands(prev => prev.map(d =>
@@ -83,17 +83,11 @@ export function AuthProvider({ children }) {
   };
 
   const login = async (email, password) => {
-    const emp = await loginEmployee(email, password);
-    if (emp) { setUser({ role: 'employee', ...emp }); return { success: true, role: 'employee' }; }
-
     const co = await loginCompany(email, password);
     if (co) { setUser({ role: 'company', ...co }); return { success: true, role: 'company' }; }
 
     const admin = await loginAdmin(email, password);
     if (admin) { setUser({ role: 'admin', ...admin }); return { success: true, role: 'admin' }; }
-
-    const lider = await loginLider(email, password);
-    if (lider) { setUser({ role: 'lider', ...lider }); return { success: true, role: 'lider' }; }
 
     return { success: false, error: 'E-mail ou senha inválidos' };
   };

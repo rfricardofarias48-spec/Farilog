@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
-import { fetchLideres } from '../../lib/db';
 import {
   Building2, Calendar, Clock, ChevronDown, CheckCircle2,
   Send, ClipboardList, Search, AlertCircle, Briefcase,
-  ChevronRight, Trash2, Edit2, ArrowLeft, Plus, Users, X, UserCheck,
+  ChevronRight, Trash2, Edit2, ArrowLeft, Plus, Users, X,
 } from 'lucide-react';
 
 const T  = { color: '#0F172A' };
@@ -92,21 +91,15 @@ function StatusBadge({ status, onChangeStatus }) {
 }
 
 // ── Formulário de demanda (nova e edição) ─────────────────────────────────
-function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCancel, submitLabel = 'Lançar Demanda', twoColumn = false }) {
+function DemandForm({ initialData, employees, companies, onSubmit, onCancel, submitLabel = 'Lançar Demanda', twoColumn = false }) {
   const activeEmployees = employees.filter(e => e.status === 'active');
   const [form, setForm] = useState(initialData || {
-    companyId: '', date: new Date().toISOString().slice(0, 10), time: '07:30', service: '', selectedEmployees: [], liderId: '', tipoServico: 'entrega',
+    companyId: '', date: new Date().toISOString().slice(0, 10), time: '07:30', service: '', selectedEmployees: [], tipoServico: 'entrega',
   });
   const [search,  setSearch]  = useState('');
   const [error,   setError]   = useState('');
   const [saving,  setSaving]  = useState(false);
   const [success, setSuccess] = useState(false);
-
-  // Filtra líderes pela empresa selecionada (se não houver líderes para a empresa, mostra todos)
-  const lideresFiltered = lideres.filter(l =>
-    !form.companyId || l.companyIds?.includes(form.companyId) || l.companyIds?.length === 0
-  );
-  const lideresShow = lideresFiltered.length > 0 ? lideresFiltered : lideres;
 
   const filtered = activeEmployees.filter(e =>
     e.name.toLowerCase().includes(search.toLowerCase())
@@ -124,21 +117,20 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.companyId)                    { setError('Selecione uma empresa.'); return; }
-    if (!form.liderId)                      { setError('Selecione o líder responsável pela equipe.'); return; }
     if (form.selectedEmployees.length === 0){ setError('Selecione ao menos um ajudante.'); return; }
     setError('');
     setSaving(true);
     const ok = await onSubmit(form);
     setSaving(false);
     if (ok && !initialData) {
-      setForm({ companyId: '', date: new Date().toISOString().slice(0, 10), time: '07:30', service: '', selectedEmployees: [], liderId: '', tipoServico: 'entrega' });
+      setForm({ companyId: '', date: new Date().toISOString().slice(0, 10), time: '07:30', service: '', selectedEmployees: [], tipoServico: 'entrega' });
       setSearch('');
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     }
   };
 
-  const canSubmit = form.companyId && form.liderId && form.selectedEmployees.length > 0 && !saving;
+  const canSubmit = form.companyId && form.selectedEmployees.length > 0 && !saving;
 
   const headingBlock = (
     <h2 className="text-sm font-bold flex items-center gap-2" style={T}>
@@ -160,50 +152,6 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
           </select>
           <ChevronDown size={13} style={{ position: 'absolute', right: '11px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
         </div>
-      </div>
-  );
-
-  const liderBlock = (
-      /* Líder responsável */
-      <div>
-        <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>
-          Líder responsável <span style={{ color: '#E11D48' }}>*</span>
-        </label>
-        {lideresShow.length === 0 ? (
-          <p style={{ fontSize: '12px', color: '#94A3B8', padding: '10px 0' }}>
-            Nenhum líder cadastrado. Cadastre um líder primeiro.
-          </p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {lideresShow.map(l => {
-              const selected = form.liderId === l.id;
-              return (
-                <button key={l.id} type="button" onClick={() => setForm(f => ({ ...f, liderId: l.id }))}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '9px 12px', borderRadius: '10px', border: '1.5px solid',
-                    borderColor: selected ? '#FF4D0C' : 'rgba(0,0,0,0.08)',
-                    background: selected ? '#FFF2EE' : '#F8FAFC',
-                    cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s',
-                  }}>
-                  <div style={{
-                    width: '30px', height: '30px', borderRadius: '9px', flexShrink: 0,
-                    background: l.color || '#FF4D0C',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '10px', fontWeight: 700, color: 'white',
-                  }}>{l.initials || l.name?.[0] || 'L'}</div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: selected ? '#FF4D0C' : '#0F172A' }}>{l.name}</p>
-                    {l.companyName && l.companyName !== '—' && (
-                      <p style={{ fontSize: '10px', color: '#94A3B8', marginTop: '1px' }}>{l.companyName}</p>
-                    )}
-                  </div>
-                  {selected && <UserCheck size={15} style={{ color: '#FF4D0C', flexShrink: 0 }} />}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
   );
 
@@ -369,7 +317,6 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
           {/* Coluna esquerda — dados da demanda */}
           <div className="space-y-5">
             {empresaBlock}
-            {liderBlock}
             {dataHorarioBlock}
             {modalidadeBlock}
             {servicoBlock}
@@ -391,7 +338,6 @@ function DemandForm({ initialData, employees, companies, lideres, onSubmit, onCa
     <form onSubmit={handleSubmit} className="card p-5 space-y-5">
       {headingBlock}
       {empresaBlock}
-      {liderBlock}
       {dataHorarioBlock}
       {modalidadeBlock}
       {servicoBlock}
@@ -565,7 +511,7 @@ function DemandModal({ demand, employees, onChangeStatus, onEdit, onDelete, onCl
 }
 
 // ── Acompanhar Demandas ───────────────────────────────────────────────────
-function AcompanharDemandas({ demands, employees, companies, lideres, onChangeStatus, onDelete, onEdit }) {
+function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onDelete, onEdit }) {
   const [selectedId, setSelectedId] = useState(null);
   const [editingId,  setEditingId]  = useState(null);
 
@@ -597,12 +543,10 @@ function AcompanharDemandas({ demands, employees, companies, lideres, onChangeSt
                 time:              editingDemand.time || '07:30',
                 service:           editingDemand.service || '',
                 selectedEmployees: editingDemand.employees.map(e => e.employeeId),
-                liderId:           editingDemand.liderNome ? (lideres.find(l => l.name === editingDemand.liderNome)?.id || '') : '',
                 tipoServico:       editingDemand.tipoServico || 'entrega',
               }}
               employees={employees}
               companies={companies}
-              lideres={lideres}
               submitLabel="Salvar Alterações"
               onCancel={() => setEditingId(null)}
               onSubmit={async (form) => {
@@ -694,10 +638,7 @@ const CUTOFF = subtractDays(TODAY_ISO, 2);
 export default function AdminDemanda() {
   const { employees, companies, demands, addDemand, updateDemandStatus, removeDemand, archiveDemandFromList, changeDemand } = useAuth();
   const [subTab,   setSubTab]   = useState('nova');
-  const [lideres,  setLideres]  = useState([]);
   const cleanedRef = useRef(false);
-
-  useEffect(() => { fetchLideres().then(l => setLideres(l || [])); }, []);
 
   // Limpeza automática: demandas fora da janela de 3 dias
   useEffect(() => {
@@ -727,7 +668,6 @@ export default function AdminDemanda() {
       time:        form.time,
       service:     form.service || 'Serviço geral',
       employeeIds: form.selectedEmployees,
-      liderId:     form.liderId || null,
       tipoServico: form.tipoServico || 'entrega',
     });
   };
@@ -773,7 +713,6 @@ export default function AdminDemanda() {
           <DemandForm
             employees={employees}
             companies={companies}
-            lideres={lideres}
             onSubmit={handleNewDemand}
             twoColumn
           />
@@ -786,7 +725,6 @@ export default function AdminDemanda() {
             demands={recentDemands}
             employees={employees}
             companies={companies}
-            lideres={lideres}
             onChangeStatus={updateDemandStatus}
             onDelete={removeDemand}
             onEdit={changeDemand}

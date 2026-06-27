@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { fetchTodayAllRecords, fetchWorkRecordsByPeriod, fetchPresencaEquipeHoje, fetchRelatorioByEmpresaData } from '../../lib/db';
+import { fetchTodayAllRecords, fetchWorkRecordsByPeriod } from '../../lib/db';
 import { fmtCurrency, fmtDate } from '../../data/mockData';
 import AdminDemanda from './AdminDemanda';
 import AdminOcorrencias from './AdminOcorrencias';
@@ -63,11 +63,9 @@ const DOW_PT = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-
 function ResumoDia() {
   const { demands, companies, employees } = useAuth();
   const [records, setRecords]   = useState([]);
-  const [presenca, setPresenca] = useState([]);
 
   useEffect(() => {
     fetchTodayAllRecords(TODAY).then(setRecords);
-    fetchPresencaEquipeHoje(TODAY).then(setPresenca);
   }, []);
 
   const todayDemands   = demands.filter(d => d.date === TODAY);
@@ -83,10 +81,10 @@ function ResumoDia() {
     return s + Number(emp?.dailyRate ?? r.value ?? 150) + (r.overtime ? Number(emp?.overtimeRate ?? 50) : 0);
   }, 0);
 
-  // Assertividade = % de presença do dia, a partir da escala (registros confirmados vs. faltas)
-  const totalEscalados = presenca.reduce((s, p) => s + p.total, 0);
-  const totalPresentes = presenca.reduce((s, p) => s + p.presentes, 0);
-  const assertividade  = totalEscalados > 0 ? Math.round((totalPresentes / totalEscalados) * 100) : null;
+  // Assertividade = % de presença do dia (escalados na demanda menos faltas)
+  const totalEscalados = todayDemands.reduce((s, d) => s + (d.employees?.length ?? 0), 0);
+  const totalFaltas    = todayDemands.reduce((s, d) => s + (d.employees?.filter(e => e.status === 'falta').length ?? 0), 0);
+  const assertividade  = totalEscalados > 0 ? Math.round(((totalEscalados - totalFaltas) / totalEscalados) * 100) : null;
 
   const dateLabel = `${DOW_PT[TODAY_DATE.getUTCDay()]}, ${TODAY_DATE.getUTCDate()} de ${MONTH_FULL[TODAY_DATE.getUTCMonth()]}`;
 
@@ -219,32 +217,6 @@ function ResumoDia() {
           </div>
         )}
       </div>
-
-      {/* Presença por equipe */}
-      {presenca.length > 0 && (
-        <div className="card overflow-hidden">
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>Presença por equipe — hoje</p>
-          </div>
-          {presenca.map(p => (
-            <div key={p.escalaId} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: p.liderCor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                {p.liderIni}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{p.liderNome}</p>
-                <p style={{ fontSize: '11px', color: '#64748B' }}>{p.presentes}/{p.total} presentes · {p.ausentes} falta{p.ausentes !== 1 ? 's' : ''}</p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: '18px', fontWeight: 800, color: p.sla >= 80 ? '#059669' : p.sla >= 60 ? '#D97706' : '#E11D48', lineHeight: 1 }}>
-                  {p.sla !== null ? `${p.sla}%` : '—'}
-                </p>
-                <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600 }}>SLA</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
     </div>
   );
@@ -481,22 +453,8 @@ function Historico() {
 
 // ── MODAL DETALHE DO DIA ──────────────────────────────────────────────────
 function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, onClose }) {
-  const [relatorio, setRelatorio] = useState(null);
-  const [loadingRel, setLoadingRel] = useState(false);
-
-  const companyId = viewBy === 'empresa' ? (day.recs?.[0]?.companyId ?? null) : null;
-
-  useEffect(() => {
-    if (!companyId) return;
-    setLoadingRel(true);
-    fetchRelatorioByEmpresaData(companyId, day.date)
-      .then(setRelatorio)
-      .finally(() => setLoadingRel(false));
-  }, [companyId, day.date]);
-
   const presentes  = day.presentes ?? day.recs?.filter(r => r.status !== 'absent') ?? [];
   const totalValor = day.total;
-  const lider      = relatorio?.lideres_equipe;
 
   return (
     <div
@@ -618,58 +576,6 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
             </>
           )}
 
-          {/* Resumo do Líder */}
-          {viewBy === 'empresa' && (
-            <div style={{ borderTop: '1px solid rgba(0,0,0,0.07)', padding: '20px' }}>
-              <p style={{
-                fontSize: '10px', fontWeight: 700, color: '#94A3B8',
-                textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '14px',
-              }}>
-                Resumo do Líder
-              </p>
-
-              {loadingRel ? (
-                <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Carregando...</p>
-              ) : relatorio ? (
-                <>
-                  {/* Nome do líder */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0,
-                      background: lider?.cor || '#FF4D0C',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '11px', fontWeight: 800, color: 'white',
-                    }}>
-                      {lider?.iniciais || 'L'}
-                    </div>
-                    <div>
-                      <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
-                        {lider?.nome || 'Líder'}
-                      </p>
-                      <p style={{ fontSize: '11px', color: '#94A3B8' }}>Líder responsável</p>
-                    </div>
-                  </div>
-
-                  {/* Texto do relatório */}
-                  <div style={{
-                    background: '#F8FAFC', borderRadius: '12px',
-                    padding: '14px 16px', border: '1px solid rgba(0,0,0,0.07)',
-                  }}>
-                    <p style={{
-                      fontSize: '13px', color: relatorio.observacoes ? '#0F172A' : '#CBD5E1',
-                      lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0,
-                    }}>
-                      {relatorio.observacoes || 'Nenhuma observação registrada pelo líder.'}
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <p style={{ fontSize: '13px', color: '#CBD5E1' }}>
-                  Nenhum resumo registrado pelo líder.
-                </p>
-              )}
-            </div>
-          )}
 
         </div>
       </div>

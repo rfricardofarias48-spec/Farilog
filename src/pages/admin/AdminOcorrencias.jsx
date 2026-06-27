@@ -36,7 +36,6 @@ export default function AdminOcorrencias() {
     .filter(o => filtro === 'todos' || o.status === filtro)
     .filter(o =>
       o.ajudanteNome?.toLowerCase().includes(search.toLowerCase()) ||
-      o.liderNome?.toLowerCase().includes(search.toLowerCase()) ||
       o.empresaNome?.toLowerCase().includes(search.toLowerCase()) ||
       o.descricao?.toLowerCase().includes(search.toLowerCase())
     );
@@ -65,7 +64,7 @@ export default function AdminOcorrencias() {
       <div className="flex gap-3">
         <div style={{ position: 'relative', flex: 1 }}>
           <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-          <input className="input-field" style={{ paddingLeft: '32px' }} placeholder="Buscar por ajudante, líder, empresa..."
+          <input className="input-field" style={{ paddingLeft: '32px' }} placeholder="Buscar por ajudante, empresa..."
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div style={{ display: 'flex', gap: '4px' }}>
@@ -99,7 +98,7 @@ export default function AdminOcorrencias() {
                     <div>
                       <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{o.ajudanteNome}</p>
                       <p style={{ fontSize: '11px', color: '#64748B' }}>
-                        {fmtDate(o.data)} · Líder: {o.liderNome} · {o.empresaNome}
+                        {fmtDate(o.data)} · {o.empresaNome}
                       </p>
                     </div>
                   </div>

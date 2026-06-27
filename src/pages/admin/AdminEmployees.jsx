@@ -1,23 +1,17 @@
-﻿import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fmtDate } from '../../data/mockData';
-import { createEmployee, updateEmployee, deleteEmployee, fetchLideres, updateLider, deleteLider, createLider } from '../../lib/db';
-import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, KeyRound, Shield } from 'lucide-react';
+import { createEmployee, updateEmployee, deleteEmployee } from '../../lib/db';
+import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, KeyRound } from 'lucide-react';
 
-const EMPTY        = { name: '', phone: '', email: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0, password: '', status: 'active', cidade: '' };
-const EMPTY_LIDER  = { name: '', phone: '', email: '', password: '', companyId: '' };
+const EMPTY = { name: '', phone: '', email: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0, password: '', status: 'active', cidade: '' };
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
 
-function Modal({ employee, onSave, onClose, companies = [] }) {
-  // Quando editando, detecta se é líder pela ausência de dailyRate
-  const isEditingLider = employee && employee.dailyRate === undefined;
-  const [role, setRole]                 = useState(isEditingLider ? 'lider' : 'ajudante');
-  const [form, setForm]                 = useState(employee ? { ...employee } : { ...EMPTY });
-  const [formLider, setFormLider]       = useState(employee && isEditingLider ? { ...employee } : { ...EMPTY_LIDER });
-  const [showReset, setShowReset]       = useState(false);
-  const [showResetLider, setShowResetLider] = useState(false);
+function Modal({ employee, onSave, onClose }) {
+  const [form, setForm]           = useState(employee ? { ...employee } : { ...EMPTY });
+  const [showReset, setShowReset] = useState(false);
 
   const isNew = !employee;
 
@@ -43,176 +37,66 @@ function Modal({ employee, onSave, onClose, companies = [] }) {
           </button>
         </div>
 
-        {/* Seletor de função — só na criação */}
-        {isNew && (
-          <div className="flex gap-2 mb-5">
-            {[['ajudante', Users, 'Ajudante'], ['lider', Shield, 'Líder de Equipe']].map(([val, Icon, lbl]) => (
-              <button key={val} type="button" onClick={() => setRole(val)}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold border transition-all"
-                style={{
-                  background:   role === val ? (val === 'ajudante' ? '#FFF2EE' : '#EFF6FF') : '#F8FAFC',
-                  borderColor:  role === val ? (val === 'ajudante' ? '#FF4D0C' : '#3B82F6') : 'rgba(0,0,0,0.08)',
-                  color:        role === val ? (val === 'ajudante' ? '#FF4D0C' : '#2563EB') : '#94A3B8',
-                }}>
-                <Icon size={13} /> {lbl}
-              </button>
+        <form onSubmit={e => { e.preventDefault(); onSave({ ...form }); }} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            {fieldAjudante.map(({ key, label, required, placeholder, type, col }) => (
+              <div key={key} className={col === 2 ? 'col-span-2' : ''}>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
+                <input type={type || 'text'} placeholder={placeholder} required={required}
+                  autoComplete="off" value={form[key] ?? ''}
+                  onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
+              </div>
             ))}
           </div>
-        )}
-
-        {/* ── Formulário Ajudante ── */}
-        {role === 'ajudante' && (
-          <form onSubmit={e => { e.preventDefault(); onSave({ ...form, _role: 'ajudante' }); }} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              {fieldAjudante.map(({ key, label, required, placeholder, type, col }) => (
-                <div key={key} className={col === 2 ? 'col-span-2' : ''}>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
-                  <input type={type || 'text'} placeholder={placeholder} required={required}
-                    autoComplete="off" value={form[key] ?? ''}
-                    onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
-                </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Status</label>
+            <div className="flex gap-2">
+              {['active','inactive'].map(s => (
+                <button key={s} type="button" onClick={() => setForm({ ...form, status: s })}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all"
+                  style={{
+                    background: form.status === s ? (s === 'active' ? '#ECFDF5' : '#FEF2F2') : '#F8FAFC',
+                    borderColor: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : 'rgba(0,0,0,0.08)',
+                    color: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : '#94A3B8',
+                  }}>
+                  {s === 'active' ? 'Ativo' : 'Inativo'}
+                </button>
               ))}
             </div>
-            <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Status</label>
-              <div className="flex gap-2">
-                {['active','inactive'].map(s => (
-                  <button key={s} type="button" onClick={() => setForm({ ...form, status: s })}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all"
-                    style={{
-                      background: form.status === s ? (s === 'active' ? '#ECFDF5' : '#FEF2F2') : '#F8FAFC',
-                      borderColor: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : 'rgba(0,0,0,0.08)',
-                      color: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : '#94A3B8',
-                    }}>
-                    {s === 'active' ? 'Ativo' : 'Inativo'}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {!isNew && (
-              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)' }}>
-                <button type="button" onClick={() => { setShowReset(v => !v); setForm(f => ({ ...f, password: '' })); }}
-                  className="w-full flex items-center gap-2 px-4 py-3 text-xs font-semibold transition-colors"
-                  style={{ background: showReset ? '#FFF2EE' : '#F8FAFC', color: showReset ? '#FF4D0C' : '#475569', borderBottom: showReset ? '1px solid rgba(255,77,12,0.12)' : 'none' }}>
-                  <KeyRound size={13} /> Redefinir senha
-                </button>
-                {showReset && (
-                  <div className="px-4 py-3" style={{ background: '#FFFAF9' }}>
-                    <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Nova senha</label>
-                    <input type="password" autoComplete="new-password" required placeholder="Digite a nova senha"
-                      value={form.password ?? ''} onChange={e => setForm({ ...form, password: e.target.value })} className="input-field" />
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-              <button type="submit" className="btn-primary flex-1">{isNew ? 'Cadastrar Ajudante' : 'Salvar'}</button>
-              <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
-            </div>
-          </form>
-        )}
-
-        {/* ── Formulário Líder ── */}
-        {role === 'lider' && (
-          <form onSubmit={e => { e.preventDefault(); onSave({ ...formLider, _role: 'lider' }); }} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Nome completo</label>
-                <input required autoComplete="off" value={formLider.name ?? ''}
-                  onChange={e => setFormLider({ ...formLider, name: e.target.value })} className="input-field" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Telefone</label>
-                <input placeholder="(00) 00000-0000" autoComplete="off" value={formLider.phone ?? ''}
-                  onChange={e => setFormLider({ ...formLider, phone: e.target.value })} className="input-field" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>E-mail de acesso</label>
-                <input required type="email" autoComplete="off" value={formLider.email ?? ''}
-                  onChange={e => setFormLider({ ...formLider, email: e.target.value })} className="input-field" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Empresa</label>
-                <div className="relative">
-                  <select value={formLider.companyId ?? ''} onChange={e => setFormLider({ ...formLider, companyId: e.target.value })}
-                    className="input-field" style={{ appearance: 'none' }}>
-                    <option value="">Sem empresa</option>
-                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-              </div>
-              {isNew && (
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Senha</label>
-                  <input required type="password" autoComplete="new-password" value={formLider.password ?? ''}
-                    onChange={e => setFormLider({ ...formLider, password: e.target.value })} className="input-field" />
+          </div>
+          {!isNew && (
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)' }}>
+              <button type="button" onClick={() => { setShowReset(v => !v); setForm(f => ({ ...f, password: '' })); }}
+                className="w-full flex items-center gap-2 px-4 py-3 text-xs font-semibold transition-colors"
+                style={{ background: showReset ? '#FFF2EE' : '#F8FAFC', color: showReset ? '#FF4D0C' : '#475569', borderBottom: showReset ? '1px solid rgba(255,77,12,0.12)' : 'none' }}>
+                <KeyRound size={13} /> Redefinir senha
+              </button>
+              {showReset && (
+                <div className="px-4 py-3" style={{ background: '#FFFAF9' }}>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Nova senha</label>
+                  <input type="password" autoComplete="new-password" required placeholder="Digite a nova senha"
+                    value={form.password ?? ''} onChange={e => setForm({ ...form, password: e.target.value })} className="input-field" />
                 </div>
               )}
             </div>
-            {/* Redefinir senha — só no modo edição */}
-            {!isNew && (
-              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)' }}>
-                <button type="button"
-                  onClick={() => { setShowResetLider(v => !v); setFormLider(f => ({ ...f, password: '' })); }}
-                  className="w-full flex items-center gap-2 px-4 py-3 text-xs font-semibold transition-colors"
-                  style={{ background: showResetLider ? '#EFF6FF' : '#F8FAFC', color: showResetLider ? '#2563EB' : '#475569', borderBottom: showResetLider ? '1px solid rgba(37,99,235,0.12)' : 'none' }}>
-                  <KeyRound size={13} /> Redefinir senha
-                </button>
-                {showResetLider && (
-                  <div className="px-4 py-3" style={{ background: '#F8FBFF' }}>
-                    <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Nova senha</label>
-                    <input type="password" autoComplete="new-password" required
-                      placeholder="Digite a nova senha"
-                      value={formLider.password ?? ''}
-                      onChange={e => setFormLider({ ...formLider, password: e.target.value })}
-                      className="input-field" />
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-              <button type="submit" className="btn-primary flex-1" style={{ background: '#2563EB', boxShadow: '0 2px 8px rgba(37,99,235,0.3)' }}>
-                {isNew ? 'Cadastrar Líder' : 'Salvar Alterações'}
-              </button>
-              <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
-            </div>
-          </form>
-        )}
+          )}
+          <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+            <button type="submit" className="btn-primary flex-1">{isNew ? 'Cadastrar Ajudante' : 'Salvar'}</button>
+            <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
+          </div>
+        </form>
       </div>
     </div>
   );
 }
 
 export default function AdminEmployees() {
-  const { employees, setEmployees, companies } = useAuth();
+  const { employees, setEmployees } = useAuth();
   const [modal, setModal]           = useState(null);
   const [search, setSearch]         = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCity,   setFilterCity]   = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-
-  // ── Filtro Ajudantes / Líderes ─────────────────────────────────────
-  const [filterRole, setFilterRole]           = useState('ajudantes');
-  const [lideres, setLideres]                 = useState([]);
-  const [loadingLideres, setLoadingLideres]   = useState(false);
-  const [deleteConfirmLider, setDeleteConfirmLider] = useState(null);
-
-  useEffect(() => {
-    if (filterRole === 'lideres') {
-      setLoadingLideres(true);
-      fetchLideres().then(l => { setLideres(l || []); setLoadingLideres(false); });
-    }
-  }, [filterRole]);
-
-  const filteredLideres = useMemo(() => {
-    const q = search.toLowerCase();
-    return lideres.filter(l =>
-      (l.name || '').toLowerCase().includes(q) ||
-      (l.companyName || '').toLowerCase().includes(q) ||
-      (l.telefone || '').includes(search)
-    );
-  }, [lideres, search]);
-  // ──────────────────────────────────────────────────────────────────
 
   const cities = useMemo(() =>
     [...new Set(employees.map(e => e.cidade).filter(Boolean))].sort(),
@@ -232,34 +116,7 @@ export default function AdminEmployees() {
   const handleSave = async (form) => {
     const colors = ['#FF4D0C','#7C3AED','#059669','#D97706','#DC2626','#0891B2','#BE185D'];
 
-    if (form._role === 'lider') {
-      if (modal === 'new') {
-        // ── Criar Líder ──
-        const initials = (form.name || '').split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase();
-        const saved = await createLider({
-          name: form.name, email: form.email, phone: form.phone || null,
-          password: form.password, initials,
-          color: colors[lideres.length % colors.length],
-          companyId: form.companyId || null,
-        });
-        if (saved) setLideres(prev => [...prev, {
-          ...saved,
-          name: saved.nome, initials: saved.iniciais, color: saved.cor,
-          companyName: companies.find(c => c.id === form.companyId)?.name || '—',
-          companyIds: form.companyId ? [form.companyId] : [],
-        }]);
-      } else {
-        // ── Editar Líder ──
-        const patch = { name: form.name, email: form.email, phone: form.phone, companyId: form.companyId || null };
-        if (form.password) patch.password = form.password;
-        const ok = await updateLider(modal.id, patch);
-        if (ok) setLideres(prev => prev.map(l => l.id === modal.id ? {
-          ...l, ...patch,
-          companyName: companies.find(c => c.id === form.companyId)?.name || '—',
-          telefone: form.phone,
-        } : l));
-      }
-    } else if (modal === 'new') {
+    if (modal === 'new') {
       // ── Criar Ajudante ──
       const initials = form.name.split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase();
       const saved = await createEmployee({
@@ -291,27 +148,10 @@ export default function AdminEmployees() {
         <div>
           <h1 className="text-xl font-bold" style={T}>Funcionários</h1>
           <p className="text-xs mt-0.5" style={TM}>
-            {filterRole === 'ajudantes'
-              ? `${employees.filter(e => e.status === 'active').length} ativos de ${employees.length} cadastrados`
-              : `${lideres.length} líder${lideres.length !== 1 ? 'es' : ''} cadastrado${lideres.length !== 1 ? 's' : ''}`
-            }
+            {`${employees.filter(e => e.status === 'active').length} ativos de ${employees.length} cadastrados`}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Filtro Ajudantes / Líderes */}
-          <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
-            {[['ajudantes', Users, 'Ajudantes'], ['lideres', Shield, 'Líderes']].map(([val, Icon, lbl]) => (
-              <button key={val} onClick={() => { setFilterRole(val); setSearch(''); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                style={{
-                  background: filterRole === val ? '#0F172A' : 'transparent',
-                  color:      filterRole === val ? 'white'   : '#64748B',
-                  border: 'none', cursor: 'pointer',
-                }}>
-                <Icon size={12} /> {lbl}
-              </button>
-            ))}
-          </div>
           <button onClick={() => setModal('new')} className="btn-primary flex items-center gap-2">
             <Plus size={14} /> Novo Cadastro
           </button>
@@ -363,56 +203,7 @@ export default function AdminEmployees() {
         </div>
       )}
 
-      {/* ── Tabela de Líderes ── */}
-      {filterRole === 'lideres' && (
-        <div className="card overflow-hidden animate-fade-up delay-2">
-          <div className="px-5 py-3 grid text-xs font-semibold"
-            style={{ gridTemplateColumns: '1fr auto auto auto auto', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
-            <span>Líder</span><span>Empresa</span><span>Telefone</span><span>Status</span><span>Ações</span>
-          </div>
-          {loadingLideres ? (
-            <div className="py-10 text-center text-sm" style={{ color: '#94A3B8' }}>Carregando...</div>
-          ) : filteredLideres.length === 0 ? (
-            <div className="py-14 text-center">
-              <Shield size={32} className="mx-auto mb-3" style={{ color: '#CBD5E1' }} />
-              <p className="text-sm" style={TM}>Nenhum líder encontrado</p>
-            </div>
-          ) : filteredLideres.map(lider => (
-            <div key={lider.id} className="table-row" style={{ gridTemplateColumns: '1fr auto auto auto auto', gap: '16px' }}>
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="avatar flex-shrink-0" style={{ background: lider.color || '#FF4D0C' }}>{lider.initials}</div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold truncate" style={T}>{lider.name}</p>
-                  <p className="text-xs truncate" style={TM}>{lider.email || '—'}</p>
-                </div>
-              </div>
-              <span className="text-xs font-medium" style={T2}>{lider.companyName || '—'}</span>
-              <span className="text-xs" style={T2}>{lider.telefone || '—'}</span>
-              <button onClick={async () => {
-                const newStatus = lider.status === 'active' ? 'inactive' : 'active';
-                const ok = await updateLider(lider.id, { status: newStatus });
-                if (ok) setLideres(prev => prev.map(l => l.id === lider.id ? { ...l, status: newStatus } : l));
-              }} className="flex items-center gap-1.5 text-xs font-medium">
-                {lider.status === 'active'
-                  ? <><ToggleRight size={20} style={{ color: '#059669' }} /><span style={{ color: '#059669' }}>Ativo</span></>
-                  : <><ToggleLeft  size={20} style={{ color: '#94A3B8' }} /><span style={TM}>Inativo</span></>
-                }
-              </button>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setModal({ ...lider, phone: lider.telefone, companyId: lider.empresa_id || lider.companyIds?.[0] || '' })}
-                  className="p-1.5 rounded-lg" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
-                  <Edit2 size={13}/>
-                </button>
-                <button onClick={() => setDeleteConfirmLider(lider.id)} className="p-1.5 rounded-lg"
-                  style={{ color: '#94A3B8', background: '#F1F5F9' }}><Trash2 size={13}/></button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* ── Tabela de Ajudantes ── */}
-      {filterRole === 'ajudantes' && (
       <div className="card overflow-hidden animate-fade-up delay-2">
         <div className="px-5 py-3 grid text-xs font-semibold"
           style={{ gridTemplateColumns: '1fr auto auto auto auto', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
@@ -469,10 +260,8 @@ export default function AdminEmployees() {
         )}
       </div>
 
-      )}
-
       {(modal === 'new' || (modal && modal !== 'new')) && (
-        <Modal employee={modal === 'new' ? null : modal} onSave={handleSave} onClose={() => setModal(null)} companies={companies} />
+        <Modal employee={modal === 'new' ? null : modal} onSave={handleSave} onClose={() => setModal(null)} />
       )}
       {deleteConfirm && (
         <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
@@ -483,19 +272,6 @@ export default function AdminEmployees() {
               <button onClick={async () => { await deleteEmployee(deleteConfirm); setEmployees(prev => prev.filter(e => e.id !== deleteConfirm)); setDeleteConfirm(null); }}
                 className="btn-danger flex-1 py-2.5">Remover</button>
               <button onClick={() => setDeleteConfirm(null)} className="btn-ghost flex-1">Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {deleteConfirmLider && (
-        <div className="modal-overlay" onClick={() => setDeleteConfirmLider(null)}>
-          <div className="modal-box max-w-sm animate-fade-up" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-bold mb-2" style={T}>Remover líder?</h3>
-            <p className="text-sm mb-5" style={T2}>Esta ação não pode ser desfeita.</p>
-            <div className="flex gap-2">
-              <button onClick={async () => { await deleteLider(deleteConfirmLider); setLideres(prev => prev.filter(l => l.id !== deleteConfirmLider)); setDeleteConfirmLider(null); }}
-                className="btn-danger flex-1 py-2.5">Remover</button>
-              <button onClick={() => setDeleteConfirmLider(null)} className="btn-ghost flex-1">Cancelar</button>
             </div>
           </div>
         </div>

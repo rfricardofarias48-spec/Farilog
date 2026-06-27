@@ -42,7 +42,7 @@ export default function AdminSolicitacoes() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>Solicitações de Ajudantes</h1>
-        <p className="text-sm mt-1" style={{ color: '#94A3B8' }}>Pedidos enviados pelos líderes de equipe</p>
+        <p className="text-sm mt-1" style={{ color: '#94A3B8' }}>Pedidos de ajudantes recebidos</p>
       </div>
 
       {/* KPIs */}
@@ -92,9 +92,11 @@ export default function AdminSolicitacoes() {
                         <Clock size={11} /> {fmtDateTime(sol.criadoEm)}
                       </span>
                     </div>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>
-                      Líder: <span style={{ color: '#0F172A' }}>{sol.liderNome}</span>
-                    </p>
+                    {sol.empresaNome && (
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>
+                        Empresa: <span style={{ color: '#0F172A' }}>{sol.empresaNome}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
