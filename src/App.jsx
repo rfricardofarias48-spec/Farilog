@@ -12,6 +12,7 @@ import AdminDemanda from './pages/admin/AdminDemanda';
 import AdminOperacional from './pages/admin/AdminOperacional';
 import AdminRH from './pages/admin/AdminRH';
 import AdminSolicitacoes from './pages/admin/AdminSolicitacoes';
+import CRM from './pages/CRM';
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user } = useAuth();
@@ -24,6 +25,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
+      <Route path="/crm" element={<CRM />} />
       <Route path="/company" element={
         <ProtectedRoute allowedRole="company"><CompanyLayout /></ProtectedRoute>
       }>

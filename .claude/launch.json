@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "farilog-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5177"],
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js", "--port", "5177"],
       "port": 5177
     }
   ]
