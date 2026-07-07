@@ -28,6 +28,7 @@ function mapRecord(r) {
     status:      r.status,
     value:       r.valor,
     confirmacao: r.confirmacao,
+    observacoes: r.observacoes || null,
     tipoServico: r.escalas?.tipo_servico || 'entrega',
   };
 }
