@@ -407,16 +407,19 @@ function AjudantesModal({ records, escala, faltas, atrasos, date, tipoServico: t
           ) : (
             records.map(rec => {
               const emp = findEmp(employees, rec.employeeId);
+              const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
               const timeCols = isCargaDescarga
                 ? [{ label: 'Início', value: rec.checkIn }, { label: 'Final', value: rec.checkOut }]
                 : [{ label: 'Entrada', value: rec.checkIn }, { label: 'S. Almoço', value: rec.lunchOut }, { label: 'Retorno', value: rec.lunchReturn }, { label: 'Saída', value: rec.checkOut }, { label: 'H. Extra', value: rec.overtime }];
-              const gridCols = isCargaDescarga ? 'auto 160px 1fr 1fr auto' : 'auto 160px 1fr 1fr 1fr 1fr 1fr auto';
+              const gridCols = isCargaDescarga ? '180px 1fr 1fr auto' : '180px 1fr 1fr 1fr 1fr 1fr auto';
               return (
-                <div key={rec.id} className="table-row" style={{ gridTemplateColumns: gridCols }}>
-                  <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
+                <div key={rec.id} className="table-row" style={{ gridTemplateColumns: gridCols, borderLeft: `3px solid ${emp?.color || '#64748B'}` }}>
                   <div className="px-3">
-                    <p className="text-xs font-semibold" style={{ color: '#0F172A' }}>{rec.observacoes || emp?.name}</p>
-                    <p className="text-xs" style={{ color: '#94A3B8' }}>{rec.service}</p>
+                    <p className="text-xs font-semibold" style={{ color: '#0F172A' }}>{emp?.name}</p>
+                    {motorista
+                      ? <p style={{ fontSize: '10px', color: '#94A3B8', marginTop: '1px' }}>Motorista {motorista}</p>
+                      : <p className="text-xs" style={{ color: '#94A3B8' }}>{rec.service}</p>
+                    }
                   </div>
                   {timeCols.map(t => (
                     <div key={t.label} className="px-3 text-center">
@@ -647,15 +650,21 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
               {records.map(rec => {
                 const emp = findEmp(employees, rec.employeeId);
                 const isAbsent = rec.status === 'absent';
+                const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
                 return (
-                  <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 8px', borderRadius: '8px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
-                    <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
-                      {emp?.initials}
-                    </div>
+                  <div key={rec.id} style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '8px 10px', borderRadius: '8px', marginBottom: '3px',
+                    background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC',
+                    borderLeft: `3px solid ${isAbsent ? '#E11D48' : (emp?.color || '#64748B')}`,
+                  }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {rec.observacoes || emp?.name}
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.3 }}>
+                        {emp?.name}
                       </p>
+                      {motorista && !isAbsent && (
+                        <p style={{ fontSize: '10px', color: '#94A3B8', marginTop: '1px' }}>Motorista {motorista}</p>
+                      )}
                     </div>
                     {isAbsent && (
                       <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
@@ -690,21 +699,27 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
               {isToday ? 'Nenhum ajudante hoje' : 'Nenhuma escala agendada'}
             </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {Object.entries(groupByService(records)).map(([service, recs], gIdx) => (
                 <div key={service}>
                   {recs.map(rec => {
                     const emp = findEmp(employees, rec.employeeId);
                     const isAbsent = rec.status === 'absent';
+                    const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
                     return (
-                      <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 8px', borderRadius: '8px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7' }}>
-                        <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
-                          {emp?.initials}
-                        </div>
+                      <div key={rec.id} style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '8px 10px', borderRadius: '8px', marginBottom: '3px',
+                        background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC',
+                        borderLeft: `3px solid ${isAbsent ? '#E11D48' : (emp?.color || '#64748B')}`,
+                      }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p onClick={() => setPopupEmp(emp)} style={{ fontSize: '11px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', lineHeight: 1.2 }}>
-                            {rec.observacoes || emp?.name}
+                          <p onClick={() => setPopupEmp(emp)} style={{ fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', lineHeight: 1.3 }}>
+                            {emp?.name}
                           </p>
+                          {motorista && !isAbsent && (
+                            <p style={{ fontSize: '10px', color: '#94A3B8', marginTop: '1px' }}>Motorista {motorista}</p>
+                          )}
                         </div>
                         {isAbsent ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
@@ -713,8 +728,8 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                           </div>
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-                            <Clock size={9} style={{ color: '#64748B' }} />
-                            <span style={{ fontSize: '10px', fontWeight: 700, color: rec.checkIn ? '#0F172A' : '#94A3B8' }}>
+                            <Clock size={9} style={{ color: '#94A3B8' }} />
+                            <span style={{ fontSize: '10px', fontWeight: 600, color: rec.checkIn ? '#334155' : '#CBD5E1' }}>
                               {fmtTime(rec.checkIn) ?? '—'}
                             </span>
                           </div>
@@ -875,7 +890,7 @@ function DiaModal({ date, records, onClose }) {
               <div key={rec.id} className="table-row" style={{ gridTemplateColumns: gridCols }}>
                 <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
                 <div className="px-3">
-                  <p className="text-xs font-semibold" style={T}>{rec.observacoes || emp?.name}</p>
+                  <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
                   <p className="text-xs" style={TM}>{rec.service}</p>
                 </div>
                 {timeCols.map(t => (
@@ -1452,7 +1467,7 @@ function HistoryTab({ companyId }) {
                               return (
                                 <div key={rec.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 12px', borderRadius:'10px', background:'#EEF2F7', marginBottom:'3px' }}>
                                   <div className="avatar" style={{ background:'#64748B' }}>{emp?.initials}</div>
-                                  <p style={{ fontSize:'12px', fontWeight:700, color:'#0F172A', flex:1 }}>{rec.observacoes || emp?.name}</p>
+                                  <p style={{ fontSize:'12px', fontWeight:700, color:'#0F172A', flex:1 }}>{emp?.name}</p>
                                 </div>
                               );
                             })}
@@ -1474,7 +1489,7 @@ function HistoryTab({ companyId }) {
                             return (
                               <div key={rec.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 12px', borderRadius:'10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom:'3px' }}>
                                 <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : '#64748B', color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
-                                <p style={{ fontSize:'12px', fontWeight:700, color: isAbsent ? '#94A3B8' : '#0F172A', flex:1 }}>{rec.observacoes || emp?.name}</p>
+                                <p style={{ fontSize:'12px', fontWeight:700, color: isAbsent ? '#94A3B8' : '#0F172A', flex:1 }}>{emp?.name}</p>
                                 {isAbsent && <span style={{ fontSize:'10px', fontWeight:700, padding:'2px 8px', borderRadius:'6px', background:'#FFE4E6', color:'#E11D48', flexShrink:0 }}>Falta</span>}
                               </div>
                             );
@@ -1982,7 +1997,7 @@ function EscalasHoje({ companyId }) {
                           <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
                             <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : '#64748B', color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A' }}>{rec.observacoes || emp?.name}</p>
+                              <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A' }}>{emp?.name}</p>
                             </div>
                             {isAbsent && (
                               <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
@@ -2042,7 +2057,7 @@ function EscalasHoje({ companyId }) {
                       <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
                         <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : '#64748B', color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
                         <div style={{ minWidth: '100px', flexShrink: 0 }}>
-                          <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2 }}>{rec.observacoes || emp?.name}</p>
+                          <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2 }}>{emp?.name}</p>
                         </div>
                         <div style={{ flex: 1 }} />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
@@ -2218,7 +2233,7 @@ function EscalasProximas({ companyId }) {
                           return (
                             <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
                               <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
-                              <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{rec.observacoes || emp?.name}</p>
+                              <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{emp?.name}</p>
                             </div>
                           );
                         })}
@@ -2242,7 +2257,7 @@ function EscalasProximas({ companyId }) {
                         return (
                           <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
                             <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
-                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{rec.observacoes || emp?.name}</p>
+                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{emp?.name}</p>
                           </div>
                         );
                       })}
@@ -2511,7 +2526,7 @@ function DiaDetalheRelModal({ date, records, onClose }) {
                     <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
                       <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
                       <div style={{ minWidth: '110px', flexShrink: 0 }}>
-                        <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', lineHeight: 1.2 }}>{rec.observacoes || emp?.name}</p>
+                        <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', lineHeight: 1.2 }}>{emp?.name}</p>
                       </div>
                       <div style={{ flex: 1 }} />
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
@@ -3121,7 +3136,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                             return (
                               <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
                                 <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
-                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{rec.observacoes || emp?.name}</p>
+                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{emp?.name}</p>
                               </div>
                             );
                           })}
@@ -3139,7 +3154,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                           return (
                             <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
                               <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : '#64748B', color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
-                              <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', flex: 1 }}>{rec.observacoes || emp?.name}</p>
+                              <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', flex: 1 }}>{emp?.name}</p>
                               {isAbsent && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>}
                             </div>
                           );
