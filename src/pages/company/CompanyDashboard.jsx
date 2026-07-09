@@ -653,19 +653,17 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                 const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
                 return (
                   <div key={rec.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '8px 10px', borderRadius: '8px', marginBottom: '3px',
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '7px 10px', borderRadius: '7px', marginBottom: '3px',
                     background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC',
-                    borderLeft: `3px solid ${isAbsent ? '#E11D48' : (emp?.color || '#64748B')}`,
+                    border: '1px solid rgba(0,0,0,0.06)',
                   }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.3 }}>
-                        {emp?.name}
-                      </p>
+                    <p style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {emp?.name}
                       {motorista && !isAbsent && (
-                        <p style={{ fontSize: '10px', color: '#94A3B8', marginTop: '1px' }}>Motorista {motorista}</p>
+                        <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>
                       )}
-                    </div>
+                    </p>
                     {isAbsent && (
                       <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
                     )}
@@ -699,7 +697,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
               {isToday ? 'Nenhum ajudante hoje' : 'Nenhuma escala agendada'}
             </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
               {Object.entries(groupByService(records)).map(([service, recs], gIdx) => (
                 <div key={service}>
                   {recs.map(rec => {
@@ -708,19 +706,17 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                     const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
                     return (
                       <div key={rec.id} style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        padding: '8px 10px', borderRadius: '8px', marginBottom: '3px',
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '7px 10px', borderRadius: '7px', marginBottom: '3px',
                         background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC',
-                        borderLeft: `3px solid ${isAbsent ? '#E11D48' : (emp?.color || '#64748B')}`,
+                        border: '1px solid rgba(0,0,0,0.06)',
                       }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p onClick={() => setPopupEmp(emp)} style={{ fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', lineHeight: 1.3 }}>
-                            {emp?.name}
-                          </p>
+                        <p onClick={() => setPopupEmp(emp)} style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {emp?.name}
                           {motorista && !isAbsent && (
-                            <p style={{ fontSize: '10px', color: '#94A3B8', marginTop: '1px' }}>Motorista {motorista}</p>
+                            <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>
                           )}
-                        </div>
+                        </p>
                         {isAbsent ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
                             <Clock size={9} style={{ color: '#E11D48' }} />
@@ -1993,12 +1989,13 @@ function EscalasHoje({ companyId }) {
                       {recs.map(rec => {
                         const emp = findEmp(employees, rec.employeeId);
                         const isAbsent = rec.status === 'absent';
+                        const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
                         return (
-                          <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
-                            <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : '#64748B', color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A' }}>{emp?.name}</p>
-                            </div>
+                          <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
+                            <p style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {emp?.name}
+                              {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>}
+                            </p>
                             {isAbsent && (
                               <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
                             )}
@@ -2053,12 +2050,13 @@ function EscalasHoje({ companyId }) {
                   {recs.map(rec => {
                     const emp = findEmp(employees, rec.employeeId);
                     const isAbsent = rec.status === 'absent';
+                    const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
                     return (
-                      <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
-                        <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : '#64748B', color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
-                        <div style={{ minWidth: '100px', flexShrink: 0 }}>
-                          <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2 }}>{emp?.name}</p>
-                        </div>
+                      <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
+                        <p style={{ minWidth: '160px', flexShrink: 0, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {emp?.name}
+                          {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>}
+                        </p>
                         <div style={{ flex: 1 }} />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
                           {TIMES.map(t => (
