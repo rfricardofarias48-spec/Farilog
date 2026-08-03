@@ -3,17 +3,12 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   Building2, Calendar, Clock, ChevronDown, CheckCircle2,
-  Send, ClipboardList, Search, AlertCircle, Briefcase,
+  Send, ClipboardList, Search, AlertCircle,
   ChevronRight, Trash2, Edit2, ArrowLeft, Plus, Users, X,
 } from 'lucide-react';
 
 const T  = { color: '#0F172A' };
 const TM = { color: '#94A3B8' };
-
-const SERVICES = [
-  'Carga e descarga', 'Separação de mercadoria', 'Organização de estoque',
-  'Inventário', 'Movimentação de carga', 'Conferência de notas',
-];
 
 const DOW = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 function formatDate(iso) {
@@ -200,22 +195,6 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
       </div>
   );
 
-  const servicoBlock = (
-      /* Serviço */
-      <div>
-        <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Tipo de Serviço</label>
-        <div className="relative">
-          <Briefcase size={13} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
-          <input list="services-list" className="input-field" style={{ paddingLeft: '32px' }}
-            placeholder="Ex: Separação de mercadoria" value={form.service}
-            onChange={e => setForm(f => ({ ...f, service: e.target.value }))} />
-          <datalist id="services-list">
-            {SERVICES.map(s => <option key={s} value={s} />)}
-          </datalist>
-        </div>
-      </div>
-  );
-
   const ajudantesBlock = (
       /* Ajudantes */
       <div>
@@ -319,7 +298,6 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
             {empresaBlock}
             {dataHorarioBlock}
             {modalidadeBlock}
-            {servicoBlock}
           </div>
           {/* Coluna direita — ajudantes */}
           <div className="space-y-5">
@@ -340,7 +318,6 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
       {empresaBlock}
       {dataHorarioBlock}
       {modalidadeBlock}
-      {servicoBlock}
       {ajudantesBlock}
       {footerBlock}
     </form>
@@ -348,8 +325,20 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
 }
 
 // ── Modal de detalhe de uma demanda ──────────────────────────────────────
-function DemandModal({ demand, employees, onChangeStatus, onEdit, onDelete, onClose }) {
+const TIME_FIELDS_ENTREGA = [
+  { key: 'entrada',       label: 'Entrada' },
+  { key: 'saidaAlmoco',   label: 'Almoço' },
+  { key: 'retornoAlmoco', label: 'Retorno' },
+  { key: 'saida',         label: 'Saída' },
+];
+const TIME_FIELDS_CD = [
+  { key: 'entrada', label: 'Início' },
+  { key: 'saida',   label: 'Final' },
+];
+
+function DemandModal({ demand, employees, onChangeStatus, onUpdateTimes, onEdit, onDelete, onClose }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const timeFields = demand.tipoServico === 'carga_descarga' ? TIME_FIELDS_CD : TIME_FIELDS_ENTREGA;
 
   // Fecha com Esc
   useEffect(() => {
@@ -451,17 +440,23 @@ function DemandModal({ demand, employees, onChangeStatus, onEdit, onDelete, onCl
 
                 {/* Nome + horários */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{emp?.name || '—'}</p>
-                  {(entrada || saida) ? (
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '3px' }}>
-                      {entrada && <span style={{ fontSize: '11px', color: '#64748B' }}>Entrada <b style={{ color: '#0F172A' }}>{entrada}</b></span>}
-                      {saidaAlmoco && <span style={{ fontSize: '11px', color: '#64748B' }}>Almoço <b style={{ color: '#0F172A' }}>{saidaAlmoco}</b></span>}
-                      {retornoAlmoco && <span style={{ fontSize: '11px', color: '#64748B' }}>Retorno <b style={{ color: '#0F172A' }}>{retornoAlmoco}</b></span>}
-                      {saida && <span style={{ fontSize: '11px', color: '#64748B' }}>Saída <b style={{ color: '#0F172A' }}>{saida}</b></span>}
-                    </div>
-                  ) : (
-                    <p style={{ fontSize: '11px', color: '#CBD5E1', marginTop: '2px' }}>Aguardando início</p>
-                  )}
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A', marginBottom: '5px' }}>{emp?.name || '—'}</p>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {timeFields.map(({ key, label }) => {
+                      const value = { entrada, saidaAlmoco, retornoAlmoco, saida }[key] || '';
+                      return (
+                        <label key={key} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+                          <input
+                            type="time"
+                            value={value}
+                            onChange={e => onUpdateTimes(demand.id, employeeId, { [key]: e.target.value })}
+                            style={{ fontSize: '12px', padding: '4px 6px', borderRadius: '7px', border: '1px solid rgba(0,0,0,0.12)', color: '#0F172A', width: '92px' }}
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Status badge */}
@@ -511,7 +506,7 @@ function DemandModal({ demand, employees, onChangeStatus, onEdit, onDelete, onCl
 }
 
 // ── Acompanhar Demandas ───────────────────────────────────────────────────
-function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onDelete, onEdit }) {
+function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onUpdateTimes, onDelete, onEdit }) {
   const [selectedId, setSelectedId] = useState(null);
   const [editingId,  setEditingId]  = useState(null);
 
@@ -565,6 +560,7 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onD
           demand={selectedDemand}
           employees={employees}
           onChangeStatus={onChangeStatus}
+          onUpdateTimes={onUpdateTimes}
           onEdit={() => { setEditingId(selectedDemand.id); setSelectedId(null); }}
           onDelete={async (id) => { await onDelete(id); setSelectedId(null); }}
           onClose={() => setSelectedId(null)}
@@ -636,7 +632,7 @@ const CUTOFF = subtractDays(TODAY_ISO, 2);
 
 // ── Página principal ───────────────────────────────────────────────────────
 export default function AdminDemanda() {
-  const { employees, companies, demands, addDemand, updateDemandStatus, removeDemand, archiveDemandFromList, changeDemand } = useAuth();
+  const { employees, companies, demands, addDemand, updateDemandStatus, updateDemandTimes, removeDemand, archiveDemandFromList, changeDemand } = useAuth();
   const [subTab,   setSubTab]   = useState('nova');
   const cleanedRef = useRef(false);
 
@@ -726,6 +722,7 @@ export default function AdminDemanda() {
             employees={employees}
             companies={companies}
             onChangeStatus={updateDemandStatus}
+            onUpdateTimes={updateDemandTimes}
             onDelete={removeDemand}
             onEdit={changeDemand}
           />

@@ -368,6 +368,21 @@ export async function updateDemandEmployeeStatus(escalaId, employeeId, confirmac
   if (error) { console.error('[db] updateDemandEmployeeStatus:', error.message); }
 }
 
+export async function updateDemandEmployeeTimes(escalaId, employeeId, times) {
+  const patch = {};
+  if (times.entrada       !== undefined) patch.entrada        = times.entrada       || null;
+  if (times.saidaAlmoco   !== undefined) patch.saida_almoco   = times.saidaAlmoco   || null;
+  if (times.retornoAlmoco !== undefined) patch.retorno_almoco = times.retornoAlmoco || null;
+  if (times.saida         !== undefined) patch.saida          = times.saida         || null;
+
+  const { error } = await supabase
+    .from('registros')
+    .update(patch)
+    .eq('escala_id', escalaId)
+    .eq('funcionario_id', employeeId);
+  if (error) { console.error('[db] updateDemandEmployeeTimes:', error.message); }
+}
+
 export async function deleteDemand(id) {
   await supabase.from('registros').delete().eq('escala_id', id);
   const { error } = await supabase.from('escalas').delete().eq('id', id);
