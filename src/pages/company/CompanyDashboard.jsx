@@ -66,9 +66,9 @@ function LiderBadge({ lider }) {
   );
 }
 import {
-  Clock, DollarSign, Users, CheckCircle2, Calendar,
-  Phone, Mail, MapPin, Save, AlertTriangle, TrendingUp,
-  CalendarCheck, UserCheck, UserX, X, ChevronRight, ChevronLeft, FileDown
+  Clock, Users, CheckCircle2, Calendar,
+  Phone, Mail, Save, AlertTriangle, TrendingUp,
+  CalendarCheck, UserCheck, UserX, X, ChevronRight, ChevronLeft, FileDown, FileText
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -358,6 +358,7 @@ const QuinzenaTooltip = ({ active, payload, label }) => {
 // ── Modal: todos os ajudantes ──────────────────────────────────────────────
 function AjudantesModal({ records, escala, faltas, atrasos, date, tipoServico: tipoServicoProp, onClose }) {
   const { employees } = useCompanyData();
+  const [popupEmp, setPopupEmp] = useState(null);
   const tipoServico = tipoServicoProp || records[0]?.tipoServico || 'entrega';
   const isCargaDescarga = tipoServico === 'carga_descarga';
   const dateLabel = date ? (() => {
@@ -415,7 +416,7 @@ function AjudantesModal({ records, escala, faltas, atrasos, date, tipoServico: t
               return (
                 <div key={rec.id} className="table-row" style={{ gridTemplateColumns: gridCols, borderLeft: `3px solid ${emp?.color || '#64748B'}` }}>
                   <div className="px-3">
-                    <p className="text-xs font-semibold" style={{ color: '#0F172A' }}>{emp?.name}</p>
+                    <p onClick={() => setPopupEmp(emp)} className="text-xs font-semibold" style={{ color: '#0F172A', cursor: 'pointer' }}>{emp?.name}</p>
                     {motorista
                       ? <p style={{ fontSize: '10px', color: '#94A3B8', marginTop: '1px' }}>Motorista {motorista}</p>
                       : <p className="text-xs" style={{ color: '#94A3B8' }}>{rec.service}</p>
@@ -440,40 +441,68 @@ function AjudantesModal({ records, escala, faltas, atrasos, date, tipoServico: t
         </div>
 
       </div>
+      {popupEmp && <AjudantePopup emp={popupEmp} onClose={() => setPopupEmp(null)} />}
     </div>,
     document.body
   );
 }
 
-// ── Mini-popup: dados do ajudante ─────────────────────────────────────────
+// ── Popup: dados completos do ajudante ────────────────────────────────────
 function AjudantePopup({ emp, onClose }) {
   if (!emp) return null;
+  const waLink = whatsappLink(emp.phone);
+  const info = [
+    { icon: Phone, label: 'Telefone', value: emp.phone || '—' },
+  ];
   return createPortal(
-    <div
-      onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: '#fff',
-          borderRadius: '14px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
-          padding: '24px 28px',
-          minWidth: '240px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '10px',
-          border: '1px solid rgba(0,0,0,0.06)',
-        }}
-      >
-        <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: 700, color: 'white' }}>
-          {emp.initials}
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box animate-fade-up" style={{ maxWidth: '420px' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+              {emp.initials}
+            </div>
+            <div>
+              <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>{emp.name}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
+            <X size={15} />
+          </button>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>{emp.name}</p>
-          <p style={{ fontSize: '12px', fontWeight: 500, color: '#64748B' }}>{emp.cargo || '—'}</p>
+
+        <div className="card" style={{ padding: '4px 0' }}>
+          {info.map(({ icon: Icon, label, value }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#94A3B8' }}>
+                <Icon size={13} /> {label}
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A' }}>{value}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 mt-4">
+          {waLink && (
+            <a href={waLink} target="_blank" rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold"
+              style={{ background: '#DCFCE7', color: '#15803D', textDecoration: 'none' }}>
+              <WaSVG size={13} /> WhatsApp
+            </a>
+          )}
+          {emp.documentoUrl ? (
+            <a href={emp.documentoUrl} target="_blank" rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold"
+              style={{ background: '#0F172A', color: 'white', textDecoration: 'none' }}>
+              <FileText size={13} /> Documento
+            </a>
+          ) : (
+            <button disabled title="Nenhum documento cadastrado"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold"
+              style={{ background: '#F1F5F9', color: '#CBD5E1', border: 'none', cursor: 'not-allowed' }}>
+              <FileText size={13} /> Documento
+            </button>
+          )}
         </div>
       </div>
     </div>,
@@ -658,7 +687,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                     background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC',
                     border: '1px solid rgba(0,0,0,0.06)',
                   }}>
-                    <p style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p onClick={() => setPopupEmp(emp)} style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {emp?.name}
                       {motorista && !isAbsent && (
                         <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>

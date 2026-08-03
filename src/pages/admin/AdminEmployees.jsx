@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fmtDate } from '../../data/mockData';
-import { createEmployee, updateEmployee, deleteEmployee } from '../../lib/db';
-import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, KeyRound } from 'lucide-react';
+import { createEmployee, updateEmployee, deleteEmployee, uploadDocumentoFuncionario } from '../../lib/db';
+import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, KeyRound, FileText, Upload, Loader2 } from 'lucide-react';
 
 const EMPTY = { name: '', phone: '', email: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0, password: '', status: 'active', cidade: '' };
 const T  = { color: '#0F172A' };
@@ -10,10 +10,22 @@ const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
 
 function Modal({ employee, onSave, onClose }) {
-  const [form, setForm]           = useState(employee ? { ...employee } : { ...EMPTY });
+  const [form, setForm]           = useState(employee ? { ...employee } : { ...EMPTY, id: crypto.randomUUID() });
   const [showReset, setShowReset] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const isNew = !employee;
+
+  const handleDocumentoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') { alert('Selecione um arquivo em PDF.'); return; }
+    setUploading(true);
+    const url = await uploadDocumentoFuncionario(file, form.id);
+    setUploading(false);
+    if (url) setForm(f => ({ ...f, documentoUrl: url }));
+    else alert('Falha ao enviar o documento. Tente novamente.');
+  };
 
   const fieldAjudante = [
     { key: 'name',        label: 'Nome completo',           required: true, col: 2 },
@@ -47,6 +59,27 @@ function Modal({ employee, onSave, onClose }) {
                   onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
               </div>
             ))}
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Documento (PDF)</label>
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)' }}>
+              <label
+                className="w-full flex items-center gap-2 px-4 py-3 text-xs font-semibold transition-colors"
+                style={{ background: '#F8FAFC', color: '#475569', cursor: 'pointer' }}>
+                {uploading
+                  ? <><Loader2 size={13} className="animate-spin" /> Enviando...</>
+                  : <><Upload size={13} /> {form.documentoUrl ? 'Substituir documento' : 'Selecionar PDF'}</>
+                }
+                <input type="file" accept="application/pdf" onChange={handleDocumentoChange} disabled={uploading} style={{ display: 'none' }} />
+              </label>
+              {form.documentoUrl && (
+                <a href={form.documentoUrl} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold"
+                  style={{ background: '#FFFAF9', color: '#FF4D0C', borderTop: '1px solid rgba(255,77,12,0.12)' }}>
+                  <FileText size={13} /> Ver documento atual
+                </a>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Status</label>
@@ -121,7 +154,7 @@ export default function AdminEmployees() {
       const initials = form.name.split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase();
       const saved = await createEmployee({
         ...form,
-        id:           crypto.randomUUID(),
+        id:           form.id || crypto.randomUUID(),
         initials,
         color:        colors[employees.length % colors.length],
         dailyRate:    Number(form.dailyRate),

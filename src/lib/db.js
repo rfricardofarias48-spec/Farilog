@@ -51,6 +51,7 @@ function mapEmployee(r) {
     vrDiario:        Number(r.vr_diario ?? 0),
     cidade:          r.cidade || '',
     dataContratacao: r.data_contratacao || null,
+    documentoUrl:    r.documento_url || null,
   };
 }
 
@@ -205,6 +206,7 @@ export async function createEmployee(emp) {
       hora_extra: emp.overtimeRate ?? 50,
       data_contratacao: emp.dataContratacao || null,
       cidade: emp.cidade || null,
+      documento_url: emp.documentoUrl || null,
     })
     .select()
     .single();
@@ -227,6 +229,7 @@ export async function updateEmployee(id, emp) {
   if (emp.vtDiario     !== undefined) patch.vt_diario  = emp.vtDiario;
   if (emp.vrDiario     !== undefined) patch.vr_diario  = emp.vrDiario;
   if (emp.cidade       !== undefined) patch.cidade     = emp.cidade;
+  if (emp.documentoUrl !== undefined) patch.documento_url = emp.documentoUrl;
 
   const { data, error } = await supabase
     .from('funcionarios')
@@ -647,6 +650,14 @@ export async function uploadFotoRelatorio(file, liderId) {
   const { error } = await supabase.storage.from('relatorios').upload(path, file, { upsert: true });
   if (error) { console.error('[db] uploadFotoRelatorio:', error.message); return null; }
   const { data } = supabase.storage.from('relatorios').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function uploadDocumentoFuncionario(file, employeeId) {
+  const path = `${employeeId}/${Date.now()}.pdf`;
+  const { error } = await supabase.storage.from('documentos').upload(path, file, { upsert: true });
+  if (error) { console.error('[db] uploadDocumentoFuncionario:', error.message); return null; }
+  const { data } = supabase.storage.from('documentos').getPublicUrl(path);
   return data.publicUrl;
 }
 
