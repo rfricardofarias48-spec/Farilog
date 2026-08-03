@@ -97,11 +97,9 @@ export default function AdminDashboard() {
   }, [start, end]);
 
   // ── KPIs calculados dos dados reais ──────────────────────────────────────
-  const activeRecs    = records.filter(r => r.status === 'active');
-  const completedRecs = records.filter(r => r.status === 'completed');
-  const periodRecs    = [...activeRecs, ...completedRecs]; // não-ausentes
+  const periodRecs = records.filter(r => r.status !== 'absent'); // não-ausentes (agendado, ativo ou concluído)
 
-  const activeToday     = records.filter(r => r.date === TODAY && r.status === 'active').length;
+  const activeToday     = records.filter(r => r.date === TODAY && r.status !== 'absent').length;
   const activeEmployees = employees.filter(e => e.status === 'active').length;
   const periodRevenue   = periodRecs.reduce((s, r) => s + Number(r.value || 0), 0);
   const periodHE        = periodRecs.filter(r => r.overtime).length;
