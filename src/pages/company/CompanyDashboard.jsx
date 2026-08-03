@@ -67,8 +67,8 @@ function LiderBadge({ lider }) {
 }
 import {
   Clock, Users, CheckCircle2, Calendar,
-  Phone, Mail, Save, AlertTriangle, TrendingUp,
-  CalendarCheck, UserCheck, UserX, X, ChevronRight, ChevronLeft, FileDown, FileText
+  Phone, Mail, MapPin, Save, AlertTriangle, TrendingUp,
+  CalendarCheck, UserCheck, UserX, X, ChevronRight, ChevronLeft, FileDown, FileText, User
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -452,7 +452,8 @@ function AjudantePopup({ emp, onClose }) {
   if (!emp) return null;
   const waLink = whatsappLink(emp.phone);
   const info = [
-    { icon: Phone, label: 'Telefone', value: emp.phone || '—' },
+    { icon: Phone,  label: 'Telefone', value: emp.phone  || '—' },
+    { icon: MapPin, label: 'Cidade',   value: emp.cidade || '—' },
   ];
   return createPortal(
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -687,6 +688,9 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                     background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC',
                     border: '1px solid rgba(0,0,0,0.06)',
                   }}>
+                    <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#64748B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                      {emp?.initials}
+                    </div>
                     <p onClick={() => setPopupEmp(emp)} style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {emp?.name}
                       {motorista && !isAbsent && (
@@ -740,6 +744,9 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                         background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC',
                         border: '1px solid rgba(0,0,0,0.06)',
                       }}>
+                        <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#64748B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                          {emp?.initials}
+                        </div>
                         <p onClick={() => setPopupEmp(emp)} style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {emp?.name}
                           {motorista && !isAbsent && (
@@ -1916,6 +1923,7 @@ function Financial({ companyId }) {
 function EscalasHoje({ companyId }) {
   const { records, employees, escalas } = useCompanyData();
   const [showModal, setShowModal] = useState(false);
+  const [popupEmp, setPopupEmp] = useState(null);
   const [notes, setNotes] = useNotes();
   const todayRecords   = records.filter(r => r.date === TODAY);
   const todayEscala    = escalas.find(e => e.date === TODAY);
@@ -2021,7 +2029,10 @@ function EscalasHoje({ companyId }) {
                         const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
                         return (
                           <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
-                            <p style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#64748B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                              {emp?.initials}
+                            </div>
+                            <p onClick={() => setPopupEmp(emp)} style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {emp?.name}
                               {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>}
                             </p>
@@ -2082,7 +2093,10 @@ function EscalasHoje({ companyId }) {
                     const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
                     return (
                       <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
-                        <p style={{ minWidth: '160px', flexShrink: 0, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#64748B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                          {emp?.initials}
+                        </div>
+                        <p onClick={() => setPopupEmp(emp)} style={{ minWidth: '130px', flexShrink: 0, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {emp?.name}
                           {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>}
                         </p>
@@ -2118,6 +2132,10 @@ function EscalasHoje({ companyId }) {
           atrasos={atrasos}
           onClose={() => setShowModal(false)}
         />
+      )}
+
+      {popupEmp && (
+        <AjudantePopup emp={popupEmp} onClose={() => setPopupEmp(null)} />
       )}
     </div>
   );
