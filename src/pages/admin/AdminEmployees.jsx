@@ -2,16 +2,15 @@ import { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fmtDate } from '../../data/mockData';
 import { createEmployee, updateEmployee, deleteEmployee, uploadDocumentoFuncionario } from '../../lib/db';
-import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, KeyRound, FileText, Upload, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, FileText, Upload, Loader2 } from 'lucide-react';
 
-const EMPTY = { name: '', phone: '', email: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0, password: '', status: 'active', cidade: '' };
+const EMPTY = { name: '', phone: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0, status: 'active', cidade: '' };
 const T  = { color: '#0F172A' };
 const T2 = { color: '#475569' };
 const TM = { color: '#94A3B8' };
 
 function Modal({ employee, onSave, onClose }) {
   const [form, setForm]           = useState(employee ? { ...employee } : { ...EMPTY, id: crypto.randomUUID() });
-  const [showReset, setShowReset] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const isNew = !employee;
@@ -30,17 +29,15 @@ function Modal({ employee, onSave, onClose }) {
   const fieldAjudante = [
     { key: 'name',        label: 'Nome completo',           required: true, col: 2 },
     { key: 'phone',       label: 'Telefone',                required: true, placeholder: '(00) 00000-0000' },
-    { key: 'email',       label: 'E-mail de acesso',        required: true, type: 'email' },
     { key: 'cidade',      label: 'Cidade/UF',               placeholder: 'Ex: Gravataí/RS' },
     { key: 'dailyRate',   label: 'Valor da diária (R$)',     type: 'number', required: true },
     { key: 'overtimeRate',label: 'Hora extra (R$)',          type: 'number', required: true },
     { key: 'vtDiario',    label: 'Vale Transporte/dia (R$)', type: 'number', placeholder: '0,00' },
     { key: 'vrDiario',    label: 'Vale Refeição/dia (R$)',   type: 'number', placeholder: '0,00' },
-    ...(isNew ? [{ key: 'password', label: 'Senha', type: 'password', col: 2, required: true }] : []),
   ];
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay">
       <div className="modal-box animate-fade-up">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-bold" style={T}>{isNew ? 'Novo Cadastro' : 'Editar Cadastro'}</h2>
@@ -97,22 +94,6 @@ function Modal({ employee, onSave, onClose }) {
               ))}
             </div>
           </div>
-          {!isNew && (
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)' }}>
-              <button type="button" onClick={() => { setShowReset(v => !v); setForm(f => ({ ...f, password: '' })); }}
-                className="w-full flex items-center gap-2 px-4 py-3 text-xs font-semibold transition-colors"
-                style={{ background: showReset ? '#FFF2EE' : '#F8FAFC', color: showReset ? '#FF4D0C' : '#475569', borderBottom: showReset ? '1px solid rgba(255,77,12,0.12)' : 'none' }}>
-                <KeyRound size={13} /> Redefinir senha
-              </button>
-              {showReset && (
-                <div className="px-4 py-3" style={{ background: '#FFFAF9' }}>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Nova senha</label>
-                  <input type="password" autoComplete="new-password" required placeholder="Digite a nova senha"
-                    value={form.password ?? ''} onChange={e => setForm({ ...form, password: e.target.value })} className="input-field" />
-                </div>
-              )}
-            </div>
-          )}
           <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
             <button type="submit" className="btn-primary flex-1">{isNew ? 'Cadastrar Ajudante' : 'Salvar'}</button>
             <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
@@ -166,7 +147,6 @@ export default function AdminEmployees() {
     } else {
       // ── Editar Ajudante ──
       const patch = { ...form, dailyRate: Number(form.dailyRate), overtimeRate: Number(form.overtimeRate), vtDiario: Number(form.vtDiario ?? 0), vrDiario: Number(form.vrDiario ?? 0) };
-      if (!patch.password) delete patch.password;
       const saved = await updateEmployee(modal.id, patch);
       if (saved) setEmployees(prev => prev.map(e => e.id === modal.id ? saved : e));
     }
