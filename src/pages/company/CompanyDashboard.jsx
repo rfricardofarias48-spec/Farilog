@@ -1,4 +1,4 @@
-﻿import { useOutletContext } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import { useState, useRef, useEffect, createContext, useContext, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -813,6 +813,12 @@ function Panel({ companyId, setTab, companyName }) {
   const nextLider   = nextEscala?.lider || null;
   const nextTipo    = nextEscala?.tipoServico || 'entrega';
 
+  // Últimos serviços realizados (histórico recente)
+  const allPastDates = new Set();
+  records.filter(r => r.date < TODAY).forEach(r => allPastDates.add(r.date));
+  escalas.filter(e => e.date < TODAY).forEach(e => allPastDates.add(e.date));
+  const recentPastDates = Array.from(allPastDates).sort().reverse().slice(0, 3);
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -848,6 +854,54 @@ function Panel({ companyId, setTab, companyName }) {
           escalaId={nextEscala?.id}
         />
       </div>
+
+      {/* Seção de serviços recentes */}
+      {recentPastDates.length > 0 && (
+        <div className="card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Últimos Serviços Realizados</p>
+            <button
+              onClick={() => setTab('escalas')}
+              style={{ fontSize: '12px', fontWeight: 600, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              Ver todas as escalas <ChevronRight size={13} />
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${recentPastDates.length}, 1fr)`, gap: '10px' }}>
+            {recentPastDates.map(date => {
+              const recs = records.filter(r => r.date === date);
+              const esc = escalas.find(e => e.date === date);
+              const [y, m, d] = date.split('-').map(Number);
+              const dow = DOW_FULL[new Date(y, m - 1, d).getDay()];
+              const isCargaDescarga = (esc?.tipoServico || recs[0]?.tipoServico || 'entrega') === 'carga_descarga';
+              const presentes = recs.filter(r => r.status !== 'absent').length;
+
+              return (
+                <div
+                  key={date}
+                  onClick={() => setTab('escalas')}
+                  style={{
+                    padding: '12px 14px', borderRadius: '10px', background: '#F8FAFC',
+                    border: '1px solid rgba(0,0,0,0.06)', cursor: 'pointer',
+                    transition: 'all 0.12s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#F1F5F9'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#F8FAFC'; }}
+                >
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' }}>{dow}</p>
+                  <p style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>{String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{y}</p>
+                  <p style={{ fontSize: '11px', fontWeight: 600, color: '#475569', marginTop: '4px' }}>
+                    {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
+                  </p>
+                  <p style={{ fontSize: '10px', color: '#059669', fontWeight: 600, marginTop: '2px' }}>
+                    {presentes} ajudante{presentes !== 1 ? 's' : ''} presentes
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2376,13 +2430,298 @@ function EscalasProximas({ companyId }) {
 
 }
 
+function EscalasAnteriores({ companyId }) {
+  const { records, employees, escalas } = useCompanyData();
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  // Agrupa todas as datas passadas com escalas ou registros
+  const allPastDates = new Set();
+  records.filter(r => r.date < TODAY).forEach(r => allPastDates.add(r.date));
+  escalas.filter(e => e.date < TODAY).forEach(e => allPastDates.add(e.date));
+
+  const pastDates = Array.from(allPastDates).sort().reverse();
+
+  if (pastDates.length === 0) {
+    return (
+      <div className="py-14 text-center">
+        <CalendarCheck size={32} className="mx-auto mb-3" style={{ color: '#CBD5E1' }} />
+        <p className="text-sm" style={TM}>Nenhuma escala ou serviço anterior registrado</p>
+      </div>
+    );
+  }
+
+  // ── Modal de detalhe da escala anterior ─────────────────────────────
+  const ModalDetalheAnterior = ({ date, onClose }) => {
+    const dateRecs = records.filter(r => r.date === date);
+    const dateEscala = escalas.find(e => e.date === date);
+    const dateLider  = dateEscala?.lider || null;
+    const isCargaDescarga = (dateEscala?.tipoServico || dateRecs[0]?.tipoServico || 'entrega') === 'carga_descarga';
+    const escala = dateRecs.length;
+    const faltas = dateRecs.filter(r => r.status === 'absent').length;
+    const presentes = dateRecs.filter(r => r.status !== 'absent');
+    const teamStart = presentes.filter(r => r.checkIn).map(r => r.checkIn).sort()[0] ?? null;
+    const teamEnd   = presentes.filter(r => r.checkOut).map(r => r.checkOut).sort().reverse()[0] ?? null;
+    const [y, m, d] = date.split('-').map(Number);
+    const dow = DOW_FULL[new Date(y, m - 1, d).getDay()];
+    const [showAjudantes, setShowAjudantes] = useState(false);
+
+    return createPortal(
+      <div onClick={e => e.target === e.currentTarget && onClose()}
+        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        <div style={{ background: '#fff', borderRadius: '18px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', width: '100%', maxWidth: '820px', height: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+            <div>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Escala Realizada (Histórico)</p>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>{dow}, {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{y}</h2>
+            </div>
+            <button onClick={onClose} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', color: '#64748B' }}>
+              <X size={15} />
+            </button>
+          </div>
+
+          <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+            {/* Líder */}
+            {dateLider ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: dateLider.cor || '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+                  {dateLider.iniciais}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{dateLider.nome}</p>
+                </div>
+                {whatsappLink(dateLider.telefone) && (
+                  <a href={whatsappLink(dateLider.telefone)} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
+                    <WaSVG size={13} /> WhatsApp
+                  </a>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Users size={18} style={{ color: '#94A3B8' }} />
+                </div>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Não atribuído</p>
+                </div>
+              </div>
+            )}
+
+            {/* KPI cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px' }}>
+              <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
+                <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+              </div>
+              <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Presentes</p>
+                <p style={{ fontSize: '24px', fontWeight: 800, color: '#059669', lineHeight: 1 }}>{presentes.length}</p>
+              </div>
+              {faltas > 0 && (
+                <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#FFF1F2', border: '1px solid #FFE4E6', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#E11D48', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Faltas</p>
+                  <p style={{ fontSize: '24px', fontWeight: 800, color: '#E11D48', lineHeight: 1 }}>{faltas}</p>
+                </div>
+              )}
+              <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
+                <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{teamStart ?? '—'}</p>
+              </div>
+              <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
+                <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1 }}>{teamEnd ?? '—'}</p>
+              </div>
+            </div>
+
+            {/* Equipe + Descargas */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Equipe do Dia</p>
+                {dateRecs.length > 0 && (
+                  <button onClick={() => setShowAjudantes(true)}
+                    className="flex items-center gap-1 text-xs font-semibold"
+                    style={{ color: '#64748B', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    Ver mais detalhes <ChevronRight size={13} />
+                  </button>
+                )}
+              </div>
+
+              {dateRecs.length === 0 ? (
+                <p style={{ fontSize: '12px', color: '#94A3B8', padding: '8px 0' }}>Nenhum ajudante escalado</p>
+              ) : isCargaDescarga ? (
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                  {/* Esquerda: ajudantes */}
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {Object.entries(groupByService(dateRecs)).map(([service, recs]) => (
+                      <div key={service}>
+                        {recs.map(rec => {
+                          const emp = findEmp(employees, rec.employeeId);
+                          const isAbsent = rec.status === 'absent';
+                          const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
+                          return (
+                            <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
+                              <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#64748B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                                {emp?.initials}
+                              </div>
+                              <p style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {emp?.name}
+                                {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>}
+                              </p>
+                              {isAbsent ? (
+                                <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
+                              ) : (
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569', fontVariantNumeric: 'tabular-nums' }}>
+                                  {fmtTime(rec.checkIn) || '—'} - {fmtTime(rec.checkOut) || '—'}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                  {/* Separador */}
+                  <div style={{ width: '1px', background: 'rgba(0,0,0,0.06)', alignSelf: 'stretch', flexShrink: 0 }} />
+                  {/* Direita: carretas */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <TrucksPanel escalaKey={dateEscala?.id || date} escalaId={dateEscala?.id} readOnly={true} />
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {Object.entries(groupByService(dateRecs)).map(([service, recs]) => {
+                    const TIMES = [
+                      { label: 'Entrada',   key: 'checkIn' },
+                      { label: 'S. Almoço', key: 'lunchOut' },
+                      { label: 'Retorno',   key: 'lunchReturn' },
+                      { label: 'Saída',     key: 'checkOut' },
+                      { label: 'H. Extra',  key: 'overtime' },
+                    ];
+                    return (
+                      <div key={service}>
+                        {recs.map(rec => {
+                          const emp = findEmp(employees, rec.employeeId);
+                          const isAbsent = rec.status === 'absent';
+                          const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
+                          return (
+                            <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
+                              <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#64748B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                                {emp?.initials}
+                              </div>
+                              <p style={{ minWidth: '130px', flexShrink: 0, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {emp?.name}
+                                {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>}
+                              </p>
+                              <div style={{ flex: 1 }} />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+                                {TIMES.map(t => (
+                                  <div key={t.label} style={{ textAlign: 'center', minWidth: '38px' }}>
+                                    <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
+                                    <span style={{ fontSize: '12px', fontWeight: 700, color: !rec[t.key] ? '#CBD5E1' : t.key === 'overtime' ? '#059669' : '#0F172A' }}>
+                                      {fmtTime(rec[t.key]) ?? '—'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Relatório do Líder */}
+            <LiderReportBlock date={date} />
+
+          </div>
+        </div>
+
+        {showAjudantes && (
+          <AjudantesModal
+            records={dateRecs}
+            escala={escala}
+            faltas={faltas}
+            atrasos={0}
+            date={date}
+            tipoServico={dateEscala?.tipoServico}
+            onClose={() => setShowAjudantes(false)}
+          />
+        )}
+      </div>,
+      document.body
+    );
+  };
+
+  return (
+    <>
+      <div className="card overflow-hidden">
+        {pastDates.map((date, idx) => {
+          const dateRecs = records.filter(r => r.date === date);
+          const dateEscala = escalas.find(e => e.date === date);
+          const [y, m, d] = date.split('-').map(Number);
+          const dow = DOW_FULL[new Date(y, m - 1, d).getDay()];
+          const dateLider = dateEscala?.lider || null;
+          const isCargaDescarga = (dateEscala?.tipoServico || dateRecs[0]?.tipoServico || 'entrega') === 'carga_descarga';
+          const faltas = dateRecs.filter(r => r.status === 'absent').length;
+          const presentes = dateRecs.filter(r => r.status !== 'absent').length;
+
+          return (
+            <button key={date}
+              onClick={() => setSelectedDate(date)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '14px 20px', background: 'transparent', border: 'none', cursor: 'pointer',
+                borderBottom: idx < pastDates.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
+                textAlign: 'left', transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ textAlign: 'center', minWidth: '44px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{dow}</p>
+                  <p style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}</p>
+                </div>
+                <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)', flexShrink: 0 }} />
+                <div>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+                    {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
+                    <span style={{ fontWeight: 400, color: '#94A3B8' }}> ({dateRecs.length} ajudante{dateRecs.length !== 1 ? 's' : ''})</span>
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                    <span style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>{presentes} presentes</span>
+                    {faltas > 0 && <span style={{ fontSize: '11px', color: '#E11D48', fontWeight: 600 }}>· {faltas} falta{faltas !== 1 ? 's' : ''}</span>}
+                    {dateLider && <span style={{ fontSize: '11px', color: '#64748B' }}>· Líder: {dateLider.nome}</span>}
+                  </div>
+                </div>
+              </div>
+              <ChevronRight size={15} style={{ color: '#CBD5E1', flexShrink: 0 }} />
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedDate && <ModalDetalheAnterior date={selectedDate} onClose={() => setSelectedDate(null)} />}
+    </>
+  );
+}
+
 function EscalasTab({ companyId }) {
   const [sub, setSub] = useState('hoje');
   // REGRA: empresas só podem ver o relatório do líder.
   // Reportes individuais dos ajudantes (ocorrências) são visíveis apenas para Líder e Admin.
   const SUBS = [
-    { key: 'hoje',     label: 'Hoje' },
-    { key: 'proximas', label: 'Próximas Escalas' },
+    { key: 'hoje',        label: 'Hoje' },
+    { key: 'proximas',    label: 'Próximas Escalas' },
+    { key: 'anteriores',  label: 'Escalas Anteriores' },
   ];
 
   return (
@@ -2401,8 +2740,9 @@ function EscalasTab({ companyId }) {
         ))}
       </div>
 
-      {sub === 'hoje'     && <EscalasHoje     companyId={companyId} />}
-      {sub === 'proximas' && <EscalasProximas companyId={companyId} />}
+      {sub === 'hoje'        && <EscalasHoje       companyId={companyId} />}
+      {sub === 'proximas'    && <EscalasProximas   companyId={companyId} />}
+      {sub === 'anteriores'  && <EscalasAnteriores companyId={companyId} />}
     </div>
   );
 }

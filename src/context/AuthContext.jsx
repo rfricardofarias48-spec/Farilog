@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import {
   loginAdmin, loginCompany,
   fetchEmployees, fetchCompanies, fetchDemands,
-  createDemand, updateDemandEmployeeStatus, updateDemandEmployeeTimes, deleteDemand, archiveDemand, editDemand,
+  createDemand, updateDemandEmployeeStatus, updateDemandEmployeeTimes, updateDemandAllTimes, deleteDemand, archiveDemand, editDemand,
 } from '../lib/db';
 
 const AuthContext = createContext(null);
@@ -24,8 +24,12 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const addDemand = async ({ companyId, date, time, service, employeeIds, tipoServico }) => {
-    const saved = await createDemand({ companyId, date, time, service, employeeIds, adminId: user?.id ?? null, liderId: null, tipoServico });
+  const addDemand = async ({ companyId, date, time, service, employeeIds, tipoServico, entrada, saida, saidaAlmoco, retornoAlmoco, employeeTimes }) => {
+    const saved = await createDemand({
+      companyId, date, time: time || entrada || '07:30', service, employeeIds,
+      adminId: user?.id ?? null, liderId: null, tipoServico,
+      entrada, saida, saidaAlmoco, retornoAlmoco, employeeTimes,
+    });
     if (saved) {
       const company = companies.find(c => c.id === companyId);
       setDemands(prev => [{ ...saved, companyName: company?.name }, ...prev]);
@@ -47,12 +51,36 @@ export function AuthProvider({ children }) {
   const updateDemandTimes = async (demandId, employeeId, times) => {
     setDemands(prev => prev.map(d =>
       d.id === demandId
-        ? { ...d, employees: d.employees.map(e =>
-            e.employeeId === employeeId ? { ...e, ...times } : e
-          )}
+        ? { ...d, employees: d.employees.map(e => {
+            if (e.employeeId !== employeeId) return e;
+            const updated = { ...e, ...times };
+            if (times.saida) {
+              updated.status = 'finalizado';
+            } else if (times.entrada) {
+              updated.status = 'confirmado';
+            }
+            return updated;
+          })}
         : d
     ));
     await updateDemandEmployeeTimes(demandId, employeeId, times);
+  };
+
+  const updateDemandAllEmployeesTimes = async (demandId, times) => {
+    setDemands(prev => prev.map(d =>
+      d.id === demandId
+        ? { ...d, employees: d.employees.map(e => {
+            const updated = { ...e, ...times };
+            if (times.saida) {
+              updated.status = 'finalizado';
+            } else if (times.entrada) {
+              updated.status = 'confirmado';
+            }
+            return updated;
+          })}
+        : d
+    ));
+    await updateDemandAllTimes(demandId, times);
   };
 
   const removeDemand = async (id) => {
@@ -76,16 +104,27 @@ export function AuthProvider({ children }) {
               companyId:   form.companyId,
               companyName: company?.name ?? d.companyName,
               date:        form.date,
-              time:        form.time,
+              time:        form.time || form.entrada || d.time,
               service:     form.service,
-              employees:   form.selectedEmployees.map(eId => ({
-                employeeId: eId,
-                status: d.employees.find(e => e.employeeId === eId)?.status ?? 'aguardando',
-                entrada: d.employees.find(e => e.employeeId === eId)?.entrada ?? null,
-                saidaAlmoco: d.employees.find(e => e.employeeId === eId)?.saidaAlmoco ?? null,
-                retornoAlmoco: d.employees.find(e => e.employeeId === eId)?.retornoAlmoco ?? null,
-                saida: d.employees.find(e => e.employeeId === eId)?.saida ?? null,
-              })),
+              tipoServico: form.tipoServico || d.tipoServico,
+              employees:   form.selectedEmployees.map(eId => {
+                const existing = d.employees.find(e => e.employeeId === eId);
+                const custom = form.employeeTimes?.[eId] || {};
+                const entrada = custom.entrada !== undefined ? custom.entrada : (form.entrada ?? existing?.entrada ?? null);
+                const saida   = custom.saida   !== undefined ? custom.saida   : (form.saida   ?? existing?.saida   ?? null);
+                const saidaAlmoco   = custom.saidaAlmoco   !== undefined ? custom.saidaAlmoco   : (form.saidaAlmoco   ?? existing?.saidaAlmoco   ?? null);
+                const retornoAlmoco = custom.retornoAlmoco !== undefined ? custom.retornoAlmoco : (form.retornoAlmoco ?? existing?.retornoAlmoco ?? null);
+                const status = saida ? 'finalizado' : entrada ? 'confirmado' : (existing?.status ?? 'aguardando');
+
+                return {
+                  employeeId: eId,
+                  status,
+                  entrada,
+                  saidaAlmoco,
+                  retornoAlmoco,
+                  saida,
+                };
+              }),
             }
           : d
       ));
@@ -110,7 +149,7 @@ export function AuthProvider({ children }) {
       user, login, logout, loading,
       employees, setEmployees,
       companies, setCompanies,
-      demands, addDemand, updateDemandStatus, updateDemandTimes, removeDemand, archiveDemandFromList, changeDemand,
+      demands, addDemand, updateDemandStatus, updateDemandTimes, updateDemandAllEmployeesTimes, removeDemand, archiveDemandFromList, changeDemand,
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,0 +1,6 @@
+{
+  "name": "FariLog — Gestão de Equipe",
+  "description": "Sistema de gestão logística para controle de equipes, empresas, escalas operacionais, RH e financeiro.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

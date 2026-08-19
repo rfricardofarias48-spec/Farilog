@@ -320,8 +320,12 @@ export async function fetchDemands() {
   return data.map(mapDemand);
 }
 
-export async function createDemand({ companyId, date, time, service, employeeIds, adminId, liderId, tipoServico }) {
+export async function createDemand({
+  companyId, date, time, service, employeeIds, adminId, liderId, tipoServico,
+  entrada, saida, saidaAlmoco, retornoAlmoco, employeeTimes,
+}) {
   const escalaId = crypto.randomUUID();
+  const escalaStatus = saida ? 'completed' : (entrada || time) ? 'active' : 'scheduled';
 
   const { data: escala, error: escErr } = await supabase
     .from('escalas')
@@ -329,10 +333,10 @@ export async function createDemand({ companyId, date, time, service, employeeIds
       id:           escalaId,
       empresa_id:   companyId,
       data:         date,
-      horario:      time || null,
+      horario:      time || entrada || null,
       servico:      service || null,
       tipo_servico: tipoServico || 'entrega',
-      status:       'scheduled',
+      status:       escalaStatus,
       criado_por:   adminId || null,
       lider_id:     liderId || null,
     })
@@ -341,17 +345,42 @@ export async function createDemand({ companyId, date, time, service, employeeIds
 
   if (escErr) { console.error('[db] createDemand escala:', escErr.message); return null; }
 
-  const workRecords = employeeIds.map(empId => ({
-    id:             crypto.randomUUID(),
-    escala_id:      escalaId,
-    funcionario_id: empId,
-    empresa_id:     companyId,
-    data:           date,
-    servico:        service || null,
-    status:         'scheduled',
-    confirmacao:    'aguardando',
-    valor:          150,
-  }));
+  const workRecords = employeeIds.map(empId => {
+    const custom = employeeTimes?.[empId] || {};
+    const empEntrada = custom.entrada !== undefined ? (custom.entrada || null) : (entrada || time || null);
+    const empSaida   = custom.saida   !== undefined ? (custom.saida   || null) : (saida || null);
+    const empAlmocoS = custom.saidaAlmoco   !== undefined ? (custom.saidaAlmoco   || null) : (saidaAlmoco || null);
+    const empAlmocoR = custom.retornoAlmoco !== undefined ? (custom.retornoAlmoco || null) : (retornoAlmoco || null);
+
+    let status = 'scheduled';
+    let confirmacao = 'aguardando';
+    if (custom.status) {
+      status = custom.status === 'falta' ? 'absent' : custom.status === 'finalizado' ? 'completed' : 'active';
+      confirmacao = custom.status;
+    } else if (empSaida) {
+      status = 'completed';
+      confirmacao = 'finalizado';
+    } else if (empEntrada) {
+      status = 'active';
+      confirmacao = 'confirmado';
+    }
+
+    return {
+      id:             crypto.randomUUID(),
+      escala_id:      escalaId,
+      funcionario_id: empId,
+      empresa_id:     companyId,
+      data:           date,
+      servico:        service || null,
+      status,
+      confirmacao,
+      entrada:        empEntrada,
+      saida:          empSaida,
+      saida_almoco:   empAlmocoS,
+      retorno_almoco: empAlmocoR,
+      valor:          150,
+    };
+  });
 
   const { error: wrErr } = await supabase.from('registros').insert(workRecords);
   if (wrErr) { console.error('[db] createDemand registros:', wrErr.message); return null; }
@@ -360,9 +389,20 @@ export async function createDemand({ companyId, date, time, service, employeeIds
 }
 
 export async function updateDemandEmployeeStatus(escalaId, employeeId, confirmacao) {
+  const statusMap = {
+    falta: 'absent',
+    finalizado: 'completed',
+    confirmado: 'active',
+    atrasado: 'active',
+    aguardando: 'scheduled',
+  };
+  const patch = {
+    confirmacao,
+    status: statusMap[confirmacao] || 'active',
+  };
   const { error } = await supabase
     .from('registros')
-    .update({ confirmacao })
+    .update(patch)
     .eq('escala_id', escalaId)
     .eq('funcionario_id', employeeId);
   if (error) { console.error('[db] updateDemandEmployeeStatus:', error.message); }
@@ -375,12 +415,46 @@ export async function updateDemandEmployeeTimes(escalaId, employeeId, times) {
   if (times.retornoAlmoco !== undefined) patch.retorno_almoco = times.retornoAlmoco || null;
   if (times.saida         !== undefined) patch.saida          = times.saida         || null;
 
+  if (patch.saida) {
+    patch.status = 'completed';
+    patch.confirmacao = 'finalizado';
+  } else if (patch.entrada) {
+    patch.status = 'active';
+    patch.confirmacao = 'confirmado';
+  } else if (times.entrada === '' && times.saida === '') {
+    patch.status = 'scheduled';
+    patch.confirmacao = 'aguardando';
+  }
+
   const { error } = await supabase
     .from('registros')
     .update(patch)
     .eq('escala_id', escalaId)
     .eq('funcionario_id', employeeId);
   if (error) { console.error('[db] updateDemandEmployeeTimes:', error.message); }
+}
+
+export async function updateDemandAllTimes(escalaId, times) {
+  const patch = {};
+  if (times.entrada       !== undefined) patch.entrada        = times.entrada       || null;
+  if (times.saidaAlmoco   !== undefined) patch.saida_almoco   = times.saidaAlmoco   || null;
+  if (times.retornoAlmoco !== undefined) patch.retorno_almoco = times.retornoAlmoco || null;
+  if (times.saida         !== undefined) patch.saida          = times.saida         || null;
+
+  if (patch.saida) {
+    patch.status = 'completed';
+    patch.confirmacao = 'finalizado';
+  } else if (patch.entrada) {
+    patch.status = 'active';
+    patch.confirmacao = 'confirmado';
+  }
+
+  const { error } = await supabase
+    .from('registros')
+    .update(patch)
+    .eq('escala_id', escalaId);
+  if (error) { console.error('[db] updateDemandAllTimes:', error.message); return false; }
+  return true;
 }
 
 export async function deleteDemand(id) {
@@ -390,23 +464,39 @@ export async function deleteDemand(id) {
   return true;
 }
 
-// Arquiva: remove a escala mas mantém os registros no histórico
+// Arquiva: marca como concluído preservando a escala e os registros no histórico
 export async function archiveDemand(id) {
-  const { error } = await supabase.from('escalas').delete().eq('id', id);
+  const { error } = await supabase.from('escalas').update({ status: 'completed' }).eq('id', id);
   if (error) { console.error('[db] archiveDemand:', error.message); return false; }
   return true;
 }
 
-export async function editDemand(id, { companyId, date, time, service, selectedEmployees, liderId, tipoServico }) {
+export async function editDemand(id, {
+  companyId, date, time, service, selectedEmployees, liderId, tipoServico,
+  entrada, saida, saidaAlmoco, retornoAlmoco, employeeTimes,
+}) {
   const { error: escErr } = await supabase
     .from('escalas')
-    .update({ empresa_id: companyId, data: date, horario: time, servico: service, lider_id: liderId || null, tipo_servico: tipoServico || 'entrega' })
+    .update({
+      empresa_id: companyId,
+      data: date,
+      horario: time || entrada || null,
+      servico: service,
+      lider_id: liderId || null,
+      tipo_servico: tipoServico || 'entrega',
+    })
     .eq('id', id);
   if (escErr) { console.error('[db] editDemand escala:', escErr.message); return false; }
 
+  // Atualiza também data, empresa_id e servico nos registros existentes
+  await supabase
+    .from('registros')
+    .update({ data: date, empresa_id: companyId, servico: service || null })
+    .eq('escala_id', id);
+
   const { data: existing } = await supabase
     .from('registros')
-    .select('funcionario_id')
+    .select('*')
     .eq('escala_id', id);
 
   const existingIds = (existing || []).map(r => r.funcionario_id);
@@ -417,13 +507,54 @@ export async function editDemand(id, { companyId, date, time, service, selectedE
     await supabase.from('registros').delete().eq('escala_id', id).in('funcionario_id', toRemove);
   }
   if (toAdd.length > 0) {
-    await supabase.from('registros').insert(toAdd.map(empId => ({
-      id: crypto.randomUUID(),
-      escala_id: id, funcionario_id: empId, empresa_id: companyId,
-      data: date, servico: service || null, status: 'scheduled',
-      confirmacao: 'aguardando', valor: 150,
-    })));
+    const toInsert = toAdd.map(empId => {
+      const custom = employeeTimes?.[empId] || {};
+      const empEntrada = custom.entrada !== undefined ? (custom.entrada || null) : (entrada || time || null);
+      const empSaida   = custom.saida   !== undefined ? (custom.saida   || null) : (saida || null);
+      const empAlmocoS = custom.saidaAlmoco   !== undefined ? (custom.saidaAlmoco   || null) : (saidaAlmoco || null);
+      const empAlmocoR = custom.retornoAlmoco !== undefined ? (custom.retornoAlmoco || null) : (retornoAlmoco || null);
+
+      let status = 'scheduled';
+      let confirmacao = 'aguardando';
+      if (custom.status) {
+        status = custom.status === 'falta' ? 'absent' : custom.status === 'finalizado' ? 'completed' : 'active';
+        confirmacao = custom.status;
+      } else if (empSaida) {
+        status = 'completed';
+        confirmacao = 'finalizado';
+      } else if (empEntrada) {
+        status = 'active';
+        confirmacao = 'confirmado';
+      }
+
+      return {
+        id: crypto.randomUUID(),
+        escala_id: id,
+        funcionario_id: empId,
+        empresa_id: companyId,
+        data: date,
+        servico: service || null,
+        status,
+        confirmacao,
+        entrada: empEntrada,
+        saida: empSaida,
+        saida_almoco: empAlmocoS,
+        retorno_almoco: empAlmocoR,
+        valor: 150,
+      };
+    });
+    await supabase.from('registros').insert(toInsert);
   }
+
+  // Atualiza os registros que continuam existindo caso tenham novos horários passados
+  if (employeeTimes) {
+    for (const [empId, times] of Object.entries(employeeTimes)) {
+      if (selectedEmployees.includes(empId)) {
+        await updateDemandEmployeeTimes(id, empId, times);
+      }
+    }
+  }
+
   return true;
 }
 
@@ -470,6 +601,10 @@ export function subscribeToCompanyRecords(companyId, onChange) {
     .channel(`co_recs_${companyId}`)
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'registros',
+      filter: `empresa_id=eq.${companyId}`,
+    }, reload)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'escalas',
       filter: `empresa_id=eq.${companyId}`,
     }, reload)
     .subscribe();
