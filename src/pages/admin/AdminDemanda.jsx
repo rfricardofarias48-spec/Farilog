@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
+import { calculateWorkAndOvertime } from '../../lib/timeUtils';
 import {
   Building2, Calendar, Clock, ChevronDown, CheckCircle2,
   Send, ClipboardList, Search, AlertCircle,
-  ChevronRight, Trash2, Edit2, ArrowLeft, Plus, Users, X,
+  ChevronRight, Trash2, Edit2, ArrowLeft, Plus, Users, X, Flame, Sparkles,
 } from 'lucide-react';
 
 const T  = { color: '#0F172A' };
@@ -27,6 +28,64 @@ export const STATUS_CONFIG = {
 };
 
 const ADMIN_STATUS_OPTIONS = ['aguardando','confirmado','atrasado','falta','finalizado'];
+
+// ── Badge de Cálculo em Tempo Real de Horas e Horas Extras ──────────────
+function OvertimeBadge({ entrada, saida, saidaAlmoco, retornoAlmoco, isCargaDescarga }) {
+  if (!entrada) {
+    return (
+      <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600 }}>
+        Sem entrada
+      </span>
+    );
+  }
+
+  if (!saida) {
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: '3px',
+        fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '6px',
+        background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #DBEAFE',
+      }}>
+        <Clock size={10} /> Em andamento
+      </span>
+    );
+  }
+
+  const calc = calculateWorkAndOvertime(
+    entrada,
+    saida,
+    isCargaDescarga ? null : saidaAlmoco,
+    isCargaDescarga ? null : retornoAlmoco
+  );
+
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+      <span style={{
+        fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '6px',
+        background: '#F1F5F9', color: '#334155', border: '1px solid #E2E8F0',
+      }} title={`Tempo de trabalho líquido: ${calc.workedFormatted}`}>
+        Jornada: {calc.workedFormatted}
+      </span>
+
+      {calc.hasOvertime ? (
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: '3px',
+          fontSize: '10px', fontWeight: 800, padding: '2px 7px', borderRadius: '6px',
+          background: '#FFF2EE', color: '#FF4D0C', border: '1px solid rgba(255,77,12,0.25)',
+        }} title={calc.hasLunch ? 'Calculado com base de 8h + 1h intervalo' : 'Calculado com base de 8h (sem intervalo)'}>
+          <Flame size={11} /> +{calc.overtimeFormatted} HE
+        </span>
+      ) : (
+        <span style={{
+          fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '6px',
+          background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0',
+        }}>
+          0h HE
+        </span>
+      )}
+    </div>
+  );
+}
 
 // ── Badge de status com dropdown ──────────────────────────────────────────
 function StatusBadge({ status, onChangeStatus }) {
@@ -119,7 +178,22 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
   const [saving,         setSaving]         = useState(false);
   const [success,        setSuccess]        = useState(false);
   const [showLunch,      setShowLunch]      = useState(false);
-  const [customPerEmp,   setCustomPerEmp]   = useState(false);
+
+  // Estados da barra de preenchimento rápido / em lote
+  const [batchEntrada,   setBatchEntrada]   = useState('07:30');
+  const [batchSaida,     setBatchSaida]     = useState('');
+  const [batchAlmocoS,   setBatchAlmocoS]   = useState('');
+  const [batchAlmocoR,   setBatchAlmocoR]   = useState('');
+  const [batchFeedback,  setBatchFeedback]  = useState('');
+
+  const getNowTime = () => {
+    return new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(new Date());
+  };
 
   const filtered = activeEmployees.filter(e =>
     e.name.toLowerCase().includes(search.toLowerCase())
@@ -150,6 +224,28 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
         employeeTimes: nextTimes,
       };
     });
+  };
+
+  const selectAllFiltered = () => {
+    setForm(f => {
+      const allIds = Array.from(new Set([...f.selectedEmployees, ...filtered.map(e => e.id)]));
+      const nextTimes = { ...f.employeeTimes };
+      allIds.forEach(id => {
+        if (!nextTimes[id]) {
+          nextTimes[id] = {
+            entrada:       f.entrada || '07:30',
+            saida:         f.saida || '',
+            saidaAlmoco:   f.saidaAlmoco || '',
+            retornoAlmoco: f.retornoAlmoco || '',
+          };
+        }
+      });
+      return { ...f, selectedEmployees: allIds, employeeTimes: nextTimes };
+    });
+  };
+
+  const deselectAll = () => {
+    setForm(f => ({ ...f, selectedEmployees: [], employeeTimes: {} }));
   };
 
   const handleGlobalEntradaChange = (val) => {
@@ -185,16 +281,75 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
         ...f.employeeTimes,
         [empId]: {
           ...(f.employeeTimes[empId] || {
-            entrada: f.entrada,
-            saida: f.saida,
-            saidaAlmoco: f.saidaAlmoco,
-            retornoAlmoco: f.retornoAlmoco,
+            entrada: f.entrada || '07:30',
+            saida: f.saida || '',
+            saidaAlmoco: f.saidaAlmoco || '',
+            retornoAlmoco: f.retornoAlmoco || '',
           }),
           [field]: val,
         },
       },
     }));
   };
+
+  // Replicar horário padrão em todos os ajudantes selecionados
+  const applyBatchToAll = () => {
+    if (form.selectedEmployees.length === 0) return;
+    setForm(f => {
+      const nextTimes = { ...f.employeeTimes };
+      f.selectedEmployees.forEach(empId => {
+        nextTimes[empId] = {
+          entrada:       batchEntrada || f.entrada || '07:30',
+          saida:         batchSaida,
+          saidaAlmoco:   batchAlmocoS,
+          retornoAlmoco: batchAlmocoR,
+        };
+      });
+      return {
+        ...f,
+        entrada: batchEntrada || f.entrada,
+        saida: batchSaida,
+        saidaAlmoco: batchAlmocoS,
+        retornoAlmoco: batchAlmocoR,
+        employeeTimes: nextTimes,
+      };
+    });
+    setBatchFeedback('✓ Horários aplicados a todos os ajudantes selecionados!');
+    setTimeout(() => setBatchFeedback(''), 3000);
+  };
+
+  // Calcular estatísticas totais em tempo real de horas extras da demanda
+  const isCargaDescarga = form.tipoServico === 'carga_descarga';
+  let totalOvertimeMinutes = 0;
+  let finishedCount = 0;
+  let inProgressCount = 0;
+
+  form.selectedEmployees.forEach(empId => {
+    const t = form.employeeTimes[empId] || {
+      entrada: form.entrada || '07:30',
+      saida: form.saida || '',
+      saidaAlmoco: form.saidaAlmoco || '',
+      retornoAlmoco: form.retornoAlmoco || '',
+    };
+    if (t.entrada && t.saida) {
+      finishedCount++;
+      const calc = calculateWorkAndOvertime(
+        t.entrada,
+        t.saida,
+        isCargaDescarga ? null : t.saidaAlmoco,
+        isCargaDescarga ? null : t.retornoAlmoco
+      );
+      totalOvertimeMinutes += calc.overtimeMinutes;
+    } else if (t.entrada) {
+      inProgressCount++;
+    }
+  });
+
+  const totalOvertimeHours = Math.floor(totalOvertimeMinutes / 60);
+  const totalOvertimeRemainingMins = totalOvertimeMinutes % 60;
+  const totalOvertimeFormatted = totalOvertimeMinutes > 0
+    ? `${totalOvertimeHours}h ${String(totalOvertimeRemainingMins).padStart(2, '0')}m`
+    : '0h';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -227,10 +382,15 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
   const canSubmit = form.companyId && form.selectedEmployees.length > 0 && !saving;
 
   const headingBlock = (
-    <h2 className="text-sm font-bold flex items-center gap-2" style={T}>
-      <Send size={14} style={{ color: '#FF4D0C' }} />
-      {submitLabel === 'Lançar Demanda' ? 'Lançamento Manual de Demanda' : 'Editar Demanda'}
-    </h2>
+    <div className="flex items-center justify-between">
+      <h2 className="text-sm font-bold flex items-center gap-2" style={T}>
+        <Send size={14} style={{ color: '#FF4D0C' }} />
+        {submitLabel === 'Lançar Demanda' ? 'Lançamento de Demanda com Horários Individuais' : 'Editar Demanda'}
+      </h2>
+      <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', background: '#F1F5F9', padding: '3px 8px', borderRadius: '6px' }}>
+        Controle Individual de Horas & HE
+      </span>
+    </div>
   );
 
   const empresaBlock = (
@@ -270,8 +430,8 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
       <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Tipo de Serviço</label>
       <div style={{ display: 'flex', gap: '8px' }}>
         {[
-          { value: 'entrega',        label: 'Entrega',          icon: '🚚', desc: 'Entrada, Almoço e Saída' },
-          { value: 'carga_descarga', label: 'Carga e Descarga', icon: '📦', desc: 'Início e Final' },
+          { value: 'entrega',        label: 'Entrega',          icon: '🚚', desc: 'Entrada, Almoço (8h base + 1h int.) e Saída' },
+          { value: 'carga_descarga', label: 'Carga e Descarga', icon: '📦', desc: 'Início e Final direto (8h base)' },
         ].map(opt => {
           const sel = form.tipoServico === opt.value;
           return (
@@ -299,171 +459,36 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
     </div>
   );
 
-  const horariosBlock = (
-    <div style={{ background: '#F8FAFC', borderRadius: '14px', padding: '14px', border: '1px solid rgba(0,0,0,0.06)' }} className="space-y-3">
-      <div className="flex items-center justify-between">
-        <label className="text-xs font-bold flex items-center gap-1.5" style={{ color: '#0F172A' }}>
-          <Clock size={13} style={{ color: '#FF4D0C' }} />
-          Horários Manuais da Equipe
-        </label>
-        <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', background: '#E2E8F0', padding: '2px 7px', borderRadius: '4px' }}>
-          100% Manual Admin
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        {/* Entrada */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span style={{ fontSize: '11px', fontWeight: 600, color: '#334155' }}>
-              {form.tipoServico === 'carga_descarga' ? 'Início do Serviço' : 'Horário de Entrada'}
-            </span>
-          </div>
-          <input
-            type="time"
-            className="input-field"
-            value={form.entrada}
-            onChange={e => handleGlobalEntradaChange(e.target.value)}
-            required
-          />
-          <div className="flex gap-1 mt-1.5 flex-wrap">
-            {['06:00', '07:00', '07:30', '08:00'].map(t => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => handleGlobalEntradaChange(t)}
-                style={{
-                  fontSize: '9px', fontWeight: 600, padding: '2px 5px', borderRadius: '4px',
-                  border: '1px solid rgba(0,0,0,0.08)', background: form.entrada === t ? '#FF4D0C' : 'white',
-                  color: form.entrada === t ? 'white' : '#64748B', cursor: 'pointer',
-                }}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Saída */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span style={{ fontSize: '11px', fontWeight: 600, color: '#334155' }}>
-              {form.tipoServico === 'carga_descarga' ? 'Final do Serviço' : 'Horário de Saída'}
-            </span>
-            <span style={{ fontSize: '9px', color: form.saida ? '#059669' : '#94A3B8', fontWeight: 600 }}>
-              {form.saida ? 'Preenchido' : '(Opcional)'}
-            </span>
-          </div>
-          <input
-            type="time"
-            className="input-field"
-            value={form.saida}
-            onChange={e => handleGlobalSaidaChange(e.target.value)}
-            placeholder="Ao finalizar..."
-          />
-          <div className="flex gap-1 mt-1.5 flex-wrap">
-            {['16:00', '17:00', '17:30', '18:00'].map(t => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => handleGlobalSaidaChange(t)}
-                style={{
-                  fontSize: '9px', fontWeight: 600, padding: '2px 5px', borderRadius: '4px',
-                  border: '1px solid rgba(0,0,0,0.08)', background: form.saida === t ? '#059669' : 'white',
-                  color: form.saida === t ? 'white' : '#64748B', cursor: 'pointer',
-                }}
-              >
-                {t}
-              </button>
-            ))}
-            {form.saida && (
-              <button
-                type="button"
-                onClick={() => handleGlobalSaidaChange('')}
-                style={{
-                  fontSize: '9px', fontWeight: 600, padding: '2px 5px', borderRadius: '4px',
-                  border: '1px solid rgba(0,0,0,0.08)', background: '#F1F5F9', color: '#E11D48', cursor: 'pointer',
-                }}
-              >
-                Limpar
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <p style={{ fontSize: '10px', color: '#64748B', lineHeight: 1.4, margin: '2px 0 0' }}>
-        💡 <strong>Flexibilidade Total:</strong> Deixe o horário de saída em branco agora para preencher ao final do dia quando o trabalho terminar, ou preencha entrada e saída juntos para serviços retroativos ou combinados.
-      </p>
-
-      {/* Toggle de Almoço */}
-      {form.tipoServico === 'entrega' && (
-        <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '8px' }}>
-          <button
-            type="button"
-            onClick={() => setShowLunch(v => !v)}
-            style={{
-              fontSize: '11px', fontWeight: 600, color: '#FF4D0C', background: 'none',
-              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
-            }}
-          >
-            <span>{showLunch ? '▼ Ocultar Horário de Almoço' : '▶ Definir Horário de Almoço (Opcional)'}</span>
-          </button>
-
-          {showLunch && (
-            <div className="grid grid-cols-2 gap-3 mt-2">
-              <div>
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '4px' }}>
-                  Saída p/ Almoço
-                </span>
-                <input
-                  type="time"
-                  className="input-field"
-                  value={form.saidaAlmoco}
-                  onChange={e => setForm(f => ({ ...f, saidaAlmoco: e.target.value }))}
-                />
-              </div>
-              <div>
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '4px' }}>
-                  Retorno do Almoço
-                </span>
-                <input
-                  type="time"
-                  className="input-field"
-                  value={form.retornoAlmoco}
-                  onChange={e => setForm(f => ({ ...f, retornoAlmoco: e.target.value }))}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
-  const ajudantesBlock = (
-    <div>
+  // Bloco de seleção de ajudantes
+  const seletorAjudantesBlock = (
+    <div style={{ background: '#F8FAFC', borderRadius: '14px', padding: '14px', border: '1px solid rgba(0,0,0,0.06)' }}>
       <div className="flex items-center justify-between mb-2">
-        <label className="text-xs font-semibold" style={{ color: '#64748B' }}>Ajudantes Escalados</label>
+        <label className="text-xs font-bold flex items-center gap-1.5" style={{ color: '#0F172A' }}>
+          <Users size={13} style={{ color: '#FF4D0C' }} />
+          1. Marcar Ajudantes para a Escala
+        </label>
         <div className="flex items-center gap-2">
-          {form.selectedEmployees.length > 0 && (
-            <>
-              <button
-                type="button"
-                onClick={() => setCustomPerEmp(v => !v)}
-                style={{
-                  fontSize: '10px', fontWeight: 600, color: customPerEmp ? '#FF4D0C' : '#64748B',
-                  background: customPerEmp ? '#FFF2EE' : '#F1F5F9', padding: '2px 8px', borderRadius: '5px',
-                  border: 'none', cursor: 'pointer',
-                }}
-              >
-                {customPerEmp ? 'Ocultar Horários Individuais' : 'Ajustar Horários Individuais'}
-              </button>
-              <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '5px', background: '#FFF2EE', color: '#FF4D0C' }}>
-                {form.selectedEmployees.length} selecionado{form.selectedEmployees.length !== 1 ? 's' : ''}
-              </span>
-            </>
+          {filtered.length > 0 && (
+            <button
+              type="button"
+              onClick={selectAllFiltered}
+              style={{ fontSize: '10px', fontWeight: 600, color: '#0284C7', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              Marcar todos ({filtered.length})
+            </button>
           )}
+          {form.selectedEmployees.length > 0 && (
+            <button
+              type="button"
+              onClick={deselectAll}
+              style={{ fontSize: '10px', fontWeight: 600, color: '#E11D48', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              Desmarcar
+            </button>
+          )}
+          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '5px', background: '#FFF2EE', color: '#FF4D0C' }}>
+            {form.selectedEmployees.length} marcado{form.selectedEmployees.length !== 1 ? 's' : ''}
+          </span>
         </div>
       </div>
 
@@ -472,90 +497,363 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
         <input
           className="input-field"
           style={{ paddingLeft: '30px', paddingTop: '7px', paddingBottom: '7px', fontSize: '12px' }}
-          placeholder="Buscar ajudante por nome..."
+          placeholder="Buscar ajudante por nome para marcar..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
       </div>
 
-      <div style={{ maxHeight: twoColumn ? '380px' : '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '6px' }}>
         {filtered.length === 0 ? (
-          <p className="text-xs text-center py-4" style={TM}>Nenhum ajudante encontrado</p>
+          <p className="text-xs text-center py-4 col-span-full" style={TM}>Nenhum ajudante encontrado</p>
         ) : (
           filtered.map(emp => {
             const selected = form.selectedEmployees.includes(emp.id);
-            const empTime = form.employeeTimes[emp.id] || {
-              entrada: form.entrada,
-              saida: form.saida,
-              saidaAlmoco: form.saidaAlmoco,
-              retornoAlmoco: form.retornoAlmoco,
-            };
-
             return (
               <div
                 key={emp.id}
+                onClick={() => toggleEmployee(emp.id)}
                 style={{
-                  borderRadius: '10px',
-                  background: selected ? '#FFF9F7' : '#F8FAFC',
-                  outline: selected ? '1.5px solid rgba(255,77,12,0.25)' : '1.5px solid transparent',
-                  padding: '8px 10px',
-                  transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '7px 10px', borderRadius: '8px', cursor: 'pointer',
+                  background: selected ? '#FFF2EE' : 'white',
+                  border: selected ? '1.5px solid #FF4D0C' : '1px solid rgba(0,0,0,0.08)',
+                  transition: 'all 0.12s',
                 }}
               >
-                <div
-                  onClick={() => toggleEmployee(emp.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-                >
-                  <div style={{
-                    width: '30px', height: '30px', borderRadius: '9px', flexShrink: 0,
-                    background: emp.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '10px', fontWeight: 700, color: 'white',
-                  }}>
-                    {emp.initials}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: selected ? '#FF4D0C' : '#0F172A' }}>{emp.name}</p>
-                    <p style={{ fontSize: '10px', color: '#94A3B8' }}>Diária: R$ {emp.dailyRate || 150}</p>
-                  </div>
-                  <div style={{
-                    width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
-                    border: selected ? 'none' : '1.5px solid #CBD5E1',
-                    background: selected ? '#FF4D0C' : 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s',
-                  }}>
-                    {selected && <CheckCircle2 size={13} style={{ color: 'white' }} />}
-                  </div>
+                <div style={{
+                  width: '24px', height: '24px', borderRadius: '6px', flexShrink: 0,
+                  background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '9px', fontWeight: 700, color: 'white',
+                }}>
+                  {emp.initials}
                 </div>
-
-                {/* Painel individual de horários se habilitado */}
-                {selected && customPerEmp && (
-                  <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,77,12,0.12)', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontSize: '9px', fontWeight: 600, color: '#64748B' }}>Entrada:</span>
-                      <input
-                        type="time"
-                        value={empTime.entrada || ''}
-                        onChange={e => handleEmpTimeChange(emp.id, 'entrada', e.target.value)}
-                        style={{ fontSize: '11px', padding: '3px 5px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.12)', width: '85px' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontSize: '9px', fontWeight: 600, color: '#64748B' }}>Saída:</span>
-                      <input
-                        type="time"
-                        value={empTime.saida || ''}
-                        onChange={e => handleEmpTimeChange(emp.id, 'saida', e.target.value)}
-                        placeholder="Em aberto"
-                        style={{ fontSize: '11px', padding: '3px 5px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.12)', width: '85px' }}
-                      />
-                    </div>
-                  </div>
-                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: selected ? '#FF4D0C' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {emp.name}
+                  </p>
+                </div>
+                <div style={{
+                  width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0,
+                  border: selected ? 'none' : '1.5px solid #CBD5E1',
+                  background: selected ? '#FF4D0C' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {selected && <CheckCircle2 size={12} style={{ color: 'white' }} />}
+                </div>
               </div>
             );
           })
         )}
       </div>
+    </div>
+  );
+
+  // Bloco com a lista e campos individuais de cada ajudante marcado
+  const listaIndividualHorariosBlock = (
+    <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '16px', border: '1.5px solid rgba(0,0,0,0.08)', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }} className="space-y-4">
+      {/* Cabeçalho da Caixa de Horários */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100">
+        <div>
+          <h3 className="text-xs font-extrabold flex items-center gap-1.5" style={{ color: '#0F172A' }}>
+            <Clock size={14} style={{ color: '#FF4D0C' }} />
+            2. Horários Individuais & Cálculo de Horas Extras ({form.selectedEmployees.length})
+          </h3>
+          <p style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
+            Regra: 8h base + 1h intervalo (total 9h). Sem almoço preenchido = base direta de 8h.
+          </p>
+        </div>
+
+        {/* Resumo de HE do dia */}
+        {form.selectedEmployees.length > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            background: totalOvertimeMinutes > 0 ? '#FFF2EE' : '#F8FAFC',
+            padding: '6px 12px', borderRadius: '10px',
+            border: totalOvertimeMinutes > 0 ? '1px solid rgba(255,77,12,0.3)' : '1px solid rgba(0,0,0,0.06)',
+          }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>Total HE da Demanda:</span>
+            <span style={{ fontSize: '13px', fontWeight: 800, color: totalOvertimeMinutes > 0 ? '#FF4D0C' : '#059669', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              {totalOvertimeMinutes > 0 && <Flame size={13} />}
+              {totalOvertimeFormatted}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {form.selectedEmployees.length === 0 ? (
+        <div style={{ padding: '24px 12px', textAlign: 'center', background: '#F8FAFC', borderRadius: '12px', border: '1px dashed #CBD5E1' }}>
+          <Users size={24} style={{ color: '#94A3B8', margin: '0 auto 8px' }} />
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>Nenhum ajudante marcado ainda</p>
+          <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+            Marque um ou mais ajudantes acima para abrir os campos de horários de cada um.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Barra de Preenchimento Padrão / Rápido para todos */}
+          <div style={{ background: '#F8FAFC', padding: '12px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)' }} className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                ⚡ Preenchimento Rápido em Massa (Opcional)
+              </span>
+              <span style={{ fontSize: '10px', color: '#94A3B8' }}>
+                Ajuste os valores e clique em aplicar
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Entrada Padrão */}
+              <div className="flex items-center gap-1.5">
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>Entrada:</span>
+                <input
+                  type="time"
+                  value={batchEntrada}
+                  onChange={e => setBatchEntrada(e.target.value)}
+                  style={{ fontSize: '11px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', width: '85px', background: 'white' }}
+                />
+              </div>
+
+              {/* Almoço Padrão (se entrega) */}
+              {!isCargaDescarga && (
+                <div className="flex items-center gap-1.5">
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>Almoço:</span>
+                  <input
+                    type="time"
+                    value={batchAlmocoS}
+                    onChange={e => setBatchAlmocoS(e.target.value)}
+                    placeholder="12:00"
+                    style={{ fontSize: '11px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', width: '80px', background: 'white' }}
+                  />
+                  <span style={{ fontSize: '10px', color: '#94A3B8' }}>até</span>
+                  <input
+                    type="time"
+                    value={batchAlmocoR}
+                    onChange={e => setBatchAlmocoR(e.target.value)}
+                    placeholder="13:00"
+                    style={{ fontSize: '11px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', width: '80px', background: 'white' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setBatchAlmocoS('12:00'); setBatchAlmocoR('13:00'); }}
+                    style={{ fontSize: '10px', padding: '3px 6px', borderRadius: '5px', background: '#F1F5F9', color: '#475569', border: 'none', cursor: 'pointer' }}
+                  >
+                    12h-13h
+                  </button>
+                </div>
+              )}
+
+              {/* Saída Padrão */}
+              <div className="flex items-center gap-1.5">
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>Saída:</span>
+                <input
+                  type="time"
+                  value={batchSaida}
+                  onChange={e => setBatchSaida(e.target.value)}
+                  placeholder="Ao finalizar..."
+                  style={{ fontSize: '11px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', width: '85px', background: 'white' }}
+                />
+                {['16:00', '17:00', '17:30', '18:00'].map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setBatchSaida(t)}
+                    style={{ fontSize: '9px', fontWeight: 600, padding: '3px 5px', borderRadius: '4px', background: batchSaida === t ? '#059669' : '#FFFFFF', color: batchSaida === t ? 'white' : '#64748B', border: '1px solid rgba(0,0,0,0.1)', cursor: 'pointer' }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              {/* Botão Aplicar */}
+              <button
+                type="button"
+                onClick={applyBatchToAll}
+                style={{
+                  fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '7px',
+                  background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                }}
+              >
+                <Sparkles size={12} /> Aplicar a Todos
+              </button>
+            </div>
+
+            {batchFeedback && (
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#059669' }}>
+                {batchFeedback}
+              </p>
+            )}
+          </div>
+
+          {/* Lista de Ajudantes Selecionados com campos individuais */}
+          <div style={{ maxHeight: '420px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {form.selectedEmployees.map((empId, idx) => {
+              const emp = employees.find(e => e.id === empId);
+              const empTime = form.employeeTimes[empId] || {
+                entrada: form.entrada || '07:30',
+                saida: form.saida || '',
+                saidaAlmoco: form.saidaAlmoco || '',
+                retornoAlmoco: form.retornoAlmoco || '',
+              };
+
+              return (
+                <div
+                  key={empId}
+                  style={{
+                    background: '#FAFBFC', borderRadius: '12px', padding: '12px 14px',
+                    border: '1px solid rgba(0,0,0,0.06)',
+                    display: 'flex', flexDirection: 'column', gap: '8px',
+                  }}
+                >
+                  {/* Topo do Card do Ajudante */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div style={{
+                        width: '32px', height: '32px', borderRadius: '8px', flexShrink: 0,
+                        background: emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '11px', fontWeight: 700, color: 'white',
+                      }}>
+                        {emp?.initials || '?'}
+                      </div>
+                      <div className="min-w-0">
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {emp?.name || 'Ajudante'}
+                        </p>
+                        <p style={{ fontSize: '10px', color: '#94A3B8' }}>
+                          Diária: R$ {emp?.dailyRate || 150}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Badge de Horas Extras e Jornada em tempo real */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <OvertimeBadge
+                        entrada={empTime.entrada}
+                        saida={empTime.saida}
+                        saidaAlmoco={empTime.saidaAlmoco}
+                        retornoAlmoco={empTime.retornoAlmoco}
+                        isCargaDescarga={isCargaDescarga}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => toggleEmployee(empId)}
+                        style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
+                        title="Remover da escala"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Inputs de Horário para este ajudante específico */}
+                  <div style={{ display: 'grid', gridTemplateColumns: isCargaDescarga ? '1fr 1fr' : '1fr 1.2fr 1fr', gap: '8px', background: 'white', padding: '10px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.04)' }}>
+                    {/* Entrada Individual */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                          Entrada
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleEmpTimeChange(empId, 'entrada', getNowTime())}
+                          style={{ fontSize: '8px', fontWeight: 700, padding: '1px 4px', borderRadius: '3px', background: '#EFF6FF', color: '#1D4ED8', border: 'none', cursor: 'pointer' }}
+                        >
+                          Agora
+                        </button>
+                      </div>
+                      <input
+                        type="time"
+                        value={empTime.entrada || ''}
+                        onChange={e => handleEmpTimeChange(empId, 'entrada', e.target.value)}
+                        style={{ fontSize: '11px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', width: '100%' }}
+                        required
+                      />
+                    </div>
+
+                    {/* Almoço Individual (se entrega) */}
+                    {!isCargaDescarga && (
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                            Almoço (Saída/Volta)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleEmpTimeChange(empId, 'saidaAlmoco', '12:00');
+                              handleEmpTimeChange(empId, 'retornoAlmoco', '13:00');
+                            }}
+                            style={{ fontSize: '8px', fontWeight: 700, padding: '1px 4px', borderRadius: '3px', background: '#F1F5F9', color: '#475569', border: 'none', cursor: 'pointer' }}
+                          >
+                            12h-13h
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="time"
+                            value={empTime.saidaAlmoco || ''}
+                            onChange={e => handleEmpTimeChange(empId, 'saidaAlmoco', e.target.value)}
+                            placeholder="12:00"
+                            style={{ fontSize: '11px', padding: '4px 4px', borderRadius: '6px', border: '1px solid #CBD5E1', width: '50%' }}
+                          />
+                          <span style={{ fontSize: '9px', color: '#94A3B8' }}>-</span>
+                          <input
+                            type="time"
+                            value={empTime.retornoAlmoco || ''}
+                            onChange={e => handleEmpTimeChange(empId, 'retornoAlmoco', e.target.value)}
+                            placeholder="13:00"
+                            style={{ fontSize: '11px', padding: '4px 4px', borderRadius: '6px', border: '1px solid #CBD5E1', width: '50%' }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Saída Individual */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: empTime.saida ? '#059669' : '#64748B', textTransform: 'uppercase' }}>
+                          Saída {empTime.saida ? '✓' : '(Em aberto)'}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleEmpTimeChange(empId, 'saida', getNowTime())}
+                            style={{ fontSize: '8px', fontWeight: 700, padding: '1px 4px', borderRadius: '3px', background: '#ECFDF5', color: '#059669', border: 'none', cursor: 'pointer' }}
+                          >
+                            Agora
+                          </button>
+                          {empTime.saida && (
+                            <button
+                              type="button"
+                              onClick={() => handleEmpTimeChange(empId, 'saida', '')}
+                              style={{ fontSize: '8px', fontWeight: 600, padding: '1px 3px', borderRadius: '3px', background: '#F1F5F9', color: '#E11D48', border: 'none', cursor: 'pointer' }}
+                            >
+                              Limpar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <input
+                        type="time"
+                        value={empTime.saida || ''}
+                        onChange={e => handleEmpTimeChange(empId, 'saida', e.target.value)}
+                        placeholder="Em aberto"
+                        style={{
+                          fontSize: '11px', padding: '4px 6px', borderRadius: '6px',
+                          border: empTime.saida ? '1.5px solid #059669' : '1px dashed #CBD5E1',
+                          background: empTime.saida ? '#F0FDF4' : 'white',
+                          width: '100%',
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 
@@ -586,21 +884,21 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
           disabled={!canSubmit}
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: '8px', padding: '11px', borderRadius: '12px', border: 'none',
-            fontSize: '13px', fontWeight: 700, cursor: canSubmit ? 'pointer' : 'not-allowed',
+            gap: '8px', padding: '12px', borderRadius: '12px', border: 'none',
+            fontSize: '14px', fontWeight: 800, cursor: canSubmit ? 'pointer' : 'not-allowed',
             background: canSubmit ? '#FF4D0C' : '#E2E8F0',
             color: canSubmit ? 'white' : '#94A3B8',
-            boxShadow: canSubmit ? '0 2px 10px rgba(255,77,12,0.3)' : 'none',
+            boxShadow: canSubmit ? '0 4px 14px rgba(255,77,12,0.3)' : 'none',
             transition: 'all 0.2s',
           }}
         >
-          <Send size={14} /> {saving ? 'Salvando...' : submitLabel}
+          <Send size={15} /> {saving ? 'Salvando demanda...' : submitLabel}
         </button>
       </div>
 
       {success && (
         <div className="flex items-center gap-2 text-xs font-semibold justify-center" style={{ color: '#059669' }}>
-          <CheckCircle2 size={14} /> Demanda lançada com sucesso! Visível para a empresa cliente.
+          <CheckCircle2 size={14} /> Demanda e horários individuais lançados com sucesso!
         </div>
       )}
     </>
@@ -608,21 +906,21 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
 
   if (twoColumn) {
     return (
-      <form onSubmit={handleSubmit} className="card p-5">
+      <form onSubmit={handleSubmit} className="card p-5 space-y-4">
         {headingBlock}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4 mt-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-4">
             {empresaBlock}
             {dataBlock}
             {modalidadeBlock}
-            {horariosBlock}
+            {seletorAjudantesBlock}
           </div>
           <div className="space-y-4">
-            {ajudantesBlock}
+            {listaIndividualHorariosBlock}
           </div>
-          <div className="lg:col-span-2 space-y-4 pt-2">
-            {footerBlock}
-          </div>
+        </div>
+        <div className="space-y-4 pt-2">
+          {footerBlock}
         </div>
       </form>
     );
@@ -634,8 +932,8 @@ function DemandForm({ initialData, employees, companies, onSubmit, onCancel, sub
       {empresaBlock}
       {dataBlock}
       {modalidadeBlock}
-      {horariosBlock}
-      {ajudantesBlock}
+      {seletorAjudantesBlock}
+      {listaIndividualHorariosBlock}
       {footerBlock}
     </form>
   );
@@ -896,11 +1194,20 @@ function DemandModal({ demand, employees, onChangeStatus, onUpdateTimes, onUpdat
                     <p style={{ fontSize: '10px', color: '#94A3B8' }}>Diária: R$ {emp?.dailyRate || 150}</p>
                   </div>
 
-                  {/* Status badge */}
-                  <StatusBadge
-                    status={status}
-                    onChangeStatus={(s) => onChangeStatus(demand.id, employeeId, s)}
-                  />
+                  {/* Status badge & Overtime */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <OvertimeBadge
+                      entrada={entrada}
+                      saida={saida}
+                      saidaAlmoco={saidaAlmoco}
+                      retornoAlmoco={retornoAlmoco}
+                      isCargaDescarga={demand.tipoServico === 'carga_descarga'}
+                    />
+                    <StatusBadge
+                      status={status}
+                      onChangeStatus={(s) => onChangeStatus(demand.id, employeeId, s)}
+                    />
+                  </div>
                 </div>
 
                 {/* Linha de inputs de horários com atalhos rápidos */}

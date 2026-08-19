@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { calculateWorkAndOvertime } from './timeUtils';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -365,6 +366,8 @@ export async function createDemand({
       confirmacao = 'confirmado';
     }
 
+    const calc = calculateWorkAndOvertime(empEntrada, empSaida, empAlmocoS, empAlmocoR);
+
     return {
       id:             crypto.randomUUID(),
       escala_id:      escalaId,
@@ -378,6 +381,7 @@ export async function createDemand({
       saida:          empSaida,
       saida_almoco:   empAlmocoS,
       retorno_almoco: empAlmocoR,
+      hora_extra:     calc.overtimeHoursDecimal,
       valor:          150,
     };
   });
@@ -424,6 +428,25 @@ export async function updateDemandEmployeeTimes(escalaId, employeeId, times) {
   } else if (times.entrada === '' && times.saida === '') {
     patch.status = 'scheduled';
     patch.confirmacao = 'aguardando';
+  }
+
+  // Recalcula hora extra caso tenha entrada e saída
+  if (patch.entrada !== undefined || patch.saida !== undefined || patch.saida_almoco !== undefined || patch.retorno_almoco !== undefined) {
+    // Busca dados atuais caso algum campo não esteja no patch
+    const { data: curr } = await supabase
+      .from('registros')
+      .select('entrada, saida, saida_almoco, retorno_almoco')
+      .eq('escala_id', escalaId)
+      .eq('funcionario_id', employeeId)
+      .maybeSingle();
+
+    const finalEntrada = patch.entrada !== undefined ? patch.entrada : curr?.entrada;
+    const finalSaida   = patch.saida   !== undefined ? patch.saida   : curr?.saida;
+    const finalAlmocoS = patch.saida_almoco !== undefined ? patch.saida_almoco : curr?.saida_almoco;
+    const finalAlmocoR = patch.retorno_almoco !== undefined ? patch.retorno_almoco : curr?.retorno_almoco;
+
+    const calc = calculateWorkAndOvertime(finalEntrada, finalSaida, finalAlmocoS, finalAlmocoR);
+    patch.hora_extra = calc.overtimeHoursDecimal;
   }
 
   const { error } = await supabase
