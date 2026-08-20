@@ -111,3 +111,13 @@ export function calculateWorkAndOvertime(entrada, saida, saidaAlmoco = null, ret
     baseHours: 8,
   };
 }
+
+/**
+ * Converte minutos de hora extra para o formato compatível com coluna TIME do PostgreSQL (HH:MM:00)
+ */
+export function overtimeMinutesToTimeString(overtimeMinutes) {
+  if (!overtimeMinutes || overtimeMinutes <= 0) return null;
+  const h = Math.floor(overtimeMinutes / 60);
+  const m = overtimeMinutes % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
+}

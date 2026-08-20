@@ -437,24 +437,33 @@ export default function DemandForm({
     if (form.selectedEmployees.length === 0) { setError('Selecione ao menos um ajudante.'); return; }
     setError('');
     setSaving(true);
-    const ok = await onSubmit(form);
-    setSaving(false);
-    if (ok && !initialData) {
-      setForm({
-        companyId:         '',
-        date:              TODAY_ISO,
-        time:              '07:30',
-        entrada:           '07:30',
-        saida:             '',
-        saidaAlmoco:       '',
-        retornoAlmoco:     '',
-        service:           '',
-        selectedEmployees: [],
-        tipoServico:       'entrega',
-        employeeTimes:     {},
-      });
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3500);
+    try {
+      const ok = await onSubmit(form);
+      setSaving(false);
+      if (ok) {
+        if (!initialData) {
+          setForm({
+            companyId:         '',
+            date:              TODAY_ISO,
+            time:              '07:30',
+            entrada:           '07:30',
+            saida:             '',
+            saidaAlmoco:       '',
+            retornoAlmoco:     '',
+            service:           '',
+            selectedEmployees: [],
+            tipoServico:       'entrega',
+            employeeTimes:     {},
+          });
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 3500);
+        }
+      } else {
+        setError('Ocorreu um erro ao salvar a demanda no banco de dados. Tente novamente.');
+      }
+    } catch (err) {
+      setSaving(false);
+      setError(err?.message || 'Erro inesperado ao salvar a demanda.');
     }
   };
 

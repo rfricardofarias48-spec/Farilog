@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { calculateWorkAndOvertime } from './timeUtils';
+import { calculateWorkAndOvertime, overtimeMinutesToTimeString } from './timeUtils';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -381,7 +381,7 @@ export async function createDemand({
       saida:          empSaida,
       saida_almoco:   empAlmocoS,
       retorno_almoco: empAlmocoR,
-      hora_extra:     calc.overtimeHoursDecimal,
+      hora_extra:     overtimeMinutesToTimeString(calc.overtimeMinutes),
       valor:          150,
     };
   });
@@ -446,7 +446,7 @@ export async function updateDemandEmployeeTimes(escalaId, employeeId, times) {
     const finalAlmocoR = patch.retorno_almoco !== undefined ? patch.retorno_almoco : curr?.retorno_almoco;
 
     const calc = calculateWorkAndOvertime(finalEntrada, finalSaida, finalAlmocoS, finalAlmocoR);
-    patch.hora_extra = calc.overtimeHoursDecimal;
+    patch.hora_extra = overtimeMinutesToTimeString(calc.overtimeMinutes);
   }
 
   const { error } = await supabase
@@ -470,6 +470,11 @@ export async function updateDemandAllTimes(escalaId, times) {
   } else if (patch.entrada) {
     patch.status = 'active';
     patch.confirmacao = 'confirmado';
+  }
+
+  const calc = calculateWorkAndOvertime(patch.entrada, patch.saida, patch.saidaAlmoco, patch.retornoAlmoco);
+  if (calc.isComplete) {
+    patch.hora_extra = overtimeMinutesToTimeString(calc.overtimeMinutes);
   }
 
   const { error } = await supabase
@@ -550,6 +555,8 @@ export async function editDemand(id, {
         confirmacao = 'confirmado';
       }
 
+      const calc = calculateWorkAndOvertime(empEntrada, empSaida, empAlmocoS, empAlmocoR);
+
       return {
         id: crypto.randomUUID(),
         escala_id: id,
@@ -563,6 +570,7 @@ export async function editDemand(id, {
         saida: empSaida,
         saida_almoco: empAlmocoS,
         retorno_almoco: empAlmocoR,
+        hora_extra: overtimeMinutesToTimeString(calc.overtimeMinutes),
         valor: 150,
       };
     });
