@@ -18,7 +18,7 @@ import {
   DollarSign, TrendingUp, TrendingDown, Percent,
   ChevronLeft, ChevronRight, ChevronDown,
   Plus, Trash2, BarChart2, CreditCard, FileText, Wallet, Building2, X,
-  Maximize2,
+  Maximize2, Users, Clock, CalendarDays,
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -1123,6 +1123,181 @@ function TabDRE({ records, lancamentos, employees, bounds, companies }) {
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────
+// ── Tab: Folha de Pagamento ────────────────────────────────────────────────
+// Quinzena 1 (dias 01–15) → pagamento no dia 22 do mesmo mês.
+// Quinzena 2 (dias 16–fim) → pagamento no dia 7 do mês seguinte.
+function quinzenaBounds(idx) {
+  const tYr = 2000 + Math.floor(idx / 24);
+  const rem = ((idx % 24) + 24) % 24;
+  const tM  = Math.floor(rem / 2);
+  const tQ  = rem % 2;
+  const mm  = String(tM + 1).padStart(2, '0');
+  const last = new Date(tYr, tM + 1, 0).getDate();
+  const payYr = tQ === 0 ? tYr : (tM === 11 ? tYr + 1 : tYr);
+  const payM  = tQ === 0 ? tM  : (tM + 1) % 12;
+  return {
+    start: tQ === 0 ? `${tYr}-${mm}-01` : `${tYr}-${mm}-16`,
+    end:   tQ === 0 ? `${tYr}-${mm}-15` : `${tYr}-${mm}-${String(last).padStart(2, '0')}`,
+    payDate: `${payYr}-${String(payM + 1).padStart(2, '0')}-${tQ === 0 ? '22' : '07'}`,
+    label: `Quinzena ${tQ + 1} · ${tQ === 0 ? '01 a 15' : `16 a ${last}`}`,
+    monthLabel: `${MONTH_FULL[tM]} ${tYr}`,
+  };
+}
+
+function TabFolhaPagamento({ employees }) {
+  const curIdx = (Number(TODAY_ISO.split('-')[0]) - 2000) * 24
+    + (Number(TODAY_ISO.split('-')[1]) - 1) * 2
+    + (Number(TODAY_ISO.split('-')[2]) <= 15 ? 0 : 1);
+  const [qi, setQi]     = useState(curIdx);
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const q = useMemo(() => quinzenaBounds(qi), [qi]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchWorkRecordsByPeriod(null, null, q.start, q.end).then(recs => {
+      setRecords(recs || []);
+      setLoading(false);
+    });
+  }, [q.start, q.end]);
+
+  // Agrupa por ajudante: diárias (dias distintos trabalhados) + HE (taxa do próprio cadastro)
+  const linhas = useMemo(() => {
+    const byEmp = {};
+    records.forEach(r => {
+      if (r.status === 'absent' || !r.employeeId) return;
+      const emp = employees.find(e => e.id === r.employeeId);
+      if (!emp) return;
+      if (!byEmp[r.employeeId]) {
+        byEmp[r.employeeId] = { emp, days: new Set(), heMin: 0 };
+      }
+      byEmp[r.employeeId].days.add(r.date);
+      byEmp[r.employeeId].heMin += overtimeToMinutes(r.overtime);
+    });
+    return Object.values(byEmp).map(({ emp, days, heMin }) => {
+      const diarias = days.size * Number(emp.dailyRate || 0);
+      const he      = (heMin / 60) * Number(emp.overtimeRate || 0);
+      return { emp, dias: days.size, heMin, diarias, he, total: diarias + he };
+    }).sort((a, b) => b.total - a.total);
+  }, [records, employees]);
+
+  const totalGeral = linhas.reduce((s, l) => s + l.total, 0);
+  const totalHE    = linhas.reduce((s, l) => s + l.he, 0);
+  const totalDiar  = linhas.reduce((s, l) => s + l.diarias, 0);
+  const payLabel   = `${q.payDate.split('-')[2]}/${q.payDate.split('-')[1]}/${q.payDate.split('-')[0]}`;
+  const isPaid     = q.payDate < TODAY_ISO;
+
+  const Card = ({ label, value, color, bg, icon: Icon }) => (
+    <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(15,23,42,0.06)', boxShadow: '0 1px 3px rgba(15,23,42,0.05)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon size={18} style={{ color }} />
+      </div>
+      <div>
+        <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</p>
+        <p style={{ fontSize: '17px', fontWeight: 800, color }}>{value}</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* Seletor de quinzena */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', background: '#fff', borderRadius: '14px', padding: '12px 16px', border: '1px solid rgba(15,23,42,0.06)', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button onClick={() => setQi(v => v - 1)}
+            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ChevronLeft size={13} />
+          </button>
+          <div style={{ textAlign: 'center', minWidth: '230px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 800, ...T }}>{q.label}</p>
+            <p style={{ fontSize: '11px', ...TM }}>{q.monthLabel}</p>
+          </div>
+          <button onClick={() => setQi(v => Math.min(v + 1, curIdx))} disabled={qi >= curIdx}
+            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid rgba(15,23,42,0.08)', cursor: qi >= curIdx ? 'not-allowed' : 'pointer', color: qi >= curIdx ? '#CBD5E1' : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: qi >= curIdx ? 0.5 : 1 }}>
+            <ChevronRight size={13} />
+          </button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 13px', borderRadius: '10px', background: isPaid ? '#F0FDF4' : '#FFF7ED', border: `1px solid ${isPaid ? '#BBF7D0' : '#FED7AA'}` }}>
+          <CalendarDays size={14} style={{ color: isPaid ? '#059669' : '#D97706' }} />
+          <span style={{ fontSize: '12px', fontWeight: 700, color: isPaid ? '#059669' : '#D97706' }}>
+            {isPaid ? 'Pago em' : 'Pagamento em'} {payLabel}
+          </span>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ padding: '60px', textAlign: 'center', fontSize: '13px', color: '#94A3B8' }}>
+          Carregando folha...
+        </div>
+      ) : (
+        <>
+          {/* KPIs */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <Card label="Total a Pagar" value={fmtCurrency(totalGeral)} color="#0F172A" bg="#F1F5F9" icon={Wallet} />
+            <Card label="Diárias" value={fmtCurrency(totalDiar)} color="#2563EB" bg="#EFF6FF" icon={DollarSign} />
+            <Card label="Horas Extras" value={fmtCurrency(totalHE)} color="#D97706" bg="#FFFBEB" icon={Clock} />
+            <Card label="Ajudantes na Quinzena" value={String(linhas.length)} color="#FF4D0C" bg="#FFF2EE" icon={Users} />
+          </div>
+
+          {/* Lista de ajudantes */}
+          <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid rgba(15,23,42,0.06)', boxShadow: '0 1px 3px rgba(15,23,42,0.05)', overflow: 'hidden' }}>
+            <div style={{ padding: '14px 16px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
+                Pagamentos por Ajudante — {q.label}
+              </p>
+            </div>
+            {linhas.length === 0 ? (
+              <div style={{ padding: '50px', textAlign: 'center' }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Nenhum trabalho registrado nesta quinzena</p>
+                <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>Os pagamentos aparecem conforme os registros de ponto.</p>
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.8fr 0.9fr 1fr 1fr 1.1fr', gap: '8px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#FCFDFE' }}>
+                  {['Ajudante', 'Diárias', 'Horas Extra', 'Diárias (R$)', 'H. Extras (R$)', 'Total a Receber'].map(h => (
+                    <span key={h} style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
+                  ))}
+                </div>
+                {linhas.map(l => (
+                  <div key={l.emp.id} style={{ display: 'grid', gridTemplateColumns: '2fr 0.8fr 0.9fr 1fr 1fr 1.1fr', gap: '8px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: l.emp.color || '#FF4D0C', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
+                        {l.emp.initials || l.emp.name?.split(' ').map(p => p[0]).slice(0, 2).join('')}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: '13px', fontWeight: 700, ...T, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.emp.name}</p>
+                        <p style={{ fontSize: '11px', ...TM }}>Diária {fmtCurrency(Number(l.emp.dailyRate || 0))} · HE {fmtCurrency(Number(l.emp.overtimeRate || 0))}/h</p>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>{l.dias} {l.dias === 1 ? 'dia' : 'dias'}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+                      {Math.floor(l.heMin / 60)}h{String(l.heMin % 60).padStart(2, '0')}
+                    </span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#2563EB' }}>{fmtCurrency(l.diarias)}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#D97706' }}>{fmtCurrency(l.he)}</span>
+                    <span style={{ fontSize: '14px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(l.total)}</span>
+                  </div>
+                ))}
+                {/* Total */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.8fr 0.9fr 1fr 1fr 1.1fr', gap: '8px', alignItems: 'center', padding: '14px 16px', background: '#F8FAFC' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 800, ...T }}>TOTAL</span>
+                  <span />
+                  <span />
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#2563EB' }}>{fmtCurrency(totalDiar)}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#D97706' }}>{fmtCurrency(totalHE)}</span>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(totalGeral)}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function AdminFinanceiro() {
   const { employees, companies } = useAuth();
   const [searchParams] = useSearchParams();
@@ -1182,6 +1357,7 @@ export default function AdminFinanceiro() {
         <>
           {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} />}
           {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} />}
+          {activeTab === 'folha'   && <TabFolhaPagamento employees={employees} />}
           {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}
           {activeTab === 'dre'     && <TabDRE           records={records} lancamentos={lancamentos} employees={employees} bounds={bounds} companies={companies} />}
