@@ -214,15 +214,16 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, recargas })
   const margemContrib = fat > 0 ? ((fat - folha - beneficios) / fat) * 100 : 0;
   const margemLucro   = fat > 0 ? (lucroLiquido / fat) * 100 : 0;
 
-  // Fatias do gráfico — devem somar ao faturamento
+  // Fatias do gráfico — devem somar ao faturamento. VT/VR aparecem sempre (R$ 0 quando o
+  // período não tem recarga), para os itens de benefício nunca sumirem do gráfico.
   const slices = [
     { name: 'Lucro Líquido',        value: Math.max(0, lucroLiquido), color: '#059669' },
     { name: 'Folha de Pagamento',   value: folha,                     color: '#2563EB' },
-    { name: 'Vale Transporte (VT)', value: beneficiosVT,              color: '#7C3AED' },
-    { name: 'Vale Refeição (VR)',   value: beneficiosVR,              color: '#0891B2' },
+    { name: 'Vale Transporte (VT)', value: beneficiosVT,              color: '#7C3AED', showAlways: true },
+    { name: 'Vale Refeição (VR)',   value: beneficiosVR,              color: '#0891B2', showAlways: true },
     { name: 'Custos Fixos',         value: custoFixo,                 color: '#D97706' },
     { name: 'Endividamento',        value: endivPeriodo,              color: '#E11D48' },
-  ].filter(s => s.value > 0);
+  ].filter(s => s.value > 0 || s.showAlways);
 
   const kpis = [
     { label: 'Faturamento',   value: fmtCurrency(fat),          icon: DollarSign, color: '#059669', bg: '#F0FDF4' },
