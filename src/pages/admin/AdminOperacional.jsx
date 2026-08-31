@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { fetchTodayAllRecords, fetchWorkRecordsByPeriod } from '../../lib/db';
 import { fmtCurrency, fmtDate } from '../../data/mockData';
-import { overtimeToMinutes, sumOvertimeMinutes, minutesToOvertimeString } from '../../lib/timeUtils';
+import { overtimeToMinutes, sumOvertimeMinutes, minutesToOvertimeString, recordRevenue } from '../../lib/timeUtils';
 import AdminDemanda from './AdminDemanda';
 import AdminOcorrencias from './AdminOcorrencias';
 import jsPDF from 'jspdf';
@@ -78,10 +78,9 @@ function ResumoDia() {
   const companiesWorking = [...new Set(allWorkedRecs.map(r => r.companyId))];
   const helpersWorking   = [...new Set(allWorkedRecs.map(r => r.employeeId))];
 
-  const faturamentoDia = allWorkedRecs.reduce((s, r) => {
-    const emp = employees.find(e => e.id === r.employeeId);
-    return s + Number(emp?.dailyRate ?? r.value ?? 150) + (overtimeToMinutes(r.overtime) / 60) * Number(emp?.overtimeRate ?? 50);
-  }, 0);
+  // Faturamento do dia: diária da empresa (admin) + HE proporcional por registro
+  const companiesById = Object.fromEntries((companies || []).map(c => [c.id, c]));
+  const faturamentoDia = allWorkedRecs.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
 
   // Assertividade = % de presença do dia (escalados na demanda menos faltas)
   const totalEscalados = todayDemands.reduce((s, d) => s + (d.employees?.length ?? 0), 0);
@@ -537,13 +536,9 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
 
               {presentes.map((rec, idx) => {
                 const emp     = viewBy === 'empresa' ? employees.find(e => e.id === rec.employeeId) : null;
-                const empRate = viewBy === 'empresa'
-                  ? Number(employees.find(e => e.id === rec.employeeId)?.dailyRate ?? dailyRate)
-                  : dailyRate;
-                const empHE   = viewBy === 'empresa'
-                  ? Number(employees.find(e => e.id === rec.employeeId)?.overtimeRate ?? heRate)
-                  : heRate;
-                const recVal  = empRate + (overtimeToMinutes(rec.overtime) / 60) * empHE;
+                // Valor faturado: diária da empresa (admin) + HE proporcional (diária ÷ 8 × 1,5) —
+                // não usa o salário do ajudante, que é custo interno
+                const recVal  = dailyRate + (overtimeToMinutes(rec.overtime) / 60) * heRate;
                 return (
                   <div key={rec.id ?? idx} style={{
                     display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px 60px 70px 70px',

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fetchWorkRecordsByPeriod } from '../../lib/db';
-import { sumOvertimeMinutes, minutesToOvertimeString } from '../../lib/timeUtils';
+import { sumOvertimeMinutes, minutesToOvertimeString, recordRevenue } from '../../lib/timeUtils';
 import { fmtCurrency, WEEKDAYS, MONTHS } from '../../data/mockData';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -100,9 +100,12 @@ export default function AdminDashboard() {
   // ── KPIs calculados dos dados reais ──────────────────────────────────────
   const periodRecs = records.filter(r => r.status !== 'absent'); // não-ausentes (agendado, ativo ou concluído)
 
+  // Mapa id → empresa: faturamento usa a diária cadastrada no admin
+  const companiesById = useMemo(() => Object.fromEntries((companies || []).map(c => [c.id, c])), [companies]);
+
   const activeToday     = records.filter(r => r.date === TODAY && r.status !== 'absent').length;
   const activeEmployees = employees.filter(e => e.status === 'active').length;
-  const periodRevenue   = periodRecs.reduce((s, r) => s + Number(r.value || 0), 0);
+  const periodRevenue   = periodRecs.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
   const periodHEMin    = sumOvertimeMinutes(periodRecs);
 
   // ── Dados dos gráficos ────────────────────────────────────────────────────
@@ -120,7 +123,7 @@ export default function AdminDashboard() {
         days.push({
           day:       `${String(d).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
           ajudantes: recs.length,
-          receita:   recs.reduce((s, r) => s + Number(r.value || 0), 0),
+          receita:   recs.reduce((s, r) => s + recordRevenue(r, companiesById), 0),
         });
       }
       return days;
@@ -132,13 +135,13 @@ export default function AdminDashboard() {
       const recs = periodRecs.filter(r =>
         r.date >= `${tYear}-${mm}-01` && r.date <= `${tYear}-${mm}-${String(mEnd).padStart(2,'0')}`
       );
-      return {
-        month:     MONTH_SHORT[m],
-        ajudantes: recs.length,
-        receita:   recs.reduce((s, r) => s + Number(r.value || 0), 0),
-      };
+        return {
+          month:     MONTH_SHORT[m],
+          ajudantes: recs.length,
+          receita:   recs.reduce((s, r) => s + recordRevenue(r, companiesById), 0),
+        };
     });
-  }, [periodRecs, period, start, end, tYear]);
+  }, [periodRecs, period, start, end, tYear, companiesById]);
 
   const xKey = period === 'ano' ? 'month' : 'day';
 
@@ -149,10 +152,10 @@ export default function AdminDashboard() {
         name:  c.name.split(' ')[0],
         value: periodRecs
           .filter(r => r.companyId === c.id)
-          .reduce((s, r) => s + Number(r.value || 0), 0),
+          .reduce((s, r) => s + recordRevenue(r, companiesById), 0),
       }))
       .filter(d => d.value > 0),
-    [periodRecs, companies]
+    [periodRecs, companies, companiesById]
   );
 
   const weekday = WEEKDAYS[TODAY_DATE.getUTCDay()];

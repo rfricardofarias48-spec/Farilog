@@ -404,9 +404,11 @@ export default function DemandForm({
   let totalOvertimeMinutes = 0;
   let totalDiariasValue = 0;
 
+  // Faturamento usa a diária da empresa selecionada (cadastro no admin), não a do ajudante
+  const companyDiaria = Number(companies?.find(c => c.id === form.companyId)?.dailyRate ?? 150);
+
   form.selectedEmployees.forEach(empId => {
-    const emp = employees.find(e => e.id === empId);
-    totalDiariasValue += (emp?.dailyRate || 150);
+    totalDiariasValue += companyDiaria;
 
     const t = form.employeeTimes[empId] || {
       entrada: form.entrada || '07:30',

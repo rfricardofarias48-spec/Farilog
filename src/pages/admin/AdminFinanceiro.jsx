@@ -9,7 +9,7 @@ import {
   createLancamentoManual, deleteLancamento,
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
-import { overtimeToMinutes } from '../../lib/timeUtils';
+import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell,
@@ -76,7 +76,7 @@ function getBounds(type, offset) {
   return { start: `${yr}-01-01`, end: `${yr}-12-31`, label: String(yr) };
 }
 
-function buildChartData(type, start, end, records, lancamentos) {
+function buildChartData(type, start, end, records, lancamentos, companiesById) {
   const isDay = type === 'quinzenal' || type === 'mensal';
   const buckets = [];
 
@@ -104,7 +104,7 @@ function buildChartData(type, start, end, records, lancamentos) {
     const match = (date) => isDay ? date === b.key : date.startsWith(b.key);
     const aReceber =
       records.filter(r => r.status !== 'absent' && match(r.date))
-        .reduce((s, r) => s + Number(r.value || 0), 0) +
+        .reduce((s, r) => s + recordRevenue(r, companiesById), 0) +
       lancamentos.filter(l => l.tipo === 'a_receber' && match(l.data_vencimento))
         .reduce((s, l) => s + Number(l.valor || 0), 0);
     const aPagar = lancamentos.filter(l => l.tipo === 'a_pagar' && match(l.data_vencimento))
@@ -187,10 +187,12 @@ function PeriodSelector({ type, offset, bounds, onChangeType, onChangeOffset }) 
 }
 
 // ── Tab: Visão Geral ───────────────────────────────────────────────────────
-function TabVisaoGeral({ records, lancamentos, employees }) {
+function TabVisaoGeral({ records, lancamentos, employees, companies }) {
   const active = records.filter(r => r.status !== 'absent');
+  const companiesById = Object.fromEntries((companies || []).map(c => [c.id, c]));
 
-  const fat = active.reduce((s, r) => s + Number(r.value || 0), 0);
+  // Faturamento: diária da empresa (admin) + HE proporcional (diária ÷ 8 × 1,5)
+  const fat = active.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
 
   // Folha de pagamento (diárias) e benefícios (horas extras) separados
   const folha = active.reduce((s, r) => {
@@ -478,9 +480,14 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const [modal,    setModal]    = useState(null); // 'receber' | 'pagar'
   const [showAdd,  setShowAdd]  = useState(false);
 
+  const companiesById = useMemo(
+    () => Object.fromEntries((companies || []).map(c => [c.id, c])),
+    [companies]
+  );
+
   const chartData = useMemo(
-    () => buildChartData(periodType, bounds.start, bounds.end, records, lancamentos),
-    [periodType, bounds.start, bounds.end, records, lancamentos]
+    () => buildChartData(periodType, bounds.start, bounds.end, records, lancamentos, companiesById),
+    [periodType, bounds.start, bounds.end, records, lancamentos, companiesById]
   );
   const hasChart = chartData.some(b => b.aReceber > 0 || b.aPagar > 0);
 
@@ -494,7 +501,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     records.filter(r => r.status !== 'absent').forEach(r => {
       const key = `${r.date}__${r.companyId}`;
       if (!map[key]) map[key] = { date: r.date, companyId: r.companyId, valor: 0, count: 0 };
-      map[key].valor += Number(r.value || 0);
+      map[key].valor += recordRevenue(r, companiesById);
       map[key].count++;
     });
     const fromRecs = Object.values(map).map(g => {
@@ -1026,10 +1033,12 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
 }
 
 // ── Tab: DRE ───────────────────────────────────────────────────────────────
-function TabDRE({ records, lancamentos, employees, bounds }) {
+function TabDRE({ records, lancamentos, employees, bounds, companies }) {
   const active = records.filter(r => r.status !== 'absent');
+  const companiesById = Object.fromEntries((companies || []).map(c => [c.id, c]));
 
-  const receitaBruta   = active.reduce((s, r) => s + Number(r.value || 0), 0);
+  // Receita bruta: diária da empresa (admin) + HE proporcional (diária ÷ 8 × 1,5)
+  const receitaBruta   = active.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
   const custServicos   = active.reduce((s, r) => {
     const emp = employees.find(e => e.id === r.employeeId);
     return s + Number(emp?.dailyRate ?? 0) + (overtimeToMinutes(r.overtime) / 60) * Number(emp?.overtimeRate ?? 50);
@@ -1156,11 +1165,11 @@ export default function AdminFinanceiro() {
         </div>
       ) : (
         <>
-          {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} />}
+          {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} />}
           {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} />}
           {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}
-          {activeTab === 'dre'     && <TabDRE           records={records} lancamentos={lancamentos} employees={employees} bounds={bounds} />}
+          {activeTab === 'dre'     && <TabDRE           records={records} lancamentos={lancamentos} employees={employees} bounds={bounds} companies={companies} />}
         </>
       )}
     </div>

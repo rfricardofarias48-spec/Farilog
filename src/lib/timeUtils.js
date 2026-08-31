@@ -148,3 +148,20 @@ export function minutesToOvertimeString(minutes) {
   const m = mins % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
+
+/**
+ * Valor da hora extra por hora a partir da diária (regra: diária ÷ 8h + 50%).
+ * Ex.: diária 155 → (155 / 8) × 1,5 = R$ 29,06/h
+ */
+export function heHourlyRate(dailyRate) {
+  return ((Number(dailyRate) || 150) / 8) * 1.5;
+}
+
+/**
+ * Valor faturado de um registro para a empresa: diária da empresa (cadastro no
+ * admin) + hora extra proporcional. companiesById é um mapa id → empresa.
+ */
+export function recordRevenue(record, companiesById) {
+  const rate = Number(companiesById?.[record?.companyId]?.dailyRate) || 150;
+  return rate + (overtimeToMinutes(record?.overtime) / 60) * heHourlyRate(rate);
+}
