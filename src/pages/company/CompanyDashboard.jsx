@@ -267,13 +267,15 @@ function buildPeriodChartData(records, companyId, startIso, endIso) {
     const date = `${sy}-${String(sm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dow  = new Date(`${date}T12:00:00Z`).getUTCDay();
     const recs = records.filter(r => r.date === date && r.status !== 'absent');
+    const heCount = recs.filter(r => r.overtime).length;
     const isWeekend = dow === 0 || dow === 6;
     days.push({
       date,
       label: `${String(d).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.length,
-      value: recs.reduce((s, r) => s + (r.value || 150), 0),
+      value: recs.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0) + heCount * VALOR_HORA_EXTRA,
+      heCount,
       isWeekend,
     });
   }
@@ -316,6 +318,7 @@ function buildQuinzenaData(records, offset = 0) {
     const date = `${year}-${mm}-${dd}`;
     const dow  = new Date(year, month, d).getDay();
     const recs = records.filter(r => r.date === date && r.status !== 'absent');
+    const heCount = recs.filter(r => r.overtime).length;
     const isToday   = date === TODAY;
     const isWeekend = dow === 0 || dow === 6;
     days.push({
@@ -323,7 +326,8 @@ function buildQuinzenaData(records, offset = 0) {
       label: `${String(d).padStart(2,'0')}/${String(month + 1).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.length,
-      value: recs.reduce((s, r) => s + (r.value || 150), 0),
+      value: recs.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0) + heCount * VALOR_HORA_EXTRA,
+      heCount,
       isToday,
       isWeekend,
     });
@@ -351,6 +355,11 @@ const QuinzenaTooltip = ({ active, payload, label }) => {
       <p style={{ color: '#FF4D0C', fontSize: '12px', fontWeight: 600 }}>
         {fmtCurrency(d?.value || 0)}
       </p>
+      {d?.heCount > 0 && (
+        <p style={{ color: '#94A3B8', fontSize: '10px', fontWeight: 600, marginTop: '3px' }}>
+          inclui {d.heCount} hora{d.heCount !== 1 ? 's' : ''} extra{d.heCount !== 1 ? 's' : ''}
+        </p>
+      )}
     </div>
   );
 };
@@ -1676,8 +1685,9 @@ function FinPeriodModal({ payment, companyId, onClose }) {
   const totalEscala    = allRecs.length;
   const totalFaltas    = allRecs.filter(r => r.status === 'absent').length;
   const totalPresentes = totalEscala - totalFaltas;
-  const totalHE        = allRecs.filter(r => r.overtime).length;
-  const totalValor     = totalPresentes * VALOR_DIARIA + totalHE * VALOR_HORA_EXTRA;
+  const totalHE        = allRecs.filter(r => r.status !== 'absent' && r.overtime).length;
+  const totalValorDiarias = allRecs.filter(r => r.status !== 'absent').reduce((s, r) => s + (r.value || VALOR_DIARIA), 0);
+  const totalValor     = totalValorDiarias + totalHE * VALOR_HORA_EXTRA;
 
   const statusColor = payment.status === 'paid' ? '#059669' : payment.status === 'overdue' ? '#E11D48' : '#D97706';
   const statusLabel = payment.status === 'paid' ? 'Pago' : payment.status === 'pending' ? 'Pendente' : 'Atrasado';
@@ -1702,10 +1712,11 @@ function FinPeriodModal({ payment, companyId, onClose }) {
           </div>
 
           {/* Resumo */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-4 gap-3 mb-4">
             {[
               { label:'Diárias',  value: totalEscala,    color:'#FF4D0C' },
               { label:'Presentes', value: totalPresentes, color:'#059669' },
+              { label:'H. Extras', value: totalHE,        color:'#D97706' },
               { label:'Faltas',   value: totalFaltas,    color: totalFaltas > 0 ? '#E11D48' : '#94A3B8' },
             ].map((s, i) => (
               <div key={i} className="card-inner text-center" style={{ padding:'12px 8px' }}>
@@ -1720,10 +1731,12 @@ function FinPeriodModal({ payment, companyId, onClose }) {
             {days.length === 0 ? (
               <div className="py-10 text-center text-sm" style={{ color:'#94A3B8' }}>Sem registros neste período</div>
             ) : days.map(([date, recs], idx) => {
-              const escala  = recs.length;
-              const faltas  = recs.filter(r => r.status === 'absent').length;
-              const atrasos = recs.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
-              const valor   = (escala - faltas) * 150;
+              const escala    = recs.length;
+              const faltas    = recs.filter(r => r.status === 'absent').length;
+              const atrasos   = recs.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
+              const presentes = recs.filter(r => r.status !== 'absent');
+              const heCount   = presentes.filter(r => r.overtime).length;
+              const valor     = presentes.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0) + heCount * VALOR_HORA_EXTRA;
               const [, m, d] = date.split('-');
               const dow = DOW_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
               const isToday = date === TODAY;
@@ -1749,6 +1762,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
                       <span className="text-xs" style={{ color:'#475569' }}>{escala} ajudante{escala !== 1 ? 's' : ''}</span>
                       {faltas  > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#FFE4E6', color:'#BE123C' }}>{faltas} falta{faltas !== 1 ? 's' : ''}</span>}
                       {atrasos > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#FEF3C7', color:'#B45309' }}>{atrasos} atraso{atrasos !== 1 ? 's' : ''}</span>}
+                      {heCount > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#FFF7ED', color:'#C2410C' }}>{heCount} h. extra{heCount !== 1 ? 's' : ''}</span>}
                     </div>
                   </div>
 
@@ -1807,6 +1821,7 @@ function Financial({ companyId }) {
   const quinzenaInfo  = qOffset === 0 ? getQuinzenaInfo() : getQuinzenaInfoByOffset(qOffset);
   const quinzenaData  = buildQuinzenaData(records, qOffset);
   const quinzenaTotal = quinzenaData.reduce((s, d) => s + d.count, 0);
+  const quinzenaHE    = quinzenaData.reduce((s, d) => s + (d.heCount || 0), 0);
   const quinzenaValue = quinzenaData.reduce((s, d) => s + d.value, 0);
   const maxValue      = Math.max(...quinzenaData.map(d => d.value), 1);
 
@@ -1873,6 +1888,11 @@ function Financial({ companyId }) {
               <div className="text-right">
                 <p className="text-xs" style={TM}>Faturado na quinzena</p>
                 <p className="font-bold text-lg" style={{ color:'#059669' }}>{fmtCurrency(quinzenaValue)}</p>
+                {quinzenaHE > 0 && (
+                  <p className="text-xs mt-0.5" style={TM}>
+                    {quinzenaTotal} diária{quinzenaTotal !== 1 ? 's' : ''} + {quinzenaHE} h. extra{quinzenaHE !== 1 ? 's' : ''}
+                  </p>
+                )}
               </div>
             </div>
 
