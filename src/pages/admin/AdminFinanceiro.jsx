@@ -201,8 +201,10 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, recargas })
     return s + Number(emp?.dailyRate ?? 0) + (overtimeToMinutes(r.overtime) / 60) * Number(emp?.overtimeRate ?? 50);
   }, 0);
 
-  // Benefícios: recargas de VT/VR lançadas no RH no período
-  const beneficios = (recargas || []).reduce((s, r) => s + Number(r.total || 0), 0);
+  // Benefícios: recargas lançadas no RH no período — cada tipo (VT, VR) é um item do gráfico
+  const beneficiosVT = (recargas || []).filter(r => r.tipo === 'VT').reduce((s, r) => s + Number(r.total || 0), 0);
+  const beneficiosVR = (recargas || []).filter(r => r.tipo === 'VR').reduce((s, r) => s + Number(r.total || 0), 0);
+  const beneficios   = beneficiosVT + beneficiosVR;
 
   const custoFixo    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo').reduce((s, l) => s + Number(l.valor || 0), 0);
   const endivPeriodo = lancamentos.filter(l => l.origem_tipo === 'divida').reduce((s, l) => s + Number(l.valor || 0), 0);
@@ -216,7 +218,8 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, recargas })
   const slices = [
     { name: 'Lucro Líquido',        value: Math.max(0, lucroLiquido), color: '#059669' },
     { name: 'Folha de Pagamento',   value: folha,                     color: '#2563EB' },
-    { name: 'Benefícios (VT/VR)',   value: beneficios,                color: '#7C3AED' },
+    { name: 'Vale Transporte (VT)', value: beneficiosVT,              color: '#7C3AED' },
+    { name: 'Vale Refeição (VR)',   value: beneficiosVR,              color: '#0891B2' },
     { name: 'Custos Fixos',         value: custoFixo,                 color: '#D97706' },
     { name: 'Endividamento',        value: endivPeriodo,              color: '#E11D48' },
   ].filter(s => s.value > 0);
