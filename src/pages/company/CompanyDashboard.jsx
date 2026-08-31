@@ -3612,7 +3612,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                                   </div>
                                   <div style={{ textAlign: 'center' }}>
                                     <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Valor</p>
-                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#059669', background: '#ECFDF5', padding: '2px 6px', borderRadius: '5px' }}>{fmtCurrency(rec.value || VALOR_DIARIA)}</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#059669', background: '#ECFDF5', padding: '2px 6px', borderRadius: '5px' }}>{fmtCurrency((rec.value || VALOR_DIARIA) + (overtimeToMinutes(rec.overtime) / 60) * VALOR_HORA_EXTRA)}</p>
                                   </div>
                                 </div>
                               )}
