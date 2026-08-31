@@ -11,6 +11,7 @@ import {
   Activity, Building2, Users, DollarSign, CheckCircle2,
   Clock, Send, ClipboardList, BarChart2, FileDown,
   ChevronLeft, ChevronRight, Filter, Search, X, Plus, TrendingUp,
+  CalendarDays,
 } from 'lucide-react';
 
 const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -100,14 +101,19 @@ function ResumoDia() {
     <div className="space-y-5">
 
       {/* Banner de data */}
-      <div className="rounded-2xl p-5 flex items-center justify-between"
-        style={{ background: 'linear-gradient(135deg, #111827 0%, #1E293B 100%)', color: 'white' }}>
-        <div>
-          <p style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{dateLabel}</p>
-          <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>Dados em tempo real</p>
+      <div className="rounded-2xl p-5 flex items-center justify-between animate-fade-up"
+        style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.06)', boxShadow: '0 1px 3px rgba(15,23,42,0.04)' }}>
+        <div className="flex items-center gap-3">
+          <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg,#FFF4EF,#FFE6D9)', border: '1px solid rgba(255,77,12,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CalendarDays size={20} style={{ color: '#FF4D0C' }} />
+          </div>
+          <div>
+            <p style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#0F172A' }}>{dateLabel}</p>
+            <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '3px' }}>Dados em tempo real</p>
+          </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: '11px', color: '#64748B', marginBottom: '4px' }}>Faturamento do dia</p>
+          <p style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '4px' }}>Faturamento do dia</p>
           <p style={{ fontSize: '28px', fontWeight: 900, color: '#FF4D0C', lineHeight: 1 }}>{fmtCurrency(faturamentoDia)}</p>
         </div>
       </div>
@@ -475,15 +481,15 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
         <div style={{
           padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           borderBottom: '1px solid rgba(0,0,0,0.07)',
-          background: '#1E293B', borderRadius: '20px 20px 0 0',
+          background: '#F8FAFC',
         }}>
           <div>
-            <p style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F9' }}>{day.label}</p>
-            <p style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{day.label}</p>
+            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
               {presentes.length} ajudante{presentes.length !== 1 ? 's' : ''} · {day.heCount} H.E. · Total: {fmtCurrency(totalValor)}
             </p>
           </div>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#94A3B8', display: 'flex' }}>
+          <button onClick={onClose} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#94A3B8', display: 'flex' }}>
             <X size={15} />
           </button>
         </div>

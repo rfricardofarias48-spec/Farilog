@@ -225,17 +225,17 @@ function DemandModal({ demand, employees, onChangeStatus, onUpdateTimes, onUpdat
         overflow: 'hidden',
       }}>
 
-        {/* ── Topo escuro com empresa + dados ── */}
+        {/* ── Topo com empresa + dados ── */}
         <div style={{
-          background: 'linear-gradient(135deg,#111827 0%,#1E293B 100%)',
           padding: '22px 24px 18px',
           position: 'relative',
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
         }}>
           {/* Fechar */}
           <button onClick={onClose} style={{
             position: 'absolute', top: '16px', right: '16px',
             width: '32px', height: '32px', borderRadius: '8px',
-            background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer',
+            background: '#F1F5F9', border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8',
           }}>
             <X size={15} />
@@ -244,34 +244,34 @@ function DemandModal({ demand, employees, onChangeStatus, onUpdateTimes, onUpdat
           <div className="flex items-center gap-2 mb-1">
             <span style={{
               fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px',
-              background: demand.tipoServico === 'carga_descarga' ? 'rgba(34,197,94,0.2)' : 'rgba(59,130,246,0.2)',
-              color: demand.tipoServico === 'carga_descarga' ? '#4ADE80' : '#60A5FA',
+              background: demand.tipoServico === 'carga_descarga' ? '#DCFCE7' : '#DBEAFE',
+              color: demand.tipoServico === 'carga_descarga' ? '#059669' : '#2563EB',
             }}>
               {demand.tipoServico === 'carga_descarga' ? 'Carga e Descarga' : 'Entrega'}
             </span>
             <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 600 }}>Gestão Manual de Horários</span>
           </div>
 
-          <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', lineHeight: 1.2, marginBottom: '14px' }}>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2, marginBottom: '14px' }}>
             {demand.companyName}
           </p>
 
           {/* Três métricas em linha */}
           <div style={{ display: 'flex', gap: '10px' }}>
             {/* Horário entrada */}
-            <div style={{ flex: 1, background: 'rgba(255,77,12,0.15)', borderRadius: '12px', padding: '9px 12px' }}>
-              <p style={{ fontSize: '9px', fontWeight: 600, color: '#FF7043', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Entrada Padrão</p>
-              <p style={{ fontSize: '18px', fontWeight: 800, color: '#fff', lineHeight: 1 }}>{demand.time || '—'}</p>
+            <div style={{ flex: 1, background: '#FFF2EE', borderRadius: '12px', padding: '9px 12px', border: '1px solid rgba(255,77,12,0.12)' }}>
+              <p style={{ fontSize: '9px', fontWeight: 600, color: '#FF4D0C', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Entrada Padrão</p>
+              <p style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{demand.time || '—'}</p>
             </div>
             {/* Ajudantes */}
-            <div style={{ flex: 1, background: 'rgba(255,255,255,0.06)', borderRadius: '12px', padding: '9px 12px' }}>
-              <p style={{ fontSize: '9px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Ajudantes</p>
-              <p style={{ fontSize: '18px', fontWeight: 800, color: '#fff', lineHeight: 1 }}>{demand.employees.length}</p>
+            <div style={{ flex: 1, background: '#F8FAFC', borderRadius: '12px', padding: '9px 12px', border: '1px solid rgba(15,23,42,0.06)' }}>
+              <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Ajudantes</p>
+              <p style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{demand.employees.length}</p>
             </div>
             {/* Data */}
-            <div style={{ flex: 1, background: 'rgba(255,255,255,0.06)', borderRadius: '12px', padding: '9px 12px' }}>
-              <p style={{ fontSize: '9px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Data da Escala</p>
-              <p style={{ fontSize: '14px', fontWeight: 800, color: '#fff', lineHeight: 1 }}>{formatDate(demand.date).split(',')[0]}<br/><span style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8' }}>{formatDate(demand.date).split(', ')[1]}</span></p>
+            <div style={{ flex: 1, background: '#F8FAFC', borderRadius: '12px', padding: '9px 12px', border: '1px solid rgba(15,23,42,0.06)' }}>
+              <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Data da Escala</p>
+              <p style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{formatDate(demand.date).split(',')[0]}<br/><span style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8' }}>{formatDate(demand.date).split(', ')[1]}</span></p>
             </div>
           </div>
         </div>

@@ -155,7 +155,7 @@ function PeriodSelector({ type, offset, bounds, onChangeType, onChangeOffset }) 
     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
       <div ref={ref} style={{ position: 'relative' }}>
         <button onClick={() => setOpen(v => !v)}
-          style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#F1F5F9', fontSize: '12px', fontWeight: 600, color: '#0F172A' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px', borderRadius: '10px', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', background: '#fff', fontSize: '12px', fontWeight: 600, color: '#0F172A', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
           {bounds.label}
           <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 500 }}>· {typeLabel}</span>
           <ChevronDown size={12} style={{ color: '#94A3B8' }} />
@@ -174,11 +174,11 @@ function PeriodSelector({ type, offset, bounds, onChangeType, onChangeOffset }) 
         )}
       </div>
       <button onClick={() => onChangeOffset(o => o - 1)}
-        style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
         <ChevronLeft size={13} />
       </button>
       <button onClick={() => onChangeOffset(o => Math.min(o + 1, 0))}
-        style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
         <ChevronRight size={13} />
       </button>
     </div>
@@ -326,13 +326,13 @@ function AddLancamentoModal({ onSave, onClose }) {
       <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
 
         {/* Header */}
-        <div style={{ background: 'linear-gradient(135deg,#111827,#1E293B)', padding: '24px 24px 20px', position: 'relative' }}>
+        <div style={{ padding: '22px 24px 18px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <button onClick={onClose}
-            style={{ position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={15} />
           </button>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Novo Lançamento</p>
-          <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Novo Lançamento</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
             {isPagar ? 'Conta a Pagar' : 'Conta a Receber'}
           </p>
         </div>
@@ -422,12 +422,12 @@ function ListModal({ title, items, onDelete, onClose }) {
       style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '680px', maxHeight: '84vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', background: '#1E293B', borderRadius: '20px 20px 0 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <div>
-            <p style={{ fontSize: '15px', fontWeight: 700, color: '#F1F5F9' }}>{title}</p>
-            <p style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>{items.length} lançamento{items.length !== 1 ? 's' : ''}</p>
+            <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>{title}</p>
+            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>{items.length} lançamento{items.length !== 1 ? 's' : ''}</p>
           </div>
-          <button onClick={onClose} style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={onClose} style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={15} />
           </button>
         </div>
@@ -606,18 +606,18 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {/* Todos */}
           <button onClick={() => setView('all')}
-            style={{ padding: '7px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'all' ? '#0F172A' : '#F1F5F9', color: view === 'all' ? 'white' : '#64748B' }}>
+            style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid', borderColor: view === 'all' ? 'rgba(15,23,42,0.15)' : 'rgba(15,23,42,0.08)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'all' ? '#0F172A' : '#fff', color: view === 'all' ? 'white' : '#64748B', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
             Todos
           </button>
 
           {/* A Receber + Ver mais */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <button onClick={() => setView('receber')}
-              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'receber' ? '#F0FDF4' : '#F1F5F9', color: view === 'receber' ? '#059669' : '#64748B' }}>
+              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'receber' ? '#F0FDF4' : '#fff', color: view === 'receber' ? '#059669' : '#64748B', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
               A Receber
             </button>
             <button onClick={() => setModal('receber')} title="Ver lista completa"
-              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: 'none', borderLeft: '1px solid rgba(0,0,0,0.07)', cursor: 'pointer', background: view === 'receber' ? '#F0FDF4' : '#F1F5F9', color: '#94A3B8', display: 'flex', alignItems: 'center' }}>
+              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: '1px solid rgba(15,23,42,0.08)', borderLeft: 'none', cursor: 'pointer', background: view === 'receber' ? '#F0FDF4' : '#fff', color: '#94A3B8', display: 'flex', alignItems: 'center', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
               <Maximize2 size={11} />
             </button>
           </div>
@@ -625,11 +625,11 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           {/* A Pagar + Ver mais */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <button onClick={() => setView('pagar')}
-              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'pagar' ? '#FFF1F2' : '#F1F5F9', color: view === 'pagar' ? '#E11D48' : '#64748B' }}>
+              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'pagar' ? '#FFF1F2' : '#fff', color: view === 'pagar' ? '#E11D48' : '#64748B', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
               A Pagar
             </button>
             <button onClick={() => setModal('pagar')} title="Ver lista completa"
-              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: 'none', borderLeft: '1px solid rgba(0,0,0,0.07)', cursor: 'pointer', background: view === 'pagar' ? '#FFF1F2' : '#F1F5F9', color: '#94A3B8', display: 'flex', alignItems: 'center' }}>
+              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: '1px solid rgba(15,23,42,0.08)', borderLeft: 'none', cursor: 'pointer', background: view === 'pagar' ? '#FFF1F2' : '#fff', color: '#94A3B8', display: 'flex', alignItems: 'center', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
               <Maximize2 size={11} />
             </button>
           </div>
@@ -731,12 +731,12 @@ function NovaDividaModal({ onSave, onClose }) {
     <div onClick={e => e.target === e.currentTarget && onClose()}
       style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '480px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
-        <div style={{ background: 'linear-gradient(135deg,#111827,#1E293B)', padding: '24px 24px 20px', position: 'relative' }}>
-          <button onClick={onClose} style={{ position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ padding: '22px 24px 18px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <button onClick={onClose} style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={15} />
           </button>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Endividamento</p>
-          <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff' }}>Nova Dívida</p>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Endividamento</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A' }}>Nova Dívida</p>
         </div>
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
@@ -883,12 +883,12 @@ function NovoCustoModal({ onSave, onClose }) {
     <div onClick={e => e.target === e.currentTarget && onClose()}
       style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '440px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
-        <div style={{ background: 'linear-gradient(135deg,#111827,#1E293B)', padding: '24px 24px 20px', position: 'relative' }}>
-          <button onClick={onClose} style={{ position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ padding: '22px 24px 18px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <button onClick={onClose} style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={15} />
           </button>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Custos Fixos</p>
-          <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff' }}>Novo Custo Fixo</p>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Custos Fixos</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A' }}>Novo Custo Fixo</p>
         </div>
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
@@ -1062,9 +1062,9 @@ function TabDRE({ records, lancamentos, employees, bounds }) {
       </div>
 
       <div className="card overflow-hidden">
-        {/* Header escuro */}
-        <div style={{ padding: '14px 16px', background: '#1E293B' }}>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
+        {/* Header */}
+        <div style={{ padding: '14px 16px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
             DRE — {bounds.label}
           </p>
         </div>

@@ -40,30 +40,35 @@ export default function AdminSolicitacoes() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>Solicitações de Ajudantes</h1>
-        <p className="text-sm mt-1" style={{ color: '#94A3B8' }}>Pedidos de ajudantes recebidos</p>
+      <div className="animate-fade-up">
+        <h1 className="text-xl font-bold" style={{ color: '#0F172A' }}>Solicitações de Ajudantes</h1>
+        <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>Pedidos de ajudantes recebidos das empresas</p>
       </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
+      <div className="animate-fade-up delay-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
         {[
-          { key: 'pendente',     label: 'Pendentes',     color: '#D97706' },
-          { key: 'em_andamento', label: 'Em andamento',  color: '#2563EB' },
-          { key: 'concluido',    label: 'Concluídos',    color: '#059669' },
+          { key: 'pendente',     label: 'Pendentes',     color: '#D97706', Icon: Clock },
+          { key: 'em_andamento', label: 'Em andamento',  color: '#2563EB', Icon: RefreshCw },
+          { key: 'concluido',    label: 'Concluídos',    color: '#059669', Icon: CheckCircle2 },
         ].map(k => (
-          <div key={k.key} className="card" style={{ padding: '16px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.07)' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '6px' }}>{k.label}</p>
-            <p style={{ fontSize: '28px', fontWeight: 800, color: k.color, lineHeight: 1 }}>{counts[k.key]}</p>
+          <div key={k.key} className="stat-card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${k.color}14`, border: `1px solid ${k.color}26` }}>
+              <k.Icon size={17} style={{ color: k.color }} />
+            </div>
+            <div>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', marginBottom: '2px' }}>{k.label}</p>
+              <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{counts[k.key]}</p>
+            </div>
           </div>
         ))}
       </div>
 
       {/* Filtros */}
-      <div style={{ display: 'flex', gap: '4px', padding: '4px', borderRadius: '12px', background: '#F1F5F9', width: 'fit-content' }}>
+      <div className="animate-fade-up delay-2" style={{ display: 'flex', gap: '4px', padding: '4px', borderRadius: '12px', background: '#fff', border: '1px solid rgba(15,23,42,0.08)', width: 'fit-content', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
         {[['todos','Todos'], ['pendente','Pendentes'], ['em_andamento','Em andamento'], ['concluido','Concluídos']].map(([val, lbl]) => (
           <button key={val} onClick={() => setFiltro(val)}
-            style={{ padding: '6px 16px', borderRadius: '9px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, background: filtro === val ? 'white' : 'transparent', color: filtro === val ? '#0F172A' : '#94A3B8', boxShadow: filtro === val ? '0 1px 4px rgba(0,0,0,0.10)' : 'none', transition: 'all 0.15s' }}>
+            style={{ padding: '6px 16px', borderRadius: '9px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, background: filtro === val ? 'linear-gradient(180deg,#FF5A1F,#FF4D0C)' : 'transparent', color: filtro === val ? '#fff' : '#64748B', boxShadow: filtro === val ? '0 4px 12px -4px rgba(255,77,12,0.5)' : 'none', transition: 'all 0.15s' }}>
             {lbl}
           </button>
         ))}
