@@ -7,6 +7,7 @@ import { fetchCompanyRecords, subscribeToCompanyRecords, fetchEscalaHojeByEmpres
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { PAYMENTS, fmtCurrency, fmtDate, WEEKDAYS, MONTHS } from '../../data/mockData';
+import { overtimeToMinutes, sumOvertimeMinutes, minutesToOvertimeString } from '../../lib/timeUtils';
 
 // ── Contexto interno de dados da empresa ──────────────────────────────────
 const CompanyDataCtx = createContext({ records: [], employees: [], escalas: [], relatorios: [] });
@@ -206,12 +207,6 @@ function TrucksPanel({ escalaKey, escalaId, readOnly = false }) {
   );
 }
 
-// Converte contagem de horas extras para formato HH:MM (ex: 3 → "03:00")
-const fmtHoursCount = (n) => {
-  if (!n) return '—';
-  return `${String(n).padStart(2,'0')}:00`;
-};
-
 // ── Agrupamento por função ─────────────────────────────────────────────────
 const GROUP_PALETTE = ['#3B82F6','#8B5CF6','#059669','#D97706','#0891B2','#EC4899'];
 function groupByService(records) {
@@ -267,15 +262,15 @@ function buildPeriodChartData(records, companyId, startIso, endIso) {
     const date = `${sy}-${String(sm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dow  = new Date(`${date}T12:00:00Z`).getUTCDay();
     const recs = records.filter(r => r.date === date && r.status !== 'absent');
-    const heCount = recs.filter(r => r.overtime).length;
+    const heMin = sumOvertimeMinutes(recs);
     const isWeekend = dow === 0 || dow === 6;
     days.push({
       date,
       label: `${String(d).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.length,
-      value: recs.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0) + heCount * VALOR_HORA_EXTRA,
-      heCount,
+      value: recs.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0) + (heMin / 60) * VALOR_HORA_EXTRA,
+      heMin,
       isWeekend,
     });
   }
@@ -318,7 +313,7 @@ function buildQuinzenaData(records, offset = 0) {
     const date = `${year}-${mm}-${dd}`;
     const dow  = new Date(year, month, d).getDay();
     const recs = records.filter(r => r.date === date && r.status !== 'absent');
-    const heCount = recs.filter(r => r.overtime).length;
+    const heMin = sumOvertimeMinutes(recs);
     const isToday   = date === TODAY;
     const isWeekend = dow === 0 || dow === 6;
     days.push({
@@ -326,8 +321,8 @@ function buildQuinzenaData(records, offset = 0) {
       label: `${String(d).padStart(2,'0')}/${String(month + 1).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.length,
-      value: recs.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0) + heCount * VALOR_HORA_EXTRA,
-      heCount,
+      value: recs.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0) + (heMin / 60) * VALOR_HORA_EXTRA,
+      heMin,
       isToday,
       isWeekend,
     });
@@ -355,9 +350,9 @@ const QuinzenaTooltip = ({ active, payload, label }) => {
       <p style={{ color: '#FF4D0C', fontSize: '12px', fontWeight: 600 }}>
         {fmtCurrency(d?.value || 0)}
       </p>
-      {d?.heCount > 0 && (
+      {d?.heMin > 0 && (
         <p style={{ color: '#94A3B8', fontSize: '10px', fontWeight: 600, marginTop: '3px' }}>
-          inclui {d.heCount} hora{d.heCount !== 1 ? 's' : ''} extra{d.heCount !== 1 ? 's' : ''}
+          inclui {minutesToOvertimeString(d.heMin)} de hora extra
         </p>
       )}
     </div>
@@ -1649,18 +1644,18 @@ const VALOR_DIARIA   = 150;
 const VALOR_HORA_EXTRA = 50;
 
 // Calcula o valor total da fatura a partir dos registros do período:
-// total = soma(rec.value) + (horas extras × VALOR_HORA_EXTRA)
+// total = soma(rec.value) + (minutos de hora extra ÷ 60 × VALOR_HORA_EXTRA)
 function calcPaymentTotal(payment, records) {
   const pStart = parsePeriodStart(payment.period);
   const pEnd   = parsePeriodEnd(payment.period);
-  if (!pStart || !pEnd) return { total: 0, diarias: 0, heCount: 0, valorDiarias: 0, valorHE: 0 };
+  if (!pStart || !pEnd) return { total: 0, diarias: 0, heMin: 0, valorDiarias: 0, valorHE: 0 };
   const recs     = records.filter(r => r.date >= pStart && r.date <= pEnd);
   const presentes = recs.filter(r => r.status !== 'absent');
   const diarias  = presentes.length;
-  const heCount  = presentes.filter(r => r.overtime).length;
+  const heMin    = sumOvertimeMinutes(presentes);
   const valorDiarias = presentes.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0);
-  const valorHE      = heCount * VALOR_HORA_EXTRA;
-  return { total: valorDiarias + valorHE, diarias, heCount, valorDiarias, valorHE };
+  const valorHE      = (heMin / 60) * VALOR_HORA_EXTRA;
+  return { total: valorDiarias + valorHE, diarias, heMin, valorDiarias, valorHE };
 }
 
 // ── Modal de detalhe de um período de pagamento ────────────────────────────
@@ -1685,10 +1680,9 @@ function FinPeriodModal({ payment, companyId, onClose }) {
   const totalEscala    = allRecs.length;
   const totalFaltas    = allRecs.filter(r => r.status === 'absent').length;
   const totalPresentes = totalEscala - totalFaltas;
-  const totalHE        = allRecs.filter(r => r.status !== 'absent' && r.overtime).length;
+  const heMin          = sumOvertimeMinutes(allRecs.filter(r => r.status !== 'absent'));
   const totalValorDiarias = allRecs.filter(r => r.status !== 'absent').reduce((s, r) => s + (r.value || VALOR_DIARIA), 0);
-  const totalValor     = totalValorDiarias + totalHE * VALOR_HORA_EXTRA;
-
+  const totalValor     = totalValorDiarias + (heMin / 60) * VALOR_HORA_EXTRA;
   const statusColor = payment.status === 'paid' ? '#059669' : payment.status === 'overdue' ? '#E11D48' : '#D97706';
   const statusLabel = payment.status === 'paid' ? 'Pago' : payment.status === 'pending' ? 'Pendente' : 'Atrasado';
 
@@ -1716,7 +1710,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
             {[
               { label:'Diárias',  value: totalEscala,    color:'#FF4D0C' },
               { label:'Presentes', value: totalPresentes, color:'#059669' },
-              { label:'H. Extras', value: totalHE,        color:'#D97706' },
+              { label:'H. Extras', value: minutesToOvertimeString(heMin), color:'#D97706' },
               { label:'Faltas',   value: totalFaltas,    color: totalFaltas > 0 ? '#E11D48' : '#94A3B8' },
             ].map((s, i) => (
               <div key={i} className="card-inner text-center" style={{ padding:'12px 8px' }}>
@@ -1735,8 +1729,8 @@ function FinPeriodModal({ payment, companyId, onClose }) {
               const faltas    = recs.filter(r => r.status === 'absent').length;
               const atrasos   = recs.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
               const presentes = recs.filter(r => r.status !== 'absent');
-              const heCount   = presentes.filter(r => r.overtime).length;
-              const valor     = presentes.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0) + heCount * VALOR_HORA_EXTRA;
+              const heMin     = sumOvertimeMinutes(presentes);
+              const valor     = presentes.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0) + (heMin / 60) * VALOR_HORA_EXTRA;
               const [, m, d] = date.split('-');
               const dow = DOW_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
               const isToday = date === TODAY;
@@ -1762,7 +1756,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
                       <span className="text-xs" style={{ color:'#475569' }}>{escala} ajudante{escala !== 1 ? 's' : ''}</span>
                       {faltas  > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#FFE4E6', color:'#BE123C' }}>{faltas} falta{faltas !== 1 ? 's' : ''}</span>}
                       {atrasos > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#FEF3C7', color:'#B45309' }}>{atrasos} atraso{atrasos !== 1 ? 's' : ''}</span>}
-                      {heCount > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#FFF7ED', color:'#C2410C' }}>{heCount} h. extra{heCount !== 1 ? 's' : ''}</span>}
+                      {heMin > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#FFF7ED', color:'#C2410C' }}>{minutesToOvertimeString(heMin)} de h. extra</span>}
                     </div>
                   </div>
 
@@ -1821,7 +1815,7 @@ function Financial({ companyId }) {
   const quinzenaInfo  = qOffset === 0 ? getQuinzenaInfo() : getQuinzenaInfoByOffset(qOffset);
   const quinzenaData  = buildQuinzenaData(records, qOffset);
   const quinzenaTotal = quinzenaData.reduce((s, d) => s + d.count, 0);
-  const quinzenaHE    = quinzenaData.reduce((s, d) => s + (d.heCount || 0), 0);
+  const quinzenaHEMin = quinzenaData.reduce((s, d) => s + (d.heMin || 0), 0);
   const quinzenaValue = quinzenaData.reduce((s, d) => s + d.value, 0);
   const maxValue      = Math.max(...quinzenaData.map(d => d.value), 1);
 
@@ -1888,9 +1882,9 @@ function Financial({ companyId }) {
               <div className="text-right">
                 <p className="text-xs" style={TM}>Faturado na quinzena</p>
                 <p className="font-bold text-lg" style={{ color:'#059669' }}>{fmtCurrency(quinzenaValue)}</p>
-                {quinzenaHE > 0 && (
+                {quinzenaHEMin > 0 && (
                   <p className="text-xs mt-0.5" style={TM}>
-                    {quinzenaTotal} diária{quinzenaTotal !== 1 ? 's' : ''} + {quinzenaHE} h. extra{quinzenaHE !== 1 ? 's' : ''}
+                    {quinzenaTotal} diária{quinzenaTotal !== 1 ? 's' : ''} + {minutesToOvertimeString(quinzenaHEMin)} de hora extra
                   </p>
                 )}
               </div>
@@ -2889,7 +2883,7 @@ function DiaDetalheRelModal({ date, records, onClose }) {
   const { employees } = useCompanyData();
   const ativos   = records.filter(r => r.status !== 'absent');
   const ausentes = records.filter(r => r.status === 'absent');
-  const heCount  = ativos.filter(r => r.overtime).length;
+  const heMin   = sumOvertimeMinutes(ativos);
   const [, m, d] = date.split('-');
   const dow = DOW_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
   const [notes, setNotes] = useNotes();
@@ -2913,7 +2907,7 @@ function DiaDetalheRelModal({ date, records, onClose }) {
                 Diárias: <span style={{ color: '#0369A1' }}>{ativos.length}</span>
               </p>
               <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
-                Horas Extras: <span style={{ color: '#0369A1' }}>{fmtHoursCount(heCount)}</span>
+                Horas Extras: <span style={{ color: '#0369A1' }}>{minutesToOvertimeString(heMin)}</span>
               </p>
             </div>
           </div>
@@ -3055,20 +3049,20 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
     // Escalas do dia para este tipo
     const dayEscalas = escalas.filter(e => e.date === iso && (!tipoAtivo || e.tipoServico === tipoAtivo));
 
-    let diarias, heCount, valorDiarias, valorHE;
+    let diarias, heMin, valorDiarias, valorHE;
     if (isCD) {
       // Carga e descarga: conta carretas × valor por descarga
       const carretas = dayEscalas.flatMap(e => carretasMap[e.id] || []).filter(c => c.value?.trim());
       diarias      = carretas.length;
-      heCount      = 0;
+      heMin        = 0;
       valorDiarias = diarias * valorDescarga;
       valorHE      = 0;
     } else {
       const presentes = recs.filter(r => r.status !== 'absent');
       diarias      = presentes.length;
-      heCount      = presentes.filter(r => r.overtime).length;
+      heMin        = sumOvertimeMinutes(presentes);
       valorDiarias = presentes.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0);
-      valorHE      = heCount * VALOR_HORA_EXTRA;
+      valorHE      = (heMin / 60) * VALOR_HORA_EXTRA;
     }
 
     allDays.push({
@@ -3076,14 +3070,14 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
       label: `${DOW_SHORT[dow]}, ${String(day).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
       isWeekend: dow === 0 || dow === 6,
       isToday: iso === TODAY,
-      recs, diarias, heCount, valorDiarias, valorHE,
+      recs, diarias, heMin, valorDiarias, valorHE,
       total: valorDiarias + valorHE,
       isCD,
     });
   }
 
   const totalDiarias      = allDays.reduce((s, d) => s + d.diarias, 0);
-  const totalHE           = allDays.reduce((s, d) => s + d.heCount, 0);
+  const totalHEMin        = allDays.reduce((s, d) => s + d.heMin, 0);
   const totalValorDiarias = allDays.reduce((s, d) => s + d.valorDiarias, 0);
   const totalValorHE      = allDays.reduce((s, d) => s + d.valorHE, 0);
   const totalGeral        = totalValorDiarias + totalValorHE;
@@ -3168,7 +3162,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
       body: [[
         String(totalDiarias),
         fmtCurrency(totalValorDiarias),
-        fmtHoursCount(totalHE),
+        minutesToOvertimeString(totalHEMin),
         fmtCurrency(totalValorHE),
         fmtCurrency(totalGeral),
       ]],
@@ -3203,7 +3197,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
         d.label,
         d.diarias      > 0 ? String(d.diarias)           : '—',
         d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias) : '—',
-        fmtHoursCount(d.heCount),
+        minutesToOvertimeString(d.heMin),
         d.valorHE      > 0 ? fmtCurrency(d.valorHE)      : '—',
         d.total        > 0 ? fmtCurrency(d.total)        : '—',
       ]),
@@ -3330,7 +3324,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
           const statItems = [
             { label: isTodos ? 'Diárias + Descargas' : isCD ? 'Descargas'       : 'Diárias',       value: totalDiarias,      fmt: v => v,      highlight: false },
             { label: isTodos ? 'Valor'               : isCD ? 'Total Descargas' : 'Valor Diárias', value: totalValorDiarias,  fmt: fmtCurrency, highlight: false },
-            { label: 'H. Extras',                                 value: fmtHoursCount(totalHE),     fmt: v => v,       highlight: false },
+            { label: 'H. Extras',                                 value: minutesToOvertimeString(totalHEMin), fmt: v => v,       highlight: false },
             { label: 'Valor HE',                                  value: totalValorHE,               fmt: fmtCurrency,  highlight: false },
             { label: 'Total',                                     value: totalGeral,                 fmt: fmtCurrency,  highlight: true  },
           ];
@@ -3377,7 +3371,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
         })()}
 
         {allDays.map((day, idx) => {
-          const hasData = day.diarias > 0 || day.heCount > 0;
+          const hasData = day.diarias > 0 || day.heMin > 0;
           const isLast  = idx === allDays.length - 1;
 
           return (
@@ -3412,7 +3406,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                   );
                 })()}
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorDiarias > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>{day.valorDiarias > 0 ? fmtCurrency(day.valorDiarias) : '—'}</p>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: day.heCount > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{fmtHoursCount(day.heCount)}</p>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: day.heMin > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{minutesToOvertimeString(day.heMin)}</p>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorHE > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>{day.valorHE > 0 ? fmtCurrency(day.valorHE) : '—'}</p>
                 <p style={{ fontSize: '12px', fontWeight: 700, color: day.total > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{day.total > 0 ? fmtCurrency(day.total) : '—'}</p>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -3541,7 +3535,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                     if (!dayInfo || dayInfo.diarias <= 0) return null;
                     const desc = dayInfo.isCD
                       ? `${dayInfo.diarias} descarga${dayInfo.diarias !== 1 ? 's' : ''}`
-                      : `${dayInfo.diarias} diária${dayInfo.diarias !== 1 ? 's' : ''}${dayInfo.heCount > 0 ? ` · ${fmtHoursCount(dayInfo.heCount)} H. extras` : ''}`;
+                      : `${dayInfo.diarias} diária${dayInfo.diarias !== 1 ? 's' : ''}${dayInfo.heMin > 0 ? ` · ${minutesToOvertimeString(dayInfo.heMin)} H. extras` : ''}`;
                     return (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '12px', background: 'linear-gradient(135deg,#ECFDF5,#F0FDF4)', border: '1px solid rgba(5,150,105,0.18)' }}>
                         <div>

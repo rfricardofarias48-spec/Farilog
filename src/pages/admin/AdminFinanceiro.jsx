@@ -9,6 +9,7 @@ import {
   createLancamentoManual, deleteLancamento,
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
+import { overtimeToMinutes } from '../../lib/timeUtils';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell,
@@ -197,9 +198,8 @@ function TabVisaoGeral({ records, lancamentos, employees }) {
     return s + Number(emp?.dailyRate ?? 0);
   }, 0);
   const beneficios = active.reduce((s, r) => {
-    if (!r.overtime) return s;
     const emp = employees.find(e => e.id === r.employeeId);
-    return s + Number(emp?.overtimeRate ?? 50);
+    return s + (overtimeToMinutes(r.overtime) / 60) * Number(emp?.overtimeRate ?? 50);
   }, 0);
 
   const custoFixo    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo').reduce((s, l) => s + Number(l.valor || 0), 0);
@@ -1032,7 +1032,7 @@ function TabDRE({ records, lancamentos, employees, bounds }) {
   const receitaBruta   = active.reduce((s, r) => s + Number(r.value || 0), 0);
   const custServicos   = active.reduce((s, r) => {
     const emp = employees.find(e => e.id === r.employeeId);
-    return s + Number(emp?.dailyRate ?? 0) + (r.overtime ? Number(emp?.overtimeRate ?? 50) : 0);
+    return s + Number(emp?.dailyRate ?? 0) + (overtimeToMinutes(r.overtime) / 60) * Number(emp?.overtimeRate ?? 50);
   }, 0);
   const lucroBruto     = receitaBruta - custServicos;
   const custFixoPer    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo').reduce((s, l) => s + Number(l.valor || 0), 0);

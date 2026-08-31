@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { fetchTodayAllRecords, fetchWorkRecordsByPeriod } from '../../lib/db';
 import { fmtCurrency, fmtDate } from '../../data/mockData';
+import { overtimeToMinutes, sumOvertimeMinutes, minutesToOvertimeString } from '../../lib/timeUtils';
 import AdminDemanda from './AdminDemanda';
 import AdminOcorrencias from './AdminOcorrencias';
 import jsPDF from 'jspdf';
@@ -25,7 +26,7 @@ const MONTH_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho
 const DOW_SHORT  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const BASE_YEAR  = 2000;
 
-const fmtHoursCount = (n) => (!n ? '—' : `${String(n).padStart(2,'0')}:00`);
+const fmtOvertime = (min) => (!min ? '—' : minutesToOvertimeString(min));
 
 function getQuinzenaInfo() {
   const day = TODAY_DATE.getUTCDate(), month = TODAY_DATE.getUTCMonth(), year = TODAY_DATE.getUTCFullYear();
@@ -79,7 +80,7 @@ function ResumoDia() {
 
   const faturamentoDia = allWorkedRecs.reduce((s, r) => {
     const emp = employees.find(e => e.id === r.employeeId);
-    return s + Number(emp?.dailyRate ?? r.value ?? 150) + (r.overtime ? Number(emp?.overtimeRate ?? 50) : 0);
+    return s + Number(emp?.dailyRate ?? r.value ?? 150) + (overtimeToMinutes(r.overtime) / 60) * Number(emp?.overtimeRate ?? 50);
   }, 0);
 
   // Assertividade = % de presença do dia (escalados na demanda menos faltas)
@@ -267,19 +268,19 @@ function Historico() {
     const recs     = histRecords.filter(r => r.date === iso);
     const presentes = recs.filter(r => r.status !== 'absent');
     const diarias   = viewBy === 'empresa' ? presentes.length : (presentes.length > 0 ? 1 : 0);
-    const heCount   = presentes.filter(r => r.overtime).length;
-    const total     = diarias * dailyRate + heCount * heRate;
+    const heMin     = sumOvertimeMinutes(presentes);
+    const total     = diarias * dailyRate + (heMin / 60) * heRate;
     allDays.push({
       date: iso, dow,
       label: `${DOW_SHORT[dow]}, ${String(day).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
       isWeekend: dow === 0 || dow === 6,
       recs, presentes,
-      diarias, heCount, total,
+      diarias, heMin, total,
     });
   }
 
   const totalDias      = allDays.reduce((s, d) => s + d.diarias, 0);
-  const totalHEGeral   = allDays.reduce((s, d) => s + d.heCount, 0);
+  const totalHEMin     = allDays.reduce((s, d) => s + d.heMin, 0);
   const totalCobranca  = allDays.reduce((s, d) => s + d.total, 0);
 
   return (
@@ -399,7 +400,7 @@ function Historico() {
 
             {/* Linhas por dia */}
             {allDays.map((d, idx) => {
-              const hasData = d.diarias > 0 || d.heCount > 0;
+              const hasData = d.diarias > 0 || d.heMin > 0;
               const isLast  = idx === allDays.length - 1;
               const isSelected = selectedDay === d.date;
               return (
@@ -425,8 +426,8 @@ function Historico() {
                   <span className="text-center" style={{ color: d.diarias > 0 ? '#0F172A' : '#E2E8F0', fontWeight: d.diarias > 0 ? 600 : 400 }}>
                     {d.diarias > 0 ? d.diarias : '—'}
                   </span>
-                  <span className="text-center" style={{ color: d.heCount > 0 ? '#1E40AF' : '#E2E8F0', fontWeight: d.heCount > 0 ? 600 : 400 }}>
-                    {d.heCount > 0 ? `${d.heCount}x` : '—'}
+                  <span className="text-center" style={{ color: d.heMin > 0 ? '#1E40AF' : '#E2E8F0', fontWeight: d.heMin > 0 ? 600 : 400 }}>
+                    {d.heMin > 0 ? minutesToOvertimeString(d.heMin) : '—'}
                   </span>
                   <span className="text-center font-bold" style={{ color: d.total > 0 ? '#0F172A' : '#E2E8F0' }}>
                     {d.total > 0 ? fmtCurrency(d.total) : '—'}
@@ -486,7 +487,7 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
           <div>
             <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{day.label}</p>
             <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
-              {presentes.length} ajudante{presentes.length !== 1 ? 's' : ''} · {day.heCount} H.E. · Total: {fmtCurrency(totalValor)}
+              {presentes.length} ajudante{presentes.length !== 1 ? 's' : ''} · {minutesToOvertimeString(day.heMin)} H.E. · Total: {fmtCurrency(totalValor)}
             </p>
           </div>
           <button onClick={onClose} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#94A3B8', display: 'flex' }}>
@@ -498,7 +499,7 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1px', background: 'rgba(0,0,0,0.06)', flexShrink: 0 }}>
           {[
             ['Ajudantes',    presentes.length,                              '#0F172A'],
-            ['Horas extras', day.heCount > 0 ? `${day.heCount}x` : '—',   '#0F172A'],
+            ['Horas extras', day.heMin > 0 ? minutesToOvertimeString(day.heMin) : '—',   '#0F172A'],
             ['Total do dia', fmtCurrency(totalValor),                      '#1E40AF'],
           ].map(([lbl, val, color]) => (
             <div key={lbl} style={{ background: '#F8FAFC', padding: '12px 16px', textAlign: 'center' }}>
@@ -542,7 +543,7 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
                 const empHE   = viewBy === 'empresa'
                   ? Number(employees.find(e => e.id === rec.employeeId)?.overtimeRate ?? heRate)
                   : heRate;
-                const recVal  = empRate + (rec.overtime ? empHE : 0);
+                const recVal  = empRate + (overtimeToMinutes(rec.overtime) / 60) * empHE;
                 return (
                   <div key={rec.id ?? idx} style={{
                     display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px 60px 70px 70px',
@@ -631,20 +632,20 @@ function Relatorios() {
     const recs = records.filter(r => r.date === iso);
     const presentes    = recs.filter(r => r.status !== 'absent');
     const diarias      = viewBy === 'empresa' ? presentes.length : (presentes.length > 0 ? 1 : 0);
-    const heCount      = presentes.filter(r => r.overtime).length;
+    const heMin        = sumOvertimeMinutes(presentes);
     const valorDiarias = diarias * dailyRate;
-    const valorHE      = heCount * heRate;
+    const valorHE      = (heMin / 60) * heRate;
     allDays.push({
       date: iso, dow,
       label: `${DOW_SHORT[dow]}, ${String(day).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
       isWeekend: dow === 0 || dow === 6,
-      diarias, heCount, valorDiarias, valorHE,
+      diarias, heMin, valorDiarias, valorHE,
       total: valorDiarias + valorHE,
     });
   }
 
   const totalDiarias      = allDays.reduce((s, d) => s + d.diarias, 0);
-  const totalHE           = allDays.reduce((s, d) => s + d.heCount, 0);
+  const totalHE           = allDays.reduce((s, d) => s + d.heMin, 0);
   const totalValorDiarias = allDays.reduce((s, d) => s + d.valorDiarias, 0);
   const totalValorHE      = allDays.reduce((s, d) => s + d.valorHE, 0);
   const totalGeral        = totalValorDiarias + totalValorHE;
@@ -695,7 +696,7 @@ function Relatorios() {
     autoTable(doc, {
       startY: 60,
       head: [['Diárias', 'Valor Diárias', 'H. Extras', 'Valor HE', 'Total Geral']],
-      body: [[String(totalDiarias), fmtCurrency(totalValorDiarias), fmtHoursCount(totalHE), fmtCurrency(totalValorHE), fmtCurrency(totalGeral)]],
+      body: [[String(totalDiarias), fmtCurrency(totalValorDiarias), fmtOvertime(totalHE), fmtCurrency(totalValorHE), fmtCurrency(totalGeral)]],
       headStyles: { fillColor: headBg, textColor: 255, fontSize: 9.5, fontStyle: 'bold', halign: 'center' },
       bodyStyles: { fontSize: 10, fontStyle: 'bold', halign: 'center', textColor: dark },
       margin: { left: 10, right: 10 },
@@ -711,7 +712,7 @@ function Relatorios() {
         d.label,
         d.diarias > 0 ? String(d.diarias) : '—',
         d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias) : '—',
-        fmtHoursCount(d.heCount),
+        fmtOvertime(d.heMin),
         d.valorHE > 0 ? fmtCurrency(d.valorHE) : '—',
         d.total > 0 ? fmtCurrency(d.total) : '—',
       ]),
@@ -847,7 +848,7 @@ function Relatorios() {
               {[
                 ['Diárias',      totalDiarias,                    '#0F172A'],
                 ['Valor Diárias',fmtCurrency(totalValorDiarias),  '#1E40AF'],
-                ['H. Extras',    fmtHoursCount(totalHE),          '#0F172A'],
+                ['H. Extras',    fmtOvertime(totalHE),            '#0F172A'],
                 ['Valor HE',     fmtCurrency(totalValorHE),       '#1E40AF'],
                 ['Total',        fmtCurrency(totalGeral),         '#0F172A'],
               ].map(([lbl, val, color]) => (
@@ -873,7 +874,7 @@ function Relatorios() {
                 <span className="text-center">Total</span>
               </div>
               {allDays.map((d, idx) => {
-                const hasData = d.diarias > 0 || d.heCount > 0;
+                const hasData = d.diarias > 0 || d.heMin > 0;
                 const isLast  = idx === allDays.length - 1;
                 return (
                   <div key={d.date} className="px-5 py-2.5 grid text-xs"
@@ -900,8 +901,8 @@ function Relatorios() {
                       {d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias) : '—'}
                     </span>
                     {/* H. Extra */}
-                    <span className="text-center" style={{ color: d.heCount > 0 ? '#0F172A' : '#E2E8F0', fontWeight: d.heCount > 0 ? 600 : 400 }}>
-                      {fmtHoursCount(d.heCount)}
+                    <span className="text-center" style={{ color: d.heMin > 0 ? '#0F172A' : '#E2E8F0', fontWeight: d.heMin > 0 ? 600 : 400 }}>
+                      {fmtOvertime(d.heMin)}
                     </span>
                     {/* Val. HE */}
                     <span className="text-center" style={{ color: d.valorHE > 0 ? '#1E40AF' : '#E2E8F0', fontWeight: d.valorHE > 0 ? 600 : 400 }}>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fetchWorkRecordsByPeriod } from '../../lib/db';
+import { sumOvertimeMinutes, minutesToOvertimeString } from '../../lib/timeUtils';
 import { fmtCurrency, WEEKDAYS, MONTHS } from '../../data/mockData';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -102,7 +103,7 @@ export default function AdminDashboard() {
   const activeToday     = records.filter(r => r.date === TODAY && r.status !== 'absent').length;
   const activeEmployees = employees.filter(e => e.status === 'active').length;
   const periodRevenue   = periodRecs.reduce((s, r) => s + Number(r.value || 0), 0);
-  const periodHE        = periodRecs.filter(r => r.overtime).length;
+  const periodHEMin    = sumOvertimeMinutes(periodRecs);
 
   // ── Dados dos gráficos ────────────────────────────────────────────────────
   const chartData = useMemo(() => {
@@ -233,9 +234,9 @@ export default function AdminDashboard() {
                      : 'Meses do ano'}
                   </p>
                 </div>
-                {periodHE > 0 && (
+                {periodHEMin > 0 && (
                   <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: '#EFF6FF', color: '#2563EB' }}>
-                    {periodHE} H.E.
+                    {minutesToOvertimeString(periodHEMin)} H.E.
                   </span>
                 )}
               </div>

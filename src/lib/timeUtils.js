@@ -121,3 +121,30 @@ export function overtimeMinutesToTimeString(overtimeMinutes) {
   const m = overtimeMinutes % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
 }
+
+/**
+ * Converte a duração de hora extra do registro ("HH:MM" ou "HH:MM:SS") em minutos totais
+ */
+export function overtimeToMinutes(overtime) {
+  if (!overtime) return 0;
+  const [h, m] = String(overtime).split(':').map(Number);
+  return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+}
+
+/**
+ * Soma os minutos de hora extra de uma lista de registros
+ */
+export function sumOvertimeMinutes(records) {
+  if (!Array.isArray(records)) return 0;
+  return records.reduce((s, r) => s + overtimeToMinutes(r?.overtime), 0);
+}
+
+/**
+ * Formata minutos como duração HH:MM (ex.: 135 -> "02:15")
+ */
+export function minutesToOvertimeString(minutes) {
+  const mins = Math.max(0, Math.round(minutes || 0));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
