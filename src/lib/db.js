@@ -259,6 +259,29 @@ export async function fetchCompanies() {
   return data.map(mapCompany);
 }
 
+export async function fetchCompanyById(id) {
+  const { data, error } = await supabase
+    .from('empresas')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) { console.error('[db] fetchCompanyById:', error.message); return null; }
+  return data ? mapCompany(data) : null;
+}
+
+// Diária vigente da empresa (configurada no admin) — usada ao gravar novos registros.
+export async function getCompanyDiaria(companyId) {
+  if (!companyId) return 150;
+  const { data, error } = await supabase
+    .from('empresas')
+    .select('diaria')
+    .eq('id', companyId)
+    .maybeSingle();
+  if (error) { console.error('[db] getCompanyDiaria:', error.message); return 150; }
+  const v = Number(data?.diaria);
+  return Number.isFinite(v) && v > 0 ? v : 150;
+}
+
 export async function createCompany(co) {
   const { data, error } = await supabase
     .from('empresas')
@@ -325,6 +348,7 @@ export async function createDemand({
   companyId, date, time, service, employeeIds, adminId, liderId, tipoServico,
   entrada, saida, saidaAlmoco, retornoAlmoco, employeeTimes,
 }) {
+  const diaria = await getCompanyDiaria(companyId);
   const escalaId = crypto.randomUUID();
   const escalaStatus = saida ? 'completed' : (entrada || time) ? 'active' : 'scheduled';
 
@@ -382,7 +406,7 @@ export async function createDemand({
       saida_almoco:   empAlmocoS,
       retorno_almoco: empAlmocoR,
       hora_extra:     overtimeMinutesToTimeString(calc.overtimeMinutes),
-      valor:          150,
+      valor:          diaria,
     };
   });
 
@@ -535,6 +559,7 @@ export async function editDemand(id, {
     await supabase.from('registros').delete().eq('escala_id', id).in('funcionario_id', toRemove);
   }
   if (toAdd.length > 0) {
+    const diaria = await getCompanyDiaria(companyId);
     const toInsert = toAdd.map(empId => {
       const custom = employeeTimes?.[empId] || {};
       const empEntrada = custom.entrada !== undefined ? (custom.entrada || null) : (entrada || time || null);
@@ -571,7 +596,7 @@ export async function editDemand(id, {
         saida_almoco: empAlmocoS,
         retorno_almoco: empAlmocoR,
         hora_extra: overtimeMinutesToTimeString(calc.overtimeMinutes),
-        valor: 150,
+        valor: diaria,
       };
     });
     await supabase.from('registros').insert(toInsert);
@@ -956,6 +981,7 @@ export async function assignLiderToEscala(escalaId, liderId) {
 }
 
 export async function createEscalaByLider({ liderId, companyId, date, time, service, employees, responsavelDia, contatoDia, tipoServico }) {
+  const diaria = await getCompanyDiaria(companyId);
   const escalaId = crypto.randomUUID();
   const { data: escala, error: escErr } = await supabase
     .from('escalas')
@@ -967,7 +993,7 @@ export async function createEscalaByLider({ liderId, companyId, date, time, serv
   if (employees.length > 0) {
     const registros = employees.map(({ id: empId, observacoes }) => ({
       id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: empId, empresa_id: companyId,
-      data: date, servico: service || null, status: 'scheduled', confirmacao: 'aguardando', valor: 150,
+      data: date, servico: service || null, status: 'scheduled', confirmacao: 'aguardando', valor: diaria,
       observacoes: observacoes || null,
     }));
     const { error: rErr } = await supabase.from('registros').insert(registros);
@@ -978,6 +1004,7 @@ export async function createEscalaByLider({ liderId, companyId, date, time, serv
 }
 
 export async function updateEscalaByLider({ escalaId, time, service, responsavelDia, contatoDia, newEmployees, companyId, date, tipoServico }) {
+  const diaria = await getCompanyDiaria(companyId);
   const { error: upErr } = await supabase
     .from('escalas')
     .update({ horario: time || null, servico: service || null, tipo_servico: tipoServico || 'entrega', responsavel_dia: responsavelDia || null, contato_dia: contatoDia || null })
@@ -987,7 +1014,7 @@ export async function updateEscalaByLider({ escalaId, time, service, responsavel
   if (newEmployees && newEmployees.length > 0) {
     const registros = newEmployees.map(({ id: empId, observacoes }) => ({
       id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: empId, empresa_id: companyId,
-      data: date, servico: service || null, status: 'scheduled', confirmacao: 'aguardando', valor: 150,
+      data: date, servico: service || null, status: 'scheduled', confirmacao: 'aguardando', valor: diaria,
       observacoes: observacoes || null,
     }));
     const { error: rErr } = await supabase.from('registros').insert(registros);
@@ -997,9 +1024,10 @@ export async function updateEscalaByLider({ escalaId, time, service, responsavel
 }
 
 export async function addRegistroToEscala(escalaId, employeeId, companyId, date, service) {
+  const diaria = await getCompanyDiaria(companyId);
   const { error } = await supabase.from('registros').insert({
     id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: employeeId, empresa_id: companyId,
-    data: date, servico: service || null, status: 'scheduled', confirmacao: 'aguardando', valor: 150,
+    data: date, servico: service || null, status: 'scheduled', confirmacao: 'aguardando', valor: diaria,
   });
   if (error) { console.error('[db] addRegistroToEscala:', error.message); return false; }
   return true;

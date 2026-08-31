@@ -3,14 +3,14 @@ import { useState, useRef, useEffect, createContext, useContext, useCallback } f
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { STATUS_CONFIG } from '../admin/AdminDemanda';
-import { fetchCompanyRecords, subscribeToCompanyRecords, fetchEscalaHojeByEmpresa, fetchRelatoriosByEmpresa, fetchEscalasComLiderByEmpresa, fetchCarretasByEscala, fetchCarretasByEscalas } from '../../lib/db';
+import { fetchCompanyRecords, subscribeToCompanyRecords, fetchEscalaHojeByEmpresa, fetchRelatoriosByEmpresa, fetchEscalasComLiderByEmpresa, fetchCarretasByEscala, fetchCarretasByEscalas, fetchCompanyById } from '../../lib/db';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { PAYMENTS, fmtCurrency, fmtDate, WEEKDAYS, MONTHS } from '../../data/mockData';
 import { overtimeToMinutes, sumOvertimeMinutes, minutesToOvertimeString } from '../../lib/timeUtils';
 
 // ── Contexto interno de dados da empresa ──────────────────────────────────
-const CompanyDataCtx = createContext({ records: [], employees: [], escalas: [], relatorios: [] });
+const CompanyDataCtx = createContext({ records: [], employees: [], escalas: [], relatorios: [], dailyRate: 150 });
 const useCompanyData = () => useContext(CompanyDataCtx);
 
 // ── Helper WhatsApp ────────────────────────────────────────────────────────
@@ -254,7 +254,7 @@ function getQuinzenaInfo() {
   }
 }
 
-function buildPeriodChartData(records, companyId, startIso, endIso) {
+function buildPeriodChartData(records, companyId, startIso, endIso, dailyRate = VALOR_DIARIA) {
   const [sy, sm, sd] = startIso.split('-').map(Number);
   const [,  ,  ed]   = endIso.split('-').map(Number);
   const days = [];
@@ -269,7 +269,7 @@ function buildPeriodChartData(records, companyId, startIso, endIso) {
       label: `${String(d).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.length,
-      value: recs.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0) + (heMin / 60) * VALOR_HORA_EXTRA,
+      value: recs.reduce((s, r) => s + dailyRate, 0) + (heMin / 60) * VALOR_HORA_EXTRA,
       heMin,
       isWeekend,
     });
@@ -304,7 +304,7 @@ function getQuinzenaInfoByOffset(offset) {
   };
 }
 
-function buildQuinzenaData(records, offset = 0) {
+function buildQuinzenaData(records, offset = 0, dailyRate = VALOR_DIARIA) {
   const { startDay, endDay, month, year } = offset === 0 ? getQuinzenaInfo() : getQuinzenaInfoByOffset(offset);
   const days = [];
   for (let d = startDay; d <= endDay; d++) {
@@ -321,7 +321,7 @@ function buildQuinzenaData(records, offset = 0) {
       label: `${String(d).padStart(2,'0')}/${String(month + 1).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.length,
-      value: recs.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0) + (heMin / 60) * VALOR_HORA_EXTRA,
+      value: recs.reduce((s, r) => s + dailyRate, 0) + (heMin / 60) * VALOR_HORA_EXTRA,
       heMin,
       isToday,
       isWeekend,
@@ -1645,7 +1645,7 @@ const VALOR_HORA_EXTRA = 50;
 
 // Calcula o valor total da fatura a partir dos registros do período:
 // total = soma(rec.value) + (minutos de hora extra ÷ 60 × VALOR_HORA_EXTRA)
-function calcPaymentTotal(payment, records) {
+function calcPaymentTotal(payment, records, dailyRate = VALOR_DIARIA) {
   const pStart = parsePeriodStart(payment.period);
   const pEnd   = parsePeriodEnd(payment.period);
   if (!pStart || !pEnd) return { total: 0, diarias: 0, heMin: 0, valorDiarias: 0, valorHE: 0 };
@@ -1653,14 +1653,14 @@ function calcPaymentTotal(payment, records) {
   const presentes = recs.filter(r => r.status !== 'absent');
   const diarias  = presentes.length;
   const heMin    = sumOvertimeMinutes(presentes);
-  const valorDiarias = presentes.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0);
+  const valorDiarias = presentes.reduce((s, r) => s + dailyRate, 0);
   const valorHE      = (heMin / 60) * VALOR_HORA_EXTRA;
   return { total: valorDiarias + valorHE, diarias, heMin, valorDiarias, valorHE };
 }
 
 // ── Modal de detalhe de um período de pagamento ────────────────────────────
 function FinPeriodModal({ payment, companyId, onClose }) {
-  const { records } = useCompanyData();
+  const { records, dailyRate = VALOR_DIARIA } = useCompanyData();
   const [selectedDay, setSelectedDay] = useState(null);
 
   const pStart = parsePeriodStart(payment.period);
@@ -1681,7 +1681,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
   const totalFaltas    = allRecs.filter(r => r.status === 'absent').length;
   const totalPresentes = totalEscala - totalFaltas;
   const heMin          = sumOvertimeMinutes(allRecs.filter(r => r.status !== 'absent'));
-  const totalValorDiarias = allRecs.filter(r => r.status !== 'absent').reduce((s, r) => s + (r.value || VALOR_DIARIA), 0);
+  const totalValorDiarias = allRecs.filter(r => r.status !== 'absent').reduce((s, r) => s + dailyRate, 0);
   const totalValor     = totalValorDiarias + (heMin / 60) * VALOR_HORA_EXTRA;
   const statusColor = payment.status === 'paid' ? '#059669' : payment.status === 'overdue' ? '#E11D48' : '#D97706';
   const statusLabel = payment.status === 'paid' ? 'Pago' : payment.status === 'pending' ? 'Pendente' : 'Atrasado';
@@ -1730,7 +1730,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
               const atrasos   = recs.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
               const presentes = recs.filter(r => r.status !== 'absent');
               const heMin     = sumOvertimeMinutes(presentes);
-              const valor     = presentes.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0) + (heMin / 60) * VALOR_HORA_EXTRA;
+              const valor     = presentes.reduce((s, r) => s + dailyRate, 0) + (heMin / 60) * VALOR_HORA_EXTRA;
               const [, m, d] = date.split('-');
               const dow = DOW_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
               const isToday = date === TODAY;
@@ -1807,13 +1807,13 @@ function Financial({ companyId }) {
   const [qOffset,         setQOffset]         = useState(0);
   const [selectedPayment, setSelectedPayment] = useState(null);
 
-  const { records } = useCompanyData();
+  const { records, dailyRate = VALOR_DIARIA } = useCompanyData();
   const myPayments  = PAYMENTS.filter(p => p.companyId === companyId).sort((a,b) => b.dueDate.localeCompare(a.dueDate));
   const nextPayment = myPayments.find(p => p.status === 'pending');
   const daysLeft    = nextPayment ? Math.ceil((new Date(nextPayment.dueDate) - TODAY_DATE) / 86400000) : null;
 
   const quinzenaInfo  = qOffset === 0 ? getQuinzenaInfo() : getQuinzenaInfoByOffset(qOffset);
-  const quinzenaData  = buildQuinzenaData(records, qOffset);
+  const quinzenaData  = buildQuinzenaData(records, qOffset, dailyRate);
   const quinzenaTotal = quinzenaData.reduce((s, d) => s + d.count, 0);
   const quinzenaHEMin = quinzenaData.reduce((s, d) => s + (d.heMin || 0), 0);
   const quinzenaValue = quinzenaData.reduce((s, d) => s + d.value, 0);
@@ -1860,7 +1860,7 @@ function Financial({ companyId }) {
             </div>
             <div className="flex items-end justify-between">
               <div>
-                <p className="font-bold text-2xl" style={T}>{fmtCurrency(calcPaymentTotal(nextPayment, records).total)}</p>
+                <p className="font-bold text-2xl" style={T}>{fmtCurrency(calcPaymentTotal(nextPayment, records, dailyRate).total)}</p>
                 <p className="text-xs mt-1" style={TM}>Período: {formatPeriod(nextPayment.period)}</p>
               </div>
               <div className="text-right">
@@ -1975,7 +1975,7 @@ function Financial({ companyId }) {
             <AlertTriangle size={18} style={{ color: '#DC2626' }} />
             <div>
               <p className="text-sm font-semibold" style={{ color: '#DC2626' }}>Pagamento em atraso</p>
-              <p className="text-xs" style={TM}>{fmtCurrency(calcPaymentTotal(p, records).total)} · venceu em {fmtDate(p.dueDate)}</p>
+              <p className="text-xs" style={TM}>{fmtCurrency(calcPaymentTotal(p, records, dailyRate).total)} · venceu em {fmtDate(p.dueDate)}</p>
             </div>
           </div>
         ))}
@@ -2997,7 +2997,7 @@ function LiderReportBlock({ date }) {
 
 // ── Relatório ──────────────────────────────────────────────────────────────
 function RelatorioTab({ companyId, valorDescarga = 0 }) {
-  const { records, employees, escalas } = useCompanyData();
+  const { records, employees, escalas, dailyRate = VALOR_DIARIA } = useCompanyData();
   const [offset, setOffset] = useState(0);
   const [openDay, setOpenDay] = useState(null);
   const [tipoFilter, setTipoFilter] = useState(null);
@@ -3061,7 +3061,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
       const presentes = recs.filter(r => r.status !== 'absent');
       diarias      = presentes.length;
       heMin        = sumOvertimeMinutes(presentes);
-      valorDiarias = presentes.reduce((s, r) => s + (r.value || VALOR_DIARIA), 0);
+      valorDiarias = presentes.reduce((s, r) => s + dailyRate, 0);
       valorHE      = (heMin / 60) * VALOR_HORA_EXTRA;
     }
 
@@ -3612,7 +3612,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                                   </div>
                                   <div style={{ textAlign: 'center' }}>
                                     <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Valor</p>
-                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#059669', background: '#ECFDF5', padding: '2px 6px', borderRadius: '5px' }}>{fmtCurrency((rec.value || VALOR_DIARIA) + (overtimeToMinutes(rec.overtime) / 60) * VALOR_HORA_EXTRA)}</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#059669', background: '#ECFDF5', padding: '2px 6px', borderRadius: '5px' }}>{fmtCurrency(dailyRate + (overtimeToMinutes(rec.overtime) / 60) * VALOR_HORA_EXTRA)}</p>
                                   </div>
                                 </div>
                               )}
@@ -3752,8 +3752,15 @@ export default function CompanyDashboard() {
   const [records, setRecords]     = useState([]);
   const [escalas, setEscalas]     = useState([]);
   const [relatorios, setRelatorios] = useState([]);
-
+  // Diária da empresa conforme configurada no admin (fonte da verdade, sempre atualizada)
+  const [company, setCompany] = useState(null);
   const companyId = user?.id;
+  const dailyRate = Number(company?.dailyRate ?? user?.dailyRate ?? 150);
+
+  useEffect(() => {
+    if (!companyId) return;
+    fetchCompanyById(companyId).then(setCompany);
+  }, [companyId]);
 
   useEffect(() => {
     if (!companyId) return;
@@ -3768,7 +3775,7 @@ export default function CompanyDashboard() {
   }, [companyId]);
 
   return (
-    <CompanyDataCtx.Provider value={{ records, employees, escalas, relatorios }}>
+    <CompanyDataCtx.Provider value={{ records, employees, escalas, relatorios, dailyRate }}>
       <div className="animate-fade-up">
         {tab === 'panel'     && <Panel       companyId={companyId} setTab={setTab} companyName={user.name} />}
         {tab === 'escalas'   && <EscalasTab  companyId={companyId} />}
