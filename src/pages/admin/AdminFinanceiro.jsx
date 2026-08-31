@@ -7,6 +7,7 @@ import {
   fetchDividas, createDivida, deleteDivida,
   fetchCustosFixos, createCustoFixo, deleteCustoFixo,
   createLancamentoManual, deleteLancamento,
+  fetchRecargas,
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
 import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
@@ -187,31 +188,35 @@ function PeriodSelector({ type, offset, bounds, onChangeType, onChangeOffset }) 
 }
 
 // ── Tab: Visão Geral ───────────────────────────────────────────────────────
-function TabVisaoGeral({ records, lancamentos, employees, companies }) {
+function TabVisaoGeral({ records, lancamentos, employees, companies, recargas }) {
   const active = records.filter(r => r.status !== 'absent');
   const companiesById = Object.fromEntries((companies || []).map(c => [c.id, c]));
 
   // Faturamento: diária da empresa (admin) + HE proporcional (diária ÷ 8 × 1,5)
   const fat = active.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
 
-  // Folha de pagamento inclui diárias + horas extras (HE compõe a folha, não benefícios)
+  // Folha de pagamento: diárias + horas extras dos ajudantes
   const folha = active.reduce((s, r) => {
     const emp = employees.find(e => e.id === r.employeeId);
     return s + Number(emp?.dailyRate ?? 0) + (overtimeToMinutes(r.overtime) / 60) * Number(emp?.overtimeRate ?? 50);
   }, 0);
 
+  // Benefícios: recargas de VT/VR lançadas no RH no período
+  const beneficios = (recargas || []).reduce((s, r) => s + Number(r.total || 0), 0);
+
   const custoFixo    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo').reduce((s, l) => s + Number(l.valor || 0), 0);
   const endivPeriodo = lancamentos.filter(l => l.origem_tipo === 'divida').reduce((s, l) => s + Number(l.valor || 0), 0);
 
-  const totalCustos   = folha + custoFixo + endivPeriodo;
+  const totalCustos   = folha + beneficios + custoFixo + endivPeriodo;
   const lucroLiquido  = fat - totalCustos;
-  const margemContrib = fat > 0 ? ((fat - folha) / fat) * 100 : 0;
+  const margemContrib = fat > 0 ? ((fat - folha - beneficios) / fat) * 100 : 0;
   const margemLucro   = fat > 0 ? (lucroLiquido / fat) * 100 : 0;
 
   // Fatias do gráfico — devem somar ao faturamento
   const slices = [
     { name: 'Lucro Líquido',        value: Math.max(0, lucroLiquido), color: '#059669' },
     { name: 'Folha de Pagamento',   value: folha,                     color: '#2563EB' },
+    { name: 'Benefícios (VT/VR)',   value: beneficios,                color: '#7C3AED' },
     { name: 'Custos Fixos',         value: custoFixo,                 color: '#D97706' },
     { name: 'Endividamento',        value: endivPeriodo,              color: '#E11D48' },
   ].filter(s => s.value > 0);
@@ -1113,9 +1118,16 @@ export default function AdminFinanceiro() {
   const [lancamentos, setLancamentos] = useState([]);
   const [dividas,     setDividas]     = useState([]);
   const [custosFixos, setCustosFixos] = useState([]);
+  const [recargas,    setRecargas]    = useState([]);
   const [loading,     setLoading]     = useState(true);
 
   const bounds = useMemo(() => getBounds(periodType, offset), [periodType, offset]);
+
+  // Recargas de benefícios (VT/VR) dentro do período selecionado
+  const recargasPeriodo = useMemo(
+    () => recargas.filter(r => r.dataRecarga && r.dataRecarga >= bounds.start && r.dataRecarga <= bounds.end),
+    [recargas, bounds]
+  );
 
   const handleChangePeriodType = (type) => { setPeriodType(type); setOffset(0); };
 
@@ -1134,6 +1146,8 @@ export default function AdminFinanceiro() {
   useEffect(() => {
     fetchDividas().then(d => setDividas(d || []));
     fetchCustosFixos().then(c => setCustosFixos(c || []));
+    Promise.all([fetchRecargas('VT'), fetchRecargas('VR')])
+      .then(([vt, vr]) => setRecargas([...(vt || []), ...(vr || [])]));
   }, []);
 
   return (
@@ -1160,7 +1174,7 @@ export default function AdminFinanceiro() {
         </div>
       ) : (
         <>
-          {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} />}
+          {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} recargas={recargasPeriodo} />}
           {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} />}
           {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}
