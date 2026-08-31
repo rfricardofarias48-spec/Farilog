@@ -3515,6 +3515,24 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                     </div>
                   )}
 
+                  {/* Faturado no dia */}
+                  {(() => {
+                    const dayInfo = allDays.find(d => d.date === openDay);
+                    if (!dayInfo || dayInfo.diarias <= 0) return null;
+                    const desc = dayInfo.isCD
+                      ? `${dayInfo.diarias} descarga${dayInfo.diarias !== 1 ? 's' : ''}`
+                      : `${dayInfo.diarias} diária${dayInfo.diarias !== 1 ? 's' : ''}${dayInfo.heCount > 0 ? ` · ${fmtHoursCount(dayInfo.heCount)} H. extras` : ''}`;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '12px', background: 'linear-gradient(135deg,#ECFDF5,#F0FDF4)', border: '1px solid rgba(5,150,105,0.18)' }}>
+                        <div>
+                          <p style={{ fontSize: '10px', fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Faturado no dia</p>
+                          <p style={{ fontSize: '11px', fontWeight: 600, color: '#059669', opacity: 0.75 }}>{desc}</p>
+                        </div>
+                        <p style={{ fontSize: '22px', fontWeight: 800, color: '#059669', lineHeight: 1 }}>{fmtCurrency(dayInfo.total)}</p>
+                      </div>
+                    );
+                  })()}
+
                   {/* Equipe + Descargas */}
                   <div>
                     <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Equipe</p>
@@ -3529,6 +3547,22 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                               <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
                                 <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
                                 <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{emp?.name}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                  <div style={{ textAlign: 'center' }}>
+                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Entrada</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: fmtTime(rec.checkIn) ? '#0F172A' : '#CBD5E1', background: fmtTime(rec.checkIn) ? '#F1F5F9' : 'transparent', padding: '2px 6px', borderRadius: '5px' }}>{fmtTime(rec.checkIn) ?? '—'}</p>
+                                  </div>
+                                  <div style={{ textAlign: 'center' }}>
+                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Saída</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: fmtTime(rec.checkOut) ? '#059669' : '#CBD5E1', background: fmtTime(rec.checkOut) ? '#ECFDF5' : 'transparent', padding: '2px 6px', borderRadius: '5px' }}>{fmtTime(rec.checkOut) ?? '—'}</p>
+                                  </div>
+                                  <div style={{ textAlign: 'center' }}>
+                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Descargas</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', background: '#F1F5F9', padding: '2px 6px', borderRadius: '5px' }}>
+                                      {escalas.filter(e => e.date === openDay && e.tipoServico === 'carga_descarga').reduce((s, e) => s + (carretasMap[e.id] || []).filter(c => c.value?.trim()).length, 0) || '—'}
+                                    </p>
+                                  </div>
+                                </div>
                               </div>
                             );
                           })}
@@ -3547,6 +3581,27 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                             <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
                               <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : '#64748B', color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
                               <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', flex: 1 }}>{emp?.name}</p>
+                              {!isAbsent && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                  {[
+                                    ['Entrada', fmtTime(rec.checkIn)],
+                                    ['Saída', fmtTime(rec.checkOut)],
+                                  ].map(([lbl, v]) => (
+                                    <div key={lbl} style={{ textAlign: 'center' }}>
+                                      <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{lbl}</p>
+                                      <p style={{ fontSize: '10px', fontWeight: 700, color: v ? '#0F172A' : '#CBD5E1', background: v ? '#F1F5F9' : 'transparent', padding: '2px 6px', borderRadius: '5px' }}>{v ?? '—'}</p>
+                                    </div>
+                                  ))}
+                                  <div style={{ textAlign: 'center' }}>
+                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>H. Extra</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: rec.overtime ? '#D97706' : '#CBD5E1', background: rec.overtime ? '#FFF7ED' : 'transparent', padding: '2px 6px', borderRadius: '5px' }}>{rec.overtime || '—'}</p>
+                                  </div>
+                                  <div style={{ textAlign: 'center' }}>
+                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Valor</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#059669', background: '#ECFDF5', padding: '2px 6px', borderRadius: '5px' }}>{fmtCurrency(rec.value || VALOR_DIARIA)}</p>
+                                  </div>
+                                </div>
+                              )}
                               {isAbsent && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>}
                             </div>
                           );
