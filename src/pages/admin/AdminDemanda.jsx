@@ -549,7 +549,7 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onU
         }}
           onClick={(e) => { if (e.target === e.currentTarget) setEditingId(null); }}
         >
-          <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '920px', padding: '24px', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '1040px', padding: '24px', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="flex items-center justify-between mb-4">
               <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Editar Demanda</p>
               <button onClick={() => setEditingId(null)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
@@ -868,7 +868,7 @@ export default function AdminDemanda() {
       </div>
 
       {subTab === 'nova' && (
-        <div className="max-w-4xl animate-fade-up">
+        <div className="animate-fade-up" style={{ maxWidth: '1020px' }}>
           <DemandForm
             employees={employees}
             companies={companies}
