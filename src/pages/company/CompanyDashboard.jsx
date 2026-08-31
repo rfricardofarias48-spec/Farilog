@@ -822,8 +822,24 @@ function Panel({ companyId, setTab, companyName }) {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
-        <h2 className="text-xl font-bold" style={T}>Olá, <span style={{ fontWeight: 400, fontSize: '16px' }}>{companyName}</span></h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h2 className="text-xl font-bold" style={{ ...T, letterSpacing: '-0.02em' }}>
+            Olá, <span style={{ fontWeight: 400, fontSize: '16px' }}>{companyName}</span>
+          </h2>
+          <p className="text-xs capitalize" style={{ ...TM, marginTop: '2px' }}>
+            {WEEKDAYS[TODAY_DATE.getUTCDay()]}, {TODAY_DATE.getUTCDate()} de {MONTHS[TODAY_DATE.getUTCMonth()]} de {TODAY_DATE.getUTCFullYear()}
+          </p>
+        </div>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '8px',
+          padding: '8px 14px', borderRadius: '999px',
+          background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.07)',
+          boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+        }}>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 0 3px rgba(16,185,129,0.15)' }} />
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Sistema em operação</span>
+        </div>
       </div>
 
       {/* Duas caixas lado a lado */}
@@ -867,34 +883,25 @@ function Panel({ companyId, setTab, companyName }) {
               Ver todas as escalas <ChevronRight size={13} />
             </button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${recentPastDates.length}, 1fr)`, gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             {recentPastDates.map(date => {
               const recs = records.filter(r => r.date === date);
-              const esc = escalas.find(e => e.date === date);
-              const [y, m, d] = date.split('-').map(Number);
-              const dow = DOW_FULL[new Date(y, m - 1, d).getDay()];
-              const isCargaDescarga = (esc?.tipoServico || recs[0]?.tipoServico || 'entrega') === 'carga_descarga';
               const presentes = recs.filter(r => r.status !== 'absent').length;
+              const [y, m, d] = date.split('-').map(Number);
 
               return (
                 <div
                   key={date}
                   onClick={() => setTab('escalas')}
                   style={{
-                    padding: '12px 14px', borderRadius: '10px', background: '#F8FAFC',
-                    border: '1px solid rgba(0,0,0,0.06)', cursor: 'pointer',
-                    transition: 'all 0.12s',
+                    padding: '8px 10px', borderRadius: '8px', cursor: 'pointer',
+                    transition: 'background 0.12s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#F1F5F9'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#F8FAFC'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' }}>{dow}</p>
-                  <p style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>{String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{y}</p>
-                  <p style={{ fontSize: '11px', fontWeight: 600, color: '#475569', marginTop: '4px' }}>
-                    {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
-                  </p>
-                  <p style={{ fontSize: '10px', color: '#059669', fontWeight: 600, marginTop: '2px' }}>
-                    {presentes} ajudante{presentes !== 1 ? 's' : ''} presentes
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#334155', margin: 0, whiteSpace: 'nowrap' }}>
+                    {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{String(y).slice(-2)} - <span style={{ color: '#059669' }}>{presentes} ajudante{presentes !== 1 ? 's' : ''} presentes</span>
                   </p>
                 </div>
               );
@@ -1814,19 +1821,19 @@ function Financial({ companyId }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <button onClick={() => setQOffset(o => o - 1)}
-            style={{ width: '32px', height: '32px', borderRadius: '9px', background: '#F1F5F9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+            style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.09)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', boxShadow: '0 1px 2px rgba(15,23,42,0.05)', transition: 'all 0.15s' }}>
             <ChevronLeft size={16} />
           </button>
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', minWidth: '160px', textAlign: 'center' }}>
             {quinzenaInfo.badgeLabel}
           </span>
           <button onClick={() => setQOffset(o => Math.min(o + 1, 0))} disabled={qOffset >= 0}
-            style={{ width: '32px', height: '32px', borderRadius: '9px', background: qOffset < 0 ? '#F1F5F9' : 'transparent', border: 'none', cursor: qOffset < 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: qOffset < 0 ? '#64748B' : '#CBD5E1' }}>
+            style={{ width: '32px', height: '32px', borderRadius: '10px', background: qOffset < 0 ? '#FFFFFF' : 'transparent', border: qOffset < 0 ? '1px solid rgba(15,23,42,0.09)' : '1px solid transparent', cursor: qOffset < 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: qOffset < 0 ? '#64748B' : '#CBD5E1', boxShadow: qOffset < 0 ? '0 1px 2px rgba(15,23,42,0.05)' : 'none', transition: 'all 0.15s' }}>
             <ChevronRight size={16} />
           </button>
           {qOffset < 0 && (
             <button onClick={() => setQOffset(0)}
-              style={{ padding: '6px 14px', borderRadius: '9px', background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+              style={{ padding: '7px 14px', borderRadius: '10px', background: 'linear-gradient(180deg,#FF5A1F,#FF4D0C)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(255,77,12,0.5)', transition: 'all 0.15s' }}>
               Período Atual
             </button>
           )}

@@ -22,7 +22,7 @@ export default function CompanyLayout() {
       {/* Sidebar — dark */}
       <aside
         className={`hidden md:flex flex-col fixed left-0 top-0 h-full z-50 transition-all duration-300 ${open ? 'w-56' : 'w-16'}`}
-        style={{ background: '#111827' }}
+        style={{ background: 'linear-gradient(180deg, #0D1626 0%, #060F1E 100%)', borderRight: '1px solid rgba(255,255,255,0.06)' }}
       >
         {/* Logo + toggle */}
         <div className="flex items-center justify-center overflow-hidden" style={{ position: 'relative', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px' }}>
@@ -47,7 +47,7 @@ export default function CompanyLayout() {
 
         {/* Menu label */}
         {open && (
-          <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', color: '#374151', textTransform: 'uppercase', padding: '20px 16px 8px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.12em', color: '#4B5B71', textTransform: 'uppercase', padding: '20px 16px 8px' }}>
             Menu
           </p>
         )}
@@ -71,7 +71,7 @@ export default function CompanyLayout() {
           {open && (
             <div className="px-3 py-2 mb-1">
               <p className="text-xs font-semibold truncate" style={{ color: '#F1F5F9' }}>{user?.name}</p>
-              <p className="text-xs" style={{ color: '#374151' }}>Empresa</p>
+              <p className="text-xs" style={{ color: '#64748B' }}>Empresa</p>
             </div>
           )}
           <button

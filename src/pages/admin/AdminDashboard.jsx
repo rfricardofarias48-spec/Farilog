@@ -169,23 +169,23 @@ export default function AdminDashboard() {
           <h1 className="text-xl font-bold" style={T}>Visão Geral</h1>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
+            <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 2px rgba(15,23,42,0.05)' }}>
               {[['quinzena','Quinzenal'],['mes','Mensal'],['ano','Anual']].map(([val, lbl]) => (
                 <button key={val} onClick={() => handlePeriod(val)}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                  style={{ background: period === val ? '#FF4D0C' : 'transparent', color: period === val ? 'white' : '#64748B', border: 'none', cursor: 'pointer' }}>
+                  style={{ background: period === val ? 'linear-gradient(180deg,#FF5A1F,#FF4D0C)' : 'transparent', color: period === val ? 'white' : '#64748B', border: 'none', cursor: 'pointer', boxShadow: period === val ? '0 4px 12px -4px rgba(255,77,12,0.5)' : 'none' }}>
                   {lbl}
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-1.5">
               <button onClick={() => setOffset(o => o - 1)}
-                className="p-1.5 rounded-lg" style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex' }}>
+                className="p-1.5 rounded-lg" style={{ background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', color: '#475569', display: 'flex', boxShadow: '0 1px 2px rgba(15,23,42,0.05)' }}>
                 <ChevronLeft size={14} />
               </button>
               <span className="text-xs font-bold px-2 min-w-[160px] text-center" style={T}>{label}</span>
               <button onClick={() => setOffset(o => Math.min(o + 1, 0))}
-                className="p-1.5 rounded-lg" style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex' }}>
+                className="p-1.5 rounded-lg" style={{ background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', color: '#475569', display: 'flex', boxShadow: '0 1px 2px rgba(15,23,42,0.05)' }}>
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -205,10 +205,10 @@ export default function AdminDashboard() {
               { label: 'Func. ativos',        value: activeEmployees, icon: Users },
               { label: 'Empresas',             value: companies.length, icon: Building2 },
             ].map((k, i) => (
-              <div key={i} className="stat-card" style={{ border: '1px solid rgba(0,0,0,0.18)' }}>
+              <div key={i} className="stat-card">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#F1F5F9' }}>
-                    <k.icon size={17} style={{ color: '#64748B' }} />
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFF4EF, #FFE6D9)', border: '1px solid rgba(255,77,12,0.12)' }}>
+                    <k.icon size={17} style={{ color: '#FF4D0C' }} />
                   </div>
                 </div>
                 <p className={`font-bold leading-none ${k.small ? 'text-base' : 'text-2xl'}`} style={{ color: '#0F172A' }}>

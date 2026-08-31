@@ -111,7 +111,7 @@ export default function AdminLayout() {
     <div className="min-h-screen flex" style={{ background: '#EEF1F5' }}>
       <aside
         className={`hidden md:flex flex-col fixed left-0 top-0 h-full z-50 transition-all duration-300 ${open ? 'w-56' : 'w-16'}`}
-        style={{ background: '#111827' }}
+        style={{ background: 'linear-gradient(180deg, #0D1626 0%, #060F1E 100%)', borderRight: '1px solid rgba(255,255,255,0.06)' }}
       >
         {/* Logo + toggle */}
         <div className="flex items-center justify-center overflow-hidden" style={{ position: 'relative', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px' }}>
@@ -123,7 +123,7 @@ export default function AdminLayout() {
           </button>
         </div>
 
-        {open && <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', color: '#374151', textTransform: 'uppercase', padding: '20px 16px 8px' }}>Menu</p>}
+        {open && <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.12em', color: '#4B5B71', textTransform: 'uppercase', padding: '20px 16px 8px' }}>Menu</p>}
 
         <nav className="flex-1 px-2 space-y-1" style={{ paddingTop: open ? 0 : '16px' }}>
           {/* Visão Geral */}
@@ -176,7 +176,7 @@ export default function AdminLayout() {
           {open && (
             <div className="px-3 py-2 mb-1">
               <p className="text-xs font-semibold" style={{ color: '#F1F5F9' }}>{user?.name}</p>
-              <p className="text-xs" style={{ color: '#374151' }}>Administrador</p>
+              <p className="text-xs" style={{ color: '#64748B' }}>Administrador</p>
             </div>
           )}
           <button onClick={() => { logout(); navigate('/'); }}
@@ -189,25 +189,30 @@ export default function AdminLayout() {
       </aside>
 
       <div className={`flex-1 flex flex-col transition-all duration-300 ${open ? 'md:ml-56' : 'md:ml-16'}`}>
-        <main className="flex-1 p-6">
-          <div className="flex items-center justify-between mb-5" style={{ paddingLeft: '20px' }}>
-            <span className="font-semibold text-sm" style={{ color: '#1E293B' }}>{pageTitle}</span>
-            <div className="flex items-center gap-3">
+        <div className="topbar">
+          <div className="flex items-center justify-between mb-5" style={{ padding: '18px 24px 0 24px' }}>
+            <span className="font-semibold" style={{ color: '#0F172A', fontSize: '15px', letterSpacing: '-0.02em' }}>{pageTitle}</span>
+            <div className="flex items-center gap-2.5">
               <div className="relative">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }} />
                 <input type="text" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)}
-                  className="pl-8 pr-4 py-1.5 rounded-lg outline-none"
-                  style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.07)', color: '#1E293B', fontSize: '13px', width: '200px' }} />
+                  className="pl-8 pr-4 py-2 rounded-xl outline-none"
+                  style={{ background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.09)', color: '#0F172A', fontSize: '13px', width: '220px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)', transition: 'border-color 0.18s, box-shadow 0.18s' }}
+                  onFocus={e => { e.target.style.borderColor = '#FF4D0C'; e.target.style.boxShadow = '0 0 0 3.5px rgba(255,77,12,0.10)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(15,23,42,0.09)'; e.target.style.boxShadow = '0 1px 2px rgba(15,23,42,0.04)'; }}
+                />
               </div>
-              <button className="p-1.5 rounded-lg relative" style={{ background: 'rgba(0,0,0,0.04)', color: '#64748B' }}>
+              <button className="p-2 rounded-xl relative" style={{ background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.09)', color: '#64748B', boxShadow: '0 1px 2px rgba(15,23,42,0.04)', transition: 'all 0.18s' }}>
                 <Bell size={15} />
-                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style={{ background: '#FF4D0C' }} />
+                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: '#FF4D0C', boxShadow: '0 0 6px rgba(255,77,12,0.8)' }} />
               </button>
-              <div className="avatar text-xs flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', width: '30px', height: '30px', borderRadius: '50%' }}>
+              <div className="avatar flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#FF5A1F,#E03A00)', width: '32px', height: '32px', borderRadius: '50%', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 8px rgba(255,77,12,0.35)' }}>
                 {user?.initials}
               </div>
             </div>
           </div>
+        </div>
+        <main className="flex-1 p-6" style={{ paddingTop: '20px' }}>
           <Outlet />
         </main>
       </div>
