@@ -7,7 +7,6 @@ import {
   fetchDividas, createDivida, deleteDivida,
   fetchCustosFixos, createCustoFixo, deleteCustoFixo,
   createLancamentoManual, deleteLancamento,
-  fetchRecargas,
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
 import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
@@ -188,7 +187,7 @@ function PeriodSelector({ type, offset, bounds, onChangeType, onChangeOffset }) 
 }
 
 // ── Tab: Visão Geral ───────────────────────────────────────────────────────
-function TabVisaoGeral({ records, lancamentos, employees, companies, recargas }) {
+function TabVisaoGeral({ records, lancamentos, employees, companies }) {
   const active = records.filter(r => r.status !== 'absent');
   const companiesById = Object.fromEntries((companies || []).map(c => [c.id, c]));
 
@@ -201,10 +200,22 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, recargas })
     return s + Number(emp?.dailyRate ?? 0) + (overtimeToMinutes(r.overtime) / 60) * Number(emp?.overtimeRate ?? 50);
   }, 0);
 
-  // Benefícios: recargas lançadas no RH no período — cada tipo (VT, VR) é um item do gráfico
-  const beneficiosVT = (recargas || []).filter(r => r.tipo === 'VT').reduce((s, r) => s + Number(r.total || 0), 0);
-  const beneficiosVR = (recargas || []).filter(r => r.tipo === 'VR').reduce((s, r) => s + Number(r.total || 0), 0);
-  const beneficios   = beneficiosVT + beneficiosVR;
+  // Benefícios (VT/VR): valor/dia cadastrado do ajudante × dias efetivamente trabalhados
+  // no período (datas distintas presentes). Ex.: VT R$ 10/dia × 5 diárias = R$ 50.
+  const diasTrabalhados = {};
+  active.forEach(r => {
+    if (r.status === 'absent') return;
+    if (!diasTrabalhados[r.employeeId]) diasTrabalhados[r.employeeId] = new Set();
+    diasTrabalhados[r.employeeId].add(r.date);
+  });
+  let beneficiosVT = 0;
+  let beneficiosVR = 0;
+  Object.entries(diasTrabalhados).forEach(([empId, dias]) => {
+    const emp = employees.find(e => e.id === empId);
+    beneficiosVT += dias.size * Number(emp?.vtDiario ?? 0);
+    beneficiosVR += dias.size * Number(emp?.vrDiario ?? 0);
+  });
+  const beneficios = beneficiosVT + beneficiosVR;
 
   const custoFixo    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo').reduce((s, l) => s + Number(l.valor || 0), 0);
   const endivPeriodo = lancamentos.filter(l => l.origem_tipo === 'divida').reduce((s, l) => s + Number(l.valor || 0), 0);
@@ -214,8 +225,8 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, recargas })
   const margemContrib = fat > 0 ? ((fat - folha - beneficios) / fat) * 100 : 0;
   const margemLucro   = fat > 0 ? (lucroLiquido / fat) * 100 : 0;
 
-  // Fatias do gráfico — devem somar ao faturamento. VT/VR aparecem sempre (R$ 0 quando o
-  // período não tem recarga), para os itens de benefício nunca sumirem do gráfico.
+  // Fatias do gráfico — devem somar ao faturamento. VT/VR aparecem sempre (R$ 0 quando
+  // não há dias trabalhados no período), para os itens de benefício nunca sumirem.
   const slices = [
     { name: 'Lucro Líquido',        value: Math.max(0, lucroLiquido), color: '#059669' },
     { name: 'Folha de Pagamento',   value: folha,                     color: '#2563EB' },
@@ -1122,16 +1133,9 @@ export default function AdminFinanceiro() {
   const [lancamentos, setLancamentos] = useState([]);
   const [dividas,     setDividas]     = useState([]);
   const [custosFixos, setCustosFixos] = useState([]);
-  const [recargas,    setRecargas]    = useState([]);
   const [loading,     setLoading]     = useState(true);
 
   const bounds = useMemo(() => getBounds(periodType, offset), [periodType, offset]);
-
-  // Recargas de benefícios (VT/VR) dentro do período selecionado
-  const recargasPeriodo = useMemo(
-    () => recargas.filter(r => r.dataRecarga && r.dataRecarga >= bounds.start && r.dataRecarga <= bounds.end),
-    [recargas, bounds]
-  );
 
   const handleChangePeriodType = (type) => { setPeriodType(type); setOffset(0); };
 
@@ -1150,8 +1154,6 @@ export default function AdminFinanceiro() {
   useEffect(() => {
     fetchDividas().then(d => setDividas(d || []));
     fetchCustosFixos().then(c => setCustosFixos(c || []));
-    Promise.all([fetchRecargas('VT'), fetchRecargas('VR')])
-      .then(([vt, vr]) => setRecargas([...(vt || []), ...(vr || [])]));
   }, []);
 
   return (
@@ -1178,7 +1180,7 @@ export default function AdminFinanceiro() {
         </div>
       ) : (
         <>
-          {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} recargas={recargasPeriodo} />}
+          {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} />}
           {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} />}
           {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}
