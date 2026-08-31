@@ -269,7 +269,7 @@ function buildPeriodChartData(records, companyId, startIso, endIso, dailyRate = 
       label: `${String(d).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.length,
-      value: recs.reduce((s, r) => s + dailyRate, 0) + (heMin / 60) * VALOR_HORA_EXTRA,
+      value: recs.reduce((s, r) => s + dailyRate, 0) + (heMin / 60) * VALOR_HORA_EXTRA(dailyRate),
       heMin,
       isWeekend,
     });
@@ -321,7 +321,7 @@ function buildQuinzenaData(records, offset = 0, dailyRate = VALOR_DIARIA) {
       label: `${String(d).padStart(2,'0')}/${String(month + 1).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.length,
-      value: recs.reduce((s, r) => s + dailyRate, 0) + (heMin / 60) * VALOR_HORA_EXTRA,
+      value: recs.reduce((s, r) => s + dailyRate, 0) + (heMin / 60) * VALOR_HORA_EXTRA(dailyRate),
       heMin,
       isToday,
       isWeekend,
@@ -1641,10 +1641,11 @@ function parsePeriodEnd(period) {
 
 // ── Valores: diária e hora extra ──────────────────────────────────────────
 const VALOR_DIARIA   = 150;
-const VALOR_HORA_EXTRA = 50;
+// Hora extra = diária ÷ 8h + 50% (ex.: diária 155 → R$ 29,06/h)
+const VALOR_HORA_EXTRA = (dailyRate) => ((Number(dailyRate) || VALOR_DIARIA) / 8) * 1.5;
 
 // Calcula o valor total da fatura a partir dos registros do período:
-// total = soma(rec.value) + (minutos de hora extra ÷ 60 × VALOR_HORA_EXTRA)
+// total = diárias + (minutos de hora extra ÷ 60 × VALOR_HORA_EXTRA(diária))
 function calcPaymentTotal(payment, records, dailyRate = VALOR_DIARIA) {
   const pStart = parsePeriodStart(payment.period);
   const pEnd   = parsePeriodEnd(payment.period);
@@ -1654,7 +1655,7 @@ function calcPaymentTotal(payment, records, dailyRate = VALOR_DIARIA) {
   const diarias  = presentes.length;
   const heMin    = sumOvertimeMinutes(presentes);
   const valorDiarias = presentes.reduce((s, r) => s + dailyRate, 0);
-  const valorHE      = (heMin / 60) * VALOR_HORA_EXTRA;
+  const valorHE      = (heMin / 60) * VALOR_HORA_EXTRA(dailyRate);
   return { total: valorDiarias + valorHE, diarias, heMin, valorDiarias, valorHE };
 }
 
@@ -1682,7 +1683,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
   const totalPresentes = totalEscala - totalFaltas;
   const heMin          = sumOvertimeMinutes(allRecs.filter(r => r.status !== 'absent'));
   const totalValorDiarias = allRecs.filter(r => r.status !== 'absent').reduce((s, r) => s + dailyRate, 0);
-  const totalValor     = totalValorDiarias + (heMin / 60) * VALOR_HORA_EXTRA;
+  const totalValor     = totalValorDiarias + (heMin / 60) * VALOR_HORA_EXTRA(dailyRate);
   const statusColor = payment.status === 'paid' ? '#059669' : payment.status === 'overdue' ? '#E11D48' : '#D97706';
   const statusLabel = payment.status === 'paid' ? 'Pago' : payment.status === 'pending' ? 'Pendente' : 'Atrasado';
 
@@ -1730,7 +1731,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
               const atrasos   = recs.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
               const presentes = recs.filter(r => r.status !== 'absent');
               const heMin     = sumOvertimeMinutes(presentes);
-              const valor     = presentes.reduce((s, r) => s + dailyRate, 0) + (heMin / 60) * VALOR_HORA_EXTRA;
+              const valor     = presentes.reduce((s, r) => s + dailyRate, 0) + (heMin / 60) * VALOR_HORA_EXTRA(dailyRate);
               const [, m, d] = date.split('-');
               const dow = DOW_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
               const isToday = date === TODAY;
@@ -3062,7 +3063,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
       diarias      = presentes.length;
       heMin        = sumOvertimeMinutes(presentes);
       valorDiarias = presentes.reduce((s, r) => s + dailyRate, 0);
-      valorHE      = (heMin / 60) * VALOR_HORA_EXTRA;
+      valorHE      = (heMin / 60) * VALOR_HORA_EXTRA(dailyRate);
     }
 
     allDays.push({
@@ -3612,7 +3613,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                                   </div>
                                   <div style={{ textAlign: 'center' }}>
                                     <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Valor</p>
-                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#059669', background: '#ECFDF5', padding: '2px 6px', borderRadius: '5px' }}>{fmtCurrency(dailyRate + (overtimeToMinutes(rec.overtime) / 60) * VALOR_HORA_EXTRA)}</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#059669', background: '#ECFDF5', padding: '2px 6px', borderRadius: '5px' }}>{fmtCurrency(dailyRate + (overtimeToMinutes(rec.overtime) / 60) * VALOR_HORA_EXTRA(dailyRate))}</p>
                                   </div>
                                 </div>
                               )}
