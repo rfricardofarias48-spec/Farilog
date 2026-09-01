@@ -70,6 +70,7 @@ function mapCompany(r) {
     location:  r.localizacao,
     dailyRate:      Number(r.diaria ?? 150),
     valorDescarga:  Number(r.valor_descarga ?? 0),
+    prazoPagamento: Number(r.prazo_pagamento ?? 5),
     isActive:       r.ativo,
   };
 }
@@ -282,24 +283,33 @@ export async function getCompanyDiaria(companyId) {
   return Number.isFinite(v) && v > 0 ? v : 150;
 }
 
+// A coluna prazo_pagamento exige o migration supabase/prazo-pagamento.sql;
+// se ainda não existir no Supabase, salva/altera sem o campo para não travar o cadastro.
+function missingPrazoColumn(error) {
+  return error && /prazo_pagamento/.test(error.message || '');
+}
+
 export async function createCompany(co) {
-  const { data, error } = await supabase
-    .from('empresas')
-    .insert({
-      id:          co.id,
-      nome:        co.name,
-      cnpj:        co.cnpj || null,
-      email:       co.email,
-      senha:       co.password,
-      telefone:    co.phone || null,
-      responsavel: co.contact || null,
-      endereco:    co.address || null,
-      localizacao: co.location || null,
-      diaria:          co.dailyRate ?? 150,
-      valor_descarga:  co.valorDescarga ?? 0,
-    })
-    .select()
-    .single();
+  const payload = {
+    id:          co.id,
+    nome:        co.name,
+    cnpj:        co.cnpj || null,
+    email:       co.email,
+    senha:       co.password,
+    telefone:    co.phone || null,
+    responsavel: co.contact || null,
+    endereco:    co.address || null,
+    localizacao: co.location || null,
+    diaria:          co.dailyRate ?? 150,
+    valor_descarga:  co.valorDescarga ?? 0,
+    prazo_pagamento: co.prazoPagamento ?? 5,
+  };
+  let { data, error } = await supabase.from('empresas').insert(payload).select().single();
+  if (error && missingPrazoColumn(error)) {
+    console.warn('[db] createCompany: coluna prazo_pagamento ausente — rode supabase/prazo-pagamento.sql no Supabase.');
+    delete payload.prazo_pagamento;
+    ({ data, error } = await supabase.from('empresas').insert(payload).select().single());
+  }
   if (error) { console.error('[db] createCompany:', error.message); return null; }
   return mapCompany(data);
 }
@@ -316,13 +326,24 @@ export async function updateCompany(id, co) {
   if (co.location  !== undefined) patch.localizacao = co.location;
   if (co.dailyRate      !== undefined) patch.diaria          = co.dailyRate;
   if (co.valorDescarga  !== undefined) patch.valor_descarga  = co.valorDescarga;
+  if (co.prazoPagamento !== undefined) patch.prazo_pagamento = co.prazoPagamento;
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('empresas')
     .update(patch)
     .eq('id', id)
     .select()
     .single();
+  if (error && missingPrazoColumn(error)) {
+    console.warn('[db] updateCompany: coluna prazo_pagamento ausente — rode supabase/prazo-pagamento.sql no Supabase.');
+    delete patch.prazo_pagamento;
+    ({ data, error } = await supabase
+      .from('empresas')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single());
+  }
   if (error) { console.error('[db] updateCompany:', error.message); return null; }
   return mapCompany(data);
 }

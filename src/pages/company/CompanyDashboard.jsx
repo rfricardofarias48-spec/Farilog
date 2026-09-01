@@ -10,7 +10,7 @@ import { PAYMENTS, fmtCurrency, fmtDate, WEEKDAYS, MONTHS } from '../../data/moc
 import { overtimeToMinutes, sumOvertimeMinutes, minutesToOvertimeString } from '../../lib/timeUtils';
 
 // ── Contexto interno de dados da empresa ──────────────────────────────────
-const CompanyDataCtx = createContext({ records: [], employees: [], escalas: [], relatorios: [], dailyRate: 150 });
+const CompanyDataCtx = createContext({ records: [], employees: [], escalas: [], relatorios: [], dailyRate: 150, prazoPagamento: 5 });
 const useCompanyData = () => useContext(CompanyDataCtx);
 
 // ── Helper WhatsApp ────────────────────────────────────────────────────────
@@ -302,6 +302,16 @@ function getQuinzenaInfoByOffset(offset) {
       ? `01/${mm} a 15/${mm}`
       : `16/${mm} a ${String(endDay).padStart(2,'0')}/${mm}`,
   };
+}
+
+// Data de pagamento da quinzena = último dia da quinzena + prazo (dias) da empresa.
+// Q1 fecha dia 15 do mesmo mês; Q2 fecha no último dia do mês. Ex.: prazo 10, Q1 Ago/2026 → 25/08.
+function getPayDateStr(quinzena, prazoDias = 5) {
+  const prazo = Number(prazoDias) >= 0 ? Math.floor(Number(prazoDias)) : 5;
+  const close = new Date(quinzena.year, quinzena.month, quinzena.endDay + prazo);
+  const dd = String(close.getDate()).padStart(2, '0');
+  const mm = String(close.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}/${close.getFullYear()}`;
 }
 
 function buildQuinzenaData(records, offset = 0, dailyRate = VALOR_DIARIA) {
@@ -1808,7 +1818,7 @@ function Financial({ companyId }) {
   const [qOffset,         setQOffset]         = useState(0);
   const [selectedPayment, setSelectedPayment] = useState(null);
 
-  const { records, dailyRate = VALOR_DIARIA } = useCompanyData();
+  const { records, dailyRate = VALOR_DIARIA, prazoPagamento = 5 } = useCompanyData();
   const myPayments  = PAYMENTS.filter(p => p.companyId === companyId).sort((a,b) => b.dueDate.localeCompare(a.dueDate));
   const nextPayment = myPayments.find(p => p.status === 'pending');
   const daysLeft    = nextPayment ? Math.ceil((new Date(nextPayment.dueDate) - TODAY_DATE) / 86400000) : null;
@@ -1827,7 +1837,7 @@ function Financial({ companyId }) {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold" style={T}>Financeiro</h2>
-          <p className="text-sm mt-0.5" style={TM}>Pagamentos quinzenais nos dias 5 e 20</p>
+          <p className="text-sm mt-0.5" style={TM}>Vencimento {Number(prazoPagamento ?? 5)} dias após o fechamento da quinzena</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <button onClick={() => setQOffset(o => o - 1)}
@@ -1949,11 +1959,7 @@ function Financial({ companyId }) {
 
         {/* Valor a pagar + Data de pagamento — fora da caixa do gráfico */}
         {(() => {
-          const { num, month, year } = quinzenaInfo;
-          let payDay, payMonth, payYear;
-          if (num === 1) { payDay = 20; payMonth = month; payYear = year; }
-          else { payDay = 5; payMonth = month + 1; payYear = year; if (payMonth > 11) { payMonth = 0; payYear += 1; } }
-          const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
+          const payStr = getPayDateStr(quinzenaInfo, prazoPagamento);
           return (
             <div style={{ padding: '14px 20px', borderRadius: '12px', background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', display: 'inline-flex', alignItems: 'center', gap: '24px' }}>
               <div>
@@ -2998,7 +3004,7 @@ function LiderReportBlock({ date }) {
 
 // ── Relatório ──────────────────────────────────────────────────────────────
 function RelatorioTab({ companyId, valorDescarga = 0 }) {
-  const { records, employees, escalas, dailyRate = VALOR_DIARIA } = useCompanyData();
+  const { records, employees, escalas, dailyRate = VALOR_DIARIA, prazoPagamento = 5 } = useCompanyData();
   const [offset, setOffset] = useState(0);
   const [openDay, setOpenDay] = useState(null);
   const [tipoFilter, setTipoFilter] = useState(null);
@@ -3219,10 +3225,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
 
     // ── Rodapé: card Valor a pagar + Data de pagamento ───────
     const { num: qNum, month: qMonth, year: qYear } = getQuinzenaInfoByOffset(offset);
-    let payDay, payMonth, payYear;
-    if (qNum === 1) { payDay = 20; payMonth = qMonth; payYear = qYear; }
-    else { payDay = 5; payMonth = qMonth + 1; payYear = qYear; if (payMonth > 11) { payMonth = 0; payYear += 1; } }
-    const payStr = `${String(payDay).padStart(2,'0')}/${String(payMonth + 1).padStart(2,'0')}/${payYear}`;
+    const payStr = getPayDateStr({ num: qNum, month: qMonth, year: qYear, endDay: qNum === 1 ? 15 : new Date(qYear, qMonth + 1, 0).getDate() }, prazoPagamento);
 
     const y3    = doc.lastAutoTable.finalY + 8;
     const cardH = 18;
@@ -3757,6 +3760,7 @@ export default function CompanyDashboard() {
   const [company, setCompany] = useState(null);
   const companyId = user?.id;
   const dailyRate = Number(company?.dailyRate ?? user?.dailyRate ?? 150);
+  const prazoPagamento = Number(company?.prazoPagamento ?? 5);
 
   useEffect(() => {
     if (!companyId) return;
@@ -3776,7 +3780,7 @@ export default function CompanyDashboard() {
   }, [companyId]);
 
   return (
-    <CompanyDataCtx.Provider value={{ records, employees, escalas, relatorios, dailyRate }}>
+    <CompanyDataCtx.Provider value={{ records, employees, escalas, relatorios, dailyRate, prazoPagamento }}>
       <div className="animate-fade-up">
         {tab === 'panel'     && <Panel       companyId={companyId} setTab={setTab} companyName={user.name} />}
         {tab === 'escalas'   && <EscalasTab  companyId={companyId} />}
