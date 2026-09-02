@@ -1463,3 +1463,39 @@ export async function deleteAdiantamento(id) {
   const { error } = await supabase.from('folha_adiantamentos').delete().eq('id', id);
   if (error) { console.error('[db] deleteAdiantamento:', error.message); }
 }
+
+// ── Pagamentos efetuados (Folha de Pagamento) ──────────────────────────────
+// Marca que o valor de um ajudante em uma quinzena foi pago (checkbox verde).
+
+export async function fetchPagosPorQuinzena(quinzenaIdx) {
+  const { data, error } = await supabase
+    .from('folha_pagos')
+    .select('*')
+    .eq('quinzena_idx', quinzenaIdx);
+  if (error) { console.error('[db] fetchPagosPorQuinzena:', error.message); return []; }
+  return (data || []).map(r => ({
+    id:            r.id,
+    employeeId:    r.funcionario_id,
+    quinzenaIdx:   r.quinzena_idx,
+    pagoEm:        r.pago_em,
+  }));
+}
+
+export async function marcarPago(employeeId, quinzenaIdx) {
+  const { data, error } = await supabase
+    .from('folha_pagos')
+    .insert({ funcionario_id: employeeId, quinzena_idx: quinzenaIdx })
+    .select()
+    .single();
+  if (error) { console.error('[db] marcarPago:', error.message); return null; }
+  return { id: data.id, employeeId: data.funcionario_id, quinzenaIdx: data.quinzena_idx, pagoEm: data.pago_em };
+}
+
+export async function desmarcarPago(employeeId, quinzenaIdx) {
+  const { error } = await supabase
+    .from('folha_pagos')
+    .delete()
+    .eq('funcionario_id', employeeId)
+    .eq('quinzena_idx', quinzenaIdx);
+  if (error) { console.error('[db] desmarcarPago:', error.message); }
+}

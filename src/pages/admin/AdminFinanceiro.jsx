@@ -8,6 +8,7 @@ import {
   fetchCustosFixos, createCustoFixo, deleteCustoFixo,
   createLancamentoManual, deleteLancamento,
   fetchAdiantamentosPorQuinzena, createAdiantamento, deleteAdiantamento,
+  fetchPagosPorQuinzena, marcarPago, desmarcarPago,
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
 import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
@@ -19,7 +20,7 @@ import {
   DollarSign, TrendingUp, TrendingDown, Percent,
   ChevronLeft, ChevronRight, ChevronDown,
   Plus, Trash2, BarChart2, CreditCard, FileText, Wallet, Building2, X,
-  Maximize2, Users, Clock, CalendarDays, HandCoins,
+  Maximize2, Users, Clock, CalendarDays, HandCoins, Check,
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -1346,6 +1347,7 @@ function TabFolhaPagamento({ employees }) {
   const [adiantamentos, setAdiantamentos] = useState([]);
   const [showLancarModal, setShowLancarModal] = useState(false);
   const [detalheEmp, setDetalheEmp] = useState(null);
+  const [pagos, setPagos] = useState([]);
 
   const q = useMemo(() => quinzenaBounds(qi), [qi]);
 
@@ -1364,6 +1366,7 @@ function TabFolhaPagamento({ employees }) {
       setLoading(false);
     });
     fetchAdiantamentosPorQuinzena(qi).then(setAdiantamentos);
+    fetchPagosPorQuinzena(qi).then(setPagos);
   }, [q.start, q.end, qi]);
 
   const handleSalvarAdiantamento = async (dados) => {
@@ -1378,6 +1381,18 @@ function TabFolhaPagamento({ employees }) {
   const handleExcluirAdiantamento = async (id) => {
     await deleteAdiantamento(id);
     setAdiantamentos(prev => prev.filter(a => a.id !== id));
+  };
+
+  // Marca/desmarca o pagamento de um ajudante na quinzena exibida.
+  const handleTogglePago = async (employeeId) => {
+    const jaPago = pagos.find(p => p.employeeId === employeeId);
+    if (jaPago) {
+      await desmarcarPago(employeeId, qi);
+      setPagos(prev => prev.filter(p => p.employeeId !== employeeId));
+    } else {
+      const criado = await marcarPago(employeeId, qi);
+      if (criado) setPagos(prev => [...prev, criado]);
+    }
   };
 
   // Agrupa por ajudante: diárias (dias distintos trabalhados) + HE (taxa do próprio cadastro).
@@ -1487,13 +1502,18 @@ function TabFolhaPagamento({ employees }) {
             ) : (
               <>
                 {/* Header */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr', gap: '8px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#FCFDFE' }}>
-                  {['Ajudante', 'Diárias', 'Horas Extra', 'Diárias (R$)', 'H. Extras (R$)', 'Adiantamento', 'A Pagar'].map(h => (
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr 0.55fr', gap: '8px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#FCFDFE' }}>
+                  {['Ajudante', 'Diárias', 'Horas Extra', 'Diárias (R$)', 'H. Extras (R$)', 'Adiantamento', 'A Pagar', 'Pago'].map(h => (
                     <span key={h} style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
                   ))}
                 </div>
-                {linhas.map(l => (
-                  <div key={l.emp.id} style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr', gap: '8px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                {linhas.map(l => {
+                  const registroPago = pagos.find(p => p.employeeId === l.emp.id);
+                  const fmtDataPago = registroPago
+                    ? (() => { const d = new Date(registroPago.pagoEm); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; })()
+                    : null;
+                  return (
+                    <div key={l.emp.id} style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr 0.55fr', gap: '8px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)', background: registroPago ? '#F0FDF4' : 'transparent' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                       <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: l.emp.color || '#FF4D0C', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
                         {l.emp.initials || l.emp.name?.split(' ').map(p => p[0]).slice(0, 2).join('')}
@@ -1520,15 +1540,25 @@ function TabFolhaPagamento({ employees }) {
                       )}
                     </div>
                     <div>
-                      <p style={{ fontSize: '14px', fontWeight: 800, color: l.aPagar < 0 ? '#E11D48' : '#059669' }}>{fmtCurrency(l.aPagar)}</p>
-                      {l.adiantado > 0 && (
+                      <p style={{ fontSize: '14px', fontWeight: 800, color: l.aPagar < 0 ? '#E11D48' : registroPago ? '#94A3B8' : '#059669' }}>{fmtCurrency(l.aPagar)}</p>
+                      {registroPago ? (
+                        <p style={{ fontSize: '10px', fontWeight: 700, color: '#059669' }}>Pago {fmtDataPago}</p>
+                      ) : l.adiantado > 0 ? (
                         <p style={{ fontSize: '10px', color: '#94A3B8', textDecoration: 'line-through' }}>Bruto {fmtCurrency(l.total)}</p>
-                      )}
+                      ) : null}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <button onClick={() => handleTogglePago(l.emp.id)}
+                        title={registroPago ? `Pago em ${fmtDataPago} — clique para desfazer` : 'Marcar como pago'}
+                        style={{ width: '27px', height: '27px', borderRadius: '9px', border: registroPago ? 'none' : '1.5px solid #CBD5E1', background: registroPago ? '#059669' : '#fff', color: registroPago ? '#fff' : '#CBD5E1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: registroPago ? '0 2px 6px rgba(5,150,105,0.35)' : 'none', transition: 'all 0.15s' }}>
+                        <Check size={15} strokeWidth={3.5} />
+                      </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 {/* Total */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr', gap: '8px', alignItems: 'center', padding: '14px 16px', background: '#F8FAFC' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr 0.55fr', gap: '8px', alignItems: 'center', padding: '14px 16px', background: '#F8FAFC' }}>
                   <span style={{ fontSize: '13px', fontWeight: 800, ...T }}>TOTAL</span>
                   <span />
                   <span />
@@ -1536,6 +1566,7 @@ function TabFolhaPagamento({ employees }) {
                   <span style={{ fontSize: '13px', fontWeight: 800, color: '#D97706' }}>{fmtCurrency(totalHE)}</span>
                   <span style={{ fontSize: '13px', fontWeight: 800, color: '#E11D48' }}>−{fmtCurrency(totalAdiant)}</span>
                   <span style={{ fontSize: '15px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(totalAPagar)}</span>
+                  <span />
                 </div>
               </>
             )}
