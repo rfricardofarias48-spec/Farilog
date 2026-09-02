@@ -1423,3 +1423,43 @@ export async function fetchCarretasByEscalas(escalaIds) {
   if (error) { console.error('[db] fetchCarretasByEscalas:', error.message); return []; }
   return (data || []).map(r => ({ id: r.id, escalaId: r.escala_id, value: r.valor }));
 }
+
+// ── Adiantamentos (Folha de Pagamento) ─────────────────────────────────────
+// Valor pago antecipadamente a um ajudante, descontado do total a pagar
+// da quinzena (quinzena_idx: idx = (ano-2000)*24 + (mes-1)*2 + quinzena).
+
+function mapAdiantamento(r) {
+  return {
+    id:          r.id,
+    employeeId:  r.funcionario_id,
+    quinzenaIdx: r.quinzena_idx,
+    valor:       Number(r.valor),
+    data:        r.data,
+    criadoEm:    r.criado_em,
+  };
+}
+
+export async function fetchAdiantamentosPorQuinzena(quinzenaIdx) {
+  const { data, error } = await supabase
+    .from('folha_adiantamentos')
+    .select('*')
+    .eq('quinzena_idx', quinzenaIdx)
+    .order('data', { ascending: true });
+  if (error) { console.error('[db] fetchAdiantamentosPorQuinzena:', error.message); return []; }
+  return (data || []).map(mapAdiantamento);
+}
+
+export async function createAdiantamento({ employeeId, quinzenaIdx, valor, data }) {
+  const { data: row, error } = await supabase
+    .from('folha_adiantamentos')
+    .insert({ funcionario_id: employeeId, quinzena_idx: quinzenaIdx, valor, data })
+    .select()
+    .single();
+  if (error) { console.error('[db] createAdiantamento:', error.message); return null; }
+  return mapAdiantamento(row);
+}
+
+export async function deleteAdiantamento(id) {
+  const { error } = await supabase.from('folha_adiantamentos').delete().eq('id', id);
+  if (error) { console.error('[db] deleteAdiantamento:', error.message); }
+}

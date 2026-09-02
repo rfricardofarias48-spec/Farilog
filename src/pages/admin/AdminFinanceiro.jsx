@@ -7,6 +7,7 @@ import {
   fetchDividas, createDivida, deleteDivida,
   fetchCustosFixos, createCustoFixo, deleteCustoFixo,
   createLancamentoManual, deleteLancamento,
+  fetchAdiantamentosPorQuinzena, createAdiantamento, deleteAdiantamento,
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
 import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
@@ -18,7 +19,7 @@ import {
   DollarSign, TrendingUp, TrendingDown, Percent,
   ChevronLeft, ChevronRight, ChevronDown,
   Plus, Trash2, BarChart2, CreditCard, FileText, Wallet, Building2, X,
-  Maximize2, Users, Clock, CalendarDays,
+  Maximize2, Users, Clock, CalendarDays, HandCoins,
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -1122,7 +1123,198 @@ function TabDRE({ records, lancamentos, employees, bounds, companies }) {
   );
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────
+// ── Modal: Lançar Adiantamento ─────────────────────────────────────────────
+function LancarAdiantamentoModal({ employees, defaultIdx, maxIdx, onSave, onClose }) {
+  const [form,   setForm]   = useState({ employeeId: '', valor: '', data: TODAY_ISO, idx: String(defaultIdx) });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  // Opções: 4 quinzenas anteriores até a quinzena atual (máx. de navegação da folha)
+  const idxOptions = useMemo(() => {
+    const cur = Number(form.idx);
+    const list = [];
+    for (let i = Math.max(cur - 4, 0); i <= Math.max(cur, maxIdx); i++) list.push(i);
+    return list;
+  }, [form.idx, maxIdx]);
+
+  const selQ  = quinzenaBounds(Number(form.idx));
+  const canSave = form.employeeId && form.valor && form.data && !saving;
+
+  const handleSave = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    const ok = await onSave({
+      employeeId:  form.employeeId,
+      quinzenaIdx: Number(form.idx),
+      valor:       Number(form.valor),
+      data:        form.data,
+    });
+    setSaving(false);
+    if (ok) onClose();
+  };
+
+  const fmtBR = iso => `${iso.split('-')[2]}/${iso.split('-')[1]}/${iso.split('-')[0]}`;
+
+  return createPortal(
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+
+        {/* Header */}
+        <div style={{ padding: '22px 24px 18px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <button onClick={onClose}
+            style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={15} />
+          </button>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Lançar Adiantamento</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>Pagamento antecipado</p>
+        </div>
+
+        {/* Corpo */}
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+
+          {/* Ajudante */}
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Ajudante</label>
+            <select className="input-field" value={form.employeeId}
+              onChange={e => setForm(f => ({...f, employeeId: e.target.value}))}>
+              <option value="">Selecione o ajudante...</option>
+              {employees.map(emp => (
+                <option key={emp.id} value={emp.id}>{emp.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Valor + Data */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Valor adiantado (R$)</label>
+              <input className="input-field" type="number" min="0.01" step="0.01" placeholder="0,00"
+                value={form.valor} onChange={e => setForm(f => ({...f, valor: e.target.value}))} />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Data do adiantamento</label>
+              <input className="input-field" type="date" value={form.data}
+                onChange={e => setForm(f => ({...f, data: e.target.value}))} />
+            </div>
+          </div>
+
+          {/* Quinzena em que será descontado */}
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Descontar na quinzena</label>
+            <select className="input-field" value={form.idx}
+              onChange={e => setForm(f => ({...f, idx: e.target.value}))}>
+              {idxOptions.map(i => {
+                const b = quinzenaBounds(i);
+                return <option key={i} value={i}>{b.label} · {b.monthLabel} (pagamento em {fmtBR(b.payDate)})</option>;
+              })}
+            </select>
+            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '6px' }}>
+              {selQ.label} · {selQ.monthLabel} — esse valor será descontado do total a pagar dessa quinzena.
+            </p>
+          </div>
+
+          {/* Ações */}
+          <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
+            <button onClick={onClose}
+              style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>
+              Cancelar
+            </button>
+            <button onClick={handleSave} disabled={!canSave}
+              style={{
+                flex: 2, padding: '12px', borderRadius: '12px', border: 'none',
+                cursor: canSave ? 'pointer' : 'not-allowed',
+                background: canSave ? '#E11D48' : '#E2E8F0',
+                color: canSave ? 'white' : '#94A3B8',
+                fontSize: '13px', fontWeight: 700,
+                boxShadow: canSave ? '0 2px 10px rgba(225,29,72,0.3)' : 'none',
+              }}>
+              {saving ? 'Salvando...' : 'Lançar Adiantamento'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ── Modal: Detalhes do Adiantamento ────────────────────────────────────────
+function AdiantamentoDetalheModal({ empName, itens, onDelete, onClose }) {
+  const [confirmId, setConfirmId] = useState(null);
+
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  const total = itens.reduce((s, a) => s + a.valor, 0);
+  const fmtBR = iso => `${String(iso).split('-')[2]}/${String(iso).split('-')[1]}/${String(iso).split('-')[0]}`;
+
+  return createPortal(
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '420px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+
+        {/* Header */}
+        <div style={{ padding: '22px 24px 18px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <button onClick={onClose}
+            style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={15} />
+          </button>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Adiantamentos</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>{empName}</p>
+        </div>
+
+        {/* Corpo */}
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {itens.length === 0 ? (
+            <p style={{ fontSize: '13px', color: '#94A3B8', textAlign: 'center', padding: '16px 0' }}>Nenhum adiantamento lançado.</p>
+          ) : (
+            <>
+              {itens.map(a => (
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '12px 14px', borderRadius: '12px', background: '#FFF1F2', border: '1px solid #FECDD3' }}>
+                  <div>
+                    <p style={{ fontSize: '15px', fontWeight: 800, color: '#E11D48' }}>{fmtCurrency(a.valor)}</p>
+                    <p style={{ fontSize: '11px', color: '#FB7185', marginTop: '2px' }}>Adiantado em {fmtBR(a.data)}</p>
+                  </div>
+                  {confirmId === a.id ? (
+                    <button onClick={() => { setConfirmId(null); onDelete(a.id); }}
+                      style={{ padding: '7px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#E11D48', color: '#fff', fontSize: '11px', fontWeight: 700 }}>
+                      Excluir?
+                    </button>
+                  ) : (
+                    <button onClick={() => setConfirmId(a.id)} title="Excluir adiantamento"
+                      style={{ width: '30px', height: '30px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#fff', color: '#E11D48', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total adiantado</span>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#E11D48' }}>{fmtCurrency(total)}</span>
+              </div>
+            </>
+          )}
+
+          <button onClick={onClose}
+            style={{ padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ── Tab: Folha de Pagamento ────────────────────────────────────────────────
 // Quinzena 1 (dias 01–15) → pagamento no dia 22 do mesmo mês.
 // Quinzena 2 (dias 16–fim) → pagamento no dia 7 do mês seguinte.
@@ -1151,8 +1343,19 @@ function TabFolhaPagamento({ employees }) {
   const [qi, setQi]     = useState(curIdx);
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [adiantamentos, setAdiantamentos] = useState([]);
+  const [showLancarModal, setShowLancarModal] = useState(false);
+  const [detalheEmp, setDetalheEmp] = useState(null);
 
   const q = useMemo(() => quinzenaBounds(qi), [qi]);
+
+  // Quinzena padrão do lançamento = a do próximo pagamento que ainda vai ocorrer:
+  // dias 01–07 → Q2 do mês anterior (paga dia 07); dias 08–22 → Q1 do mês (paga dia 22);
+  // dias 23–31 → Q2 do mês (paga dia 07 do mês seguinte).
+  const nextPayIdx = useMemo(
+    () => (quinzenaBounds(curIdx - 1).payDate >= TODAY_ISO ? curIdx - 1 : curIdx),
+    [curIdx]
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -1160,9 +1363,25 @@ function TabFolhaPagamento({ employees }) {
       setRecords(recs || []);
       setLoading(false);
     });
-  }, [q.start, q.end]);
+    fetchAdiantamentosPorQuinzena(qi).then(setAdiantamentos);
+  }, [q.start, q.end, qi]);
 
-  // Agrupa por ajudante: diárias (dias distintos trabalhados) + HE (taxa do próprio cadastro)
+  const handleSalvarAdiantamento = async (dados) => {
+    const criado = await createAdiantamento(dados);
+    if (!criado) return false;
+    if (criado.quinzenaIdx === qi) {
+      setAdiantamentos(prev => [...prev, criado].sort((a, b) => a.data.localeCompare(b.data)));
+    }
+    return true;
+  };
+
+  const handleExcluirAdiantamento = async (id) => {
+    await deleteAdiantamento(id);
+    setAdiantamentos(prev => prev.filter(a => a.id !== id));
+  };
+
+  // Agrupa por ajudante: diárias (dias distintos trabalhados) + HE (taxa do próprio cadastro).
+  // Adiantamentos lançados para a quinzena são descontados do total a pagar.
   const linhas = useMemo(() => {
     const byEmp = {};
     records.forEach(r => {
@@ -1178,13 +1397,18 @@ function TabFolhaPagamento({ employees }) {
     return Object.values(byEmp).map(({ emp, days, heMin }) => {
       const diarias = days.size * Number(emp.dailyRate || 0);
       const he      = (heMin / 60) * Number(emp.overtimeRate || 0);
-      return { emp, dias: days.size, heMin, diarias, he, total: diarias + he };
+      const adiantado = adiantamentos
+        .filter(a => a.employeeId === emp.id)
+        .reduce((s, a) => s + a.valor, 0);
+      return { emp, dias: days.size, heMin, diarias, he, total: diarias + he, adiantado, aPagar: diarias + he - adiantado };
     }).sort((a, b) => b.total - a.total);
-  }, [records, employees]);
+  }, [records, employees, adiantamentos]);
 
-  const totalGeral = linhas.reduce((s, l) => s + l.total, 0);
-  const totalHE    = linhas.reduce((s, l) => s + l.he, 0);
-  const totalDiar  = linhas.reduce((s, l) => s + l.diarias, 0);
+  const totalGeral    = linhas.reduce((s, l) => s + l.total, 0);
+  const totalHE       = linhas.reduce((s, l) => s + l.he, 0);
+  const totalDiar     = linhas.reduce((s, l) => s + l.diarias, 0);
+  const totalAdiant   = adiantamentos.reduce((s, a) => s + a.valor, 0);
+  const totalAPagar   = totalGeral - totalAdiant;
   const payLabel   = `${q.payDate.split('-')[2]}/${q.payDate.split('-')[1]}/${q.payDate.split('-')[0]}`;
   const isPaid     = q.payDate < TODAY_ISO;
 
@@ -1218,11 +1442,18 @@ function TabFolhaPagamento({ employees }) {
             <ChevronRight size={13} />
           </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 13px', borderRadius: '10px', background: isPaid ? '#F0FDF4' : '#FFF7ED', border: `1px solid ${isPaid ? '#BBF7D0' : '#FED7AA'}` }}>
-          <CalendarDays size={14} style={{ color: isPaid ? '#059669' : '#D97706' }} />
-          <span style={{ fontSize: '12px', fontWeight: 700, color: isPaid ? '#059669' : '#D97706' }}>
-            {isPaid ? 'Pago em' : 'Pagamento em'} {payLabel}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 13px', borderRadius: '10px', background: isPaid ? '#F0FDF4' : '#FFF7ED', border: `1px solid ${isPaid ? '#BBF7D0' : '#FED7AA'}` }}>
+            <CalendarDays size={14} style={{ color: isPaid ? '#059669' : '#D97706' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: isPaid ? '#059669' : '#D97706' }}>
+              {isPaid ? 'Pago em' : 'Pagamento em'} {payLabel}
+            </span>
+          </div>
+          <button onClick={() => setShowLancarModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#E11D48', color: '#fff', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(225,29,72,0.3)' }}>
+            <HandCoins size={14} />
+            Lançar Adiantamento
+          </button>
         </div>
       </div>
 
@@ -1234,9 +1465,10 @@ function TabFolhaPagamento({ employees }) {
         <>
           {/* KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-            <Card label="Total a Pagar" value={fmtCurrency(totalGeral)} color="#0F172A" bg="#F1F5F9" icon={Wallet} />
+            <Card label="Total a Pagar" value={fmtCurrency(totalAPagar)} color="#0F172A" bg="#F1F5F9" icon={Wallet} />
             <Card label="Diárias" value={fmtCurrency(totalDiar)} color="#2563EB" bg="#EFF6FF" icon={DollarSign} />
             <Card label="Horas Extras" value={fmtCurrency(totalHE)} color="#D97706" bg="#FFFBEB" icon={Clock} />
+            <Card label="Adiantamentos" value={fmtCurrency(totalAdiant)} color="#E11D48" bg="#FFF1F2" icon={HandCoins} />
             <Card label="Ajudantes na Quinzena" value={String(linhas.length)} color="#FF4D0C" bg="#FFF2EE" icon={Users} />
           </div>
 
@@ -1255,13 +1487,13 @@ function TabFolhaPagamento({ employees }) {
             ) : (
               <>
                 {/* Header */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.8fr 0.9fr 1fr 1fr 1.1fr', gap: '8px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#FCFDFE' }}>
-                  {['Ajudante', 'Diárias', 'Horas Extra', 'Diárias (R$)', 'H. Extras (R$)', 'Total a Receber'].map(h => (
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr', gap: '8px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#FCFDFE' }}>
+                  {['Ajudante', 'Diárias', 'Horas Extra', 'Diárias (R$)', 'H. Extras (R$)', 'Adiantamento', 'A Pagar'].map(h => (
                     <span key={h} style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
                   ))}
                 </div>
                 {linhas.map(l => (
-                  <div key={l.emp.id} style={{ display: 'grid', gridTemplateColumns: '2fr 0.8fr 0.9fr 1fr 1fr 1.1fr', gap: '8px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                  <div key={l.emp.id} style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr', gap: '8px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                       <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: l.emp.color || '#FF4D0C', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
                         {l.emp.initials || l.emp.name?.split(' ').map(p => p[0]).slice(0, 2).join('')}
@@ -1277,22 +1509,57 @@ function TabFolhaPagamento({ employees }) {
                     </span>
                     <span style={{ fontSize: '13px', fontWeight: 600, color: '#2563EB' }}>{fmtCurrency(l.diarias)}</span>
                     <span style={{ fontSize: '13px', fontWeight: 600, color: '#D97706' }}>{fmtCurrency(l.he)}</span>
-                    <span style={{ fontSize: '14px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(l.total)}</span>
+                    <div>
+                      {l.adiantado > 0 ? (
+                        <button onClick={() => setDetalheEmp(l.emp.id)} title="Ver detalhes dos adiantamentos"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 9px', borderRadius: '8px', background: '#FFF1F2', border: '1px dashed #FECDD3', cursor: 'pointer', fontSize: '12px', fontWeight: 800, color: '#E11D48' }}>
+                          −{fmtCurrency(l.adiantado)}
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: '#CBD5E1' }}>—</span>
+                      )}
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '14px', fontWeight: 800, color: l.aPagar < 0 ? '#E11D48' : '#059669' }}>{fmtCurrency(l.aPagar)}</p>
+                      {l.adiantado > 0 && (
+                        <p style={{ fontSize: '10px', color: '#94A3B8', textDecoration: 'line-through' }}>Bruto {fmtCurrency(l.total)}</p>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {/* Total */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.8fr 0.9fr 1fr 1fr 1.1fr', gap: '8px', alignItems: 'center', padding: '14px 16px', background: '#F8FAFC' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr', gap: '8px', alignItems: 'center', padding: '14px 16px', background: '#F8FAFC' }}>
                   <span style={{ fontSize: '13px', fontWeight: 800, ...T }}>TOTAL</span>
                   <span />
                   <span />
                   <span style={{ fontSize: '13px', fontWeight: 800, color: '#2563EB' }}>{fmtCurrency(totalDiar)}</span>
                   <span style={{ fontSize: '13px', fontWeight: 800, color: '#D97706' }}>{fmtCurrency(totalHE)}</span>
-                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(totalGeral)}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#E11D48' }}>−{fmtCurrency(totalAdiant)}</span>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(totalAPagar)}</span>
                 </div>
               </>
             )}
           </div>
         </>
+      )}
+
+      {/* Modais de adiantamento */}
+      {showLancarModal && (
+        <LancarAdiantamentoModal
+          employees={employees}
+          defaultIdx={nextPayIdx}
+          maxIdx={curIdx}
+          onSave={handleSalvarAdiantamento}
+          onClose={() => setShowLancarModal(false)}
+        />
+      )}
+      {detalheEmp && (
+        <AdiantamentoDetalheModal
+          empName={employees.find(e => e.id === detalheEmp)?.name || ''}
+          itens={adiantamentos.filter(a => a.employeeId === detalheEmp)}
+          onDelete={handleExcluirAdiantamento}
+          onClose={() => setDetalheEmp(null)}
+        />
       )}
     </div>
   );
