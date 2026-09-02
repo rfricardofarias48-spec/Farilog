@@ -5,7 +5,7 @@
 
 create table if not exists public.folha_adiantamentos (
   id             uuid primary key default gen_random_uuid(),
-  funcionario_id uuid not null references public.funcionarios(id) on delete cascade,
+  funcionario_id text not null references public.funcionarios(id) on delete cascade,
   quinzena_idx   integer not null,
   valor          numeric(10,2) not null check (valor > 0),
   data           date not null default current_date,
