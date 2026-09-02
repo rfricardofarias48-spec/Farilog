@@ -1547,7 +1547,7 @@ function TabFolhaPagamento({ employees }) {
                         <p style={{ fontSize: '10px', color: '#94A3B8', textDecoration: 'line-through' }}>Bruto {fmtCurrency(l.total)}</p>
                       ) : null}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                       <button onClick={() => handleTogglePago(l.emp.id)}
                         title={registroPago ? `Pago em ${fmtDataPago} — clique para desfazer` : 'Marcar como pago'}
                         style={{ width: '27px', height: '27px', borderRadius: '9px', border: registroPago ? 'none' : '1.5px solid #CBD5E1', background: registroPago ? '#059669' : '#fff', color: registroPago ? '#fff' : '#CBD5E1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: registroPago ? '0 2px 6px rgba(5,150,105,0.35)' : 'none', transition: 'all 0.15s' }}>
