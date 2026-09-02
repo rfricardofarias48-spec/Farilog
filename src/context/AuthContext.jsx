@@ -7,8 +7,28 @@ import {
 
 const AuthContext = createContext(null);
 
+// Sessão persistida: o usuário continua logado até deslogar explicitamente,
+// mesmo se o navegador recarregar ou descartar a aba após inatividade.
+const SESSION_KEY = 'farilog_session';
+
+function loadSavedUser() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const u = JSON.parse(raw);
+    return u && u.role ? u : null;
+  } catch { return null; }
+}
+
+function saveUser(u) {
+  try {
+    if (u) localStorage.setItem(SESSION_KEY, JSON.stringify(u));
+    else localStorage.removeItem(SESSION_KEY);
+  } catch { /* localStorage indisponível */ }
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser]           = useState(null);
+  const [user, setUser]           = useState(loadSavedUser);
   const [employees, setEmployees] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [demands, setDemands]     = useState([]);
@@ -134,15 +154,23 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const co = await loginCompany(email, password);
-    if (co) { setUser({ role: 'company', ...co }); return { success: true, role: 'company' }; }
+    if (co) {
+      const u = { role: 'company', ...co };
+      setUser(u); saveUser(u);
+      return { success: true, role: 'company' };
+    }
 
     const admin = await loginAdmin(email, password);
-    if (admin) { setUser({ role: 'admin', ...admin }); return { success: true, role: 'admin' }; }
+    if (admin) {
+      const u = { role: 'admin', ...admin };
+      setUser(u); saveUser(u);
+      return { success: true, role: 'admin' };
+    }
 
     return { success: false, error: 'E-mail ou senha inválidos' };
   };
 
-  const logout = () => setUser(null);
+  const logout = () => { saveUser(null); setUser(null); };
 
   return (
     <AuthContext.Provider value={{

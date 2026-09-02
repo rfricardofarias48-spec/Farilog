@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, ArrowRight, Mail, Lock, Users, Coins, Clock, DollarSign, FileText, ShieldCheck } from 'lucide-react';
@@ -15,13 +15,18 @@ const HIGHLIGHTS = [
 
 export default function Login() {
   const navigate   = useNavigate();
-  const { login }  = useAuth();
+  const { login, user } = useAuth();
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [showPwd,  setShowPwd]  = useState(false);
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
   const [focus,    setFocus]    = useState(null);
+
+  // Já está logado (sessão restaurada) → vai direto para o painel.
+  useEffect(() => {
+    if (user) navigate(user.role === 'admin' ? '/admin' : '/company', { replace: true });
+  }, [user, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
