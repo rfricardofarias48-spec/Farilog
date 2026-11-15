@@ -318,7 +318,7 @@ body.mobile .mcontent{padding:0 16px 104px}
 body.mobile .mheader{padding:16px 18px 26px;background:linear-gradient(160deg,#0F0F0F 0%,#000000 100%);color:#fff;position:relative;overflow:hidden}
 body.mobile .mheader:after{content:'';position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.10),transparent 65%);top:-110px;right:-70px}
 .mheader-top{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1}
-.mheader-top img{height:24px;max-width:100px;object-fit:contain}
+.mheader-top img{height:34px;max-width:130px;object-fit:contain}
 .mheader h2{font-size:22px;font-weight:700;letter-spacing:-.035em;margin-top:18px;position:relative;z-index:1}
 .mheader p{font-size:11.5px;color:rgba(255,255,255,.52);margin-top:4px;position:relative;z-index:1}
 .mheader .htools{display:flex;gap:8px;align-items:center;z-index:1;position:relative}
@@ -441,6 +441,7 @@ const NAV = {
   admin: [
     {k:'visao', label:'Visão Geral', icon:'grid'},
     {k:'operacional', label:'Operacional', icon:'briefcase', chevron:true},
+    {k:'operacional-encarregados', label:'Encarregados', icon:'userCheck', sub:true},
     {k:'financeiro', label:'Financeiro', icon:'dollar', chevron:true},
     {k:'rh', label:'RH', icon:'users', chevron:true},
     {k:'empresas', label:'Empresas', icon:'building'},
@@ -477,8 +478,8 @@ function sidebar(role, active){
     <div class="logo-wrap">${logoImg(72)}</div>
     <p class="menu-label">Menu</p>
     <nav class="nav">
-      ${items.map(it=>`<a class="nav-link ${active===it.k?'active':''}" href="#${home}?tab=${it.k}">
-        ${ic(it.icon,17)}
+      ${items.map(it=>`<a class="nav-link ${active===it.k?'active':''}" href="#${home}?tab=${it.k}" ${it.sub?'style="padding-left:38px;font-size:12.5px;opacity:.92"':''}>
+        ${ic(it.icon,it.sub?14:17)}
         <span>${it.label}</span>
         ${it.badge?`<span class="nav-badge">${it.badge}</span>`:''}
         ${it.chevron?`<span style="margin-left:auto;color:#8A8A8A">${ic('chevronDown',12)}</span>`:''}
@@ -751,6 +752,188 @@ function pickItem(c, sel){
     ${compAv(c,28,8,9)}
     <div style="min-width:0;flex:1"><b>${c.name}</b><span>${c.city}</span></div>
     <span class="check">${sel?ic('check',11,2.6):''}</span>
+  </div>`;
+}
+
+/* ============================================================
+   ADMIN — CONTA DO ENCARREGADO
+   Sub-aba dentro de Operacional: andamento das diárias, faltas,
+   pendências, % de presença e total faturado por empresa,
+   com histórico de vínculos (trocas de encarregado registradas).
+============================================================ */
+const LIDER_DESEMPENHO = [
+  {co:'tl', diarias:42, faltas:2, pend:1, presenca:95, faturado:6480},
+  {co:'ms', diarias:18, faltas:0, pend:0, presenca:100, faturado:2820},
+  {co:'av', diarias:11, faltas:1, pend:2, presenca:92, faturado:1720},
+];
+const LIDER_VINCULOS = [
+  {co:'tl', de:'01/08/2026', ate:'Atual', tipo:'atual'},
+  {co:'ms', de:'01/08/2026', ate:'Atual', tipo:'atual'},
+  {co:'av', de:'02/10/2026', ate:'Atual', tipo:'atual'},
+  {co:'ca', de:'15/03/2026', ate:'31/07/2026', tipo:'passado', quem:'Substituído por Juliana Rocha'},
+];
+const LIDER_ATIVIDADE = [
+  {d:'Hoje · 07:32', txt:'Lançou entrada de 4 ajudantes · TransLog Distribuição', ok:true},
+  {d:'Ontem · 18:05', txt:'Lançou saída e HE da escala · Mercado Sul Atacado', ok:true},
+  {d:'12/11 · 09:41', txt:'Registrou ocorrência: 1 falta não justificada · AgroVale', ok:false},
+  {d:'11/11 · 16:20', txt:'Finalizou escala com 3 de 4 presentes · AgroVale', ok:true},
+];
+
+function adminContaEncarregado(){
+  const lider = {n:'Carlos Mendes', email:'carlos.mendes@farilog.com', phone:'(51) 99876-1234', ini:'CM', color:'linear-gradient(135deg,#1C1C1C,#0B0B0B)', desde:'01/08/2026', ultimo:'há 12 min'};
+  const tot = LIDER_DESEMPENHO.reduce((s,r)=>({diarias:s.diarias+r.diarias, faltas:s.faltas+r.faltas, pend:s.pend+r.pend, faturado:s.faturado+r.faturado}),{diarias:0,faltas:0,pend:0,faturado:0});
+  const presencaMedia = Math.round(LIDER_DESEMPENHO.reduce((s,r)=>s+r.presenca,0)/LIDER_DESEMPENHO.length);
+  return `<div class="layout">
+    ${sidebar('admin','operacional')}
+    <div class="main">
+      ${topbar('Operacional · Encarregados','RF')}
+      <div class="page">
+        <button class="link" style="margin-bottom:14px;color:#6B6B6B">${ic('arrowLeft',13)} Voltar para Operacional</button>
+
+        <div class="card pad" style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:13px">
+              <span class="avatar" style="width:52px;height:52px;border-radius:15px;font-size:15px;background:${lider.color}">${lider.ini}</span>
+              <div>
+                <b style="font-size:16px;display:block;letter-spacing:-.02em">${lider.n}</b>
+                <span style="font-size:11.5px;color:#6B6B6B">${lider.email} · ${lider.phone}</span>
+                <div style="display:flex;gap:6px;margin-top:6px">
+                  <span class="badge b-green">Ativo</span>
+                  <span class="badge b-gray">Conta desde ${lider.desde}</span>
+                  <span class="badge b-gray">Último acesso ${lider.ultimo}</span>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" style="padding:9px 13px">${ic('whatsapp',13)} WhatsApp</button>
+              <button class="btn btn-soft btn-sm" style="padding:9px 13px">${ic('edit',13)} Editar dados</button>
+              <button class="btn btn-primary btn-sm" style="padding:9px 13px">${ic('lock',13)} Resetar senha</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats" style="grid-template-columns:repeat(5,1fr)">
+          <div class="card stat"><span class="stat-ico" style="background:#F5F5F5;color:#333333">${ic('briefcase',19)}</span><div><b>${tot.diarias}</b><p>Diárias (30 dias)</p><small style="color:#6B6B6B">3 empresas ativas</small></div></div>
+          <div class="card stat"><span class="stat-ico" style="background:#FFF2EE;color:#FF4D0C">${ic('x',19)}</span><div><b>${tot.faltas}</b><p>Faltas</p><small style="color:#C2410C">2 não justificadas</small></div></div>
+          <div class="card stat"><span class="stat-ico" style="background:#FFF2EE;color:#FF4D0C">${ic('alert',19)}</span><div><b>${tot.pend}</b><p>Pendências</p><small style="color:#C2410C">Horários a lançar</small></div></div>
+          <div class="card stat"><span class="stat-ico" style="background:#F5F5F5;color:#333333">${ic('checkCircle',19)}</span><div><b>${presencaMedia}%</b><p>Presença</p><small style="color:#4A4A4A">Média das empresas</small></div></div>
+          <div class="card stat"><span class="stat-ico" style="background:#F5F5F5;color:#4A4A4A">${ic('dollar',19)}</span><div><b>${brl(tot.faturado)}</b><p>Faturado (30 dias)</p><small style="color:#6B6B6B">Diárias + HE das empresas dele</small></div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;overflow:hidden">
+          <div style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,.05);display:flex;align-items:center;justify-content:space-between;background:#FAFAFA">
+            <b style="font-size:12.5px">Desempenho por empresa</b>
+            <span class="badge b-gray">Últimos 30 dias</span>
+          </div>
+          <div class="table-head" style="grid-template-columns:1.4fr 90px 80px 100px 110px 130px">
+            <span>Empresa</span><span style="text-align:center">Diárias</span><span style="text-align:center">Faltas</span><span style="text-align:center">Pendências</span><span style="text-align:center">Presença</span><span style="text-align:right">Faturado</span>
+          </div>
+          ${LIDER_DESEMPENHO.map(r=>{const c=byId[r.co];return `<div class="trow" style="grid-template-columns:1.4fr 90px 80px 100px 110px 130px;padding-top:12px;padding-bottom:12px">
+            <div class="cell-main">${compAv(c,30,9,9)}<div><b>${c.name}</b><span>${c.city}</span></div></div>
+            <span style="text-align:center;font-size:12px;font-weight:700">${r.diarias}</span>
+            <span style="text-align:center;font-size:12px;font-weight:700;color:${r.faltas?'#C2410C':'#6B6B6B'}">${r.faltas}</span>
+            <span style="text-align:center;font-size:12px;font-weight:700;color:${r.pend?'#C2410C':'#6B6B6B'}">${r.pend}</span>
+            <div style="display:flex;align-items:center;gap:7px;justify-content:center">
+              <div class="progress" style="width:56px;height:6px"><i style="width:${r.presenca}%"></i></div>
+              <span style="font-size:11px;font-weight:700">${r.presenca}%</span>
+            </div>
+            <span style="text-align:right;font-size:12.5px;font-weight:700">${brl(r.faturado)}</span>
+          </div>`}).join('')}
+          <div style="padding:12px 20px;background:#F7F7F7;display:flex;justify-content:flex-end;gap:24px;font-size:12px">
+            <span style="color:#6B6B6B">Total do período:</span><b>${brl(tot.faturado)}</b>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:16px;align-items:start">
+          <div class="card pad">
+            <div class="section-title" style="margin-bottom:10px"><span>Empresas e períodos</span><span class="badge b-gray">Histórico de vínculos</span></div>
+            <p class="helper" style="margin:0 0 12px">Trocas de encarregado ficam registradas: o desempenho de cada empresa considera apenas o período em que ele foi o responsável.</p>
+            ${LIDER_VINCULOS.map(v=>{const c=byId[v.co];return `
+            <div class="pay-day">
+              ${compAv(c,32,10,9)}
+              <div class="info"><b>${c.name}</b><span>De ${v.de} até ${v.ate}${v.quem?' · '+v.quem:''}</span></div>
+              <span class="badge ${v.tipo==='atual'?'b-green':'b-gray'}">${v.tipo==='atual'?'Responsável atual':'Encerrado'}</span>
+            </div>`}).join('')}
+            <div style="display:flex;align-items:center;gap:7px;background:#F7F7F7;border-radius:9px;padding:8px 11px;margin-top:10px">
+              ${ic('activity',13)} <span style="font-size:10.5px;color:#4A4A4A">Ao trocar o responsável de uma empresa, o período do antigo é encerrado na data da troca e o novo começa a contar do mesmo dia.</span>
+            </div>
+          </div>
+
+          <div class="card pad">
+            <div class="section-title" style="margin-bottom:10px"><span>Atividade recente</span><button class="link">Ver tudo</button></div>
+            ${LIDER_ATIVIDADE.map(a=>`
+            <div class="hist-item"><span class="hist-dot ${a.ok?'':'warn'}"></span><div style="flex:1"><b>${a.txt}</b><span>${a.d}</span></div></div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ADMIN — NOVO ENCARREGADO (conta com e-mail e senha definidos direto) */
+function adminNovoConta(){
+  return adminContaEncarregado() + `<div class="overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-kicker">
+          <span class="modal-ico">${ic('userPlus',19)}</span>
+          <div><h2>Criar conta de encarregado</h2><p>Defina e-mail e senha diretamente — sem envio de confirmação por e-mail.</p></div>
+        </div>
+        <button class="xbtn">${ic('x',14)}</button>
+      </div>
+      <div class="modal-body">
+        <div class="field"><label>Nome completo</label><input class="input" placeholder="Ex.: Paulo Andrade" /></div>
+        <div class="grid2">
+          <div class="field"><label>E-mail de acesso</label><input class="input" placeholder="paulo@farilog.com" /></div>
+          <div class="field"><label>Telefone / WhatsApp</label><input class="input" placeholder="(51) 90000-0000" /></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Senha de acesso</label><input class="input" type="text" value="farilog2026" style="font-family:monospace" /></div>
+          <div class="field"><label>Status do acesso</label>
+            <div style="display:flex;align-items:center;gap:9px;padding:9px 12px;border:1.5px solid rgba(0,0,0,.10);background:#F5F5F5;border-radius:11px">
+              <span style="width:18px;height:18px;border-radius:6px;background:#0B0B0B;display:flex;align-items:center;justify-content:center;color:#fff">${ic('check',11,2.6)}</span>
+              <span style="font-size:12px;font-weight:600;color:#0B0B0B">Ativo — pode acessar agora</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-h"><b>Empresas responsáveis</b><span>Selecione ao criar</span></div>
+        <p class="helper">O período de responsabilidade de cada empresa começa na data de hoje e fica registrado na conta dele.</p>
+        <div class="pick-grid">
+          ${pickItem(byId.tl,false)}${pickItem(byId.ms,false)}${pickItem(byId.av,false)}
+          ${pickItem(byId.ca,false)}${pickItem(byId.rn,false)}${pickItem(byId.dv,false)}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span class="foot-note">${ic('lock',12)} A senha fica visível para o admin e pode ser trocada a qualquer momento.</span>
+        <button class="btn btn-ghost">Cancelar</button>
+        <button class="btn btn-primary">${ic('check',14)} Criar conta</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ADMIN — RESETAR SENHA (troca direta, sem e-mail) */
+function adminResetSenha(){
+  return adminContaEncarregado() + `<div class="overlay">
+    <div class="modal" style="max-width:460px">
+      <div class="modal-head">
+        <div class="modal-kicker">
+          <span class="modal-ico">${ic('lock',19)}</span>
+          <div><h2>Resetar senha</h2><p>Carlos Mendes · carlos.mendes@farilog.com</p></div>
+        </div>
+        <button class="xbtn">${ic('x',14)}</button>
+      </div>
+      <div class="modal-body">
+        <div class="field"><label>Nova senha (escrita direta)</label><input class="input" type="text" value="novaSenha2026" style="font-family:monospace" /></div>
+        <div class="hist-note">${ic('checkCircle',13)} A troca é imediata: na próxima tentativa de login ele usa a nova senha. Nenhum e-mail é enviado.</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost">Cancelar</button>
+        <button class="btn btn-primary">${ic('check',14)} Salvar nova senha</button>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -1366,7 +1549,7 @@ function mobileDash(){
   return `
   <div class="mheader">
     <div class="mheader-top">
-      ${logoImg(24)}
+      ${logoImg(34)}
       <div class="htools">
         <span class="micon">${ic('bell',15)}<span class="dot"></span></span>
         <span class="avatar">CM</span>
@@ -1465,7 +1648,7 @@ function mobilePagamentos(){
   return `
   <div class="mheader" style="padding-bottom:22px">
     <div class="mheader-top">
-      ${logoImg(24)}
+      ${logoImg(34)}
       <div class="htools">
         <span class="micon">${ic('bell',15)}<span class="dot"></span></span>
         <span class="avatar">CM</span>
@@ -1621,6 +1804,9 @@ else if(view === 'admin-novo') html = adminNovo();
 else if(view === 'admin-editar') html = adminEditar();
 else if(view === 'admin-empresa-nova') html = adminNovaEmpresa();
 else if(view === 'admin-relatorios') html = adminRelatorios();
+else if(view === 'admin-conta-encarregado') html = adminContaEncarregado();
+else if(view === 'admin-novo-conta') html = adminNovoConta();
+else if(view === 'admin-reset-senha') html = adminResetSenha();
 else if(view === 'lider') html = liderDesktop();
 else if(view === 'lider-pagamentos') html = liderPagamentos();
 else if(view === 'lider-horarios') html = liderHorarios();
