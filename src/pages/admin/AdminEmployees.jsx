@@ -1,13 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fmtDate } from '../../data/mockData';
-import { createEmployee, updateEmployee, deleteEmployee, uploadDocumentoFuncionario } from '../../lib/db';
-import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, FileText, Upload, Loader2 } from 'lucide-react';
+import { createEmployee, updateEmployee, deleteEmployee, uploadDocumentoFuncionario, fetchMediasNotas } from '../../lib/db';
+import { fmtNota, notaCor } from '../../lib/notas';
+import { StarsDisplay } from '../../components/shared/StarRating';
+import AjudantePerfilModal from '../../components/shared/AjudantePerfilModal';
+import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, FileText, Upload, Loader2, Eye } from 'lucide-react';
 
 const EMPTY = { name: '', phone: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0, status: 'active', cidade: '' };
-const T  = { color: '#0F172A' };
-const T2 = { color: '#475569' };
-const TM = { color: '#94A3B8' };
+const T  = { color: '#0B0B0B' };
+const T2 = { color: '#4A4A4A' };
+const TM = { color: '#9A9A9A' };
 
 function Modal({ employee, onSave, onClose }) {
   const [form, setForm]           = useState(employee ? { ...employee } : { ...EMPTY, id: crypto.randomUUID() });
@@ -41,7 +44,7 @@ function Modal({ employee, onSave, onClose }) {
       <div className="modal-box animate-fade-up">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-bold" style={T}>{isNew ? 'Novo Cadastro' : 'Editar Cadastro'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#9A9A9A', background: '#F5F5F5' }}>
             <X size={15} />
           </button>
         </div>
@@ -50,7 +53,7 @@ function Modal({ employee, onSave, onClose }) {
           <div className="grid grid-cols-2 gap-3">
             {fieldAjudante.map(({ key, label, required, placeholder, type, col }) => (
               <div key={key} className={col === 2 ? 'col-span-2' : ''}>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>{label}</label>
                 <input type={type || 'text'} placeholder={placeholder} required={required}
                   autoComplete="off" value={form[key] ?? ''}
                   onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
@@ -58,11 +61,11 @@ function Modal({ employee, onSave, onClose }) {
             ))}
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Documento (PDF)</label>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Documento (PDF)</label>
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)' }}>
               <label
                 className="w-full flex items-center gap-2 px-4 py-3 text-xs font-semibold transition-colors"
-                style={{ background: '#F8FAFC', color: '#475569', cursor: 'pointer' }}>
+                style={{ background: '#F7F7F7', color: '#4A4A4A', cursor: 'pointer' }}>
                 {uploading
                   ? <><Loader2 size={13} className="animate-spin" /> Enviando...</>
                   : <><Upload size={13} /> {form.documentoUrl ? 'Substituir documento' : 'Selecionar PDF'}</>
@@ -72,22 +75,22 @@ function Modal({ employee, onSave, onClose }) {
               {form.documentoUrl && (
                 <a href={form.documentoUrl} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold"
-                  style={{ background: '#FFFAF9', color: '#FF4D0C', borderTop: '1px solid rgba(255,77,12,0.12)' }}>
+                  style={{ background: '#FFF7F4', color: '#FF4D0C', borderTop: '1px solid rgba(255,77,12,0.12)' }}>
                   <FileText size={13} /> Ver documento atual
                 </a>
               )}
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Status</label>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Status</label>
             <div className="flex gap-2">
               {['active','inactive'].map(s => (
                 <button key={s} type="button" onClick={() => setForm({ ...form, status: s })}
                   className="flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all"
                   style={{
-                    background: form.status === s ? (s === 'active' ? '#ECFDF5' : '#FEF2F2') : '#F8FAFC',
-                    borderColor: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : 'rgba(0,0,0,0.08)',
-                    color: form.status === s ? (s === 'active' ? '#059669' : '#DC2626') : '#94A3B8',
+                    background: form.status === s ? (s === 'active' ? '#F5F5F5' : '#F5F5F5') : '#F7F7F7',
+                    borderColor: form.status === s ? (s === 'active' ? '#0B0B0B' : '#4A4A4A') : 'rgba(0,0,0,0.08)',
+                    color: form.status === s ? (s === 'active' ? '#0B0B0B' : '#4A4A4A') : '#9A9A9A',
                   }}>
                   {s === 'active' ? 'Ativo' : 'Inativo'}
                 </button>
@@ -111,6 +114,12 @@ export default function AdminEmployees() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCity,   setFilterCity]   = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [medias, setMedias]         = useState({});
+  const [profileEmp, setProfileEmp] = useState(null);
+
+  useEffect(() => {
+    fetchMediasNotas().then(setMedias);
+  }, []);
 
   const cities = useMemo(() =>
     [...new Set(employees.map(e => e.cidade).filter(Boolean))].sort(),
@@ -128,7 +137,7 @@ export default function AdminEmployees() {
   });
 
   const handleSave = async (form) => {
-    const colors = ['#FF4D0C','#7C3AED','#059669','#D97706','#DC2626','#0891B2','#BE185D'];
+    const colors = ['#0B0B0B','#1C1C1C','#2A2A2A','#333333','#3D3D3D','#4A4A4A','#5A5A5A'];
 
     if (modal === 'new') {
       // ── Criar Ajudante ──
@@ -173,17 +182,17 @@ export default function AdminEmployees() {
 
       <div className="flex gap-3 animate-fade-up delay-1">
         <div className="relative flex-1">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }} />
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#9A9A9A' }} />
           <input className="input-field pl-9" placeholder="Buscar por nome, cidade ou telefone..."
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
+        <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#F5F5F5', border: '1px solid rgba(0,0,0,0.06)' }}>
           {[['all','Todos'],['active','Ativos'],['inactive','Inativos']].map(([val, lbl]) => (
             <button key={val} onClick={() => setFilterStatus(val)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
               style={{
-                background: filterStatus === val ? '#FF4D0C' : 'transparent',
-                color: filterStatus === val ? 'white' : '#64748B',
+                background: filterStatus === val ? '#0B0B0B' : 'transparent',
+                color: filterStatus === val ? 'white' : '#6B6B6B',
               }}>
               {lbl}
             </button>
@@ -194,22 +203,22 @@ export default function AdminEmployees() {
       {/* Filtro por cidade */}
       {cities.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap animate-fade-up delay-1">
-          <span style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8' }}>Cidade:</span>
+          <span style={{ fontSize: '11px', fontWeight: 600, color: '#9A9A9A' }}>Cidade:</span>
           {cities.map(city => (
             <button key={city}
               onClick={() => setFilterCity(c => c === city ? '' : city)}
               style={{
                 padding: '4px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer',
                 fontSize: '11px', fontWeight: 600, transition: 'all 0.12s',
-                background: filterCity === city ? '#0F172A' : '#F1F5F9',
-                color:      filterCity === city ? 'white'   : '#64748B',
+                background: filterCity === city ? '#0B0B0B' : '#F5F5F5',
+                color:      filterCity === city ? 'white'   : '#6B6B6B',
               }}>
               {city}
             </button>
           ))}
           {filterCity && (
             <button onClick={() => setFilterCity('')}
-              style={{ padding: '4px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 600, background: '#FFF1F2', color: '#E11D48' }}>
+              style={{ padding: '4px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 600, background: '#F5F5F5', color: '#4A4A4A' }}>
               ✕ limpar
             </button>
           )}
@@ -219,30 +228,43 @@ export default function AdminEmployees() {
       {/* ── Tabela de Ajudantes ── */}
       <div className="card overflow-hidden animate-fade-up delay-2">
         <div className="px-5 py-3 grid text-xs font-semibold"
-          style={{ gridTemplateColumns: '1fr auto auto auto auto', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
-          <span>Funcionário</span><span>Diária</span><span>Último serviço</span><span>Status</span><span>Ações</span>
+          style={{ gridTemplateColumns: '1fr auto auto auto auto auto', color: '#9A9A9A', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
+          <span>Funcionário</span><span>Nota</span><span>Diária</span><span>Último serviço</span><span>Status</span><span>Ações</span>
         </div>
         {filtered.length === 0 ? (
           <div className="py-14 text-center">
-            <Users size={32} className="mx-auto mb-3" style={{ color: '#CBD5E1' }} />
+            <Users size={32} className="mx-auto mb-3" style={{ color: '#C8C8C8' }} />
             <p className="text-sm" style={TM}>Nenhum funcionário encontrado</p>
           </div>
         ) : (
           filtered.map(emp => {
             const lw = getLastWork(emp.id);
+            const m  = medias[emp.id];
             return (
-              <div key={emp.id} className="table-row" style={{ gridTemplateColumns: '1fr auto auto auto auto', gap: '16px' }}>
+              <div key={emp.id} className="table-row" style={{ gridTemplateColumns: '1fr auto auto auto auto auto', gap: '16px' }}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="avatar flex-shrink-0" style={{ background: emp.color }}>{emp.initials}</div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold truncate" style={T}>
                       {emp.name}
                       {emp.cidade && (
-                        <span style={{ color: '#94A3B8', fontWeight: 400 }}> ({emp.cidade})</span>
+                        <span style={{ color: '#9A9A9A', fontWeight: 400 }}> ({emp.cidade})</span>
                       )}
                     </p>
                     <p className="text-xs truncate" style={TM}>{emp.phone}</p>
                   </div>
+                </div>
+                <div style={{ textAlign: 'center', minWidth: '86px' }}>
+                  {m?.media != null ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                      <StarsDisplay value={m.media} size={10} />
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: notaCor(m.media) }}>
+                        {fmtNota(m.media)} <span style={{ color: '#9A9A9A', fontWeight: 500 }}>({m.total})</span>
+                      </span>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: '10px', color: '#C8C8C8' }}>—</span>
+                  )}
                 </div>
                 <span className="text-xs font-semibold" style={{ color: '#FF4D0C' }}>R$ {emp.dailyRate}</span>
                 <div className="text-xs" style={T2}>
@@ -257,15 +279,18 @@ export default function AdminEmployees() {
                 }}
                   className="flex items-center gap-1.5 text-xs font-medium">
                   {emp.status === 'active'
-                    ? <><ToggleRight size={20} style={{ color: '#059669' }} /><span style={{ color: '#059669' }}>Ativo</span></>
-                    : <><ToggleLeft  size={20} style={{ color: '#94A3B8' }} /><span style={TM}>Inativo</span></>
+                    ? <><ToggleRight size={20} style={{ color: '#0B0B0B' }} /><span style={{ color: '#0B0B0B' }}>Ativo</span></>
+                    : <><ToggleLeft  size={20} style={{ color: '#9A9A9A' }} /><span style={TM}>Inativo</span></>
                   }
                 </button>
                 <div className="flex items-center gap-1">
+                  <button onClick={() => setProfileEmp(emp)} className="p-1.5 rounded-lg"
+                    title="Ver perfil, notas e observações"
+                    style={{ color: '#0B0B0B', background: '#F4F4F5' }}><Eye size={13}/></button>
                   <button onClick={() => setModal(emp)} className="p-1.5 rounded-lg"
-                    style={{ color: '#94A3B8', background: '#F1F5F9' }}><Edit2 size={13}/></button>
+                    style={{ color: '#9A9A9A', background: '#F5F5F5' }}><Edit2 size={13}/></button>
                   <button onClick={() => setDeleteConfirm(emp.id)} className="p-1.5 rounded-lg"
-                    style={{ color: '#94A3B8', background: '#F1F5F9' }}><Trash2 size={13}/></button>
+                    style={{ color: '#9A9A9A', background: '#F5F5F5' }}><Trash2 size={13}/></button>
                 </div>
               </div>
             );
@@ -288,6 +313,10 @@ export default function AdminEmployees() {
             </div>
           </div>
         </div>
+      )}
+
+      {profileEmp && (
+        <AjudantePerfilModal employee={profileEmp} onClose={() => setProfileEmp(null)} />
       )}
     </div>
   );

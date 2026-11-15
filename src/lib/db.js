@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { calculateWorkAndOvertime, overtimeMinutesToTimeString } from './timeUtils';
+import { getCompanyCity, rankCandidatos, avatarTone } from './notas';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -44,7 +45,7 @@ function mapEmployee(r) {
     email:           r.email,
     password:        r.senha,
     initials:        r.iniciais,
-    color:           r.cor,
+    color:           avatarTone(r.id || r.nome),
     status:          r.status,
     dailyRate:       Number(r.diaria),
     overtimeRate:    Number(r.hora_extra ?? 50),
@@ -86,6 +87,7 @@ function mapDemand(escala) {
     tipoServico:     escala.tipo_servico || 'entrega',
     responsavelDia:  escala.responsavel_dia || '',
     contatoDia:      escala.contato_dia     || '',
+    liderId:         escala.lider_id        || null,
     liderNome:       escala.lideres_equipe?.nome || escala.liderNome || null,
     employees: (escala.registros || []).map(wr => ({
       employeeId:    wr.funcionario_id,
@@ -127,7 +129,7 @@ export async function loginLider(email, password) {
     ...data,
     name:        data.nome,
     initials:    data.iniciais,
-    color:       data.cor,
+    color:       avatarTone(data.id || data.nome),
     companyName,
   };
 }
@@ -741,7 +743,7 @@ export async function fetchLideres() {
     ...l,
     name:      l.nome,
     initials:  l.iniciais,
-    color:     l.cor,
+    color:     avatarTone(l.id || l.nome),
     companyName: l.lider_empresas?.map(le => le.empresas?.nome).filter(Boolean).join(', ') || '—',
     companyIds:  l.lider_empresas?.map(le => le.empresa_id) || [],
   }));
@@ -750,11 +752,11 @@ export async function fetchLideres() {
 export async function createLider(lider) {
   const { data, error } = await supabase
     .from('lideres_equipe')
-    .insert({ id: crypto.randomUUID(), nome: lider.name, email: lider.email, telefone: lider.phone, senha: lider.password, iniciais: lider.initials, cor: lider.color || '#FF4D0C', empresa_id: lider.companyId || null })
+    .insert({ id: crypto.randomUUID(), nome: lider.name, email: lider.email, telefone: lider.phone, senha: lider.password, iniciais: lider.initials, cor: lider.color || '#0B0B0B', empresa_id: lider.companyId || null })
     .select('*, empresas(nome)')
     .single();
   if (error) { console.error('[db] createLider:', error.message); return null; }
-  return { ...data, name: data.nome, initials: data.iniciais, color: data.cor, companyName: data.empresas?.nome };
+  return { ...data, name: data.nome, initials: data.iniciais, color: avatarTone(data.id || data.nome), companyName: data.empresas?.nome };
 }
 
 export async function updateLider(id, patch) {
@@ -1070,7 +1072,7 @@ export async function fetchAjudantesDisponiveis(data) {
 
   const { data: rows, error } = await q.order('nome');
   if (error) { console.error('[db] fetchAjudantesDisponiveis rows:', error.message); return []; }
-  return rows.map(r => ({ ...r, name: r.nome, initials: r.iniciais, color: r.cor, dailyRate: Number(r.diaria), cidade: r.cidade || '' }));
+  return rows.map(r => ({ ...r, name: r.nome, initials: r.iniciais, color: avatarTone(r.id || r.nome), dailyRate: Number(r.diaria), cidade: r.cidade || '' }));
 }
 
 export async function fetchTodosAjudantes() {
@@ -1084,7 +1086,7 @@ export async function fetchTodosAjudantes() {
     id:              r.id,
     name:            r.nome,
     initials:        r.iniciais,
-    color:           r.cor,
+    color:           avatarTone(r.id || r.nome),
     cargo:           r.cargo || '—',
     cidade:          r.cidade || '—',
     dataContratacao: r.data_contratacao || null,
@@ -1111,7 +1113,7 @@ export async function fetchPresencaEquipeHoje(today) {
       liderId:    e.lider_id,
       liderNome:  e.lideres_equipe?.nome || '—',
       liderIni:   e.lideres_equipe?.iniciais || '?',
-      liderCor:   e.lideres_equipe?.cor || '#FF4D0C',
+      liderCor:   avatarTone(e.lideres_equipe?.id || e.lideres_equipe?.nome),
       total, presentes, ausentes, atrasados,
       sla: total > 0 ? Math.round((presentes / total) * 100) : null,
     };
@@ -1130,7 +1132,7 @@ export async function fetchOcorrenciasAdmin() {
     ...o,
     ajudanteNome: o.funcionarios?.nome || '—',
     ajudanteIni:  o.funcionarios?.iniciais || '?',
-    ajudanteCor:  o.funcionarios?.cor || '#94A3B8',
+    ajudanteCor:  avatarTone(o.funcionarios?.id || o.funcionarios?.nome),
     liderNome:    o.lideres_equipe?.nome || '—',
     empresaNome:  o.empresas?.nome || '—',
   }));
@@ -1178,7 +1180,7 @@ export async function fetchEscalaHojeByEmpresa(empresaId, today) {
       nome:     data.lideres_equipe.nome,
       telefone: data.lideres_equipe.telefone,
       email:    data.lideres_equipe.email,
-      cor:      data.lideres_equipe.cor,
+      cor:      avatarTone(data.lideres_equipe.id || data.lideres_equipe.nome),
       iniciais: data.lideres_equipe.iniciais,
     } : null,
   };
@@ -1198,7 +1200,7 @@ export async function fetchRelatoriosByEmpresa(empresaId) {
     ...r,
     liderNome: r.lideres_equipe?.nome || '—',
     liderIni:  r.lideres_equipe?.iniciais || '?',
-    liderCor:  r.lideres_equipe?.cor || '#FF4D0C',
+    liderCor:  avatarTone(r.lideres_equipe?.id || r.lideres_equipe?.nome),
   }));
 }
 
@@ -1216,7 +1218,7 @@ export async function fetchAjudantesSemPontoHoje(today) {
     ...r,
     funcionarioNome: r.funcionarios?.nome || '—',
     funcionarioIni:  r.funcionarios?.iniciais || '?',
-    funcionarioCor:  r.funcionarios?.cor || '#94A3B8',
+    funcionarioCor:  avatarTone(r.funcionarios?.id || r.funcionarios?.nome),
   }));
 }
 
@@ -1350,7 +1352,7 @@ export async function fetchRecargas(tipo) {
     funcionarioId: r.funcionario_id,
     nome:          r.funcionarios?.nome || '—',
     iniciais:      r.funcionarios?.iniciais || '?',
-    cor:           r.funcionarios?.cor || '#94A3B8',
+    cor:           avatarTone(r.funcionarios?.id || r.funcionarios?.nome),
     cidade:        r.funcionarios?.cidade || '',
     tipo:          r.tipo,
     dias:          r.dias,
@@ -1498,4 +1500,207 @@ export async function desmarcarPago(employeeId, quinzenaIdx) {
     .eq('funcionario_id', employeeId)
     .eq('quinzena_idx', quinzenaIdx);
   if (error) { console.error('[db] desmarcarPago:', error.message); }
+}
+
+// ── Avaliações / Notas dos Ajudantes ───────────────────────────────────────
+// Uma nota (0-5) por ajudante em cada diária. A média consolidada vem da view
+// vw_funcionarios_notas (rode supabase/notas-ajudantes.sql no Supabase).
+
+function mapAvaliacao(r) {
+  if (!r) return null;
+  return {
+    id:              r.id,
+    escalaId:        r.escala_id,
+    registroId:      r.registro_id,
+    funcionarioId:   r.funcionario_id,
+    empresaId:       r.empresa_id,
+    empresaNome:     r.empresas?.nome || null,
+    liderId:         r.lider_id || null,
+    data:            r.data,
+    nota:            Number(r.nota),
+    observacao:      r.observacao || '',
+    servico:         r.escalas?.servico || null,
+    tipoServico:     r.escalas?.tipo_servico || null,
+    avaliadoPorTipo: r.avaliado_por_tipo || 'encarregado',
+    avaliadoPorNome: r.avaliado_por_nome || null,
+    criadoEm:        r.criado_em,
+    atualizadoEm:    r.atualizado_em,
+  };
+}
+
+export async function fetchNotasFuncionario(funcionarioId) {
+  if (!funcionarioId) return [];
+  const { data, error } = await supabase
+    .from('avaliacoes_diarias')
+    .select('*, empresas(nome), escalas(servico, tipo_servico)')
+    .eq('funcionario_id', funcionarioId)
+    .order('data', { ascending: false });
+  if (error) {
+    console.error('[db] fetchNotasFuncionario:', error.message);
+    return [];
+  }
+  return (data || []).map(mapAvaliacao);
+}
+
+export async function fetchMediasNotas() {
+  const { data, error } = await supabase
+    .from('vw_funcionarios_notas')
+    .select('*');
+  if (error) {
+    console.error('[db] fetchMediasNotas:', error.message);
+    return {};
+  }
+  return Object.fromEntries((data || []).map(r => [
+    r.funcionario_id,
+    {
+      media:   r.media == null ? null : Number(r.media),
+      total:   Number(r.total_avaliacoes ?? 0),
+      primeira: r.primeira_avaliacao || null,
+      ultima:   r.ultima_avaliacao || null,
+    },
+  ]));
+}
+
+export async function fetchNotasByEscala(escalaId) {
+  if (!escalaId) return [];
+  const { data, error } = await supabase
+    .from('avaliacoes_diarias')
+    .select('*')
+    .eq('escala_id', escalaId);
+  if (error) {
+    console.error('[db] fetchNotasByEscala:', error.message);
+    return [];
+  }
+  return (data || []).map(mapAvaliacao);
+}
+
+export async function fetchNotasResumo() {
+  const { data, error } = await supabase
+    .from('avaliacoes_diarias')
+    .select('escala_id');
+  if (error) {
+    console.error('[db] fetchNotasResumo:', error.message);
+    return {};
+  }
+  const resumo = {};
+  for (const row of data || []) {
+    if (!row.escala_id) continue;
+    resumo[row.escala_id] = (resumo[row.escala_id] || 0) + 1;
+  }
+  return resumo;
+}
+
+export async function upsertNotaDiaria({
+  escalaId, registroId, funcionarioId, empresaId, liderId, data,
+  nota, observacao, avaliadoPorTipo, avaliadoPorNome,
+}) {
+  const n = Number(nota);
+  if (!escalaId || !funcionarioId || !data) {
+    console.error('[db] upsertNotaDiaria: escala, funcionário e data são obrigatórios.');
+    return null;
+  }
+  if (!Number.isFinite(n) || n < 0 || n > 5) {
+    console.error('[db] upsertNotaDiaria: nota deve estar entre 0 e 5.');
+    return null;
+  }
+
+  const payload = {
+    escala_id:         escalaId,
+    registro_id:       registroId || null,
+    funcionario_id:    funcionarioId,
+    empresa_id:        empresaId || null,
+    lider_id:          liderId || null,
+    data,
+    nota:              Math.round(n),
+    observacao:        observacao?.trim() || null,
+    avaliado_por_tipo: avaliadoPorTipo || 'encarregado',
+    avaliado_por_nome: avaliadoPorNome || null,
+    atualizado_em:     new Date().toISOString(),
+  };
+
+  const { data: row, error } = await supabase
+    .from('avaliacoes_diarias')
+    .upsert(payload, { onConflict: 'funcionario_id,escala_id' })
+    .select()
+    .single();
+  if (error) {
+    console.error('[db] upsertNotaDiaria:', error.message);
+    return null;
+  }
+  return mapAvaliacao(row);
+}
+
+export async function deleteNotaDiaria(id) {
+  const { error } = await supabase
+    .from('avaliacoes_diarias')
+    .delete()
+    .eq('id', id);
+  if (error) { console.error('[db] deleteNotaDiaria:', error.message); return false; }
+  return true;
+}
+
+// Candidatos para uma nova escala: ajudantes ativos ainda não escalados no dia,
+// ordenados por proximidade da cidade da empresa e depois pela média de notas.
+export async function fetchCandidatosEscala({ companyId, date, incluirEscalados = false }) {
+  if (!companyId || !date) return { company: null, candidates: [], escaladosNoDia: 0 };
+
+  const [companyRes, empsRes, medias, regsRes] = await Promise.all([
+    supabase
+      .from('empresas')
+      .select('id, nome, endereco, localizacao, diaria')
+      .eq('id', companyId)
+      .maybeSingle(),
+    supabase
+      .from('funcionarios')
+      .select('id, nome, iniciais, cor, cargo, telefone, cidade, diaria, status')
+      .eq('status', 'active')
+      .order('nome'),
+    fetchMediasNotas(),
+    supabase
+      .from('registros')
+      .select('funcionario_id, escala_id')
+      .eq('data', date),
+  ]);
+
+  if (companyRes.error) console.error('[db] fetchCandidatosEscala empresa:', companyRes.error.message);
+  if (empsRes.error)    console.error('[db] fetchCandidatosEscala funcionarios:', empsRes.error.message);
+  if (regsRes.error)    console.error('[db] fetchCandidatosEscala registros:', regsRes.error.message);
+
+  const companyRow = companyRes.data;
+  const escalados  = new Set((regsRes.data || []).map(r => r.funcionario_id));
+  const empresaCidade = getCompanyCity({
+    address:  companyRow?.endereco,
+    location: companyRow?.localizacao,
+  });
+
+  const candidates = (empsRes.data || [])
+    .filter(e => incluirEscalados || !escalados.has(e.id))
+    .map(e => {
+      const m = medias[e.id] || {};
+      return {
+        id:              e.id,
+        name:            e.nome,
+        initials:        e.iniciais,
+        color:           avatarTone(e.id || e.nome),
+        cargo:           e.cargo,
+        phone:           e.telefone,
+        cidade:          e.cidade || '',
+        dailyRate:       Number(e.diaria ?? 0),
+        media:           m.media ?? null,
+        totalAvaliacoes: m.total ?? 0,
+        ultimaAvaliacao: m.ultima ?? null,
+        jaEscalado:      escalados.has(e.id),
+      };
+    });
+
+  return {
+    company: companyRow ? {
+      id:         companyRow.id,
+      name:       companyRow.nome,
+      city:       empresaCidade,
+      dailyRate:  Number(companyRow.diaria ?? 0),
+    } : null,
+    candidates: rankCandidatos(candidates, empresaCidade),
+    escaladosNoDia: escalados.size,
+  };
 }
