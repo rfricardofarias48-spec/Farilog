@@ -5,15 +5,16 @@ import {
   LogOut, LayoutDashboard, Building2, ChevronLeft, ChevronRight,
   DollarSign, ClipboardList, Search, Bell, Briefcase, Activity,
   Send, BarChart2, ChevronDown, Users, Heart, Clock, Shield, AlertTriangle,
-  TrendingUp, CreditCard, Wallet, FileText,
+  TrendingUp, CreditCard, Wallet, FileText, UserCheck,
 } from 'lucide-react';
 
 const OP_TABS = [
-  { key: 'resumo',      label: 'Resumo do Dia',   icon: Activity },
-  { key: 'demanda',     label: 'Lançar Demanda',   icon: Send },
-  { key: 'historico',   label: 'Histórico',         icon: ClipboardList },
-  { key: 'relatorios',  label: 'Relatórios',        icon: BarChart2 },
-  { key: 'ocorrencias', label: 'Ocorrências',       icon: AlertTriangle },
+  { key: 'resumo',       label: 'Resumo do Dia',   icon: Activity },
+  { key: 'demanda',      label: 'Lançar Demanda',  icon: Send },
+  { key: 'historico',    label: 'Histórico',       icon: ClipboardList },
+  { key: 'relatorios',   label: 'Relatórios',      icon: BarChart2 },
+  { key: 'ocorrencias',  label: 'Ocorrências',     icon: AlertTriangle },
+  { key: 'encarregados', label: 'Encarregados',    icon: UserCheck },
 ];
 
 const RH_TABS = [

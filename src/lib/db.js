@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { calculateWorkAndOvertime, overtimeMinutesToTimeString } from './timeUtils';
+import { calculateWorkAndOvertime, overtimeMinutesToTimeString, recordRevenue } from './timeUtils';
 import { getCompanyCity, rankCandidatos, avatarTone } from './notas';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -809,6 +809,208 @@ export async function upsertLiderEmpresas(liderId, empresaIds) {
   const rows = empresaIds.map(id => ({ lider_id: liderId, empresa_id: id }));
   const { error } = await supabase.from('lider_empresas').insert(rows);
   if (error) { console.error('[db] upsertLiderEmpresas:', error.message); }
+}
+
+// ── Encarregados: vínculos com período, desempenho e atividade ─────────────
+
+const isoDay = d => d.toISOString().slice(0, 10);
+
+// Últimos 30 dias (inclusive hoje)
+function defaultLiderPeriod() {
+  const to   = new Date();
+  const from = new Date(to.getTime() - 29 * 86400000);
+  return { from: isoDay(from), to: isoDay(to) };
+}
+
+function presencaDe({ diarias, faltas }) {
+  const base = diarias + faltas;
+  return base ? Math.round((diarias / base) * 100) : 100;
+}
+
+// Vínculos do encarregado com as empresas e o período de responsabilidade.
+// Depende das colunas de/ate (supabase/lider-vinculos.sql); enquanto o SQL não
+// for aplicado, cai no formato antigo para a tela não quebrar.
+export async function fetchLiderVinculos(liderId) {
+  const { data, error } = await supabase
+    .from('lider_empresas')
+    .select('empresa_id, de, ate, empresas(nome)')
+    .eq('lider_id', liderId)
+    .order('de', { ascending: true });
+
+  if (error) {
+    const { data: old, error: oldErr } = await supabase
+      .from('lider_empresas')
+      .select('empresa_id, empresas(nome)')
+      .eq('lider_id', liderId);
+    if (oldErr) { console.error('[db] fetchLiderVinculos:', oldErr.message); return []; }
+    return (old || []).map(r => ({ empresaId: r.empresa_id, nome: r.empresas?.nome || '—', de: null, ate: null, atual: true }));
+  }
+
+  return (data || []).map(r => ({
+    empresaId: r.empresa_id,
+    nome:      r.empresas?.nome || '—',
+    de:        r.de  || null,
+    ate:       r.ate || null,
+    atual:     !r.ate,
+  }));
+}
+
+// Encarregado responsável hoje por cada empresa (para rotular as substituições)
+export async function fetchResponsaveisAtivos(empresaIds) {
+  if (!empresaIds?.length) return {};
+  const { data, error } = await supabase
+    .from('lider_empresas')
+    .select('empresa_id, lider_id, lideres_equipe(nome)')
+    .in('empresa_id', empresaIds)
+    .is('ate', null);
+  if (error) { console.error('[db] fetchResponsaveisAtivos:', error.message); return {}; }
+  return Object.fromEntries((data || []).map(r => [
+    r.empresa_id, { liderId: r.lider_id, nome: r.lideres_equipe?.nome || null },
+  ]));
+}
+
+// Desempenho do encarregado por empresa no período (padrão: últimos 30 dias).
+// Só conta os lançamentos dentro do intervalo em que ele foi o responsável por
+// cada empresa, então trocas de encarregado não misturam o desempenho.
+export async function fetchLiderDesempenho(liderId, period) {
+  const { from, to } = period || defaultLiderPeriod();
+  const vazio = { empresas: [], total: { diarias: 0, faltas: 0, pend: 0, faturado: 0 }, presenca: 0, from, to };
+
+  const { data, error } = await supabase
+    .from('escalas')
+    .select('id, data, empresa_id, empresas(nome, diaria), registros(status, hora_extra)')
+    .eq('lider_id', liderId)
+    .gte('data', from)
+    .lte('data', to)
+    .order('data', { ascending: false });
+
+  if (error) { console.error('[db] fetchLiderDesempenho:', error.message); return vazio; }
+
+  const vinculos = await fetchLiderVinculos(liderId);
+  const porEmpresa = new Map();
+
+  for (const esc of data || []) {
+    const vinculado = vinculos.filter(v => v.empresaId === esc.empresa_id);
+    const dentro = (date) => !vinculado.length || vinculado.some(v =>
+      (!v.de || date >= v.de) && (!v.ate || date <= v.ate));
+    if (!dentro(esc.data)) continue;
+
+    const diaria = Number(esc.empresas?.diaria ?? 150);
+    if (!porEmpresa.has(esc.empresa_id)) {
+      porEmpresa.set(esc.empresa_id, {
+        empresaId: esc.empresa_id, nome: esc.empresas?.nome || '—',
+        diaria, diarias: 0, faltas: 0, pend: 0, faturado: 0,
+      });
+    }
+    const row = porEmpresa.get(esc.empresa_id);
+
+    for (const reg of esc.registros || []) {
+      if (reg.status === 'completed') {
+        row.diarias  += 1;
+        row.faturado += recordRevenue({ companyId: esc.empresa_id, overtime: reg.hora_extra }, { [esc.empresa_id]: { dailyRate: diaria } });
+      } else if (reg.status === 'absent') {
+        row.faltas   += 1;
+      } else {
+        row.pend     += 1;   // aguardando ou em andamento, sem fechamento
+      }
+    }
+  }
+
+  const empresas = [...porEmpresa.values()]
+    .map(r => ({ ...r, presenca: presencaDe(r) }))
+    .sort((a, b) => b.faturado - a.faturado);
+
+  const total = empresas.reduce((s, r) => ({
+    diarias: s.diarias + r.diarias, faltas: s.faltas + r.faltas,
+    pend: s.pend + r.pend, faturado: s.faturado + r.faturado,
+  }), { diarias: 0, faltas: 0, pend: 0, faturado: 0 });
+
+  const presenca = empresas.length
+    ? Math.round(empresas.reduce((s, r) => s + r.presenca, 0) / empresas.length)
+    : 0;
+
+  return { empresas, total, presenca, from, to };
+}
+
+// Atividade recente do encarregado: lançamentos de diárias e ocorrências.
+export async function fetchLiderAtividade(liderId, limite = 6) {
+  const { data, error } = await supabase
+    .from('escalas')
+    .select('id, data, empresas(nome), registros(confirmacao, entrada, saida)')
+    .eq('lider_id', liderId)
+    .order('data', { ascending: false })
+    .limit(limite);
+
+  if (error) { console.error('[db] fetchLiderAtividade:', error.message); return []; }
+
+  const eventos = (data || []).map(esc => {
+    const regs    = esc.registros || [];
+    const empresa = esc.empresas?.nome || '—';
+    const faltas  = regs.filter(r => r.confirmacao === 'falta').length;
+    const fechados = regs.filter(r => r.confirmacao === 'finalizado').length;
+    const abertos = regs.filter(r => r.confirmacao !== 'falta' && r.confirmacao !== 'finalizado').length;
+
+    if (faltas)        return { data: esc.data, ok: false, txt: `Registrou ${faltas} falta${faltas > 1 ? 's' : ''} · ${empresa}` };
+    if (fechados)      return { data: esc.data, ok: true,  txt: `Finalizou ${fechados} diária${fechados > 1 ? 's' : ''} · ${empresa}` };
+    if (abertos)       return { data: esc.data, ok: true,  txt: `${abertos} lançamento${abertos > 1 ? 's' : ''} em andamento · ${empresa}` };
+    return { data: esc.data, ok: true, txt: `Escala lançada · ${empresa}` };
+  });
+
+  const ocorrencias = await fetchOcorrencias({ liderId });
+  const evOc = (ocorrencias || []).slice(0, 3).map(oc => ({
+    data: oc.data, ok: false,
+    txt: `Ocorrência: ${oc.descricao || 'registrada'}`,
+  }));
+
+  return [...eventos, ...evOc]
+    .sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')))
+    .slice(0, limite);
+}
+
+// Cria a conta do encarregado e registra os vínculos iniciais (período começa hoje)
+export async function createEncarregado({ name, email, phone, password, initials, color, empresaIds }) {
+  const lider = await createLider({ name, email, phone, password, initials, color });
+  if (!lider) return null;
+  if (empresaIds?.length) await setLiderEmpresasComPeriodo(lider.id, empresaIds);
+  return lider;
+}
+
+// Ajusta as empresas do encarregado preservando o histórico: encerra (ate = hoje)
+// os vínculos que saíram e abre (de = hoje) os que entraram. Quando a empresa
+// passa para outro encarregado, o vínculo ativo desse outro também é encerrado.
+export async function setLiderEmpresasComPeriodo(liderId, empresaIds) {
+  const hoje = isoDay(new Date());
+  const ids  = [...new Set(empresaIds || [])];
+
+  const atuais    = await fetchLiderVinculos(liderId);
+  const atuaisIds = atuais.filter(v => v.atual).map(v => v.empresaId);
+
+  const remover  = atuaisIds.filter(id => !ids.includes(id));
+  const adicionar = ids.filter(id => !atuaisIds.includes(id));
+
+  if (remover.length) {
+    const { error } = await supabase.from('lider_empresas')
+      .update({ ate: hoje }).eq('lider_id', liderId).in('empresa_id', remover).is('ate', null);
+    if (error) console.error('[db] setLiderEmpresasComPeriodo encerrar:', error.message);
+  }
+
+  if (adicionar.length) {
+    const { error: errTroca } = await supabase.from('lider_empresas')
+      .update({ ate: hoje }).in('empresa_id', adicionar).neq('lider_id', liderId).is('ate', null);
+    if (errTroca) console.error('[db] setLiderEmpresasComPeriodo troca:', errTroca.message);
+
+    const rows = adicionar.map(id => ({ lider_id: liderId, empresa_id: id, de: hoje, ate: null }));
+    const { error } = await supabase.from('lider_empresas').insert(rows);
+    if (error) {
+      // Sem as colunas de período (SQL pendente) grava só o vínculo, para a
+      // empresa não ficar de fora da conta do encarregado.
+      console.error('[db] setLiderEmpresasComPeriodo inserir:', error.message);
+      await supabase.from('lider_empresas')
+        .insert(adicionar.map(id => ({ lider_id: liderId, empresa_id: id })));
+    }
+  }
+
+  return true;
 }
 
 // ── Ocorrências ───────────────────────────────────────────────────────────
