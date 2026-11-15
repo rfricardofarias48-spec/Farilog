@@ -12,15 +12,15 @@ import { TrendingUp, Users, Building2, DollarSign, ChevronLeft, ChevronRight } f
 // ── Constantes ─────────────────────────────────────────────────────────────
 const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 const TODAY_DATE = new Date(TODAY + 'T12:00:00Z'); // UTC noon no dia SP — getUTC* sempre correto
-const PIE_COLORS = ['#FF4D0C', '#7C3AED', '#059669', '#0891B2', '#D97706'];
+const PIE_COLORS = ['#FF4D0C', '#4A4A4A', '#0B0B0B', '#4A4A4A', '#6B6B6B'];
 const BASE_YEAR  = 2000;
 
 const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-const T  = { color: '#0F172A' };
-const T2 = { color: '#475569' };
-const TM = { color: '#94A3B8' };
+const T  = { color: '#0B0B0B' };
+const T2 = { color: '#4A4A4A' };
+const TM = { color: '#9A9A9A' };
 
 // ── Cálculo de período ──────────────────────────────────────────────────────
 function getPeriodBounds(period, offset) {
@@ -66,8 +66,8 @@ function getPeriodBounds(period, offset) {
 const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#1E293B', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px' }}>
-      <p style={{ color: '#F1F5F9', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>{label}</p>
+    <div style={{ background: '#1C1C1C', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px' }}>
+      <p style={{ color: '#F5F5F5', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>{label}</p>
       {payload.map((p, i) => (
         <p key={i} style={{ color: p.color, fontSize: '12px' }}>
           {p.name}: {p.name === 'Receita' ? fmtCurrency(p.value) : p.value}
@@ -173,23 +173,23 @@ export default function AdminDashboard() {
           <h1 className="text-xl font-bold" style={T}>Visão Geral</h1>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 2px rgba(15,23,42,0.05)' }}>
+            <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#FFFFFF', border: '1px solid rgba(11, 11, 11,0.08)', boxShadow: '0 1px 2px rgba(11, 11, 11,0.05)' }}>
               {[['quinzena','Quinzenal'],['mes','Mensal'],['ano','Anual']].map(([val, lbl]) => (
                 <button key={val} onClick={() => handlePeriod(val)}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                  style={{ background: period === val ? 'linear-gradient(180deg,#FF5A1F,#FF4D0C)' : 'transparent', color: period === val ? 'white' : '#64748B', border: 'none', cursor: 'pointer', boxShadow: period === val ? '0 4px 12px -4px rgba(255,77,12,0.5)' : 'none' }}>
+                  style={{ background: period === val ? '#0B0B0B' : 'transparent', color: period === val ? 'white' : '#6B6B6B', border: 'none', cursor: 'pointer', boxShadow: 'none' }}>
                   {lbl}
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-1.5">
               <button onClick={() => setOffset(o => o - 1)}
-                className="p-1.5 rounded-lg" style={{ background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', color: '#475569', display: 'flex', boxShadow: '0 1px 2px rgba(15,23,42,0.05)' }}>
+                className="p-1.5 rounded-lg" style={{ background: '#FFFFFF', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', color: '#4A4A4A', display: 'flex', boxShadow: '0 1px 2px rgba(11, 11, 11,0.05)' }}>
                 <ChevronLeft size={14} />
               </button>
               <span className="text-xs font-bold px-2 min-w-[160px] text-center" style={T}>{label}</span>
               <button onClick={() => setOffset(o => Math.min(o + 1, 0))}
-                className="p-1.5 rounded-lg" style={{ background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', color: '#475569', display: 'flex', boxShadow: '0 1px 2px rgba(15,23,42,0.05)' }}>
+                className="p-1.5 rounded-lg" style={{ background: '#FFFFFF', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', color: '#4A4A4A', display: 'flex', boxShadow: '0 1px 2px rgba(11, 11, 11,0.05)' }}>
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -211,14 +211,14 @@ export default function AdminDashboard() {
             ].map((k, i) => (
               <div key={i} className="stat-card">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFF4EF, #FFE6D9)', border: '1px solid rgba(255,77,12,0.12)' }}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFF7F4, #FFE6D9)', border: '1px solid rgba(255,77,12,0.12)' }}>
                     <k.icon size={17} style={{ color: '#FF4D0C' }} />
                   </div>
                 </div>
-                <p className={`font-bold leading-none ${k.small ? 'text-base' : 'text-2xl'}`} style={{ color: '#0F172A' }}>
+                <p className={`font-bold leading-none ${k.small ? 'text-base' : 'text-2xl'}`} style={{ color: '#0B0B0B' }}>
                   {k.value}
                 </p>
-                <p className="text-xs mt-2" style={{ color: '#94A3B8' }}>{k.label}</p>
+                <p className="text-xs mt-2" style={{ color: '#9A9A9A' }}>{k.label}</p>
               </div>
             ))}
           </div>
@@ -238,7 +238,7 @@ export default function AdminDashboard() {
                   </p>
                 </div>
                 {periodHEMin > 0 && (
-                  <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: '#EFF6FF', color: '#2563EB' }}>
+                  <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: '#F5F5F5', color: '#4A4A4A' }}>
                     {minutesToOvertimeString(periodHEMin)} H.E.
                   </span>
                 )}
@@ -252,8 +252,8 @@ export default function AdminDashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-                  <XAxis dataKey={xKey} tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false}
+                  <XAxis dataKey={xKey} tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false}
                     tickFormatter={v => v === 0 ? '0' : `R$${(v/1000).toFixed(0)}k`} />
                   <Tooltip content={<ChartTooltip />} />
                   <Area type="monotone" dataKey="receita" name="Receita" stroke="#FF4D0C" strokeWidth={2.5}
@@ -267,7 +267,7 @@ export default function AdminDashboard() {
               <p className="text-xs mb-4" style={TM}>{label}</p>
               {pieData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-40 gap-2">
-                  <Building2 size={28} style={{ color: '#E2E8F0' }} />
+                  <Building2 size={28} style={{ color: '#E4E4E4' }} />
                   <p className="text-xs" style={TM}>Sem dados no período</p>
                 </div>
               ) : (
@@ -311,8 +311,8 @@ export default function AdminDashboard() {
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-                <XAxis dataKey={xKey} tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey={xKey} tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltip />} />
                 <Bar dataKey="ajudantes" name="Ajudantes" fill="#FF4D0C" radius={[5,5,0,0]} maxBarSize={32} />
               </BarChart>

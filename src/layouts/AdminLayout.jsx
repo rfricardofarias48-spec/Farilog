@@ -79,7 +79,7 @@ export default function AdminLayout() {
         {open && (
           <>
             <span style={{ flex: 1, textAlign: 'left' }}>{label}</span>
-            <ChevronDown size={13} style={{ transition: 'transform 0.2s', transform: isActive ? 'rotate(180deg)' : 'none', color: '#6B7280' }} />
+            <ChevronDown size={13} style={{ transition: 'transform 0.2s', transform: isActive ? 'rotate(180deg)' : 'none', color: '#6B6B6B' }} />
           </>
         )}
       </button>
@@ -91,13 +91,13 @@ export default function AdminLayout() {
                 display: 'flex', alignItems: 'center', gap: '8px',
                 padding: '7px 10px', borderRadius: '8px',
                 fontSize: '12px', fontWeight: activeTab === key ? 700 : 500,
-                color: activeTab === key ? '#FF4D0C' : '#9CA3AF',
-                background: activeTab === key ? 'rgba(255,77,12,0.08)' : 'transparent',
+                color: activeTab === key ? '#FFFFFF' : '#9A9A9A',
+                background: activeTab === key ? 'rgba(255,255,255,0.10)' : 'transparent',
                 border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left',
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { if (activeTab !== key) e.currentTarget.style.color = '#D1D5DB'; }}
-              onMouseLeave={e => { if (activeTab !== key) e.currentTarget.style.color = '#9CA3AF'; }}
+              onMouseEnter={e => { if (activeTab !== key) e.currentTarget.style.color = '#D1D1D1'; }}
+              onMouseLeave={e => { if (activeTab !== key) e.currentTarget.style.color = '#9A9A9A'; }}
             >
               <TabIcon size={13} style={{ flexShrink: 0 }} />
               {lbl}
@@ -109,22 +109,22 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="min-h-screen flex" style={{ background: '#EEF1F5' }}>
+    <div className="min-h-screen flex" style={{ background: '#F5F5F5' }}>
       <aside
         className={`hidden md:flex flex-col fixed left-0 top-0 h-full z-50 transition-all duration-300 ${open ? 'w-56' : 'w-16'}`}
-        style={{ background: 'linear-gradient(180deg, #0D1626 0%, #060F1E 100%)', borderRight: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: '#0B0B0B', borderRight: '1px solid rgba(255,255,255,0.06)' }}
       >
         {/* Logo + toggle */}
         <div className="flex items-center justify-center overflow-hidden" style={{ position: 'relative', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px' }}>
           <img src="https://ik.imagekit.io/xsbrdnr0y/Logo%20Farilog%20branco%20(sem%20fundo).png" alt="FariLog"
             style={{ height: open ? '90px' : '40px', objectFit: 'contain', transition: 'height 0.3s, transform 0.3s', maxWidth: '100%', transform: open ? 'scale(1.85)' : 'scale(1)', transformOrigin: 'center' }} />
           <button onClick={() => setOpen(!open)}
-            style={{ position: 'absolute', top: '10px', right: '-10px', zIndex: 60, width: '20px', height: '20px', borderRadius: '50%', background: '#1E293B', border: '1.5px solid #374151', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#9CA3AF' }}>
+            style={{ position: 'absolute', top: '10px', right: '-10px', zIndex: 60, width: '20px', height: '20px', borderRadius: '50%', background: '#1C1C1C', border: '1.5px solid #333333', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#9A9A9A' }}>
             {open ? <ChevronLeft size={11} /> : <ChevronRight size={11} />}
           </button>
         </div>
 
-        {open && <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.12em', color: '#4B5B71', textTransform: 'uppercase', padding: '20px 16px 8px' }}>Menu</p>}
+        {open && <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.12em', color: '#6B6B6B', textTransform: 'uppercase', padding: '20px 16px 8px' }}>Menu</p>}
 
         <nav className="flex-1 px-2 space-y-1" style={{ paddingTop: open ? 0 : '16px' }}>
           {/* Visão Geral */}
@@ -176,13 +176,13 @@ export default function AdminLayout() {
         <div className="p-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           {open && (
             <div className="px-3 py-2 mb-1">
-              <p className="text-xs font-semibold" style={{ color: '#F1F5F9' }}>{user?.name}</p>
-              <p className="text-xs" style={{ color: '#64748B' }}>Administrador</p>
+              <p className="text-xs font-semibold" style={{ color: '#F5F5F5' }}>{user?.name}</p>
+              <p className="text-xs" style={{ color: '#6B6B6B' }}>Administrador</p>
             </div>
           )}
           <button onClick={() => { logout(); navigate('/'); }}
-            className={`sidebar-link w-full hover:text-red-400 ${!open ? 'justify-center px-0' : ''}`}
-            style={{ color: '#4B5563' }}>
+            className={`sidebar-link w-full hover:text-white ${!open ? 'justify-center px-0' : ''}`}
+            style={{ color: '#4A4A4A' }}>
             <LogOut size={17} className="flex-shrink-0" />
             {open && <span>Sair</span>}
           </button>
@@ -192,22 +192,22 @@ export default function AdminLayout() {
       <div className={`flex-1 flex flex-col transition-all duration-300 ${open ? 'md:ml-56' : 'md:ml-16'}`}>
         <div className="topbar">
           <div className="flex items-center justify-between mb-5" style={{ padding: '18px 24px 0 24px' }}>
-            <span className="font-semibold" style={{ color: '#0F172A', fontSize: '15px', letterSpacing: '-0.02em' }}>{pageTitle}</span>
+            <span className="font-semibold" style={{ color: '#0B0B0B', fontSize: '15px', letterSpacing: '-0.02em' }}>{pageTitle}</span>
             <div className="flex items-center gap-2.5">
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }} />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9A9A9A' }} />
                 <input type="text" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)}
                   className="pl-8 pr-4 py-2 rounded-xl outline-none"
-                  style={{ background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.09)', color: '#0F172A', fontSize: '13px', width: '220px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)', transition: 'border-color 0.18s, box-shadow 0.18s' }}
+                  style={{ background: '#FFFFFF', border: '1px solid rgba(11, 11, 11,0.09)', color: '#0B0B0B', fontSize: '13px', width: '220px', boxShadow: '0 1px 2px rgba(11, 11, 11,0.04)', transition: 'border-color 0.18s, box-shadow 0.18s' }}
                   onFocus={e => { e.target.style.borderColor = '#FF4D0C'; e.target.style.boxShadow = '0 0 0 3.5px rgba(255,77,12,0.10)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(15,23,42,0.09)'; e.target.style.boxShadow = '0 1px 2px rgba(15,23,42,0.04)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(11, 11, 11,0.09)'; e.target.style.boxShadow = '0 1px 2px rgba(11, 11, 11,0.04)'; }}
                 />
               </div>
-              <button className="p-2 rounded-xl relative" style={{ background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.09)', color: '#64748B', boxShadow: '0 1px 2px rgba(15,23,42,0.04)', transition: 'all 0.18s' }}>
+              <button className="p-2 rounded-xl relative" style={{ background: '#FFFFFF', border: '1px solid rgba(11, 11, 11,0.09)', color: '#6B6B6B', boxShadow: '0 1px 2px rgba(11, 11, 11,0.04)', transition: 'all 0.18s' }}>
                 <Bell size={15} />
                 <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: '#FF4D0C', boxShadow: '0 0 6px rgba(255,77,12,0.8)' }} />
               </button>
-              <div className="avatar flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#FF5A1F,#E03A00)', width: '32px', height: '32px', borderRadius: '50%', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 8px rgba(255,77,12,0.35)' }}>
+              <div className="avatar flex items-center justify-center" style={{ background: '#0B0B0B', width: '32px', height: '32px', borderRadius: '50%', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12)' }}>
                 {user?.initials}
               </div>
             </div>

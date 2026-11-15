@@ -18,9 +18,9 @@ import {
 const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 const TODAY_DATE = new Date(TODAY + 'T12:00:00Z'); // UTC noon no dia SP — getUTC* sempre correto
 
-const T  = { color: '#0F172A' };
-const T2 = { color: '#475569' };
-const TM = { color: '#94A3B8' };
+const T  = { color: '#0B0B0B' };
+const T2 = { color: '#4A4A4A' };
+const TM = { color: '#9A9A9A' };
 
 const MONTH_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const DOW_SHORT  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -90,11 +90,11 @@ function ResumoDia() {
   const dateLabel = `${DOW_PT[TODAY_DATE.getUTCDay()]}, ${TODAY_DATE.getUTCDate()} de ${MONTH_FULL[TODAY_DATE.getUTCMonth()]}`;
 
   const kpis = [
-    { label: 'Empresas',      value: companiesWorking.length,                           icon: Building2,    color: '#7C3AED', bg: '#F5F3FF', bar: '#7C3AED' },
-    { label: 'Ajudantes',     value: helpersWorking.length,                             icon: Users,        color: '#EA580C', bg: '#FFF7ED', bar: '#EA580C' },
-    { label: 'Concluídas',    value: doneRecs.length,                                   icon: CheckCircle2, color: '#059669', bg: '#F0FDF4', bar: '#059669' },
-    { label: 'Em andamento',  value: activeRecs.length,                                 icon: Activity,     color: '#2563EB', bg: '#EFF6FF', bar: '#2563EB' },
-    { label: 'Assertividade', value: assertividade !== null ? `${assertividade}%` : '—', icon: TrendingUp,   color: '#0891B2', bg: '#F0F9FF', bar: '#0891B2' },
+    { label: 'Empresas',      value: companiesWorking.length,                           icon: Building2,    color: '#4A4A4A', bg: '#F5F5F5', bar: '#4A4A4A' },
+    { label: 'Ajudantes',     value: helpersWorking.length,                             icon: Users,        color: '#E03A00', bg: '#F7F7F7', bar: '#E03A00' },
+    { label: 'Concluídas',    value: doneRecs.length,                                   icon: CheckCircle2, color: '#0B0B0B', bg: '#F5F5F5', bar: '#0B0B0B' },
+    { label: 'Em andamento',  value: activeRecs.length,                                 icon: Activity,     color: '#4A4A4A', bg: '#F5F5F5', bar: '#4A4A4A' },
+    { label: 'Assertividade', value: assertividade !== null ? `${assertividade}%` : '—', icon: TrendingUp,   color: '#4A4A4A', bg: '#F7F7F7', bar: '#4A4A4A' },
   ];
 
   return (
@@ -102,18 +102,18 @@ function ResumoDia() {
 
       {/* Banner de data */}
       <div className="rounded-2xl p-5 flex items-center justify-between animate-fade-up"
-        style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.06)', boxShadow: '0 1px 3px rgba(15,23,42,0.04)' }}>
+        style={{ background: '#fff', border: '1px solid rgba(11, 11, 11,0.06)', boxShadow: '0 1px 3px rgba(11, 11, 11,0.04)' }}>
         <div className="flex items-center gap-3">
-          <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg,#FFF4EF,#FFE6D9)', border: '1px solid rgba(255,77,12,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg,#FFF7F4,#FFE6D9)', border: '1px solid rgba(255,77,12,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CalendarDays size={20} style={{ color: '#FF4D0C' }} />
           </div>
           <div>
-            <p style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#0F172A' }}>{dateLabel}</p>
-            <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '3px' }}>Dados em tempo real</p>
+            <p style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#0B0B0B' }}>{dateLabel}</p>
+            <p style={{ fontSize: '12px', color: '#9A9A9A', marginTop: '3px' }}>Dados em tempo real</p>
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '4px' }}>Faturamento do dia</p>
+          <p style={{ fontSize: '11px', color: '#9A9A9A', marginBottom: '4px' }}>Faturamento do dia</p>
           <p style={{ fontSize: '28px', fontWeight: 900, color: '#FF4D0C', lineHeight: 1 }}>{fmtCurrency(faturamentoDia)}</p>
         </div>
       </div>
@@ -124,7 +124,7 @@ function ResumoDia() {
           <div key={label} className="card p-4" style={{ background: '#fff', overflow: 'hidden', position: 'relative' }}>
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px', background: bar, borderRadius: '8px 0 0 8px' }} />
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold" style={{ color: '#64748B' }}>{label}</p>
+              <p className="text-xs font-semibold" style={{ color: '#6B6B6B' }}>{label}</p>
               <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: bg }}>
                 <Icon size={14} style={{ color }} />
               </div>
@@ -141,26 +141,26 @@ function ResumoDia() {
             <ClipboardList size={14} style={{ color: '#FF4D0C' }} />
             <p className="text-sm font-bold" style={T}>Demandas de Hoje</p>
           </div>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F5F5F5', color: '#6B6B6B' }}>
             {todayDemands.length} demanda{todayDemands.length !== 1 ? 's' : ''}
           </span>
         </div>
 
         {todayDemands.length === 0 ? (
           <div className="py-12 text-center">
-            <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: '#F1F5F9' }}>
-              <ClipboardList size={22} style={{ color: '#CBD5E1' }} />
+            <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: '#F5F5F5' }}>
+              <ClipboardList size={22} style={{ color: '#C8C8C8' }} />
             </div>
-            <p className="text-sm font-semibold" style={{ color: '#94A3B8' }}>Nenhuma demanda hoje</p>
-            <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>Use Lançar Demanda para escalar ajudantes</p>
+            <p className="text-sm font-semibold" style={{ color: '#9A9A9A' }}>Nenhuma demanda hoje</p>
+            <p className="text-xs mt-1" style={{ color: '#C8C8C8' }}>Use Lançar Demanda para escalar ajudantes</p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <tr style={{ background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                   {[['Empresa','left'],['Ajudantes','center'],['Atrasos','center'],['Faltas','center'],['Presença','center'],['Status','center']].map(([h, align]) => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: align, fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+                    <th key={h} style={{ padding: '10px 16px', textAlign: align, fontSize: '11px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
                       {h}
                     </th>
                   ))}
@@ -178,35 +178,35 @@ function ResumoDia() {
                   const hasActive   = compRecs.some(r => r.status === 'active');
                   const hasDone     = compRecs.some(r => r.status === 'completed');
                   const statusLabel = hasActive ? 'Em andamento' : hasDone ? 'Finalizado' : 'Agendado';
-                  const statusColor = hasActive ? '#2563EB' : hasDone ? '#059669' : '#D97706';
-                  const statusBg    = hasActive ? '#EFF6FF'  : hasDone ? '#DCFCE7' : '#FEF3C7';
+                  const statusColor = hasActive ? '#4A4A4A' : hasDone ? '#0B0B0B' : '#6B6B6B';
+                  const statusBg    = hasActive ? '#F5F5F5'  : hasDone ? '#F5F5F5' : '#F7F7F7';
 
                   return (
                     <tr key={dem.id} style={{ borderBottom: idx < todayDemands.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+                          <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: '#0B0B0B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
                             {(co?.name ?? 'E').slice(0,2).toUpperCase()}
                           </div>
                           <div>
-                            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{co?.name ?? dem.companyId}</p>
-                            <p style={{ fontSize: '11px', color: '#94A3B8' }}>{dem.time} · {dem.service}</p>
+                            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0B0B0B' }}>{co?.name ?? dem.companyId}</p>
+                            <p style={{ fontSize: '11px', color: '#9A9A9A' }}>{dem.time} · {dem.service}</p>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>{total}</td>
+                      <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: '15px', fontWeight: 700, color: '#0B0B0B' }}>{total}</td>
                       <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                         {atrasos > 0
-                          ? <span style={{ fontSize: '13px', fontWeight: 700, color: '#D97706' }}>{atrasos}</span>
-                          : <span style={{ fontSize: '13px', color: '#CBD5E1' }}>—</span>}
+                          ? <span style={{ fontSize: '13px', fontWeight: 700, color: '#6B6B6B' }}>{atrasos}</span>
+                          : <span style={{ fontSize: '13px', color: '#C8C8C8' }}>—</span>}
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                         {faltas > 0
-                          ? <span style={{ fontSize: '13px', fontWeight: 700, color: '#E11D48' }}>{faltas}</span>
-                          : <span style={{ fontSize: '13px', color: '#CBD5E1' }}>—</span>}
+                          ? <span style={{ fontSize: '13px', fontWeight: 700, color: '#4A4A4A' }}>{faltas}</span>
+                          : <span style={{ fontSize: '13px', color: '#C8C8C8' }}>—</span>}
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 800, color: presencaPct >= 80 ? '#059669' : presencaPct >= 60 ? '#D97706' : '#E11D48' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 800, color: presencaPct >= 80 ? '#0B0B0B' : presencaPct >= 60 ? '#6B6B6B' : '#4A4A4A' }}>
                           {total > 0 ? `${presencaPct}%` : '—'}
                         </span>
                       </td>
@@ -293,24 +293,24 @@ function Historico() {
       <div className="card p-4 space-y-4">
         {/* Período */}
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>Período</p>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#6B6B6B' }}>Período</p>
           <div className="flex items-center gap-2">
-            <div className="flex gap-1 p-0.5 rounded-xl" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
+            <div className="flex gap-1 p-0.5 rounded-xl" style={{ background: '#F5F5F5', border: '1px solid rgba(0,0,0,0.06)' }}>
               {[['quinzena','Quinzenal'],['mes','Mensal']].map(([val, lbl]) => (
                 <button key={val} onClick={() => { setPeriod(val); setOffset(0); }}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                  style={{ background: period === val ? '#FF4D0C' : 'transparent', color: period === val ? 'white' : '#64748B', border: 'none', cursor: 'pointer' }}>
+                  style={{ background: period === val ? '#0B0B0B' : 'transparent', color: period === val ? 'white' : '#6B6B6B', border: 'none', cursor: 'pointer' }}>
                   {lbl}
                 </button>
               ))}
             </div>
             <button onClick={() => setOffset(o => o - 1)} className="p-1.5 rounded-lg"
-              style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex' }}>
+              style={{ background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#4A4A4A', display: 'flex' }}>
               <ChevronLeft size={14} />
             </button>
             <span className="text-xs font-bold flex-1 text-center" style={T}>{label}</span>
             <button onClick={() => setOffset(o => Math.min(o + 1, 0))} className="p-1.5 rounded-lg"
-              style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex' }}>
+              style={{ background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#4A4A4A', display: 'flex' }}>
               <ChevronRight size={14} />
             </button>
           </div>
@@ -318,15 +318,15 @@ function Historico() {
 
         {/* Toggle Empresa/Ajudante */}
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>Ver por</p>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#6B6B6B' }}>Ver por</p>
           <div className="flex gap-2">
             {[['empresa','Empresa', Building2],['ajudante','Ajudante', Users]].map(([val, lbl, Icon]) => (
               <button key={val} onClick={() => handleViewBy(val)}
                 className="flex items-center gap-2 flex-1 justify-center py-2.5 rounded-xl text-xs font-semibold border transition-all"
                 style={{
-                  background:  viewBy === val ? (val === 'empresa' ? '#FFF2EE' : '#F0F9FF') : '#F8FAFC',
-                  borderColor: viewBy === val ? (val === 'empresa' ? '#FF4D0C' : '#0891B2') : 'rgba(0,0,0,0.08)',
-                  color:       viewBy === val ? (val === 'empresa' ? '#FF4D0C' : '#0891B2') : '#94A3B8',
+                  background:  viewBy === val ? (val === 'empresa' ? '#FFF7F4' : '#F7F7F7') : '#F7F7F7',
+                  borderColor: viewBy === val ? '#0B0B0B' : 'rgba(0,0,0,0.08)',
+                  color:       viewBy === val ? '#0B0B0B' : '#9A9A9A',
                   cursor: 'pointer',
                 }}>
                 <Icon size={13} /> {lbl}
@@ -337,7 +337,7 @@ function Historico() {
 
         {/* Seletor */}
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#6B6B6B' }}>
             {viewBy === 'empresa' ? 'Selecionar empresa' : 'Selecionar ajudante'}
           </p>
           {viewBy === 'empresa' ? (
@@ -357,13 +357,13 @@ function Historico() {
       {/* Resultados */}
       {!selected ? (
         <div className="card py-12 text-center">
-          <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: '#F1F5F9' }}>
-            <Filter size={20} style={{ color: '#CBD5E1' }} />
+          <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: '#F5F5F5' }}>
+            <Filter size={20} style={{ color: '#C8C8C8' }} />
           </div>
-          <p className="text-sm font-semibold" style={{ color: '#94A3B8' }}>
+          <p className="text-sm font-semibold" style={{ color: '#9A9A9A' }}>
             Selecione {viewBy === 'empresa' ? 'uma empresa' : 'um ajudante'}
           </p>
-          <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>para ver o histórico do período</p>
+          <p className="text-xs mt-1" style={{ color: '#C8C8C8' }}>para ver o histórico do período</p>
         </div>
       ) : loadingHist ? (
         <div className="card py-10 text-center text-xs" style={TM}>Carregando...</div>
@@ -371,15 +371,15 @@ function Historico() {
         <>
           {/* Totais do período */}
           <div className="card overflow-hidden">
-            <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', background: '#F8FAFC' }}>
+            <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', background: '#F7F7F7' }}>
               <p className="text-sm font-bold" style={T}>{selectedName}</p>
               <span className="text-xs font-semibold" style={TM}>{label}</span>
             </div>
             <div className="grid grid-cols-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
               {[
-                ['Diárias', totalDias, '#0F172A'],
-                ['Horas extras', totalHEGeral > 0 ? `${totalHEGeral}x` : '—', '#0F172A'],
-                ['Total cobrança', fmtCurrency(totalCobranca), '#1E40AF'],
+                ['Diárias', totalDias, '#0B0B0B'],
+                ['Horas extras', totalHEGeral > 0 ? `${totalHEGeral}x` : '—', '#0B0B0B'],
+                ['Total cobrança', fmtCurrency(totalCobranca), '#4A4A4A'],
               ].map(([lbl, val, color], i) => (
                 <div key={lbl} className="py-3 text-center" style={{ borderRight: i < 2 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
                   <p className="text-xs" style={TM}>{lbl}</p>
@@ -390,7 +390,7 @@ function Historico() {
 
             {/* Cabeçalho tabela */}
             <div className="px-5 py-2 grid text-xs font-semibold"
-              style={{ gridTemplateColumns: '130px 1fr 1fr 1fr', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '8px' }}>
+              style={{ gridTemplateColumns: '130px 1fr 1fr 1fr', color: '#9A9A9A', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '8px' }}>
               <span>Data</span>
               <span className="text-center">Ajudantes</span>
               <span className="text-center">H. Extras</span>
@@ -411,24 +411,24 @@ function Historico() {
                     gap: '8px',
                     borderBottom: !isLast ? '1px solid rgba(0,0,0,0.04)' : 'none',
                     cursor: hasData ? 'pointer' : 'default',
-                    background: isSelected ? '#EFF6FF'
-                      : d.isWeekend ? 'rgba(238,242,247,0.7)'
+                    background: isSelected ? '#F5F5F5'
+                      : d.isWeekend ? 'rgba(245, 245, 245,0.7)'
                       : 'transparent',
                     transition: 'background 0.1s',
                   }}
-                  onMouseEnter={e => { if (hasData && !isSelected) e.currentTarget.style.background = '#F8FAFC'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = isSelected ? '#EFF6FF' : d.isWeekend ? 'rgba(238,242,247,0.7)' : 'transparent'; }}
+                  onMouseEnter={e => { if (hasData && !isSelected) e.currentTarget.style.background = '#F7F7F7'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = isSelected ? '#F5F5F5' : d.isWeekend ? 'rgba(245, 245, 245,0.7)' : 'transparent'; }}
                 >
-                  <span style={{ fontWeight: hasData ? 600 : 400, color: d.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8' }}>
+                  <span style={{ fontWeight: hasData ? 600 : 400, color: d.isWeekend ? '#C8C8C8' : hasData ? '#0B0B0B' : '#9A9A9A' }}>
                     {d.label}
                   </span>
-                  <span className="text-center" style={{ color: d.diarias > 0 ? '#0F172A' : '#E2E8F0', fontWeight: d.diarias > 0 ? 600 : 400 }}>
+                  <span className="text-center" style={{ color: d.diarias > 0 ? '#0B0B0B' : '#E4E4E4', fontWeight: d.diarias > 0 ? 600 : 400 }}>
                     {d.diarias > 0 ? d.diarias : '—'}
                   </span>
-                  <span className="text-center" style={{ color: d.heMin > 0 ? '#1E40AF' : '#E2E8F0', fontWeight: d.heMin > 0 ? 600 : 400 }}>
+                  <span className="text-center" style={{ color: d.heMin > 0 ? '#4A4A4A' : '#E4E4E4', fontWeight: d.heMin > 0 ? 600 : 400 }}>
                     {d.heMin > 0 ? minutesToOvertimeString(d.heMin) : '—'}
                   </span>
-                  <span className="text-center font-bold" style={{ color: d.total > 0 ? '#0F172A' : '#E2E8F0' }}>
+                  <span className="text-center font-bold" style={{ color: d.total > 0 ? '#0B0B0B' : '#E4E4E4' }}>
                     {d.total > 0 ? fmtCurrency(d.total) : '—'}
                   </span>
                 </div>
@@ -467,7 +467,7 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
       onClick={e => e.target === e.currentTarget && onClose()}
       style={{
         position: 'fixed', inset: 0, zIndex: 999,
-        background: 'rgba(15,23,42,0.45)',
+        background: 'rgba(11, 11, 11,0.45)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '24px',
       }}
@@ -481,15 +481,15 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
         <div style={{
           padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           borderBottom: '1px solid rgba(0,0,0,0.07)',
-          background: '#F8FAFC',
+          background: '#F7F7F7',
         }}>
           <div>
-            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{day.label}</p>
-            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0B0B0B' }}>{day.label}</p>
+            <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '2px' }}>
               {presentes.length} ajudante{presentes.length !== 1 ? 's' : ''} · {minutesToOvertimeString(day.heMin)} H.E. · Total: {fmtCurrency(totalValor)}
             </p>
           </div>
-          <button onClick={onClose} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#94A3B8', display: 'flex' }}>
+          <button onClick={onClose} style={{ background: '#F5F5F5', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#9A9A9A', display: 'flex' }}>
             <X size={15} />
           </button>
         </div>
@@ -497,12 +497,12 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
         {/* KPIs do dia */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1px', background: 'rgba(0,0,0,0.06)', flexShrink: 0 }}>
           {[
-            ['Ajudantes',    presentes.length,                              '#0F172A'],
-            ['Horas extras', day.heMin > 0 ? minutesToOvertimeString(day.heMin) : '—',   '#0F172A'],
-            ['Total do dia', fmtCurrency(totalValor),                      '#1E40AF'],
+            ['Ajudantes',    presentes.length,                              '#0B0B0B'],
+            ['Horas extras', day.heMin > 0 ? minutesToOvertimeString(day.heMin) : '—',   '#0B0B0B'],
+            ['Total do dia', fmtCurrency(totalValor),                      '#4A4A4A'],
           ].map(([lbl, val, color]) => (
-            <div key={lbl} style={{ background: '#F8FAFC', padding: '12px 16px', textAlign: 'center' }}>
-              <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '4px' }}>{lbl}</p>
+            <div key={lbl} style={{ background: '#F7F7F7', padding: '12px 16px', textAlign: 'center' }}>
+              <p style={{ fontSize: '10px', color: '#9A9A9A', fontWeight: 600, marginBottom: '4px' }}>{lbl}</p>
               <p style={{ fontSize: '18px', fontWeight: 800, color }}>{val}</p>
             </div>
           ))}
@@ -513,7 +513,7 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
 
           {/* Lista de ajudantes */}
           {presentes.length === 0 ? (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
+            <div style={{ padding: '32px', textAlign: 'center', color: '#9A9A9A', fontSize: '13px' }}>
               Nenhum registro neste dia
             </div>
           ) : (
@@ -521,8 +521,8 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
               <div style={{
                 display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px 60px 70px 70px',
                 gap: '4px', padding: '8px 20px',
-                background: '#F1F5F9', borderBottom: '1px solid rgba(0,0,0,0.06)',
-                fontSize: '10px', fontWeight: 700, color: '#64748B',
+                background: '#F5F5F5', borderBottom: '1px solid rgba(0,0,0,0.06)',
+                fontSize: '10px', fontWeight: 700, color: '#6B6B6B',
                 textTransform: 'uppercase', letterSpacing: '0.04em',
               }}>
                 <span>{viewBy === 'empresa' ? 'Ajudante' : 'Serviço'}</span>
@@ -550,26 +550,26 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
                       {viewBy === 'empresa' && (
                         <div style={{
                           width: '26px', height: '26px', borderRadius: '8px', flexShrink: 0,
-                          background: emp?.color ?? '#94A3B8',
+                          background: emp?.color ?? '#9A9A9A',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: '9px', fontWeight: 800, color: 'white',
                         }}>
                           {emp?.initials ?? '?'}
                         </div>
                       )}
-                      <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {viewBy === 'empresa' ? (emp?.name ?? rec.employeeId) : (rec.service ?? '—')}
                       </p>
                     </div>
                     {[rec.checkIn, rec.lunchOut, rec.lunchReturn, rec.checkOut].map((t, i) => (
-                      <p key={i} style={{ fontSize: '11px', fontWeight: t ? 600 : 400, color: t ? '#0F172A' : '#CBD5E1', textAlign: 'center' }}>
+                      <p key={i} style={{ fontSize: '11px', fontWeight: t ? 600 : 400, color: t ? '#0B0B0B' : '#C8C8C8', textAlign: 'center' }}>
                         {t ?? '—'}
                       </p>
                     ))}
-                    <p style={{ fontSize: '11px', fontWeight: rec.overtime ? 700 : 400, color: rec.overtime ? '#1E40AF' : '#CBD5E1', textAlign: 'center' }}>
+                    <p style={{ fontSize: '11px', fontWeight: rec.overtime ? 700 : 400, color: rec.overtime ? '#4A4A4A' : '#C8C8C8', textAlign: 'center' }}>
                       {rec.overtime ?? '—'}
                     </p>
-                    <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', textAlign: 'center' }}>
+                    <p style={{ fontSize: '12px', fontWeight: 700, color: '#0B0B0B', textAlign: 'center' }}>
                       {fmtCurrency(recVal)}
                     </p>
                   </div>
@@ -732,7 +732,7 @@ function Relatorios() {
   };
 
   const navBtn = (icon, fn) => (
-    <button onClick={fn} className="p-1.5 rounded-lg" style={{ background: '#EEF2F7', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex' }}>
+    <button onClick={fn} className="p-1.5 rounded-lg" style={{ background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#4A4A4A', display: 'flex' }}>
       {icon}
     </button>
   );
@@ -746,7 +746,7 @@ function Relatorios() {
         </div>
         <button onClick={exportPDF} disabled={!selected}
           className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
-          style={{ background: selected ? '#FF4D0C' : '#E2E8F0', color: selected ? 'white' : '#94A3B8', border: 'none', cursor: selected ? 'pointer' : 'not-allowed', boxShadow: selected ? '0 2px 8px rgba(255,77,12,0.3)' : 'none' }}>
+          style={{ background: selected ? '#FF4D0C' : '#E4E4E4', color: selected ? 'white' : '#9A9A9A', border: 'none', cursor: selected ? 'pointer' : 'not-allowed', boxShadow: selected ? '0 2px 8px rgba(255,77,12,0.3)' : 'none' }}>
           <FileDown size={13} /> Exportar PDF
         </button>
       </div>
@@ -756,15 +756,15 @@ function Relatorios() {
 
         {/* Toggle Empresa / Ajudante */}
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>Tipo de relatório</p>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#6B6B6B' }}>Tipo de relatório</p>
           <div className="flex gap-2">
             {[['empresa','Empresa', Building2],['ajudante','Funcionário', Users]].map(([val, lbl, Icon]) => (
               <button key={val} onClick={() => handleViewBy(val)}
                 className="flex items-center gap-2 flex-1 justify-center py-2.5 rounded-xl text-xs font-semibold border transition-all"
                 style={{
-                  background:  viewBy === val ? (val === 'empresa' ? '#FFF2EE' : '#F0F9FF') : '#F8FAFC',
-                  borderColor: viewBy === val ? (val === 'empresa' ? '#FF4D0C' : '#0891B2') : 'rgba(0,0,0,0.08)',
-                  color:       viewBy === val ? (val === 'empresa' ? '#FF4D0C' : '#0891B2') : '#94A3B8',
+                  background:  viewBy === val ? (val === 'empresa' ? '#FFF7F4' : '#F7F7F7') : '#F7F7F7',
+                  borderColor: viewBy === val ? '#0B0B0B' : 'rgba(0,0,0,0.08)',
+                  color:       viewBy === val ? '#0B0B0B' : '#9A9A9A',
                   cursor: 'pointer',
                 }}>
                 <Icon size={13} /> {lbl}
@@ -775,7 +775,7 @@ function Relatorios() {
 
         {/* Seletor */}
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#6B6B6B' }}>
             {viewBy === 'empresa' ? 'Selecionar empresa' : 'Selecionar funcionário'}
           </p>
           {viewBy === 'empresa' ? (
@@ -793,12 +793,12 @@ function Relatorios() {
 
         {/* Período */}
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#64748B' }}>Período</p>
-          <div className="flex gap-1 p-0.5 rounded-xl w-fit mb-3" style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.06)' }}>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#6B6B6B' }}>Período</p>
+          <div className="flex gap-1 p-0.5 rounded-xl w-fit mb-3" style={{ background: '#F5F5F5', border: '1px solid rgba(0,0,0,0.06)' }}>
             {[['quinzena','Quinzenal'],['mes','Mensal']].map(([val, lbl]) => (
               <button key={val} onClick={() => { setPeriod(val); setOffset(0); }}
                 className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{ background: period === val ? '#FF4D0C' : 'transparent', color: period === val ? 'white' : '#64748B', border: 'none', cursor: 'pointer' }}>
+                style={{ background: period === val ? '#0B0B0B' : 'transparent', color: period === val ? 'white' : '#6B6B6B', border: 'none', cursor: 'pointer' }}>
                 {lbl}
               </button>
             ))}
@@ -819,16 +819,16 @@ function Relatorios() {
         <div className="flex gap-3">
           <div className="card flex-1 p-3 text-center">
             <p className="text-xs" style={TM}>Diária</p>
-            <p className="text-base font-bold" style={{ color: '#0F172A' }}>R$ {dailyRate}</p>
+            <p className="text-base font-bold" style={{ color: '#0B0B0B' }}>R$ {dailyRate}</p>
           </div>
           <div className="card flex-1 p-3 text-center">
             <p className="text-xs" style={TM}>{viewBy === 'empresa' ? 'HE 50%' : 'Hora extra'}</p>
-            <p className="text-base font-bold" style={{ color: '#1E40AF' }}>R$ {heRate.toFixed(2)}</p>
+            <p className="text-base font-bold" style={{ color: '#4A4A4A' }}>R$ {heRate.toFixed(2)}</p>
           </div>
           {viewBy === 'empresa' && (
             <div className="card flex-1 p-3 text-center">
               <p className="text-xs" style={TM}>HE 100%</p>
-              <p className="text-base font-bold" style={{ color: '#1E40AF' }}>R$ {he100Rate.toFixed(2)}</p>
+              <p className="text-base font-bold" style={{ color: '#4A4A4A' }}>R$ {he100Rate.toFixed(2)}</p>
             </div>
           )}
         </div>
@@ -838,14 +838,14 @@ function Relatorios() {
       {selected ? (
         <div className="card overflow-hidden">
           {/* Totais */}
-          <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', background: '#F8FAFC' }}>
+          <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', background: '#F7F7F7' }}>
             <div className="grid grid-cols-5 gap-3 text-center">
               {[
-                ['Diárias',      totalDiarias,                    '#0F172A'],
-                ['Valor Diárias',fmtCurrency(totalValorDiarias),  '#1E40AF'],
-                ['H. Extras',    fmtOvertime(totalHE),            '#0F172A'],
-                ['Valor HE',     fmtCurrency(totalValorHE),       '#1E40AF'],
-                ['Total',        fmtCurrency(totalGeral),         '#0F172A'],
+                ['Diárias',      totalDiarias,                    '#0B0B0B'],
+                ['Valor Diárias',fmtCurrency(totalValorDiarias),  '#4A4A4A'],
+                ['H. Extras',    fmtOvertime(totalHE),            '#0B0B0B'],
+                ['Valor HE',     fmtCurrency(totalValorHE),       '#4A4A4A'],
+                ['Total',        fmtCurrency(totalGeral),         '#0B0B0B'],
               ].map(([lbl, val, color]) => (
                 <div key={lbl}>
                   <p className="text-xs font-medium" style={TM}>{lbl}</p>
@@ -860,7 +860,7 @@ function Relatorios() {
           ) : (
             <div>
               <div className="px-5 py-2 grid text-xs font-semibold"
-                style={{ gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '8px' }}>
+                style={{ gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr', color: '#9A9A9A', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '8px' }}>
                 <span>Data</span>
                 <span className="text-center">Diárias</span>
                 <span className="text-center">Val. Diária</span>
@@ -877,34 +877,34 @@ function Relatorios() {
                       gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr',
                       gap: '8px',
                       borderBottom: !isLast ? '1px solid rgba(0,0,0,0.04)' : 'none',
-                      background: d.isWeekend ? 'rgba(238,242,247,0.7)' : 'transparent',
+                      background: d.isWeekend ? 'rgba(245, 245, 245,0.7)' : 'transparent',
                     }}
                   >
                     {/* Data */}
                     <span style={{
                       fontWeight: hasData ? 600 : 400,
-                      color: d.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8',
+                      color: d.isWeekend ? '#C8C8C8' : hasData ? '#0B0B0B' : '#9A9A9A',
                     }}>
                       {d.label}
                     </span>
                     {/* Diárias */}
-                    <span className="text-center" style={{ color: d.diarias > 0 ? '#0F172A' : '#E2E8F0', fontWeight: d.diarias > 0 ? 600 : 400 }}>
+                    <span className="text-center" style={{ color: d.diarias > 0 ? '#0B0B0B' : '#E4E4E4', fontWeight: d.diarias > 0 ? 600 : 400 }}>
                       {d.diarias > 0 ? d.diarias : '—'}
                     </span>
                     {/* Val. Diária */}
-                    <span className="text-center" style={{ color: d.valorDiarias > 0 ? '#1E40AF' : '#E2E8F0', fontWeight: d.valorDiarias > 0 ? 600 : 400 }}>
+                    <span className="text-center" style={{ color: d.valorDiarias > 0 ? '#4A4A4A' : '#E4E4E4', fontWeight: d.valorDiarias > 0 ? 600 : 400 }}>
                       {d.valorDiarias > 0 ? fmtCurrency(d.valorDiarias) : '—'}
                     </span>
                     {/* H. Extra */}
-                    <span className="text-center" style={{ color: d.heMin > 0 ? '#0F172A' : '#E2E8F0', fontWeight: d.heMin > 0 ? 600 : 400 }}>
+                    <span className="text-center" style={{ color: d.heMin > 0 ? '#0B0B0B' : '#E4E4E4', fontWeight: d.heMin > 0 ? 600 : 400 }}>
                       {fmtOvertime(d.heMin)}
                     </span>
                     {/* Val. HE */}
-                    <span className="text-center" style={{ color: d.valorHE > 0 ? '#1E40AF' : '#E2E8F0', fontWeight: d.valorHE > 0 ? 600 : 400 }}>
+                    <span className="text-center" style={{ color: d.valorHE > 0 ? '#4A4A4A' : '#E4E4E4', fontWeight: d.valorHE > 0 ? 600 : 400 }}>
                       {d.valorHE > 0 ? fmtCurrency(d.valorHE) : '—'}
                     </span>
                     {/* Total */}
-                    <span className="text-center font-bold" style={{ color: d.total > 0 ? '#0F172A' : '#E2E8F0' }}>
+                    <span className="text-center font-bold" style={{ color: d.total > 0 ? '#0B0B0B' : '#E4E4E4' }}>
                       {d.total > 0 ? fmtCurrency(d.total) : '—'}
                     </span>
                   </div>
@@ -915,7 +915,7 @@ function Relatorios() {
         </div>
       ) : (
         <div className="card py-14 text-center">
-          <BarChart2 size={28} className="mx-auto mb-2" style={{ color: '#CBD5E1' }} />
+          <BarChart2 size={28} className="mx-auto mb-2" style={{ color: '#C8C8C8' }} />
           <p className="text-sm" style={TM}>
             Selecione {viewBy === 'empresa' ? 'uma empresa' : 'um funcionário'} para ver o relatório
           </p>

@@ -24,11 +24,11 @@ import {
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const T  = { color: '#0F172A' };
-const TM = { color: '#94A3B8' };
+const T  = { color: '#0B0B0B' };
+const TM = { color: '#9A9A9A' };
 const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-const PIE_COLORS  = ['#FF4D0C','#2563EB','#059669','#7C3AED','#D97706','#0891B2','#E11D48','#94A3B8'];
+const PIE_COLORS  = ['#FF4D0C','#4A4A4A','#0B0B0B','#4A4A4A','#6B6B6B','#4A4A4A','#4A4A4A','#9A9A9A'];
 const TODAY_ISO   = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 
 // ── Period helpers ─────────────────────────────────────────────────────────
@@ -120,13 +120,13 @@ function KpiCard({ label, value, icon: Icon, color, bg, sub }) {
   return (
     <div className="card" style={{ padding: '16px', overflow: 'hidden' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-        <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>{label}</p>
+        <p style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B' }}>{label}</p>
         <div style={{ width: '30px', height: '30px', borderRadius: '9px', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon size={13} style={{ color }} />
         </div>
       </div>
       <p style={{ fontSize: '20px', fontWeight: 900, color, lineHeight: 1 }}>{value}</p>
-      {sub && <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>{sub}</p>}
+      {sub && <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '4px' }}>{sub}</p>}
     </div>
   );
 }
@@ -134,10 +134,10 @@ function KpiCard({ label, value, icon: Icon, color, bg, sub }) {
 function ChartTip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#1E293B', borderRadius: '10px', padding: '10px 14px', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <p style={{ color: '#94A3B8', fontSize: '11px', marginBottom: '6px' }}>{label}</p>
+    <div style={{ background: '#1C1C1C', borderRadius: '10px', padding: '10px 14px', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <p style={{ color: '#9A9A9A', fontSize: '11px', marginBottom: '6px' }}>{label}</p>
       {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color ?? '#F1F5F9', fontSize: '12px', fontWeight: 600, marginBottom: '2px' }}>
+        <p key={i} style={{ color: p.color ?? '#F5F5F5', fontSize: '12px', fontWeight: 600, marginBottom: '2px' }}>
           {p.name}: {fmtCurrency(p.value)}
         </p>
       ))}
@@ -158,17 +158,17 @@ function PeriodSelector({ type, offset, bounds, onChangeType, onChangeOffset }) 
     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
       <div ref={ref} style={{ position: 'relative' }}>
         <button onClick={() => setOpen(v => !v)}
-          style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px', borderRadius: '10px', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', background: '#fff', fontSize: '12px', fontWeight: 600, color: '#0F172A', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px', borderRadius: '10px', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', background: '#fff', fontSize: '12px', fontWeight: 600, color: '#0B0B0B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
           {bounds.label}
-          <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 500 }}>· {typeLabel}</span>
-          <ChevronDown size={12} style={{ color: '#94A3B8' }} />
+          <span style={{ fontSize: '10px', color: '#9A9A9A', fontWeight: 500 }}>· {typeLabel}</span>
+          <ChevronDown size={12} style={{ color: '#9A9A9A' }} />
         </button>
         {open && (
           <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 200, background: '#fff', borderRadius: '12px', padding: '6px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.07)', minWidth: '150px' }}>
             {[['quinzenal','Quinzenal'],['mensal','Mensal'],['semestral','Semestral'],['anual','Anual']].map(([val, lbl]) => (
               <button key={val} onClick={() => { onChangeType(val); setOpen(false); }}
-                style={{ width: '100%', display: 'block', padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', fontWeight: 600, background: type === val ? '#FFF2EE' : 'transparent', color: type === val ? '#FF4D0C' : '#374151' }}
-                onMouseEnter={e => { if (type !== val) e.currentTarget.style.background = '#F8FAFC'; }}
+                style={{ width: '100%', display: 'block', padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', fontWeight: 600, background: type === val ? '#FFF7F4' : 'transparent', color: type === val ? '#FF4D0C' : '#333333' }}
+                onMouseEnter={e => { if (type !== val) e.currentTarget.style.background = '#F7F7F7'; }}
                 onMouseLeave={e => { if (type !== val) e.currentTarget.style.background = 'transparent'; }}>
                 {lbl}
               </button>
@@ -177,11 +177,11 @@ function PeriodSelector({ type, offset, bounds, onChangeType, onChangeOffset }) 
         )}
       </div>
       <button onClick={() => onChangeOffset(o => o - 1)}
-        style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+        style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', color: '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
         <ChevronLeft size={13} />
       </button>
       <button onClick={() => onChangeOffset(o => Math.min(o + 1, 0))}
-        style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+        style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', color: '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
         <ChevronRight size={13} />
       </button>
     </div>
@@ -230,22 +230,22 @@ function TabVisaoGeral({ records, lancamentos, employees, companies }) {
   // Fatias do gráfico — devem somar ao faturamento. Item zerado não aparece
   // (ex.: VT/VR zerado no cadastro dos ajudantes que trabalharam → fatia some).
   const slices = [
-    { name: 'Lucro Líquido',        value: Math.max(0, lucroLiquido), color: '#059669' },
-    { name: 'Folha de Pagamento',   value: folha,                     color: '#2563EB' },
-    { name: 'Vale Transporte (VT)', value: beneficiosVT,              color: '#7C3AED' },
-    { name: 'Vale Refeição (VR)',   value: beneficiosVR,              color: '#0891B2' },
-    { name: 'Custos Fixos',         value: custoFixo,                 color: '#D97706' },
-    { name: 'Endividamento',        value: endivPeriodo,              color: '#E11D48' },
+    { name: 'Lucro Líquido',        value: Math.max(0, lucroLiquido), color: '#0B0B0B' },
+    { name: 'Folha de Pagamento',   value: folha,                     color: '#4A4A4A' },
+    { name: 'Vale Transporte (VT)', value: beneficiosVT,              color: '#4A4A4A' },
+    { name: 'Vale Refeição (VR)',   value: beneficiosVR,              color: '#4A4A4A' },
+    { name: 'Custos Fixos',         value: custoFixo,                 color: '#6B6B6B' },
+    { name: 'Endividamento',        value: endivPeriodo,              color: '#4A4A4A' },
   ].filter(s => s.value > 0);
 
   const kpis = [
-    { label: 'Faturamento',   value: fmtCurrency(fat),          icon: DollarSign, color: '#059669', bg: '#F0FDF4' },
+    { label: 'Faturamento',   value: fmtCurrency(fat),          icon: DollarSign, color: '#0B0B0B', bg: '#F5F5F5' },
     { label: 'Lucro Líquido', value: fmtCurrency(lucroLiquido), icon: TrendingUp,
-      color: lucroLiquido >= 0 ? '#059669' : '#E11D48',
-      bg:    lucroLiquido >= 0 ? '#F0FDF4' : '#FFF1F2' },
+      color: lucroLiquido >= 0 ? '#0B0B0B' : '#4A4A4A',
+      bg:    lucroLiquido >= 0 ? '#F5F5F5' : '#F5F5F5' },
     { label: 'Margem de Lucro', value: `${margemLucro.toFixed(1)}%`, icon: BarChart2,
-      color: margemLucro >= 0 ? '#059669' : '#E11D48',
-      bg:    margemLucro >= 0 ? '#F0FDF4' : '#FFF1F2' },
+      color: margemLucro >= 0 ? '#0B0B0B' : '#4A4A4A',
+      bg:    margemLucro >= 0 ? '#F5F5F5' : '#F5F5F5' },
   ];
 
   return (
@@ -259,7 +259,7 @@ function TabVisaoGeral({ records, lancamentos, employees, companies }) {
       <div className="card" style={{ padding: '32px' }}>
         {fat === 0 ? (
           <div style={{ padding: '64px', textAlign: 'center' }}>
-            <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Sem faturamento no período selecionado</p>
+            <p style={{ fontSize: '13px', color: '#C8C8C8' }}>Sem faturamento no período selecionado</p>
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: '48px' }}>
@@ -269,12 +269,12 @@ function TabVisaoGeral({ records, lancamentos, employees, companies }) {
                 <Pie data={slices} cx="50%" cy="50%" innerRadius={95} outerRadius={155} paddingAngle={2} dataKey="value" startAngle={90} endAngle={-270}>
                   {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
                 </Pie>
-                <Tooltip formatter={v => fmtCurrency(v)} contentStyle={{ background: '#1E293B', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F1F5F9' }} />
+                <Tooltip formatter={v => fmtCurrency(v)} contentStyle={{ background: '#1C1C1C', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F5F5F5' }} />
               </PieChart>
-              <p style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600, marginTop: '-12px' }}>
+              <p style={{ fontSize: '12px', color: '#9A9A9A', fontWeight: 600, marginTop: '-12px' }}>
                 Faturamento total
               </p>
-              <p style={{ fontSize: '22px', fontWeight: 900, color: '#0F172A', lineHeight: 1.1, marginTop: '2px' }}>
+              <p style={{ fontSize: '22px', fontWeight: 900, color: '#0B0B0B', lineHeight: 1.1, marginTop: '2px' }}>
                 {fmtCurrency(fat)}
               </p>
             </div>
@@ -288,11 +288,11 @@ function TabVisaoGeral({ records, lancamentos, employees, companies }) {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: s.color, flexShrink: 0 }} />
-                        <p style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{s.name}</p>
+                        <p style={{ fontSize: '14px', fontWeight: 600, color: '#0B0B0B' }}>{s.name}</p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <p style={{ fontSize: '15px', fontWeight: 800, color: s.color }}>{fmtCurrency(s.value)}</p>
-                        <p style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 500, minWidth: '44px', textAlign: 'right' }}>{pct.toFixed(1)}%</p>
+                        <p style={{ fontSize: '13px', color: '#9A9A9A', fontWeight: 500, minWidth: '44px', textAlign: 'right' }}>{pct.toFixed(1)}%</p>
                       </div>
                     </div>
                     <div style={{ height: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
@@ -303,9 +303,9 @@ function TabVisaoGeral({ records, lancamentos, employees, companies }) {
               })}
 
               {lucroLiquido < 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: '#FFF1F2', marginTop: '4px' }}>
-                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#E11D48', flexShrink: 0 }} />
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#E11D48' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: '#F5F5F5', marginTop: '4px' }}>
+                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#4A4A4A', flexShrink: 0 }} />
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A' }}>
                     Prejuízo de {fmtCurrency(Math.abs(lucroLiquido))} — custos superam o faturamento
                   </p>
                 </div>
@@ -341,17 +341,17 @@ function AddLancamentoModal({ onSave, onClose }) {
 
   return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(11, 11, 11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
 
         {/* Header */}
         <div style={{ padding: '22px 24px 18px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <button onClick={onClose}
-            style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={15} />
           </button>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Novo Lançamento</p>
-          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Novo Lançamento</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1.2 }}>
             {isPagar ? 'Conta a Pagar' : 'Conta a Receber'}
           </p>
         </div>
@@ -361,16 +361,16 @@ function AddLancamentoModal({ onSave, onClose }) {
 
           {/* Toggle tipo */}
           <div>
-            <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '8px' }}>Tipo</p>
+            <p style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', marginBottom: '8px' }}>Tipo</p>
             <div style={{ display: 'flex', gap: '8px' }}>
-              {[['a_pagar','Conta a Pagar','#E11D48','#FFF1F2'],['a_receber','Conta a Receber','#059669','#F0FDF4']].map(([v, l, c, bg]) => (
+              {[['a_pagar','Conta a Pagar','#4A4A4A','#F5F5F5'],['a_receber','Conta a Receber','#0B0B0B','#F5F5F5']].map(([v, l, c, bg]) => (
                 <button key={v} onClick={() => setForm(f => ({...f, tipo: v}))}
                   style={{
                     flex: 1, padding: '10px', borderRadius: '10px', border: '1.5px solid',
                     borderColor: form.tipo === v ? c : 'rgba(0,0,0,0.08)',
                     cursor: 'pointer', fontSize: '12px', fontWeight: 700,
-                    background: form.tipo === v ? bg : '#F8FAFC',
-                    color: form.tipo === v ? c : '#94A3B8',
+                    background: form.tipo === v ? bg : '#F7F7F7',
+                    color: form.tipo === v ? c : '#9A9A9A',
                     transition: 'all 0.15s',
                   }}>
                   {l}
@@ -381,7 +381,7 @@ function AddLancamentoModal({ onSave, onClose }) {
 
           {/* Descrição */}
           <div>
-            <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Descrição</label>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Descrição</label>
             <input className="input-field" placeholder="Ex: Aluguel, Cliente XYZ..." value={form.descricao}
               onChange={e => setForm(f => ({...f, descricao: e.target.value}))} />
           </div>
@@ -389,12 +389,12 @@ function AddLancamentoModal({ onSave, onClose }) {
           {/* Valor + Data */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Valor (R$)</label>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Valor (R$)</label>
               <input className="input-field" type="number" min="0" step="0.01" placeholder="0,00"
                 value={form.valor} onChange={e => setForm(f => ({...f, valor: e.target.value}))} />
             </div>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Data de vencimento</label>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Data de vencimento</label>
               <input className="input-field" type="date" value={form.data}
                 onChange={e => setForm(f => ({...f, data: e.target.value}))} />
             </div>
@@ -403,17 +403,17 @@ function AddLancamentoModal({ onSave, onClose }) {
           {/* Ações */}
           <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
             <button onClick={onClose}
-              style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>
+              style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>
               Cancelar
             </button>
             <button onClick={handleSave} disabled={!canSave}
               style={{
                 flex: 2, padding: '12px', borderRadius: '12px', border: 'none',
                 cursor: canSave ? 'pointer' : 'not-allowed',
-                background: canSave ? (isPagar ? '#E11D48' : '#059669') : '#E2E8F0',
-                color: canSave ? 'white' : '#94A3B8',
+                background: canSave ? (isPagar ? '#4A4A4A' : '#0B0B0B') : '#E4E4E4',
+                color: canSave ? 'white' : '#9A9A9A',
                 fontSize: '13px', fontWeight: 700,
-                boxShadow: canSave ? `0 2px 10px ${isPagar ? 'rgba(225,29,72,0.3)' : 'rgba(5,150,105,0.3)'}` : 'none',
+                boxShadow: canSave ? `0 2px 10px ${isPagar ? 'rgba(74, 74, 74,0.3)' : 'rgba(11, 11, 11,0.3)'}` : 'none',
                 transition: 'all 0.15s',
               }}>
               {saving ? 'Salvando...' : `Lançar ${isPagar ? 'Conta a Pagar' : 'Conta a Receber'}`}
@@ -438,45 +438,45 @@ function ListModal({ title, items, onDelete, onClose }) {
 
   return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(11, 11, 11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '680px', maxHeight: '84vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <div>
-            <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>{title}</p>
-            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>{items.length} lançamento{items.length !== 1 ? 's' : ''}</p>
+            <p style={{ fontSize: '15px', fontWeight: 700, color: '#0B0B0B' }}>{title}</p>
+            <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '2px' }}>{items.length} lançamento{items.length !== 1 ? 's' : ''}</p>
           </div>
-          <button onClick={onClose} style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={onClose} style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={15} />
           </button>
         </div>
         {/* Cabeçalho tabela */}
-        <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px 40px', padding: '9px 24px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px 40px', padding: '9px 24px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
           <span>Data</span><span>Descrição</span><span>Origem</span><span style={{ textAlign: 'right' }}>Valor</span><span />
         </div>
         {/* Lista */}
         <div style={{ overflowY: 'auto', flex: 1 }}>
           {items.length === 0 ? (
             <div style={{ padding: '48px', textAlign: 'center' }}>
-              <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Nenhum lançamento</p>
+              <p style={{ fontSize: '13px', color: '#C8C8C8' }}>Nenhum lançamento</p>
             </div>
           ) : items.map((item, idx) => {
             const [yr, mo, dd] = item.date.split('-');
             return (
               <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px 40px', padding: '12px 24px', borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>{dd}/{mo}/{yr.slice(2)}</span>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.descricao}</span>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B6B6B' }}>{dd}/{mo}/{yr.slice(2)}</span>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.descricao}</span>
                 <span>
-                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: isRec ? '#F0FDF4' : '#FFF1F2', color: isRec ? '#059669' : '#E11D48' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: isRec ? '#F5F5F5' : '#F5F5F5', color: isRec ? '#0B0B0B' : '#4A4A4A' }}>
                     {item.origem}
                   </span>
                 </span>
-                <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: isRec ? '#059669' : '#E11D48' }}>
+                <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: isRec ? '#0B0B0B' : '#4A4A4A' }}>
                   {isRec ? '+' : '−'}{fmtCurrency(item.valor)}
                 </span>
                 <span style={{ display: 'flex', justifyContent: 'center' }}>
                   {item.isManual && onDelete ? (
-                    <button onClick={() => onDelete(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CBD5E1', display: 'flex', padding: '2px' }}>
+                    <button onClick={() => onDelete(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
                       <Trash2 size={13} />
                     </button>
                   ) : null}
@@ -570,11 +570,11 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     <div className="space-y-5">
       {/* Totais */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-        <KpiCard label="A Receber no Período" value={fmtCurrency(totalRec)} icon={TrendingUp}   color="#059669" bg="#F0FDF4" />
-        <KpiCard label="A Pagar no Período"   value={fmtCurrency(totalPag)} icon={TrendingDown} color="#E11D48" bg="#FFF1F2" />
+        <KpiCard label="A Receber no Período" value={fmtCurrency(totalRec)} icon={TrendingUp}   color="#0B0B0B" bg="#F5F5F5" />
+        <KpiCard label="A Pagar no Período"   value={fmtCurrency(totalPag)} icon={TrendingDown} color="#4A4A4A" bg="#F5F5F5" />
         <KpiCard label="Saldo Projetado" value={fmtCurrency(totalRec - totalPag)} icon={BarChart2}
-          color={(totalRec - totalPag) >= 0 ? '#059669' : '#E11D48'}
-          bg={(totalRec - totalPag) >= 0 ? '#F0FDF4' : '#FFF1F2'} />
+          color={(totalRec - totalPag) >= 0 ? '#0B0B0B' : '#4A4A4A'}
+          bg={(totalRec - totalPag) >= 0 ? '#F5F5F5' : '#F5F5F5'} />
       </div>
 
       {/* Gráfico */}
@@ -585,17 +585,17 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
             <p style={{ fontSize: '11px', ...TM, marginTop: '2px' }}>Entradas vs. Saídas por período</p>
           </div>
           <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-            {[['#059669','A Receber'],['#E11D48','A Pagar'],['#2563EB','Saldo']].map(([c, l]) => (
+            {[['#0B0B0B','A Receber'],['#4A4A4A','A Pagar'],['#4A4A4A','Saldo']].map(([c, l]) => (
               <div key={l} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: c }} />
-                <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 500 }}>{l}</span>
+                <span style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 500 }}>{l}</span>
               </div>
             ))}
           </div>
         </div>
         {!hasChart ? (
           <div style={{ height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Sem dados no período</p>
+            <p style={{ fontSize: '13px', color: '#C8C8C8' }}>Sem dados no período</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={260}>
@@ -603,22 +603,22 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
               <XAxis
                 dataKey="label"
-                tick={{ fill: '#94A3B8', fontSize: 11 }}
+                tick={{ fill: '#9A9A9A', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 interval={xInterval}
                 height={30}
               />
               <YAxis
-                tick={{ fill: '#94A3B8', fontSize: 10 }}
+                tick={{ fill: '#9A9A9A', fontSize: 10 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={v => v === 0 ? '' : `R$${(v / 1000).toFixed(0)}k`}
               />
               <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
-              <Bar dataKey="aReceber" name="A Receber" fill="#059669" radius={[5,5,0,0]} barSize={barSize} />
-              <Bar dataKey="aPagar"   name="A Pagar"   fill="#E11D48" radius={[5,5,0,0]} barSize={barSize} />
-              <Line dataKey="saldo" name="Saldo" stroke="#2563EB" strokeWidth={2.5} dot={false} />
+              <Bar dataKey="aReceber" name="A Receber" fill="#0B0B0B" radius={[5,5,0,0]} barSize={barSize} />
+              <Bar dataKey="aPagar"   name="A Pagar"   fill="#4A4A4A" radius={[5,5,0,0]} barSize={barSize} />
+              <Line dataKey="saldo" name="Saldo" stroke="#4A4A4A" strokeWidth={2.5} dot={false} />
             </ComposedChart>
           </ResponsiveContainer>
         )}
@@ -630,18 +630,18 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {/* Todos */}
           <button onClick={() => setView('all')}
-            style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid', borderColor: view === 'all' ? 'rgba(15,23,42,0.15)' : 'rgba(15,23,42,0.08)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'all' ? '#0F172A' : '#fff', color: view === 'all' ? 'white' : '#64748B', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+            style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid', borderColor: view === 'all' ? 'rgba(11, 11, 11,0.15)' : 'rgba(11, 11, 11,0.08)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'all' ? '#0B0B0B' : '#fff', color: view === 'all' ? 'white' : '#6B6B6B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
             Todos
           </button>
 
           {/* A Receber + Ver mais */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <button onClick={() => setView('receber')}
-              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'receber' ? '#F0FDF4' : '#fff', color: view === 'receber' ? '#059669' : '#64748B', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'receber' ? '#F5F5F5' : '#fff', color: view === 'receber' ? '#0B0B0B' : '#6B6B6B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
               A Receber
             </button>
             <button onClick={() => setModal('receber')} title="Ver lista completa"
-              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: '1px solid rgba(15,23,42,0.08)', borderLeft: 'none', cursor: 'pointer', background: view === 'receber' ? '#F0FDF4' : '#fff', color: '#94A3B8', display: 'flex', alignItems: 'center', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: '1px solid rgba(11, 11, 11,0.08)', borderLeft: 'none', cursor: 'pointer', background: view === 'receber' ? '#F5F5F5' : '#fff', color: '#9A9A9A', display: 'flex', alignItems: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
               <Maximize2 size={11} />
             </button>
           </div>
@@ -649,11 +649,11 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           {/* A Pagar + Ver mais */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <button onClick={() => setView('pagar')}
-              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'pagar' ? '#FFF1F2' : '#fff', color: view === 'pagar' ? '#E11D48' : '#64748B', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'pagar' ? '#F5F5F5' : '#fff', color: view === 'pagar' ? '#4A4A4A' : '#6B6B6B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
               A Pagar
             </button>
             <button onClick={() => setModal('pagar')} title="Ver lista completa"
-              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: '1px solid rgba(15,23,42,0.08)', borderLeft: 'none', cursor: 'pointer', background: view === 'pagar' ? '#FFF1F2' : '#fff', color: '#94A3B8', display: 'flex', alignItems: 'center', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: '1px solid rgba(11, 11, 11,0.08)', borderLeft: 'none', cursor: 'pointer', background: view === 'pagar' ? '#F5F5F5' : '#fff', color: '#9A9A9A', display: 'flex', alignItems: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
               <Maximize2 size={11} />
             </button>
           </div>
@@ -668,12 +668,12 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
 
       {/* Lista inline (preview — máx 8 itens) */}
       <div className="card overflow-hidden">
-        <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px', padding: '9px 16px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px', padding: '9px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
           <span>Data</span><span>Descrição</span><span>Origem</span><span style={{ textAlign: 'right' }}>Valor</span>
         </div>
         {inlineItems.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center' }}>
-            <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Nenhum lançamento no período</p>
+            <p style={{ fontSize: '13px', color: '#C8C8C8' }}>Nenhum lançamento no período</p>
           </div>
         ) : (
           <>
@@ -681,14 +681,14 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
               const [yr, mo, dd] = item.date.split('-');
               return (
                 <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px', padding: '11px 16px', borderBottom: idx < inlineItems.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>{dd}/{mo}/{yr.slice(2)}</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B6B6B' }}>{dd}/{mo}/{yr.slice(2)}</span>
                   <span style={{ fontSize: '13px', fontWeight: 600, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.descricao}</span>
                   <span>
-                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: item.tipo === 'a_receber' ? '#F0FDF4' : '#FFF1F2', color: item.tipo === 'a_receber' ? '#059669' : '#E11D48' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: item.tipo === 'a_receber' ? '#F5F5F5' : '#F5F5F5', color: item.tipo === 'a_receber' ? '#0B0B0B' : '#4A4A4A' }}>
                       {item.origem}
                     </span>
                   </span>
-                  <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: item.tipo === 'a_receber' ? '#059669' : '#E11D48' }}>
+                  <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: item.tipo === 'a_receber' ? '#0B0B0B' : '#4A4A4A' }}>
                     {item.tipo === 'a_pagar' ? '−' : '+'}{fmtCurrency(item.valor)}
                   </span>
                 </div>
@@ -753,46 +753,46 @@ function NovaDividaModal({ onSave, onClose }) {
 
   return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(11, 11, 11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '480px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
         <div style={{ padding: '22px 24px 18px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-          <button onClick={onClose} style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={onClose} style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={15} />
           </button>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Endividamento</p>
-          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A' }}>Nova Dívida</p>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Endividamento</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0B0B0B' }}>Nova Dívida</p>
         </div>
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Nome da dívida</label>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Nome da dívida</label>
             <input className="input-field" placeholder="Ex: Empréstimo bancário" value={form.nome} onChange={e => setForm(f => ({...f, nome: e.target.value}))} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Valor total (R$)</label>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Valor total (R$)</label>
               <input className="input-field" type="number" min="0" step="0.01" placeholder="0,00" value={form.valorTotal} onChange={e => setForm(f => ({...f, valorTotal: e.target.value}))} />
             </div>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Valor da parcela (R$)</label>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Valor da parcela (R$)</label>
               <input className="input-field" type="number" min="0" step="0.01" placeholder="0,00" value={form.valorParcela} onChange={e => setForm(f => ({...f, valorParcela: e.target.value}))} />
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>
-                Qtd. parcelas {numAuto ? <span style={{ color: '#94A3B8', fontWeight: 400 }}>— auto: {numAuto}x</span> : ''}
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>
+                Qtd. parcelas {numAuto ? <span style={{ color: '#9A9A9A', fontWeight: 400 }}>— auto: {numAuto}x</span> : ''}
               </label>
               <input className="input-field" type="number" min="1" placeholder={numAuto || '24'} value={form.numParcelas} onChange={e => setForm(f => ({...f, numParcelas: e.target.value}))} />
             </div>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Data da 1ª parcela</label>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Data da 1ª parcela</label>
               <input className="input-field" type="date" value={form.dataInicio} onChange={e => setForm(f => ({...f, dataInicio: e.target.value}))} />
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
-            <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
+            <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
             <button onClick={handleSave} disabled={!canSave}
-              style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#FF4D0C' : '#E2E8F0', color: canSave ? 'white' : '#94A3B8', fontSize: '13px', fontWeight: 700, boxShadow: canSave ? '0 2px 10px rgba(255,77,12,0.3)' : 'none' }}>
+              style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#FF4D0C' : '#E4E4E4', color: canSave ? 'white' : '#9A9A9A', fontSize: '13px', fontWeight: 700, boxShadow: canSave ? '0 2px 10px rgba(255,77,12,0.3)' : 'none' }}>
               {saving ? 'Salvando...' : 'Lançar Dívida'}
             </button>
           </div>
@@ -825,7 +825,7 @@ function TabEndividamento({ dividas, setDividas }) {
     <div className="space-y-5">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <p style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>Total em dívidas</p>
+          <p style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 600 }}>Total em dívidas</p>
           <p style={{ fontSize: '26px', fontWeight: 900, ...T, lineHeight: 1.1 }}>{fmtCurrency(totalDiv)}</p>
         </div>
         <button onClick={() => setShowModal(true)}
@@ -838,13 +838,13 @@ function TabEndividamento({ dividas, setDividas }) {
 
       {dividas.length === 0 ? (
         <div className="card" style={{ padding: '56px', textAlign: 'center' }}>
-          <CreditCard size={32} style={{ color: '#CBD5E1', margin: '0 auto 12px' }} />
-          <p style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 600 }}>Nenhuma dívida cadastrada</p>
-          <p style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>Lançamentos de dívidas aparecem automaticamente no Fluxo de Caixa</p>
+          <CreditCard size={32} style={{ color: '#C8C8C8', margin: '0 auto 12px' }} />
+          <p style={{ fontSize: '13px', color: '#9A9A9A', fontWeight: 600 }}>Nenhuma dívida cadastrada</p>
+          <p style={{ fontSize: '12px', color: '#C8C8C8', marginTop: '4px' }}>Lançamentos de dívidas aparecem automaticamente no Fluxo de Caixa</p>
         </div>
       ) : (
         <div className="card overflow-hidden">
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px', padding: '9px 16px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px', padding: '9px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
             <span>Dívida</span>
             <span style={{ textAlign: 'right' }}>Valor Total</span>
             <span style={{ textAlign: 'right' }}>Parcela</span>
@@ -857,19 +857,19 @@ function TabEndividamento({ dividas, setDividas }) {
               <div key={d.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px', padding: '14px 16px', borderBottom: idx < dividas.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px' }}>
                 <div>
                   <p style={{ fontSize: '13px', fontWeight: 700, ...T }}>{d.nome}</p>
-                  <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>Início: {day}/{mo}/{yr} · {d.num_parcelas}x</p>
+                  <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '2px' }}>Início: {day}/{mo}/{yr} · {d.num_parcelas}x</p>
                 </div>
                 <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, ...T }}>{fmtCurrency(d.valor_total)}</p>
-                <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: '#E11D48' }}>{fmtCurrency(d.valor_parcela)}<span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 400 }}>/mês</span></p>
-                <p style={{ textAlign: 'right', fontSize: '13px', color: '#64748B' }}>{d.num_parcelas}x</p>
+                <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: '#4A4A4A' }}>{fmtCurrency(d.valor_parcela)}<span style={{ fontSize: '10px', color: '#9A9A9A', fontWeight: 400 }}>/mês</span></p>
+                <p style={{ textAlign: 'right', fontSize: '13px', color: '#6B6B6B' }}>{d.num_parcelas}x</p>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   {confirmDel === d.id ? (
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => handleDelete(d.id)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#E11D48', color: 'white', fontSize: '10px', fontWeight: 700 }}>Sim</button>
-                      <button onClick={() => setConfirmDel(null)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '10px' }}>Não</button>
+                      <button onClick={() => handleDelete(d.id)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#4A4A4A', color: 'white', fontSize: '10px', fontWeight: 700 }}>Sim</button>
+                      <button onClick={() => setConfirmDel(null)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '10px' }}>Não</button>
                     </div>
                   ) : (
-                    <button onClick={() => setConfirmDel(d.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CBD5E1', display: 'flex' }}>
+                    <button onClick={() => setConfirmDel(d.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex' }}>
                       <Trash2 size={14} />
                     </button>
                   )}
@@ -905,37 +905,37 @@ function NovoCustoModal({ onSave, onClose }) {
 
   return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(11, 11, 11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '440px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
         <div style={{ padding: '22px 24px 18px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-          <button onClick={onClose} style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={onClose} style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={15} />
           </button>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Custos Fixos</p>
-          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A' }}>Novo Custo Fixo</p>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Custos Fixos</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0B0B0B' }}>Novo Custo Fixo</p>
         </div>
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Nome do custo</label>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Nome do custo</label>
             <input className="input-field" placeholder="Ex: Aluguel, Energia elétrica, Internet..." value={form.nome} onChange={e => setForm(f => ({...f, nome: e.target.value}))} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Valor mensal (R$)</label>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Valor mensal (R$)</label>
               <input className="input-field" type="number" min="0" step="0.01" placeholder="0,00" value={form.valor} onChange={e => setForm(f => ({...f, valor: e.target.value}))} />
             </div>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Dia do vencimento</label>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Dia do vencimento</label>
               <input className="input-field" type="number" min="1" max="31" placeholder="10" value={form.diaVencimento} onChange={e => setForm(f => ({...f, diaVencimento: e.target.value}))} />
             </div>
           </div>
-          <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '-4px' }}>
+          <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '-4px' }}>
             O custo será lançado automaticamente no Fluxo de Caixa pelos próximos 24 meses.
           </p>
           <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
-            <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
+            <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
             <button onClick={handleSave} disabled={!canSave}
-              style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#FF4D0C' : '#E2E8F0', color: canSave ? 'white' : '#94A3B8', fontSize: '13px', fontWeight: 700, boxShadow: canSave ? '0 2px 10px rgba(255,77,12,0.3)' : 'none' }}>
+              style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#FF4D0C' : '#E4E4E4', color: canSave ? 'white' : '#9A9A9A', fontSize: '13px', fontWeight: 700, boxShadow: canSave ? '0 2px 10px rgba(255,77,12,0.3)' : 'none' }}>
               {saving ? 'Salvando...' : 'Lançar Custo Fixo'}
             </button>
           </div>
@@ -969,7 +969,7 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
     <div className="space-y-5">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <p style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>Total de custos fixos / mês</p>
+          <p style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 600 }}>Total de custos fixos / mês</p>
           <p style={{ fontSize: '26px', fontWeight: 900, ...T, lineHeight: 1.1 }}>{fmtCurrency(total)}</p>
         </div>
         <button onClick={() => setShowModal(true)}
@@ -990,14 +990,14 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={3} dataKey="value">
                   {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
-                <Tooltip formatter={v => fmtCurrency(v)} contentStyle={{ background: '#1E293B', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F1F5F9' }} />
+                <Tooltip formatter={v => fmtCurrency(v)} contentStyle={{ background: '#1C1C1C', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F5F5F5' }} />
               </PieChart>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
               {pieData.map((item, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
-                  <p style={{ fontSize: '11px', color: '#64748B', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
+                  <p style={{ fontSize: '11px', color: '#6B6B6B', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
                   <p style={{ fontSize: '11px', fontWeight: 700, ...T, flexShrink: 0 }}>{total > 0 ? `${((item.value / total) * 100).toFixed(0)}%` : '—'}</p>
                 </div>
               ))}
@@ -1008,13 +1008,13 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
         {/* Lista */}
         {custosFixos.length === 0 ? (
           <div className="card" style={{ padding: '56px', textAlign: 'center' }}>
-            <Wallet size={32} style={{ color: '#CBD5E1', margin: '0 auto 12px' }} />
-            <p style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 600 }}>Nenhum custo fixo cadastrado</p>
-            <p style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>Custos fixos são lançados automaticamente no Fluxo de Caixa</p>
+            <Wallet size={32} style={{ color: '#C8C8C8', margin: '0 auto 12px' }} />
+            <p style={{ fontSize: '13px', color: '#9A9A9A', fontWeight: 600 }}>Nenhum custo fixo cadastrado</p>
+            <p style={{ fontSize: '12px', color: '#C8C8C8', marginTop: '4px' }}>Custos fixos são lançados automaticamente no Fluxo de Caixa</p>
           </div>
         ) : (
           <div className="card overflow-hidden">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px', padding: '9px 16px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px', padding: '9px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
               <span>Nome</span>
               <span style={{ textAlign: 'right' }}>Valor/mês</span>
               <span style={{ textAlign: 'center' }}>Venc.</span>
@@ -1026,16 +1026,16 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
                   <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: PIE_COLORS[idx % PIE_COLORS.length], flexShrink: 0 }} />
                   <p style={{ fontSize: '13px', fontWeight: 600, ...T }}>{c.nome}</p>
                 </div>
-                <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: '#E11D48' }}>{fmtCurrency(c.valor)}</p>
-                <p style={{ textAlign: 'center', fontSize: '12px', color: '#64748B' }}>Dia {c.dia_vencimento}</p>
+                <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: '#4A4A4A' }}>{fmtCurrency(c.valor)}</p>
+                <p style={{ textAlign: 'center', fontSize: '12px', color: '#6B6B6B' }}>Dia {c.dia_vencimento}</p>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   {confirmDel === c.id ? (
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => handleDelete(c.id)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#E11D48', color: 'white', fontSize: '10px', fontWeight: 700 }}>Sim</button>
-                      <button onClick={() => setConfirmDel(null)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '10px' }}>Não</button>
+                      <button onClick={() => handleDelete(c.id)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#4A4A4A', color: 'white', fontSize: '10px', fontWeight: 700 }}>Sim</button>
+                      <button onClick={() => setConfirmDel(null)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '10px' }}>Não</button>
                     </div>
                   ) : (
-                    <button onClick={() => setConfirmDel(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CBD5E1', display: 'flex' }}>
+                    <button onClick={() => setConfirmDel(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex' }}>
                       <Trash2 size={14} />
                     </button>
                   )}
@@ -1071,9 +1071,9 @@ function TabDRE({ records, lancamentos, employees, bounds, companies }) {
   const Row = ({ label, value, indent = 0, bold = false, sep = false, positive, negative, muted }) => (
     <>
       {sep && <div style={{ height: '1px', background: 'rgba(0,0,0,0.07)', margin: '2px 0' }} />}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `${bold ? '10px' : '7px'} ${16 + indent * 16}px`, background: bold && sep ? '#F8FAFC' : 'transparent' }}>
-        <p style={{ fontSize: bold ? '13px' : '12px', fontWeight: bold ? 700 : 400, color: muted ? '#64748B' : '#0F172A' }}>{label}</p>
-        <p style={{ fontSize: bold ? '14px' : '12px', fontWeight: bold ? 800 : 600, color: positive ? '#059669' : negative ? '#E11D48' : '#0F172A', whiteSpace: 'nowrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `${bold ? '10px' : '7px'} ${16 + indent * 16}px`, background: bold && sep ? '#F7F7F7' : 'transparent' }}>
+        <p style={{ fontSize: bold ? '13px' : '12px', fontWeight: bold ? 700 : 400, color: muted ? '#6B6B6B' : '#0B0B0B' }}>{label}</p>
+        <p style={{ fontSize: bold ? '14px' : '12px', fontWeight: bold ? 800 : 600, color: positive ? '#0B0B0B' : negative ? '#4A4A4A' : '#0B0B0B', whiteSpace: 'nowrap' }}>
           {value < 0 ? `(${fmtCurrency(Math.abs(value))})` : fmtCurrency(value)}
         </p>
       </div>
@@ -1089,8 +1089,8 @@ function TabDRE({ records, lancamentos, employees, bounds, companies }) {
 
       <div className="card overflow-hidden">
         {/* Header */}
-        <div style={{ padding: '14px 16px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
+        <div style={{ padding: '14px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
             DRE — {bounds.label}
           </p>
         </div>
@@ -1113,8 +1113,8 @@ function TabDRE({ records, lancamentos, employees, bounds, companies }) {
             ['Margem Operacional', `${margemOp.toFixed(1)}%`],
             ['Diárias no Período', String(active.length)],
           ].map(([lbl, val]) => (
-            <div key={lbl} style={{ background: '#F8FAFC', padding: '14px 16px', textAlign: 'center' }}>
-              <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '6px' }}>{lbl}</p>
+            <div key={lbl} style={{ background: '#F7F7F7', padding: '14px 16px', textAlign: 'center' }}>
+              <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '6px' }}>{lbl}</p>
               <p style={{ fontSize: '20px', fontWeight: 800, ...T }}>{val}</p>
             </div>
           ))}
@@ -1163,17 +1163,17 @@ function LancarAdiantamentoModal({ employees, defaultIdx, maxIdx, onSave, onClos
 
   return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(11, 11, 11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
 
         {/* Header */}
         <div style={{ padding: '22px 24px 18px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <button onClick={onClose}
-            style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={15} />
           </button>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Lançar Adiantamento</p>
-          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>Pagamento antecipado</p>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Lançar Adiantamento</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1.2 }}>Pagamento antecipado</p>
         </div>
 
         {/* Corpo */}
@@ -1181,7 +1181,7 @@ function LancarAdiantamentoModal({ employees, defaultIdx, maxIdx, onSave, onClos
 
           {/* Ajudante */}
           <div>
-            <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Ajudante</label>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Ajudante</label>
             <select className="input-field" value={form.employeeId}
               onChange={e => setForm(f => ({...f, employeeId: e.target.value}))}>
               <option value="">Selecione o ajudante...</option>
@@ -1194,12 +1194,12 @@ function LancarAdiantamentoModal({ employees, defaultIdx, maxIdx, onSave, onClos
           {/* Valor + Data */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Valor adiantado (R$)</label>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Valor adiantado (R$)</label>
               <input className="input-field" type="number" min="0.01" step="0.01" placeholder="0,00"
                 value={form.valor} onChange={e => setForm(f => ({...f, valor: e.target.value}))} />
             </div>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Data do adiantamento</label>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Data do adiantamento</label>
               <input className="input-field" type="date" value={form.data}
                 onChange={e => setForm(f => ({...f, data: e.target.value}))} />
             </div>
@@ -1207,7 +1207,7 @@ function LancarAdiantamentoModal({ employees, defaultIdx, maxIdx, onSave, onClos
 
           {/* Quinzena em que será descontado */}
           <div>
-            <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>Descontar na quinzena</label>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Descontar na quinzena</label>
             <select className="input-field" value={form.idx}
               onChange={e => setForm(f => ({...f, idx: e.target.value}))}>
               {idxOptions.map(i => {
@@ -1215,7 +1215,7 @@ function LancarAdiantamentoModal({ employees, defaultIdx, maxIdx, onSave, onClos
                 return <option key={i} value={i}>{b.label} · {b.monthLabel} (pagamento em {fmtBR(b.payDate)})</option>;
               })}
             </select>
-            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '6px' }}>
+            <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '6px' }}>
               {selQ.label} · {selQ.monthLabel} — esse valor será descontado do total a pagar dessa quinzena.
             </p>
           </div>
@@ -1223,17 +1223,17 @@ function LancarAdiantamentoModal({ employees, defaultIdx, maxIdx, onSave, onClos
           {/* Ações */}
           <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
             <button onClick={onClose}
-              style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>
+              style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>
               Cancelar
             </button>
             <button onClick={handleSave} disabled={!canSave}
               style={{
                 flex: 2, padding: '12px', borderRadius: '12px', border: 'none',
                 cursor: canSave ? 'pointer' : 'not-allowed',
-                background: canSave ? '#E11D48' : '#E2E8F0',
-                color: canSave ? 'white' : '#94A3B8',
+                background: canSave ? '#4A4A4A' : '#E4E4E4',
+                color: canSave ? 'white' : '#9A9A9A',
                 fontSize: '13px', fontWeight: 700,
-                boxShadow: canSave ? '0 2px 10px rgba(225,29,72,0.3)' : 'none',
+                boxShadow: canSave ? '0 2px 10px rgba(74, 74, 74,0.3)' : 'none',
               }}>
               {saving ? 'Salvando...' : 'Lançar Adiantamento'}
             </button>
@@ -1260,53 +1260,53 @@ function AdiantamentoDetalheModal({ empName, itens, onDelete, onClose }) {
 
   return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(11, 11, 11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '420px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
 
         {/* Header */}
         <div style={{ padding: '22px 24px 18px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <button onClick={onClose}
-            style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={15} />
           </button>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Adiantamentos</p>
-          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>{empName}</p>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Adiantamentos</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1.2 }}>{empName}</p>
         </div>
 
         {/* Corpo */}
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {itens.length === 0 ? (
-            <p style={{ fontSize: '13px', color: '#94A3B8', textAlign: 'center', padding: '16px 0' }}>Nenhum adiantamento lançado.</p>
+            <p style={{ fontSize: '13px', color: '#9A9A9A', textAlign: 'center', padding: '16px 0' }}>Nenhum adiantamento lançado.</p>
           ) : (
             <>
               {itens.map(a => (
-                <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '12px 14px', borderRadius: '12px', background: '#FFF1F2', border: '1px solid #FECDD3' }}>
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '12px 14px', borderRadius: '12px', background: '#F5F5F5', border: '1px solid #E6E6E6' }}>
                   <div>
-                    <p style={{ fontSize: '15px', fontWeight: 800, color: '#E11D48' }}>{fmtCurrency(a.valor)}</p>
-                    <p style={{ fontSize: '11px', color: '#FB7185', marginTop: '2px' }}>Adiantado em {fmtBR(a.data)}</p>
+                    <p style={{ fontSize: '15px', fontWeight: 800, color: '#4A4A4A' }}>{fmtCurrency(a.valor)}</p>
+                    <p style={{ fontSize: '11px', color: '#4A4A4A', marginTop: '2px' }}>Adiantado em {fmtBR(a.data)}</p>
                   </div>
                   {confirmId === a.id ? (
                     <button onClick={() => { setConfirmId(null); onDelete(a.id); }}
-                      style={{ padding: '7px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#E11D48', color: '#fff', fontSize: '11px', fontWeight: 700 }}>
+                      style={{ padding: '7px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#4A4A4A', color: '#fff', fontSize: '11px', fontWeight: 700 }}>
                       Excluir?
                     </button>
                   ) : (
                     <button onClick={() => setConfirmId(a.id)} title="Excluir adiantamento"
-                      style={{ width: '30px', height: '30px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#fff', color: '#E11D48', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      style={{ width: '30px', height: '30px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#fff', color: '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Trash2 size={14} />
                     </button>
                   )}
                 </div>
               ))}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total adiantado</span>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: '#E11D48' }}>{fmtCurrency(total)}</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: '12px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total adiantado</span>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#4A4A4A' }}>{fmtCurrency(total)}</span>
               </div>
             </>
           )}
 
           <button onClick={onClose}
-            style={{ padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#64748B', fontSize: '13px', fontWeight: 600 }}>
+            style={{ padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>
             Fechar
           </button>
         </div>
@@ -1428,12 +1428,12 @@ function TabFolhaPagamento({ employees }) {
   const isPaid     = q.payDate < TODAY_ISO;
 
   const Card = ({ label, value, color, bg, icon: Icon }) => (
-    <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(15,23,42,0.06)', boxShadow: '0 1px 3px rgba(15,23,42,0.05)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(11, 11, 11,0.06)', boxShadow: '0 1px 3px rgba(11, 11, 11,0.05)', display: 'flex', alignItems: 'center', gap: '12px' }}>
       <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Icon size={18} style={{ color }} />
       </div>
       <div>
-        <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</p>
+        <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</p>
         <p style={{ fontSize: '17px', fontWeight: 800, color }}>{value}</p>
       </div>
     </div>
@@ -1442,10 +1442,10 @@ function TabFolhaPagamento({ employees }) {
   return (
     <div className="space-y-4">
       {/* Seletor de quinzena */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', background: '#fff', borderRadius: '14px', padding: '12px 16px', border: '1px solid rgba(15,23,42,0.06)', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', background: '#fff', borderRadius: '14px', padding: '12px 16px', border: '1px solid rgba(11, 11, 11,0.06)', boxShadow: '0 1px 3px rgba(11, 11, 11,0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button onClick={() => setQi(v => v - 1)}
-            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#F7F7F7', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', color: '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ChevronLeft size={13} />
           </button>
           <div style={{ textAlign: 'center', minWidth: '230px' }}>
@@ -1453,19 +1453,19 @@ function TabFolhaPagamento({ employees }) {
             <p style={{ fontSize: '11px', ...TM }}>{q.monthLabel}</p>
           </div>
           <button onClick={() => setQi(v => Math.min(v + 1, curIdx))} disabled={qi >= curIdx}
-            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid rgba(15,23,42,0.08)', cursor: qi >= curIdx ? 'not-allowed' : 'pointer', color: qi >= curIdx ? '#CBD5E1' : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: qi >= curIdx ? 0.5 : 1 }}>
+            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#F7F7F7', border: '1px solid rgba(11, 11, 11,0.08)', cursor: qi >= curIdx ? 'not-allowed' : 'pointer', color: qi >= curIdx ? '#C8C8C8' : '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: qi >= curIdx ? 0.5 : 1 }}>
             <ChevronRight size={13} />
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 13px', borderRadius: '10px', background: isPaid ? '#F0FDF4' : '#FFF7ED', border: `1px solid ${isPaid ? '#BBF7D0' : '#FED7AA'}` }}>
-            <CalendarDays size={14} style={{ color: isPaid ? '#059669' : '#D97706' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: isPaid ? '#059669' : '#D97706' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 13px', borderRadius: '10px', background: isPaid ? '#F5F5F5' : '#F7F7F7', border: `1px solid ${isPaid ? '#E6E6E6' : '#FFD9CC'}` }}>
+            <CalendarDays size={14} style={{ color: isPaid ? '#0B0B0B' : '#6B6B6B' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: isPaid ? '#0B0B0B' : '#6B6B6B' }}>
               {isPaid ? 'Pago em' : 'Pagamento em'} {payLabel}
             </span>
           </div>
           <button onClick={() => setShowLancarModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#E11D48', color: '#fff', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(225,29,72,0.3)' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#4A4A4A', color: '#fff', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(74, 74, 74,0.3)' }}>
             <HandCoins size={14} />
             Lançar Adiantamento
           </button>
@@ -1473,38 +1473,38 @@ function TabFolhaPagamento({ employees }) {
       </div>
 
       {loading ? (
-        <div style={{ padding: '60px', textAlign: 'center', fontSize: '13px', color: '#94A3B8' }}>
+        <div style={{ padding: '60px', textAlign: 'center', fontSize: '13px', color: '#9A9A9A' }}>
           Carregando folha...
         </div>
       ) : (
         <>
           {/* KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-            <Card label="Total a Pagar" value={fmtCurrency(totalAPagar)} color="#0F172A" bg="#F1F5F9" icon={Wallet} />
-            <Card label="Diárias" value={fmtCurrency(totalDiar)} color="#2563EB" bg="#EFF6FF" icon={DollarSign} />
-            <Card label="Horas Extras" value={fmtCurrency(totalHE)} color="#D97706" bg="#FFFBEB" icon={Clock} />
-            <Card label="Adiantamentos" value={fmtCurrency(totalAdiant)} color="#E11D48" bg="#FFF1F2" icon={HandCoins} />
-            <Card label="Ajudantes na Quinzena" value={String(linhas.length)} color="#FF4D0C" bg="#FFF2EE" icon={Users} />
+            <Card label="Total a Pagar" value={fmtCurrency(totalAPagar)} color="#0B0B0B" bg="#F5F5F5" icon={Wallet} />
+            <Card label="Diárias" value={fmtCurrency(totalDiar)} color="#4A4A4A" bg="#F5F5F5" icon={DollarSign} />
+            <Card label="Horas Extras" value={fmtCurrency(totalHE)} color="#6B6B6B" bg="#F7F7F7" icon={Clock} />
+            <Card label="Adiantamentos" value={fmtCurrency(totalAdiant)} color="#4A4A4A" bg="#F5F5F5" icon={HandCoins} />
+            <Card label="Ajudantes na Quinzena" value={String(linhas.length)} color="#FF4D0C" bg="#FFF7F4" icon={Users} />
           </div>
 
           {/* Lista de ajudantes */}
-          <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid rgba(15,23,42,0.06)', boxShadow: '0 1px 3px rgba(15,23,42,0.05)', overflow: 'hidden' }}>
-            <div style={{ padding: '14px 16px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-              <p style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
+          <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid rgba(11, 11, 11,0.06)', boxShadow: '0 1px 3px rgba(11, 11, 11,0.05)', overflow: 'hidden' }}>
+            <div style={{ padding: '14px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
                 Pagamentos por Ajudante — {q.label}
               </p>
             </div>
             {linhas.length === 0 ? (
               <div style={{ padding: '50px', textAlign: 'center' }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Nenhum trabalho registrado nesta quinzena</p>
-                <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>Os pagamentos aparecem conforme os registros de ponto.</p>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#6B6B6B' }}>Nenhum trabalho registrado nesta quinzena</p>
+                <p style={{ fontSize: '12px', color: '#9A9A9A', marginTop: '4px' }}>Os pagamentos aparecem conforme os registros de ponto.</p>
               </div>
             ) : (
               <>
                 {/* Header */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr 0.55fr', gap: '8px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#FCFDFE' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr 0.55fr', gap: '8px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA' }}>
                   {['Ajudante', 'Diárias', 'Horas Extra', 'Diárias (R$)', 'H. Extras (R$)', 'Adiantamento', 'A Pagar', 'Pago'].map(h => (
-                    <span key={h} style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
+                    <span key={h} style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
                   ))}
                 </div>
                 {linhas.map(l => {
@@ -1513,9 +1513,9 @@ function TabFolhaPagamento({ employees }) {
                     ? (() => { const d = new Date(registroPago.pagoEm); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; })()
                     : null;
                   return (
-                    <div key={l.emp.id} style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr 0.55fr', gap: '8px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)', background: registroPago ? '#F0FDF4' : 'transparent' }}>
+                    <div key={l.emp.id} style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr 0.55fr', gap: '8px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)', background: registroPago ? '#F5F5F5' : 'transparent' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                      <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: l.emp.color || '#FF4D0C', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
+                      <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: l.emp.color || '#0B0B0B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
                         {l.emp.initials || l.emp.name?.split(' ').map(p => p[0]).slice(0, 2).join('')}
                       </div>
                       <div style={{ minWidth: 0 }}>
@@ -1523,34 +1523,34 @@ function TabFolhaPagamento({ employees }) {
                         <p style={{ fontSize: '11px', ...TM }}>Diária {fmtCurrency(Number(l.emp.dailyRate || 0))} · HE {fmtCurrency(Number(l.emp.overtimeRate || 0))}/h</p>
                       </div>
                     </div>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>{l.dias} {l.dias === 1 ? 'dia' : 'dias'}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A' }}>{l.dias} {l.dias === 1 ? 'dia' : 'dias'}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A' }}>
                       {Math.floor(l.heMin / 60)}h{String(l.heMin % 60).padStart(2, '0')}
                     </span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#2563EB' }}>{fmtCurrency(l.diarias)}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#D97706' }}>{fmtCurrency(l.he)}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A' }}>{fmtCurrency(l.diarias)}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#6B6B6B' }}>{fmtCurrency(l.he)}</span>
                     <div>
                       {l.adiantado > 0 ? (
                         <button onClick={() => setDetalheEmp(l.emp.id)} title="Ver detalhes dos adiantamentos"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 9px', borderRadius: '8px', background: '#FFF1F2', border: '1px dashed #FECDD3', cursor: 'pointer', fontSize: '12px', fontWeight: 800, color: '#E11D48' }}>
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 9px', borderRadius: '8px', background: '#F5F5F5', border: '1px dashed #E6E6E6', cursor: 'pointer', fontSize: '12px', fontWeight: 800, color: '#4A4A4A' }}>
                           −{fmtCurrency(l.adiantado)}
                         </button>
                       ) : (
-                        <span style={{ fontSize: '12px', color: '#CBD5E1' }}>—</span>
+                        <span style={{ fontSize: '12px', color: '#C8C8C8' }}>—</span>
                       )}
                     </div>
                     <div>
-                      <p style={{ fontSize: '14px', fontWeight: 800, color: l.aPagar < 0 ? '#E11D48' : registroPago ? '#94A3B8' : '#059669' }}>{fmtCurrency(l.aPagar)}</p>
+                      <p style={{ fontSize: '14px', fontWeight: 800, color: l.aPagar < 0 ? '#4A4A4A' : registroPago ? '#9A9A9A' : '#0B0B0B' }}>{fmtCurrency(l.aPagar)}</p>
                       {registroPago ? (
-                        <p style={{ fontSize: '10px', fontWeight: 700, color: '#059669' }}>Pago {fmtDataPago}</p>
+                        <p style={{ fontSize: '10px', fontWeight: 700, color: '#0B0B0B' }}>Pago {fmtDataPago}</p>
                       ) : l.adiantado > 0 ? (
-                        <p style={{ fontSize: '10px', color: '#94A3B8', textDecoration: 'line-through' }}>Bruto {fmtCurrency(l.total)}</p>
+                        <p style={{ fontSize: '10px', color: '#9A9A9A', textDecoration: 'line-through' }}>Bruto {fmtCurrency(l.total)}</p>
                       ) : null}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                       <button onClick={() => handleTogglePago(l.emp.id)}
                         title={registroPago ? `Pago em ${fmtDataPago} — clique para desfazer` : 'Marcar como pago'}
-                        style={{ width: '27px', height: '27px', borderRadius: '9px', border: registroPago ? 'none' : '1.5px solid #CBD5E1', background: registroPago ? '#059669' : '#fff', color: registroPago ? '#fff' : '#CBD5E1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: registroPago ? '0 2px 6px rgba(5,150,105,0.35)' : 'none', transition: 'all 0.15s' }}>
+                        style={{ width: '27px', height: '27px', borderRadius: '9px', border: registroPago ? 'none' : '1.5px solid #C8C8C8', background: registroPago ? '#0B0B0B' : '#fff', color: registroPago ? '#fff' : '#C8C8C8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: registroPago ? '0 2px 6px rgba(11, 11, 11,0.35)' : 'none', transition: 'all 0.15s' }}>
                         <Check size={15} strokeWidth={3.5} />
                       </button>
                     </div>
@@ -1558,14 +1558,14 @@ function TabFolhaPagamento({ employees }) {
                   );
                 })}
                 {/* Total */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr 0.55fr', gap: '8px', alignItems: 'center', padding: '14px 16px', background: '#F8FAFC' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr 0.55fr', gap: '8px', alignItems: 'center', padding: '14px 16px', background: '#F7F7F7' }}>
                   <span style={{ fontSize: '13px', fontWeight: 800, ...T }}>TOTAL</span>
                   <span />
                   <span />
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#2563EB' }}>{fmtCurrency(totalDiar)}</span>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#D97706' }}>{fmtCurrency(totalHE)}</span>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#E11D48' }}>−{fmtCurrency(totalAdiant)}</span>
-                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#059669' }}>{fmtCurrency(totalAPagar)}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#4A4A4A' }}>{fmtCurrency(totalDiar)}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#6B6B6B' }}>{fmtCurrency(totalHE)}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#4A4A4A' }}>−{fmtCurrency(totalAdiant)}</span>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#0B0B0B' }}>{fmtCurrency(totalAPagar)}</span>
                   <span />
                 </div>
               </>
@@ -1648,7 +1648,7 @@ export default function AdminFinanceiro() {
 
       {/* Content */}
       {loading ? (
-        <div style={{ padding: '60px', textAlign: 'center', fontSize: '13px', color: '#94A3B8' }}>
+        <div style={{ padding: '60px', textAlign: 'center', fontSize: '13px', color: '#9A9A9A' }}>
           Carregando dados...
         </div>
       ) : (

@@ -3,9 +3,9 @@ import { fetchSolicitacoesAjudantes, updateStatusSolicitacao } from '../../lib/d
 import { Users, MapPin, Briefcase, Hash, Clock, CheckCircle2, RefreshCw } from 'lucide-react';
 
 const STATUS_CFG = {
-  pendente:     { label: 'Pendente',      color: '#D97706', bg: '#FEF3C7' },
-  em_andamento: { label: 'Em andamento',  color: '#2563EB', bg: '#DBEAFE' },
-  concluido:    { label: 'Concluído',     color: '#059669', bg: '#DCFCE7' },
+  pendente:     { label: 'Pendente',      color: '#6B6B6B', bg: '#F7F7F7' },
+  em_andamento: { label: 'Em andamento',  color: '#4A4A4A', bg: '#F5F5F5' },
+  concluido:    { label: 'Concluído',     color: '#0B0B0B', bg: '#F5F5F5' },
 };
 
 function fmtDateTime(iso) {
@@ -41,34 +41,34 @@ export default function AdminSolicitacoes() {
   return (
     <div className="space-y-6">
       <div className="animate-fade-up">
-        <h1 className="text-xl font-bold" style={{ color: '#0F172A' }}>Solicitações de Ajudantes</h1>
-        <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>Pedidos de ajudantes recebidos das empresas</p>
+        <h1 className="text-xl font-bold" style={{ color: '#0B0B0B' }}>Solicitações de Ajudantes</h1>
+        <p className="text-xs mt-0.5" style={{ color: '#9A9A9A' }}>Pedidos de ajudantes recebidos das empresas</p>
       </div>
 
       {/* KPIs */}
       <div className="animate-fade-up delay-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
         {[
-          { key: 'pendente',     label: 'Pendentes',     color: '#D97706', Icon: Clock },
-          { key: 'em_andamento', label: 'Em andamento',  color: '#2563EB', Icon: RefreshCw },
-          { key: 'concluido',    label: 'Concluídos',    color: '#059669', Icon: CheckCircle2 },
+          { key: 'pendente',     label: 'Pendentes',     color: '#6B6B6B', Icon: Clock },
+          { key: 'em_andamento', label: 'Em andamento',  color: '#4A4A4A', Icon: RefreshCw },
+          { key: 'concluido',    label: 'Concluídos',    color: '#0B0B0B', Icon: CheckCircle2 },
         ].map(k => (
           <div key={k.key} className="stat-card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '38px', height: '38px', borderRadius: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${k.color}14`, border: `1px solid ${k.color}26` }}>
               <k.Icon size={17} style={{ color: k.color }} />
             </div>
             <div>
-              <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', marginBottom: '2px' }}>{k.label}</p>
-              <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{counts[k.key]}</p>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#9A9A9A', marginBottom: '2px' }}>{k.label}</p>
+              <p style={{ fontSize: '24px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{counts[k.key]}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Filtros */}
-      <div className="animate-fade-up delay-2" style={{ display: 'flex', gap: '4px', padding: '4px', borderRadius: '12px', background: '#fff', border: '1px solid rgba(15,23,42,0.08)', width: 'fit-content', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
+      <div className="animate-fade-up delay-2" style={{ display: 'flex', gap: '4px', padding: '4px', borderRadius: '12px', background: '#fff', border: '1px solid rgba(11, 11, 11,0.08)', width: 'fit-content', boxShadow: '0 1px 3px rgba(11, 11, 11,0.05)' }}>
         {[['todos','Todos'], ['pendente','Pendentes'], ['em_andamento','Em andamento'], ['concluido','Concluídos']].map(([val, lbl]) => (
           <button key={val} onClick={() => setFiltro(val)}
-            style={{ padding: '6px 16px', borderRadius: '9px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, background: filtro === val ? 'linear-gradient(180deg,#FF5A1F,#FF4D0C)' : 'transparent', color: filtro === val ? '#fff' : '#64748B', boxShadow: filtro === val ? '0 4px 12px -4px rgba(255,77,12,0.5)' : 'none', transition: 'all 0.15s' }}>
+            style={{ padding: '6px 16px', borderRadius: '9px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, background: filtro === val ? '#0B0B0B' : 'transparent', color: filtro === val ? '#fff' : '#6B6B6B', boxShadow: 'none', transition: 'all 0.15s' }}>
             {lbl}
           </button>
         ))}
@@ -76,12 +76,12 @@ export default function AdminSolicitacoes() {
 
       {loading ? (
         <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-          <p style={{ color: '#94A3B8', fontSize: '13px' }}>Carregando...</p>
+          <p style={{ color: '#9A9A9A', fontSize: '13px' }}>Carregando...</p>
         </div>
       ) : filtradas.length === 0 ? (
         <div className="card" style={{ padding: '64px', textAlign: 'center' }}>
-          <Users size={32} style={{ color: '#CBD5E1', margin: '0 auto 12px' }} />
-          <p style={{ color: '#94A3B8', fontSize: '14px' }}>Nenhuma solicitação</p>
+          <Users size={32} style={{ color: '#C8C8C8', margin: '0 auto 12px' }} />
+          <p style={{ color: '#9A9A9A', fontSize: '14px' }}>Nenhuma solicitação</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -93,13 +93,13 @@ export default function AdminSolicitacoes() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '8px', background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
-                      <span style={{ fontSize: '12px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '12px', color: '#9A9A9A', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Clock size={11} /> {fmtDateTime(sol.criadoEm)}
                       </span>
                     </div>
                     {sol.empresaNome && (
-                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>
-                        Empresa: <span style={{ color: '#0F172A' }}>{sol.empresaNome}</span>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#6B6B6B' }}>
+                        Empresa: <span style={{ color: '#0B0B0B' }}>{sol.empresaNome}</span>
                       </p>
                     )}
                   </div>
@@ -111,17 +111,17 @@ export default function AdminSolicitacoes() {
                     { icon: Briefcase, label: 'Função',    value: sol.funcao },
                     { icon: Hash,      label: 'Quantidade', value: sol.quantidade, big: true },
                   ].map(({ icon: Icon, label, value, big }) => (
-                    <div key={label} style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div key={label} style={{ padding: '10px 12px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.07)' }}>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Icon size={10} /> {label}
                       </p>
-                      <p style={{ fontSize: big ? '24px' : '14px', fontWeight: 700, color: big ? '#FF4D0C' : '#0F172A', lineHeight: 1 }}>{value}</p>
+                      <p style={{ fontSize: big ? '24px' : '14px', fontWeight: 700, color: big ? '#FF4D0C' : '#0B0B0B', lineHeight: 1 }}>{value}</p>
                     </div>
                   ))}
                 </div>
 
                 {sol.observacoes && (
-                  <p style={{ fontSize: '13px', color: '#475569', fontStyle: 'italic', marginBottom: '14px', padding: '10px 12px', borderRadius: '10px', background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                  <p style={{ fontSize: '13px', color: '#4A4A4A', fontStyle: 'italic', marginBottom: '14px', padding: '10px 12px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid #E6E6E6' }}>
                     "{sol.observacoes}"
                   </p>
                 )}
@@ -130,13 +130,13 @@ export default function AdminSolicitacoes() {
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {sol.status === 'pendente' && (
                       <button onClick={() => handleStatus(sol.id, 'em_andamento')}
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '9px', background: '#DBEAFE', color: '#2563EB', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '9px', background: '#F5F5F5', color: '#4A4A4A', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>
                         <RefreshCw size={13} /> Iniciar recrutamento
                       </button>
                     )}
                     {sol.status === 'em_andamento' && (
                       <button onClick={() => handleStatus(sol.id, 'concluido')}
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '9px', background: '#DCFCE7', color: '#059669', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '9px', background: '#F5F5F5', color: '#0B0B0B', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>
                         <CheckCircle2 size={13} /> Marcar como concluído
                       </button>
                     )}

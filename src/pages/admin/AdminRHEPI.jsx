@@ -35,18 +35,18 @@ export default function AdminRHEPI() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A' }}>Controle de EPI</h1>
-        <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0B0B0B' }}>Controle de EPI</h1>
+        <p style={{ fontSize: '13px', color: '#6B6B6B', marginTop: '2px' }}>
           Equipamentos de Proteção Individual por ajudante
         </p>
       </div>
 
       {loading ? (
-        <div className="card" style={{ padding: '40px', textAlign: 'center' }}><p style={{ color: '#94A3B8' }}>Carregando...</p></div>
+        <div className="card" style={{ padding: '40px', textAlign: 'center' }}><p style={{ color: '#9A9A9A' }}>Carregando...</p></div>
       ) : employees.length === 0 ? (
         <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-          <Shield size={32} style={{ color: '#CBD5E1', margin: '0 auto 12px' }} />
-          <p style={{ color: '#94A3B8', fontSize: '14px' }}>Nenhum ajudante ativo</p>
+          <Shield size={32} style={{ color: '#C8C8C8', margin: '0 auto 12px' }} />
+          <p style={{ color: '#9A9A9A', fontSize: '14px' }}>Nenhum ajudante ativo</p>
         </div>
       ) : (
         <div className="card overflow-hidden">
@@ -54,9 +54,9 @@ export default function AdminRHEPI() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
-                  <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>Ajudante</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase' }}>Ajudante</th>
                   {EPI_ITEMS.map(e => (
-                    <th key={e.key} style={{ padding: '10px 12px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{e.label}</th>
+                    <th key={e.key} style={{ padding: '10px 12px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{e.label}</th>
                   ))}
                 </tr>
               </thead>
@@ -67,10 +67,10 @@ export default function AdminRHEPI() {
                     <tr key={emp.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: emp.color || '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                             {emp.initials}
                           </div>
-                          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp.name}</p>
+                          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0B0B0B' }}>{emp.name}</p>
                         </div>
                       </td>
                       {EPI_ITEMS.map(item => (
@@ -79,13 +79,13 @@ export default function AdminRHEPI() {
                             onClick={() => toggleEpi(emp.id, item.key)}
                             style={{
                               width: '28px', height: '28px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                              background: epis[item.key] ? '#DCFCE7' : '#F1F5F9',
+                              background: epis[item.key] ? '#F5F5F5' : '#F5F5F5',
                               display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto',
                               transition: 'all 0.15s',
                             }}>
                             {epis[item.key]
-                              ? <Check size={14} style={{ color: '#059669' }} />
-                              : <span style={{ fontSize: '10px', color: '#94A3B8' }}>—</span>
+                              ? <Check size={14} style={{ color: '#0B0B0B' }} />
+                              : <span style={{ fontSize: '10px', color: '#9A9A9A' }}>—</span>
                             }
                           </button>
                         </td>

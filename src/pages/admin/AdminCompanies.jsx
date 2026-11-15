@@ -4,9 +4,9 @@ import { fmtCurrency } from '../../data/mockData';
 import { createCompany, updateCompany, deleteCompany } from '../../lib/db';
 import { Plus, Edit2, Trash2, X, Building2, Search, Phone, Mail } from 'lucide-react';
 const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', dailyRate: 150, valorDescarga: 0, prazoPagamento: 5 };
-const T  = { color: '#0F172A' };
-const T2 = { color: '#475569' };
-const TM = { color: '#94A3B8' };
+const T  = { color: '#0B0B0B' };
+const T2 = { color: '#4A4A4A' };
+const TM = { color: '#9A9A9A' };
 
 function Modal({ company, onSave, onClose }) {
   const [form, setForm] = useState(company ? { ...company } : { ...EMPTY });
@@ -17,7 +17,7 @@ function Modal({ company, onSave, onClose }) {
 
   const field = (key, label, opts = {}) => (
     <div key={key} className={opts.col === 2 ? 'col-span-2' : ''}>
-      <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
+      <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>{label}</label>
       <input
         type={opts.type || 'text'}
         placeholder={opts.placeholder}
@@ -35,7 +35,7 @@ function Modal({ company, onSave, onClose }) {
       <div className="modal-box animate-fade-up">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-base font-bold" style={T}>{company ? 'Editar Empresa' : 'Nova Empresa'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg transition-colors" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
+          <button onClick={onClose} className="p-1.5 rounded-lg transition-colors" style={{ color: '#9A9A9A', background: '#F5F5F5' }}>
             <X size={15} />
           </button>
         </div>
@@ -52,40 +52,40 @@ function Modal({ company, onSave, onClose }) {
             {/* Linha 4: Senha | Diária */}
             {field('password', company ? 'Nova senha (opcional)' : 'Senha de acesso', { type: 'password' })}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Diária (R$)</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Diária (R$)</label>
               <input type="number" required value={form.dailyRate ?? 150}
                 onChange={e => setForm({ ...form, dailyRate: e.target.value })} className="input-field" />
             </div>
             {/* Linha 4b: Prazo de Pagamento (full) */}
             <div className="col-span-2">
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Prazo de Pagamento (dias após o fechamento)</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Prazo de Pagamento (dias após o fechamento)</label>
               <input type="number" min="0" step="1" required value={form.prazoPagamento ?? 5}
                 onChange={e => setForm({ ...form, prazoPagamento: e.target.value })} className="input-field" />
-              <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>
+              <p className="text-xs mt-1" style={{ color: '#9A9A9A' }}>
                 Data de pagamento dos valores fechados = último dia da quinzena + prazo.
                 Ex.: 10 dias → 1ª quinzena (fecha 15/08) vence 25/08; 2ª quinzena (fecha 31/08) vence 10/09.
               </p>
             </div>
             {/* Linha 5: Valor Descarga (full) */}
             <div className="col-span-2">
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>Valor por Descarga (R$)</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Valor por Descarga (R$)</label>
               <input type="number" min="0" step="0.01" value={form.valorDescarga ?? 0}
                 onChange={e => setForm({ ...form, valorDescarga: e.target.value })} className="input-field"
                 placeholder="0.00" />
-              <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>Valor cobrado por carreta descarregada. Usado no cálculo de serviços de carga e descarga.</p>
+              <p className="text-xs mt-1" style={{ color: '#9A9A9A' }}>Valor cobrado por carreta descarregada. Usado no cálculo de serviços de carga e descarga.</p>
             </div>
             {/* Linha 5: Endereço (full) */}
             {field('address',  'Endereço completo', { col: 2 })}
             {field('location', 'Link de localização (Google Maps)', { col: 2, placeholder: 'https://maps.google.com/...' })}
             {/* Linha 6: HE calculadas (full) */}
             <div className="col-span-2 flex gap-3">
-              <div className="flex-1 rounded-xl px-4 py-2.5" style={{ background: '#FFF2EE', border: '1px solid rgba(255,77,12,0.15)' }}>
-                <p className="text-xs font-semibold" style={{ color: '#94A3B8', marginBottom: '2px' }}>Hora extra 50%</p>
+              <div className="flex-1 rounded-xl px-4 py-2.5" style={{ background: '#FFF7F4', border: '1px solid rgba(255,77,12,0.15)' }}>
+                <p className="text-xs font-semibold" style={{ color: '#9A9A9A', marginBottom: '2px' }}>Hora extra 50%</p>
                 <p className="text-sm font-bold" style={{ color: '#FF4D0C' }}>R$ {he50}/h</p>
               </div>
-              <div className="flex-1 rounded-xl px-4 py-2.5" style={{ background: '#F5F3FF', border: '1px solid rgba(124,58,237,0.15)' }}>
-                <p className="text-xs font-semibold" style={{ color: '#94A3B8', marginBottom: '2px' }}>Hora extra 100%</p>
-                <p className="text-sm font-bold" style={{ color: '#7C3AED' }}>R$ {he100}/h</p>
+              <div className="flex-1 rounded-xl px-4 py-2.5" style={{ background: '#F5F5F5', border: '1px solid rgba(74, 74, 74,0.15)' }}>
+                <p className="text-xs font-semibold" style={{ color: '#9A9A9A', marginBottom: '2px' }}>Hora extra 100%</p>
+                <p className="text-sm font-bold" style={{ color: '#4A4A4A' }}>R$ {he100}/h</p>
               </div>
             </div>
           </div>
@@ -139,19 +139,19 @@ export default function AdminCompanies() {
       </div>
 
       <div className="relative animate-fade-up delay-1">
-        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }} />
+        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#9A9A9A' }} />
         <input className="input-field pl-9" placeholder="Buscar por nome, CNPJ ou responsável..."
           value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       <div className="card overflow-hidden animate-fade-up delay-2">
         <div className="px-5 py-3 grid text-xs font-semibold"
-          style={{ gridTemplateColumns: '1fr auto auto auto auto auto', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
+          style={{ gridTemplateColumns: '1fr auto auto auto auto auto', color: '#9A9A9A', borderBottom: '1px solid rgba(0,0,0,0.05)', gap: '16px' }}>
           <span>Empresa</span><span>Diária</span><span>Val. Descarga</span><span>HE 50%</span><span>Prazo</span><span>Ações</span>
         </div>
         {filtered.length === 0 ? (
           <div className="py-14 text-center">
-            <Building2 size={32} className="mx-auto mb-3" style={{ color: '#CBD5E1' }} />
+            <Building2 size={32} className="mx-auto mb-3" style={{ color: '#C8C8C8' }} />
             <p className="text-sm" style={TM}>Nenhuma empresa encontrada</p>
           </div>
         ) : (
@@ -161,7 +161,7 @@ export default function AdminCompanies() {
               <div key={c.id} className="table-row" style={{ gridTemplateColumns: '1fr auto auto auto auto auto', gap: '16px' }}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="avatar flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg,#FF4D0C,#E03A00)', width: '36px', height: '36px', borderRadius: '10px', fontSize: '11px' }}>
+                    style={{ background: '#0B0B0B', width: '36px', height: '36px', borderRadius: '10px', fontSize: '11px' }}>
                     {c.name.slice(0,2).toUpperCase()}
                   </div>
                   <div className="min-w-0">
@@ -173,18 +173,18 @@ export default function AdminCompanies() {
                   </div>
                 </div>
                 <span className="text-xs font-semibold" style={{ color: '#FF4D0C' }}>R$ {c.dailyRate ?? 150}</span>
-                <span className="text-xs font-semibold" style={{ color: '#059669' }}>R$ {Number(c.valorDescarga ?? 0).toFixed(2)}</span>
-                <span className="text-xs font-semibold" style={{ color: '#7C3AED' }}>
+                <span className="text-xs font-semibold" style={{ color: '#0B0B0B' }}>R$ {Number(c.valorDescarga ?? 0).toFixed(2)}</span>
+                <span className="text-xs font-semibold" style={{ color: '#4A4A4A' }}>
                   R$ {((Number(c.dailyRate ?? 150) / 8) * 1.5).toFixed(2)}/h
                 </span>
-                <span className="text-xs font-semibold" style={{ color: '#0F172A' }}>
+                <span className="text-xs font-semibold" style={{ color: '#0B0B0B' }}>
                   {Number(c.prazoPagamento ?? 5)} {Number(c.prazoPagamento ?? 5) === 1 ? 'dia' : 'dias'}
                 </span>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setModal(c)} className="p-1.5 rounded-lg transition-colors"
-                    style={{ color: '#94A3B8', background: '#F1F5F9' }}><Edit2 size={13}/></button>
+                    style={{ color: '#9A9A9A', background: '#F5F5F5' }}><Edit2 size={13}/></button>
                   <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 rounded-lg transition-colors"
-                    style={{ color: '#94A3B8', background: '#F1F5F9' }}><Trash2 size={13}/></button>
+                    style={{ color: '#9A9A9A', background: '#F5F5F5' }}><Trash2 size={13}/></button>
                 </div>
               </div>
             );

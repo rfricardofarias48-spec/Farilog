@@ -18,11 +18,11 @@ export default function CompanyLayout() {
   const [tab, setTab] = useState('panel');
 
   return (
-    <div className="min-h-screen flex" style={{ background: '#EEF1F5' }}>
+    <div className="min-h-screen flex" style={{ background: '#F5F5F5' }}>
       {/* Sidebar — dark */}
       <aside
         className={`hidden md:flex flex-col fixed left-0 top-0 h-full z-50 transition-all duration-300 ${open ? 'w-56' : 'w-16'}`}
-        style={{ background: 'linear-gradient(180deg, #0D1626 0%, #060F1E 100%)', borderRight: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: '#0B0B0B', borderRight: '1px solid rgba(255,255,255,0.06)' }}
       >
         {/* Logo + toggle */}
         <div className="flex items-center justify-center overflow-hidden" style={{ position: 'relative', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px' }}>
@@ -36,9 +36,9 @@ export default function CompanyLayout() {
             style={{
               position: 'absolute', top: '10px', right: '-10px', zIndex: 60,
               width: '20px', height: '20px', borderRadius: '50%',
-              background: '#1E293B', border: '1.5px solid #374151',
+              background: '#1C1C1C', border: '1.5px solid #333333',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', color: '#9CA3AF',
+              cursor: 'pointer', color: '#9A9A9A',
             }}
           >
             {open ? <ChevronLeft size={11} /> : <ChevronRight size={11} />}
@@ -47,7 +47,7 @@ export default function CompanyLayout() {
 
         {/* Menu label */}
         {open && (
-          <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.12em', color: '#4B5B71', textTransform: 'uppercase', padding: '20px 16px 8px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.12em', color: '#6B6B6B', textTransform: 'uppercase', padding: '20px 16px 8px' }}>
             Menu
           </p>
         )}
@@ -70,14 +70,14 @@ export default function CompanyLayout() {
         <div className="p-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           {open && (
             <div className="px-3 py-2 mb-1">
-              <p className="text-xs font-semibold truncate" style={{ color: '#F1F5F9' }}>{user?.name}</p>
-              <p className="text-xs" style={{ color: '#64748B' }}>Empresa</p>
+              <p className="text-xs font-semibold truncate" style={{ color: '#F5F5F5' }}>{user?.name}</p>
+              <p className="text-xs" style={{ color: '#6B6B6B' }}>Empresa</p>
             </div>
           )}
           <button
             onClick={() => { logout(); navigate('/'); }}
-            className={`tab-btn hover:text-red-400 ${!open ? 'justify-center px-0' : ''}`}
-            style={{ color: '#4B5563', background: 'none' }}
+            className={`tab-btn hover:text-white ${!open ? 'justify-center px-0' : ''}`}
+            style={{ color: '#4A4A4A', background: 'none' }}
           >
             <LogOut size={17} className="flex-shrink-0" />
             {open && <span>Sair</span>}

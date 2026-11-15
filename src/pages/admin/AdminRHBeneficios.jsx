@@ -32,13 +32,13 @@ function EditableValue({ value, onSave }) {
   if (editing) return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
       <input type="number" value={val} onChange={e => setVal(e.target.value)} autoFocus
-        style={{ width: '70px', padding: '3px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '12px' }} />
+        style={{ width: '70px', padding: '3px 6px', borderRadius: '6px', border: '1px solid #C8C8C8', fontSize: '12px' }} />
       <button onClick={() => { onSave(Number(val)); setEditing(false); }}
-        style={{ background: '#DCFCE7', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '5px', color: '#059669' }}>
+        style={{ background: '#F5F5F5', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '5px', color: '#0B0B0B' }}>
         <Check size={11} />
       </button>
       <button onClick={() => { setVal(value); setEditing(false); }}
-        style={{ background: '#FEE2E2', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '5px', color: '#E11D48' }}>
+        style={{ background: '#F5F5F5', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '5px', color: '#4A4A4A' }}>
         <X size={11} />
       </button>
     </div>
@@ -46,8 +46,8 @@ function EditableValue({ value, onSave }) {
   return (
     <button onClick={() => setEditing(true)}
       style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-      <span style={{ fontSize: '13px', fontWeight: 700, color: '#2563EB' }}>{fmt(value)}</span>
-      <Edit2 size={10} style={{ color: '#CBD5E1' }} />
+      <span style={{ fontSize: '13px', fontWeight: 700, color: '#4A4A4A' }}>{fmt(value)}</span>
+      <Edit2 size={10} style={{ color: '#C8C8C8' }} />
     </button>
   );
 }
@@ -128,19 +128,19 @@ function NovaRecarga({ tipo, employees, quinzena }) {
     return s + (Number(dias[e.id] ?? 0) * valorDia);
   }, 0);
 
-  const color = tipo === 'VT' ? '#2563EB' : '#059669';
-  const bg    = tipo === 'VT' ? '#EFF6FF' : '#F0FDF4';
+  const color = tipo === 'VT' ? '#4A4A4A' : '#0B0B0B';
+  const bg    = tipo === 'VT' ? '#F5F5F5' : '#F5F5F5';
 
   return (
     <div className="space-y-5">
       {/* Header da quinzena + botão varredura */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
         <div>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8' }}>Quinzena atual</p>
-          <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>{quinzena.label}</p>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#9A9A9A' }}>Quinzena atual</p>
+          <p style={{ fontSize: '16px', fontWeight: 800, color: '#0B0B0B' }}>{quinzena.label}</p>
         </div>
         <button onClick={handleScan} disabled={scanning}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#F1F5F9', color: '#0F172A', fontSize: '12px', fontWeight: 600 }}>
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#0B0B0B', fontSize: '12px', fontWeight: 600 }}>
           <RefreshCw size={13} style={{ animation: scanning ? 'spin 1s linear infinite' : 'none' }} />
           {scanning ? 'Varrendo...' : 'Varredura de dias trabalhados'}
         </button>
@@ -149,8 +149,8 @@ function NovaRecarga({ tipo, employees, quinzena }) {
       {/* Tabela de seleção */}
       <div className="card overflow-hidden">
         {/* Cabeçalho */}
-        <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 130px 90px 110px', padding: '9px 16px', background: '#F8FAFC', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px', alignItems: 'center' }}>
-          <button onClick={toggleAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: allSelected ? '#FF4D0C' : '#CBD5E1', display: 'flex' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 130px 90px 110px', padding: '9px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px', alignItems: 'center' }}>
+          <button onClick={toggleAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: allSelected ? '#0B0B0B' : '#C8C8C8', display: 'flex' }}>
             {allSelected ? <CheckSquare size={15} /> : <Square size={15} />}
           </button>
           <span>Ajudante</span>
@@ -161,7 +161,7 @@ function NovaRecarga({ tipo, employees, quinzena }) {
 
         {employees.length === 0 ? (
           <div style={{ padding: '48px', textAlign: 'center' }}>
-            <p style={{ fontSize: '13px', color: '#CBD5E1' }}>Nenhum ajudante ativo</p>
+            <p style={{ fontSize: '13px', color: '#C8C8C8' }}>Nenhum ajudante ativo</p>
           </div>
         ) : employees.map((emp, idx) => {
           const isSelected = !!selected[emp.id];
@@ -175,27 +175,27 @@ function NovaRecarga({ tipo, employees, quinzena }) {
               display: 'grid', gridTemplateColumns: '36px 1fr 130px 90px 110px',
               padding: '12px 16px', borderBottom: idx < employees.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
               alignItems: 'center', gap: '8px',
-              background: isSelected ? 'rgba(37,99,235,0.02)' : 'transparent',
+              background: isSelected ? 'rgba(74, 74, 74,0.02)' : 'transparent',
               opacity: isSelected ? 1 : 0.45,
               transition: 'all 0.12s',
             }}>
               {/* Checkbox */}
               <button onClick={() => setSelected(s => ({ ...s, [emp.id]: !s[emp.id] }))}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: isSelected ? color : '#CBD5E1', display: 'flex' }}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: isSelected ? color : '#C8C8C8', display: 'flex' }}>
                 {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
               </button>
 
               {/* Nome */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: emp.color || '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                   {emp.initials}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {emp.name}{emp.cidade ? <span style={{ color: '#94A3B8', fontWeight: 400 }}> ({emp.cidade})</span> : ''}
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {emp.name}{emp.cidade ? <span style={{ color: '#9A9A9A', fontWeight: 400 }}> ({emp.cidade})</span> : ''}
                   </p>
                   {worked !== undefined && (
-                    <p style={{ fontSize: '10px', color: worked > 0 ? '#059669' : '#E11D48', marginTop: '1px' }}>
+                    <p style={{ fontSize: '10px', color: worked > 0 ? '#0B0B0B' : '#4A4A4A', marginTop: '1px' }}>
                       {worked} dia{worked !== 1 ? 's' : ''} trabalhado{worked !== 1 ? 's' : ''}
                     </p>
                   )}
@@ -219,12 +219,12 @@ function NovaRecarga({ tipo, employees, quinzena }) {
                   type="number" min="0" max="31"
                   value={d || ''}
                   onChange={e => setDias(prev => ({ ...prev, [emp.id]: Number(e.target.value) || 0 }))}
-                  style={{ width: '56px', padding: '5px 8px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '13px', fontWeight: 600, textAlign: 'center', color: '#0F172A' }}
+                  style={{ width: '56px', padding: '5px 8px', borderRadius: '8px', border: '1px solid #E4E4E4', fontSize: '13px', fontWeight: 600, textAlign: 'center', color: '#0B0B0B' }}
                 />
               </div>
 
               {/* Total */}
-              <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: total > 0 ? color : '#CBD5E1' }}>
+              <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: total > 0 ? color : '#C8C8C8' }}>
                 {total > 0 ? fmt(total) : '—'}
               </p>
             </div>
@@ -233,21 +233,21 @@ function NovaRecarga({ tipo, employees, quinzena }) {
 
         {/* Rodapé totais */}
         {employees.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: '#F8FAFC', borderTop: '2px solid rgba(0,0,0,0.07)' }}>
-            <p style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: '#F7F7F7', borderTop: '2px solid rgba(0,0,0,0.07)' }}>
+            <p style={{ fontSize: '12px', color: '#6B6B6B', fontWeight: 600 }}>
               {Object.values(selected).filter(Boolean).length} ajudante{Object.values(selected).filter(Boolean).length !== 1 ? 's' : ''} selecionado{Object.values(selected).filter(Boolean).length !== 1 ? 's' : ''}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' }}>Total {tipo}</p>
+                <p style={{ fontSize: '10px', color: '#9A9A9A', fontWeight: 600, textTransform: 'uppercase' }}>Total {tipo}</p>
                 <p style={{ fontSize: '18px', fontWeight: 900, color }}>  {fmt(totalGeral)}</p>
               </div>
               <button onClick={handleSave} disabled={saving || totalGeral === 0}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '6px',
                   padding: '10px 18px', borderRadius: '10px', border: 'none', cursor: totalGeral > 0 ? 'pointer' : 'not-allowed',
-                  background: totalGeral > 0 ? color : '#E2E8F0',
-                  color: totalGeral > 0 ? 'white' : '#94A3B8',
+                  background: totalGeral > 0 ? color : '#E4E4E4',
+                  color: totalGeral > 0 ? 'white' : '#9A9A9A',
                   fontSize: '13px', fontWeight: 700,
                   boxShadow: totalGeral > 0 ? `0 2px 10px ${color}40` : 'none',
                 }}>
@@ -282,15 +282,15 @@ function Historico({ tipo }) {
     return Object.values(map).sort((a, b) => b.quinzena.localeCompare(a.quinzena));
   }, [recargas]);
 
-  const color = tipo === 'VT' ? '#2563EB' : '#059669';
+  const color = tipo === 'VT' ? '#4A4A4A' : '#0B0B0B';
 
-  if (loading) return <div className="card" style={{ padding: '48px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>Carregando...</div>;
+  if (loading) return <div className="card" style={{ padding: '48px', textAlign: 'center', color: '#9A9A9A', fontSize: '13px' }}>Carregando...</div>;
 
   if (grouped.length === 0) return (
     <div className="card" style={{ padding: '56px', textAlign: 'center' }}>
-      <History size={32} style={{ color: '#CBD5E1', margin: '0 auto 12px' }} />
-      <p style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 600 }}>Nenhuma recarga de {tipo} registrada</p>
-      <p style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>As recargas realizadas aparecerão aqui organizadas por quinzena</p>
+      <History size={32} style={{ color: '#C8C8C8', margin: '0 auto 12px' }} />
+      <p style={{ fontSize: '13px', color: '#9A9A9A', fontWeight: 600 }}>Nenhuma recarga de {tipo} registrada</p>
+      <p style={{ fontSize: '12px', color: '#C8C8C8', marginTop: '4px' }}>As recargas realizadas aparecerão aqui organizadas por quinzena</p>
     </div>
   );
 
@@ -305,10 +305,10 @@ function Historico({ tipo }) {
               onClick={() => setExpanded(prev => ({ ...prev, [g.quinzena]: !prev[g.quinzena] }))}
               style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {isOpen ? <ChevronDown size={15} style={{ color: '#94A3B8' }} /> : <ChevronRight size={15} style={{ color: '#94A3B8' }} />}
+                {isOpen ? <ChevronDown size={15} style={{ color: '#9A9A9A' }} /> : <ChevronRight size={15} style={{ color: '#9A9A9A' }} />}
                 <div>
-                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{g.quinzena.replace(/-Q/, ' · Q')}</p>
-                  <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px' }}>{g.items.length} ajudante{g.items.length !== 1 ? 's' : ''}</p>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#0B0B0B' }}>{g.quinzena.replace(/-Q/, ' · Q')}</p>
+                  <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '1px' }}>{g.items.length} ajudante{g.items.length !== 1 ? 's' : ''}</p>
                 </div>
               </div>
               <p style={{ fontSize: '16px', fontWeight: 900, color }}>{fmt(g.total)}</p>
@@ -324,10 +324,10 @@ function Historico({ tipo }) {
                       {item.iniciais}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>
-                        {item.nome}{item.cidade ? <span style={{ color: '#94A3B8', fontWeight: 400 }}> ({item.cidade})</span> : ''}
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0B0B0B' }}>
+                        {item.nome}{item.cidade ? <span style={{ color: '#9A9A9A', fontWeight: 400 }}> ({item.cidade})</span> : ''}
                       </p>
-                      <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '1px' }}>
+                      <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '1px' }}>
                         {item.dias} dia{item.dias !== 1 ? 's' : ''} × {fmt(item.valorDia)} · {item.dataRecarga}
                       </p>
                     </div>
@@ -349,7 +349,7 @@ function BeneficioAba({ tipo, employees }) {
   const quinzena = getQuinzenaInfo();
 
   const Icon = tipo === 'VT' ? Bus : UtensilsCrossed;
-  const color = tipo === 'VT' ? '#2563EB' : '#059669';
+  const color = tipo === 'VT' ? '#4A4A4A' : '#0B0B0B';
   const label = tipo === 'VT' ? 'Vale Transporte' : 'Vale Refeição';
 
   return (
@@ -362,8 +362,8 @@ function BeneficioAba({ tipo, employees }) {
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '7px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
               fontSize: '12px', fontWeight: 600, transition: 'all 0.12s',
-              background: subTab === key ? color : '#F1F5F9',
-              color:      subTab === key ? 'white' : '#64748B',
+              background: subTab === key ? color : '#F5F5F5',
+              color:      subTab === key ? 'white' : '#6B6B6B',
             }}>
             <Ic size={12} /> {lbl}
           </button>
@@ -392,8 +392,8 @@ export default function AdminRHBeneficios() {
       {/* Cabeçalho */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A' }}>Benefícios</h1>
-          <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>
+          <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0B0B0B' }}>Benefícios</h1>
+          <p style={{ fontSize: '13px', color: '#6B6B6B', marginTop: '2px' }}>
             {ativos.length} ajudante{ativos.length !== 1 ? 's' : ''} ativo{ativos.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -401,15 +401,15 @@ export default function AdminRHBeneficios() {
 
       {/* Tabs VT | VR */}
       <div style={{ display: 'flex', gap: '6px' }}>
-        {[['VT', Bus, '#2563EB', '#EFF6FF'], ['VR', UtensilsCrossed, '#059669', '#F0FDF4']].map(([tipo, Icon, c, bg]) => (
+        {[['VT', Bus, '#4A4A4A', '#F5F5F5'], ['VR', UtensilsCrossed, '#0B0B0B', '#F5F5F5']].map(([tipo, Icon, c, bg]) => (
           <button key={tipo} onClick={() => setBenefTab(tipo)}
             style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               padding: '10px 20px', borderRadius: '12px', border: '2px solid',
               borderColor: benefTab === tipo ? c : 'rgba(0,0,0,0.08)',
               cursor: 'pointer', fontSize: '13px', fontWeight: 700, transition: 'all 0.15s',
-              background: benefTab === tipo ? bg : '#F8FAFC',
-              color:      benefTab === tipo ? c  : '#64748B',
+              background: benefTab === tipo ? bg : '#F7F7F7',
+              color:      benefTab === tipo ? c  : '#6B6B6B',
             }}>
             <Icon size={15} />
             {tipo === 'VT' ? 'Vale Transporte (VT)' : 'Vale Refeição (VR)'}

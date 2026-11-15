@@ -8,8 +8,8 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: #F4F5F7;
-  color: #0F172A;
+  background-color: #F5F5F5;
+  color: #0B0B0B;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -20,42 +20,41 @@ body {
 /* ============ Scrollbar ============ */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
-::-webkit-scrollbar-thumb:hover { background: #FF4D0C; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb { background: #C8C8C8; border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: #9A9A9A; border: 2px solid transparent; background-clip: content-box; }
 
 /* ============ Cards ============ */
 .card {
   background: #FFFFFF;
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(11, 11, 11, 0.06);
   border-radius: 16px;
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 8px 24px -12px rgba(15, 23, 42, 0.10);
+    0 1px 2px rgba(11, 11, 11, 0.04),
+    0 8px 24px -12px rgba(11, 11, 11, 0.10);
 }
 
 .card-inner {
-  background: #F8FAFC;
-  border: 1px solid rgba(15, 23, 42, 0.05);
+  background: #F7F7F7;
+  border: 1px solid rgba(11, 11, 11, 0.05);
   border-radius: 12px;
 }
 
 .stat-card {
   background: #FFFFFF;
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(11, 11, 11, 0.06);
   border-radius: 16px;
   padding: 20px;
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 8px 24px -12px rgba(15, 23, 42, 0.10);
+    0 1px 2px rgba(11, 11, 11, 0.04),
+    0 8px 24px -12px rgba(11, 11, 11, 0.10);
   transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
 }
 .stat-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 77, 12, 0.18);
+  border-color: rgba(11, 11, 11, 0.14);
   box-shadow:
-    0 2px 4px rgba(15, 23, 42, 0.05),
-    0 16px 32px -12px rgba(15, 23, 42, 0.14),
-    0 0 0 1px rgba(255, 77, 12, 0.06);
+    0 2px 4px rgba(11, 11, 11, 0.05),
+    0 16px 32px -12px rgba(11, 11, 11, 0.14);
 }
 
 /* ============ Badges ============ */
@@ -77,21 +76,22 @@ body {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.badge-active  { background: #ECFDF5; color: #047857; border-color: rgba(16, 185, 129, 0.18); }
-.badge-active::before  { background: #10B981; box-shadow: 0 0 6px rgba(16,185,129,0.6); }
-.badge-inactive{ background: #FFF1F2; color: #BE123C; border-color: rgba(244, 63, 94, 0.18); }
-.badge-inactive::before{ background: #F43F5E; box-shadow: 0 0 6px rgba(244,63,94,0.6); }
-.badge-pending { background: #FFFBEB; color: #B45309; border-color: rgba(245, 158, 11, 0.2); }
-.badge-pending::before { background: #F59E0B; box-shadow: 0 0 6px rgba(245,158,11,0.6); }
-.badge-paid    { background: #ECFDF5; color: #047857; border-color: rgba(16, 185, 129, 0.18); }
-.badge-paid::before    { background: #10B981; box-shadow: 0 0 6px rgba(16,185,129,0.6); }
-.badge-overdue { background: #FFF1F2; color: #BE123C; border-color: rgba(244, 63, 94, 0.18); }
-.badge-overdue::before { background: #F43F5E; box-shadow: 0 0 6px rgba(244,63,94,0.6); }
+/* Estados fortes (ativo/pago) = pílula preta; secundários = cinza; neutros = contorno. */
+.badge-active  { background: #0B0B0B; color: #fff; border-color: #0B0B0B; }
+.badge-active::before  { background: #fff; box-shadow: none; }
+.badge-paid    { background: #0B0B0B; color: #fff; border-color: #0B0B0B; }
+.badge-paid::before    { background: #fff; box-shadow: none; }
+.badge-pending { background: #F4F4F5; color: #6B6B6B; border-color: #E6E6E6; }
+.badge-pending::before { background: #9A9A9A; box-shadow: none; }
+.badge-inactive{ background: #FFFFFF; color: #4A4A4A; border-color: #E6E6E6; }
+.badge-inactive::before{ background: #C8C8C8; box-shadow: none; }
+.badge-overdue { background: #FFFFFF; color: #0B0B0B; border-color: #C8C8C8; }
+.badge-overdue::before { background: #0B0B0B; box-shadow: none; }
 
 /* ============ Buttons ============ */
 .btn-primary {
-  background: linear-gradient(180deg, #FF5A1F 0%, #FF4D0C 100%);
-  color: white;
+  background: #FF4D0C;
+  color: #fff;
   padding: 10px 20px;
   border-radius: 12px;
   font-size: 13px;
@@ -100,88 +100,82 @@ body {
   border: none;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.18),
-    0 1px 2px rgba(255,77,12,0.24),
-    0 8px 20px -6px rgba(255,77,12,0.45);
+  box-shadow: 0 1px 2px rgba(255,77,12,0.24), 0 6px 16px -8px rgba(255,77,12,0.5);
 }
 .btn-primary:hover {
-  background: linear-gradient(180deg, #FF6633 0%, #F04600 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.2),
-    0 2px 4px rgba(255,77,12,0.28),
-    0 12px 28px -6px rgba(255,77,12,0.55);
+  background: #E03A00;
+  box-shadow: 0 2px 4px rgba(255,77,12,0.28), 0 10px 22px -8px rgba(255,77,12,0.55);
   transform: translateY(-1px);
 }
 .btn-primary:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(255,77,12,0.4); }
 
 .btn-ghost {
   background: #FFFFFF;
-  color: #475569;
+  color: #4A4A4A;
   padding: 10px 20px;
   border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
-  border: 1px solid rgba(15, 23, 42, 0.10);
+  border: 1px solid rgba(11, 11, 11, 0.10);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 1px 2px rgba(11, 11, 11, 0.05);
 }
 .btn-ghost:hover {
-  background: #F8FAFC;
-  color: #0F172A;
-  border-color: rgba(15, 23, 42, 0.16);
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  background: #F7F7F7;
+  color: #0B0B0B;
+  border-color: rgba(11, 11, 11, 0.16);
+  box-shadow: 0 2px 6px rgba(11, 11, 11, 0.08);
   transform: translateY(-1px);
 }
 
 .btn-danger {
-  background: rgba(239, 68, 68, 0.06);
-  color: #DC2626;
+  background: rgba(74, 74, 74, 0.06);
+  color: #4A4A4A;
   padding: 8px 16px;
   border-radius: 10px;
   font-size: 12px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
-  border: 1px solid rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(74, 74, 74, 0.18);
   cursor: pointer;
   transition: all 0.2s;
 }
-.btn-danger:hover { background: #EF4444; border-color: #EF4444; color: #fff; }
+.btn-danger:hover { background: #4A4A4A; border-color: #4A4A4A; color: #fff; }
 
 /* ============ Inputs ============ */
 .input-field {
   width: 100%;
   padding: 10px 14px;
   background: #FFFFFF;
-  border: 1.5px solid rgba(15, 23, 42, 0.10);
+  border: 1.5px solid rgba(11, 11, 11, 0.10);
   border-radius: 12px;
-  color: #0F172A;
+  color: #0B0B0B;
   font-size: 13px;
   font-family: 'Inter', sans-serif;
   outline: none;
   transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
 }
-.input-field:hover { border-color: rgba(15, 23, 42, 0.18); }
+.input-field:hover { border-color: rgba(11, 11, 11, 0.18); }
 .input-field:focus {
   border-color: #FF4D0C;
   background: #fff;
   box-shadow: 0 0 0 3.5px rgba(255, 77, 12, 0.12);
 }
-.input-field::placeholder { color: #94A3B8; }
-select.input-field option { background: #fff; color: #0F172A; }
+.input-field::placeholder { color: #9A9A9A; }
+select.input-field option { background: #fff; color: #0B0B0B; }
 
 /* ============ Table ============ */
 .table-row {
   display: grid;
   padding: 13px 20px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+  border-bottom: 1px solid rgba(11, 11, 11, 0.05);
   align-items: center;
   font-size: 13px;
   transition: background 0.15s;
 }
-.table-row:hover { background: #F8FAFC; }
+.table-row:hover { background: #F7F7F7; }
 .table-row:last-child { border-bottom: none; }
 
 /* ============ Sidebar (dark — stays dark) ============ */
@@ -192,17 +186,17 @@ select.input-field option { background: #fff; color: #0F172A; }
   padding: 10px 12px;
   border-radius: 12px;
   text-decoration: none;
-  color: #94A3B8;
+  color: #9A9A9A;
   font-size: 13px;
   font-weight: 500;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
-.sidebar-link:hover { background: rgba(255,255,255,0.07); color: #E2E8F0; }
+.sidebar-link:hover { background: rgba(255,255,255,0.07); color: #E4E4E4; }
 .sidebar-link.active {
-  background: linear-gradient(135deg, rgba(255,77,12,0.9), rgba(224,58,0,0.9));
-  color: white;
-  box-shadow: 0 4px 16px rgba(255, 77, 12, 0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+  background: #1C1C1C;
+  color: #FFFFFF;
+  box-shadow: none;
 }
 
 /* Company tab buttons (in dark sidebar) */
@@ -219,15 +213,15 @@ select.input-field option { background: #fff; color: #0F172A; }
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   background: transparent;
-  color: #94A3B8;
+  color: #9A9A9A;
   width: 100%;
   text-align: left;
 }
-.tab-btn:hover { color: #E2E8F0; background: rgba(255,255,255,0.07); }
+.tab-btn:hover { color: #E4E4E4; background: rgba(255,255,255,0.07); }
 .tab-btn.active {
-  background: linear-gradient(135deg, rgba(255,77,12,0.9), rgba(224,58,0,0.9));
-  color: white;
-  box-shadow: 0 4px 16px rgba(255, 77, 12, 0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+  background: #1C1C1C;
+  color: #FFFFFF;
+  box-shadow: none;
 }
 
 /* ============ Avatar ============ */
@@ -250,7 +244,7 @@ select.input-field option { background: #fff; color: #0F172A; }
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(11, 11, 11, 0.5);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
@@ -262,7 +256,7 @@ select.input-field option { background: #fff; color: #0F172A; }
 }
 .modal-box {
   background: #FFFFFF;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(11, 11, 11, 0.08);
   border-radius: 20px;
   padding: 28px;
   width: 100%;
@@ -270,8 +264,8 @@ select.input-field option { background: #fff; color: #0F172A; }
   max-height: 90vh;
   overflow-y: auto;
   box-shadow:
-    0 24px 48px -12px rgba(15, 23, 42, 0.25),
-    0 48px 96px -24px rgba(15, 23, 42, 0.2);
+    0 24px 48px -12px rgba(11, 11, 11, 0.25),
+    0 48px 96px -24px rgba(11, 11, 11, 0.2);
   animation: modalIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -301,7 +295,7 @@ select.input-field option { background: #fff; color: #0F172A; }
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(244, 245, 247, 0.85);
+  background: rgba(245, 245, 245, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }

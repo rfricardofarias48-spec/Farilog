@@ -33,33 +33,33 @@ const WaSVG = ({ size = 13 }) => (
 function LiderBadge({ lider }) {
   const waLink = lider ? whatsappLink(lider.telefone) : null;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)', marginBottom: '12px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.07)', marginBottom: '12px' }}>
       {lider ? (
         <>
-          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: lider.cor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: lider.cor || '#0B0B0B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
             {lider.iniciais}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-            <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lider.nome}</p>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+            <p style={{ fontSize: '14px', fontWeight: 700, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lider.nome}</p>
           </div>
           {waLink ? (
             <a href={waLink} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#F5F5F5', color: '#0B0B0B', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
               <WaSVG size={13} /> WhatsApp
             </a>
           ) : (
-            <span style={{ fontSize: '10px', color: '#CBD5E1', flexShrink: 0 }}>sem telefone</span>
+            <span style={{ fontSize: '10px', color: '#C8C8C8', flexShrink: 0 }}>sem telefone</span>
           )}
         </>
       ) : (
         <>
-          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ fontSize: '18px', color: '#94A3B8' }}>👤</span>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E4E4E4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: '18px', color: '#9A9A9A' }}>👤</span>
           </div>
           <div>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Não atribuído</p>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#9A9A9A' }}>Não atribuído</p>
           </div>
         </>
       )}
@@ -80,9 +80,9 @@ import {
 const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 const TODAY_DATE = new Date(TODAY + 'T12:00:00Z');
 
-const T  = { color: '#0F172A' };
-const T2 = { color: '#475569' };
-const TM = { color: '#94A3B8' };
+const T  = { color: '#0B0B0B' };
+const T2 = { color: '#4A4A4A' };
+const TM = { color: '#9A9A9A' };
 
 function findEmp(employees, id) { return employees.find(e => e.id === id); }
 
@@ -146,7 +146,7 @@ function TrucksPanel({ escalaKey, escalaId, readOnly = false }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+        <p style={{ fontSize: '10px', fontWeight: 700, color: '#0B0B0B', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
           Descargas do Dia
         </p>
         {!readOnly && (
@@ -159,13 +159,13 @@ function TrucksPanel({ escalaKey, escalaId, readOnly = false }) {
 
       {displayTrucks.length === 0 ? (
         readOnly ? (
-          <p style={{ fontSize: '11px', color: '#CBD5E1', padding: '6px 0' }}>Nenhuma descarga registrada</p>
+          <p style={{ fontSize: '11px', color: '#C8C8C8', padding: '6px 0' }}>Nenhuma descarga registrada</p>
         ) : (
           <button onClick={add} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '6px 8px', borderRadius: '8px',
-            border: '1.5px dashed #E2E8F0', background: 'transparent',
-            cursor: 'pointer', color: '#94A3B8', fontSize: '11px', width: '100%',
+            border: '1.5px dashed #E4E4E4', background: 'transparent',
+            cursor: 'pointer', color: '#9A9A9A', fontSize: '11px', width: '100%',
           }}>
             + Adicionar carreta
           </button>
@@ -174,10 +174,10 @@ function TrucksPanel({ escalaKey, escalaId, readOnly = false }) {
         displayTrucks.map((truck, idx) => (
           <div key={truck.id} style={{
             display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '6px 10px', borderRadius: '8px', background: '#EEF2F7',
+            padding: '6px 10px', borderRadius: '8px', background: '#F5F5F5',
           }}>
             <span style={{
-              fontSize: '10px', fontWeight: 700, color: '#94A3B8',
+              fontSize: '10px', fontWeight: 700, color: '#9A9A9A',
               flexShrink: 0, minWidth: '14px', textAlign: 'right',
             }}>{idx + 1}</span>
             <input
@@ -187,16 +187,16 @@ function TrucksPanel({ escalaKey, escalaId, readOnly = false }) {
               placeholder="Placa ou motorista..."
               style={{
                 flex: 1, border: 'none', background: 'transparent',
-                fontSize: '12px', fontWeight: 600, color: '#0F172A',
+                fontSize: '12px', fontWeight: 600, color: '#0B0B0B',
                 outline: 'none', padding: 0, fontFamily: 'inherit', minWidth: 0,
                 cursor: readOnly ? 'default' : 'text',
               }}
             />
             {!readOnly && (
               <button onClick={() => remove(truck.id)}
-                style={{ color: '#CBD5E1', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
-                onMouseEnter={e => e.currentTarget.style.color = '#E11D48'}
-                onMouseLeave={e => e.currentTarget.style.color = '#CBD5E1'}>
+                style={{ color: '#C8C8C8', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                onMouseEnter={e => e.currentTarget.style.color = '#4A4A4A'}
+                onMouseLeave={e => e.currentTarget.style.color = '#C8C8C8'}>
                 <X size={12} />
               </button>
             )}
@@ -208,7 +208,7 @@ function TrucksPanel({ escalaKey, escalaId, readOnly = false }) {
 }
 
 // ── Agrupamento por função ─────────────────────────────────────────────────
-const GROUP_PALETTE = ['#3B82F6','#8B5CF6','#059669','#D97706','#0891B2','#EC4899'];
+const GROUP_PALETTE = ['#4A4A4A','#4A4A4A','#0B0B0B','#6B6B6B','#4A4A4A','#4A4A4A'];
 function groupByService(records) {
   const sorted = [...records].sort((a, b) => (a.service || '').localeCompare(b.service || ''));
   return sorted.reduce((acc, rec) => {
@@ -345,23 +345,23 @@ const QuinzenaTooltip = ({ active, payload, label }) => {
   const d = payload[0]?.payload;
   return (
     <div style={{
-      background: '#1E293B',
+      background: '#1C1C1C',
       border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: '10px',
       padding: '10px 14px',
       minWidth: '130px',
     }}>
-      <p style={{ color: '#94A3B8', fontSize: '10px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <p style={{ color: '#9A9A9A', fontSize: '10px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {d?.shortDay}, {d?.label}
       </p>
-      <p style={{ color: '#F1F5F9', fontSize: '15px', fontWeight: 700, marginBottom: '2px' }}>
-        {d?.count} <span style={{ fontSize: '11px', fontWeight: 500, color: '#64748B' }}>ajudante{d?.count !== 1 ? 's' : ''}</span>
+      <p style={{ color: '#F5F5F5', fontSize: '15px', fontWeight: 700, marginBottom: '2px' }}>
+        {d?.count} <span style={{ fontSize: '11px', fontWeight: 500, color: '#6B6B6B' }}>ajudante{d?.count !== 1 ? 's' : ''}</span>
       </p>
       <p style={{ color: '#FF4D0C', fontSize: '12px', fontWeight: 600 }}>
         {fmtCurrency(d?.value || 0)}
       </p>
       {d?.heMin > 0 && (
-        <p style={{ color: '#94A3B8', fontSize: '10px', fontWeight: 600, marginTop: '3px' }}>
+        <p style={{ color: '#9A9A9A', fontSize: '10px', fontWeight: 600, marginTop: '3px' }}>
           inclui {minutesToOvertimeString(d.heMin)} de hora extra
         </p>
       )}
@@ -387,30 +387,30 @@ function AjudantesModal({ records, escala, faltas, atrasos, date, tipoServico: t
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-xs font-semibold uppercase" style={{ color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '4px' }}>Escala do Dia</p>
-            <h2 className="text-base font-bold" style={{ color: '#0F172A' }}>
+            <p className="text-xs font-semibold uppercase" style={{ color: '#9A9A9A', letterSpacing: '0.08em', marginBottom: '4px' }}>Escala do Dia</p>
+            <h2 className="text-base font-bold" style={{ color: '#0B0B0B' }}>
               {dateLabel ? `${dateLabel}` : 'Ajudantes Escalados'}
             </h2>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '6px', background: '#FFF2EE', color: '#CC3D00' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '6px', background: '#FFF7F4', color: '#E03A00' }}>
                 <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#FF4D0C', flexShrink: 0, display: 'inline-block' }} />
                 {records.length} escalado{records.length !== 1 ? 's' : ''}
               </span>
               {faltas > 0 && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '6px', background: '#FFE4E6', color: '#BE123C' }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#F43F5E', flexShrink: 0, display: 'inline-block' }} />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '6px', background: '#F5F5F5', color: '#4A4A4A' }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#4A4A4A', flexShrink: 0, display: 'inline-block' }} />
                   {faltas} falta{faltas !== 1 ? 's' : ''}
                 </span>
               )}
               {atrasos > 0 && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '6px', background: '#FEF3C7', color: '#B45309' }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#F59E0B', flexShrink: 0, display: 'inline-block' }} />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '6px', background: '#F7F7F7', color: '#6B6B6B' }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#6B6B6B', flexShrink: 0, display: 'inline-block' }} />
                   {atrasos} atraso{atrasos !== 1 ? 's' : ''}
                 </span>
               )}
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#9A9A9A', background: '#F5F5F5' }}>
             <X size={15} />
           </button>
         </div>
@@ -418,7 +418,7 @@ function AjudantesModal({ records, escala, faltas, atrasos, date, tipoServico: t
         {/* Lista */}
         <div className="card overflow-hidden">
           {records.length === 0 ? (
-            <div className="py-10 text-center text-sm" style={{ color: '#94A3B8' }}>Nenhum ajudante alocado hoje</div>
+            <div className="py-10 text-center text-sm" style={{ color: '#9A9A9A' }}>Nenhum ajudante alocado hoje</div>
           ) : (
             records.map(rec => {
               const emp = findEmp(employees, rec.employeeId);
@@ -428,18 +428,18 @@ function AjudantesModal({ records, escala, faltas, atrasos, date, tipoServico: t
                 : [{ label: 'Entrada', value: rec.checkIn }, { label: 'S. Almoço', value: rec.lunchOut }, { label: 'Retorno', value: rec.lunchReturn }, { label: 'Saída', value: rec.checkOut }, { label: 'H. Extra', value: rec.overtime }];
               const gridCols = isCargaDescarga ? '180px 1fr 1fr auto' : '180px 1fr 1fr 1fr 1fr 1fr auto';
               return (
-                <div key={rec.id} className="table-row" style={{ gridTemplateColumns: gridCols, borderLeft: `3px solid ${emp?.color || '#64748B'}` }}>
+                <div key={rec.id} className="table-row" style={{ gridTemplateColumns: gridCols, borderLeft: `3px solid ${emp?.color || '#6B6B6B'}` }}>
                   <div className="px-3">
-                    <p onClick={() => setPopupEmp(emp)} className="text-xs font-semibold" style={{ color: '#0F172A', cursor: 'pointer' }}>{emp?.name}</p>
+                    <p onClick={() => setPopupEmp(emp)} className="text-xs font-semibold" style={{ color: '#0B0B0B', cursor: 'pointer' }}>{emp?.name}</p>
                     {motorista
-                      ? <p style={{ fontSize: '10px', color: '#94A3B8', marginTop: '1px' }}>Motorista {motorista}</p>
-                      : <p className="text-xs" style={{ color: '#94A3B8' }}>{rec.service}</p>
+                      ? <p style={{ fontSize: '10px', color: '#9A9A9A', marginTop: '1px' }}>Motorista {motorista}</p>
+                      : <p className="text-xs" style={{ color: '#9A9A9A' }}>{rec.service}</p>
                     }
                   </div>
                   {timeCols.map(t => (
                     <div key={t.label} className="px-3 text-center">
-                      <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
-                      <div className="flex items-center justify-center gap-1" style={{ color: t.value ? '#0F172A' : '#CBD5E1' }}>
+                      <p style={{ fontSize: '9px', color: '#9A9A9A', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
+                      <div className="flex items-center justify-center gap-1" style={{ color: t.value ? '#0B0B0B' : '#C8C8C8' }}>
                         <Clock size={10} />
                         <span className="text-xs font-semibold">{fmtTime(t.value) ?? '—'}</span>
                       </div>
@@ -474,14 +474,14 @@ function AjudantePopup({ emp, onClose }) {
       <div className="modal-box animate-fade-up" style={{ maxWidth: '420px' }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: emp.color || '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
               {emp.initials}
             </div>
             <div>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>{emp.name}</p>
+              <p style={{ fontSize: '15px', fontWeight: 700, color: '#0B0B0B' }}>{emp.name}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#9A9A9A', background: '#F5F5F5' }}>
             <X size={15} />
           </button>
         </div>
@@ -489,10 +489,10 @@ function AjudantePopup({ emp, onClose }) {
         <div className="card" style={{ padding: '4px 0' }}>
           {info.map(({ icon: Icon, label, value }) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#94A3B8' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#9A9A9A' }}>
                 <Icon size={13} /> {label}
               </span>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A' }}>{value}</span>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#0B0B0B' }}>{value}</span>
             </div>
           ))}
         </div>
@@ -501,20 +501,20 @@ function AjudantePopup({ emp, onClose }) {
           {waLink && (
             <a href={waLink} target="_blank" rel="noopener noreferrer"
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold"
-              style={{ background: '#DCFCE7', color: '#15803D', textDecoration: 'none' }}>
+              style={{ background: '#F5F5F5', color: '#0B0B0B', textDecoration: 'none' }}>
               <WaSVG size={13} /> WhatsApp
             </a>
           )}
           {emp.documentoUrl ? (
             <a href={emp.documentoUrl} target="_blank" rel="noopener noreferrer"
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold"
-              style={{ background: '#0F172A', color: 'white', textDecoration: 'none' }}>
+              style={{ background: '#0B0B0B', color: 'white', textDecoration: 'none' }}>
               <FileText size={13} /> Documento
             </a>
           ) : (
             <button disabled title="Nenhum documento cadastrado"
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold"
-              style={{ background: '#F1F5F9', color: '#CBD5E1', border: 'none', cursor: 'not-allowed' }}>
+              style={{ background: '#F5F5F5', color: '#C8C8C8', border: 'none', cursor: 'not-allowed' }}>
               <FileText size={13} /> Documento
             </button>
           )}
@@ -544,9 +544,9 @@ function fmtDateShort(iso) {
 }
 
 const OPER_STATUS_CFG = {
-  agendado:     { label: 'Agendado',     sublabel: 'Aguardando início', color: '#94A3B8', bg: '#1E293B', border: 'rgba(148,163,184,0.15)', dot: '#64748B' },
-  em_andamento: { label: 'Em andamento', sublabel: 'Operação ativa',    color: '#FCD34D', bg: '#78350F', border: 'rgba(245,158,11,0.3)',   dot: '#F59E0B' },
-  finalizado:   { label: 'Finalizado',   sublabel: 'Concluído',         color: '#86EFAC', bg: '#14532D', border: 'rgba(16,185,129,0.3)',   dot: '#10B981' },
+  agendado:     { label: 'Agendado',     sublabel: 'Aguardando início', color: '#9A9A9A', bg: '#1C1C1C', border: 'rgba(154, 154, 154,0.15)', dot: '#6B6B6B' },
+  em_andamento: { label: 'Em andamento', sublabel: 'Operação ativa',    color: '#C8C8C8', bg: '#4A4A4A', border: 'rgba(107, 107, 107,0.3)',   dot: '#6B6B6B' },
+  finalizado:   { label: 'Finalizado',   sublabel: 'Concluído',         color: '#E6E6E6', bg: '#0B0B0B', border: 'rgba(11, 11, 11,0.3)',   dot: '#0B0B0B' },
 };
 
 function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, isToday, lider, onVerMais, tipoServico, escalaId }) {
@@ -573,7 +573,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
 
       {/* Header */}
       <div>
-        <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', color: '#94A3B8', textTransform: 'uppercase' }}>{title}</span>
+        <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', color: '#9A9A9A', textTransform: 'uppercase' }}>{title}</span>
         <p className="text-sm font-bold mt-0.5" style={T}>{date ? fmtDateShort(date) : 'Sem agendamento'}</p>
       </div>
 
@@ -581,32 +581,32 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
       {lider ? (() => {
         const waLink = whatsappLink(lider.telefone);
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: lider.cor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.07)' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: lider.cor || '#0B0B0B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
               {lider.iniciais}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-              <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lider.nome}</p>
+              <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lider.nome}</p>
             </div>
             {waLink ? (
               <a href={waLink} target="_blank" rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#F5F5F5', color: '#0B0B0B', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
                 <WaSVG size={13} /> WhatsApp
               </a>
             ) : (
-              <span style={{ fontSize: '10px', color: '#CBD5E1', flexShrink: 0 }}>sem telefone</span>
+              <span style={{ fontSize: '10px', color: '#C8C8C8', flexShrink: 0 }}>sem telefone</span>
             )}
           </div>
         );
       })() : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Users size={18} style={{ color: '#94A3B8' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.07)' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E4E4E4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Users size={18} style={{ color: '#9A9A9A' }} />
           </div>
           <div>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Não atribuído</p>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#9A9A9A' }}>Não atribuído</p>
           </div>
         </div>
       )}
@@ -615,17 +615,17 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
       {isCargaDescarga ? (
         /* Carga/Descarga: Escala | Início | Final | Status (dark) — compacto */
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.1fr', gap: '8px', alignItems: 'stretch' }}>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
-            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
+            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{escala}</p>
           </div>
-          <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
-            <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamStart ?? '—'}</p>
+          <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F7F7F7', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0B0B0B' : '#C8C8C8', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamStart ?? '—'}</p>
           </div>
-          <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
-            <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
+          <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F7F7F7', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#0B0B0B' : '#C8C8C8', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
           </div>
           <div style={{ padding: '10px 8px', borderRadius: '10px', background: operCfg.bg, border: `1px solid ${operCfg.border}`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: operCfg.dot, boxShadow: `0 0 0 3px ${operCfg.dot}33`, flexShrink: 0 }} />
@@ -636,41 +636,41 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
       ) : isToday ? (
         /* Entrega: Escala + Faltas/Atrasos + Presença */
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', marginBottom: '4px' }}>Escala</p>
-            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', marginBottom: '4px' }}>Escala</p>
+            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{escala}</p>
           </div>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.18)' }}>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.18)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Faltas</span>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: faltas > 0 ? '#E11D48' : '#CBD5E1' }}>{faltas}</span>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A' }}>Faltas</span>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: faltas > 0 ? '#4A4A4A' : '#C8C8C8' }}>{faltas}</span>
               </div>
               <div style={{ height: '1px', background: 'rgba(0,0,0,0.07)' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Atrasos</span>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: atrasos > 0 ? '#D97706' : '#CBD5E1' }}>{atrasos}</span>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A' }}>Atrasos</span>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: atrasos > 0 ? '#6B6B6B' : '#C8C8C8' }}>{atrasos}</span>
               </div>
             </div>
           </div>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', marginBottom: '4px' }}>Presença</p>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: escala > 0 ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
-            <p style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', marginTop: '2px' }}>{escala > 0 ? `${presentes}/${escala}` : '0/0'}</p>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', marginBottom: '4px' }}>Presença</p>
+            <p style={{ fontSize: '20px', fontWeight: 800, color: escala > 0 ? '#0B0B0B' : '#C8C8C8', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
+            <p style={{ fontSize: '10px', fontWeight: 500, color: '#9A9A9A', marginTop: '2px' }}>{escala > 0 ? `${presentes}/${escala}` : '0/0'}</p>
           </div>
         </div>
       ) : (
         /* Próxima escala (entrega): só contagem */
-        <div style={{ padding: '10px 16px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.18)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</span>
-          <span style={{ fontSize: '11px', fontWeight: 500, color: '#94A3B8' }}>ajudante{escala !== 1 ? 's' : ''} agendado{escala !== 1 ? 's' : ''}</span>
+        <div style={{ padding: '10px 16px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.18)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '28px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{escala}</span>
+          <span style={{ fontSize: '11px', fontWeight: 500, color: '#9A9A9A' }}>ajudante{escala !== 1 ? 's' : ''} agendado{escala !== 1 ? 's' : ''}</span>
         </div>
       )}
 
       {/* Barra de presença (entrega apenas) */}
       {isToday && !isCargaDescarga && escala > 0 && (
         <div style={{ height: '3px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)' }}>
-          <div style={{ height: '100%', borderRadius: '4px', background: '#0F172A', width: `${pct}%`, transition: 'width 0.4s ease' }} />
+          <div style={{ height: '100%', borderRadius: '4px', background: '#0B0B0B', width: `${pct}%`, transition: 'width 0.4s ease' }} />
         </div>
       )}
 
@@ -678,7 +678,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
       {isCargaDescarga ? (
         /* ── CARGA E DESCARGA: equipe (esq) + carretas (dir) ── */
         records.length === 0 ? (
-          <p style={{ fontSize: '12px', color: '#CBD5E1', textAlign: 'center', padding: '20px 0' }}>
+          <p style={{ fontSize: '12px', color: '#C8C8C8', textAlign: 'center', padding: '20px 0' }}>
             {isToday ? 'Nenhum ajudante hoje' : 'Nenhuma escala agendada'}
           </p>
         ) : (
@@ -688,7 +688,7 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <button
                 onClick={() => onVerMais ? onVerMais() : setShowModal(true)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginBottom: '10px' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', background: '#0B0B0B', color: 'white', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginBottom: '10px' }}>
                 <Users size={11} /> Equipe
               </button>
               {records.map(rec => {
@@ -699,20 +699,20 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                   <div key={rec.id} style={{
                     display: 'flex', alignItems: 'center', gap: '8px',
                     padding: '7px 10px', borderRadius: '7px', marginBottom: '3px',
-                    background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC',
+                    background: isAbsent ? 'rgba(74, 74, 74,0.04)' : '#F7F7F7',
                     border: '1px solid rgba(0,0,0,0.06)',
                   }}>
-                    <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#64748B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                    <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D6D6D6' : (emp?.color || '#6B6B6B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                       {emp?.initials}
                     </div>
-                    <p onClick={() => setPopupEmp(emp)} style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p onClick={() => setPopupEmp(emp)} style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#9A9A9A' : '#0B0B0B', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {emp?.name}
                       {motorista && !isAbsent && (
-                        <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>
+                        <span style={{ fontWeight: 400, color: '#9A9A9A' }}> · Motorista {motorista}</span>
                       )}
                     </p>
                     {isAbsent && (
-                      <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
+                      <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#F5F5F5', color: '#4A4A4A', flexShrink: 0 }}>Falta</span>
                     )}
                   </div>
                 );
@@ -734,13 +734,13 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '4px' }}>
             {records.length > 0 && (
-              <button onClick={() => onVerMais ? onVerMais() : setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', fontWeight: 600, color: '#64748B', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <button onClick={() => onVerMais ? onVerMais() : setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', fontWeight: 600, color: '#6B6B6B', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                 Ver mais <ChevronRight size={12} />
               </button>
             )}
           </div>
           {records.length === 0 ? (
-            <p style={{ fontSize: '12px', color: '#CBD5E1', textAlign: 'center', padding: '20px 0' }}>
+            <p style={{ fontSize: '12px', color: '#C8C8C8', textAlign: 'center', padding: '20px 0' }}>
               {isToday ? 'Nenhum ajudante hoje' : 'Nenhuma escala agendada'}
             </p>
           ) : (
@@ -755,27 +755,27 @@ function EscalaCard({ title, date, accentColor, badgeLabel, badgeBg, records, is
                       <div key={rec.id} style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
                         padding: '7px 10px', borderRadius: '7px', marginBottom: '3px',
-                        background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC',
+                        background: isAbsent ? 'rgba(74, 74, 74,0.04)' : '#F7F7F7',
                         border: '1px solid rgba(0,0,0,0.06)',
                       }}>
-                        <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#64748B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                        <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D6D6D6' : (emp?.color || '#6B6B6B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                           {emp?.initials}
                         </div>
-                        <p onClick={() => setPopupEmp(emp)} style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <p onClick={() => setPopupEmp(emp)} style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#9A9A9A' : '#0B0B0B', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {emp?.name}
                           {motorista && !isAbsent && (
-                            <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>
+                            <span style={{ fontWeight: 400, color: '#9A9A9A' }}> · Motorista {motorista}</span>
                           )}
                         </p>
                         {isAbsent ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-                            <Clock size={9} style={{ color: '#E11D48' }} />
-                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#E11D48' }}>Falta</span>
+                            <Clock size={9} style={{ color: '#4A4A4A' }} />
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#4A4A4A' }}>Falta</span>
                           </div>
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-                            <Clock size={9} style={{ color: '#94A3B8' }} />
-                            <span style={{ fontSize: '10px', fontWeight: 600, color: rec.checkIn ? '#334155' : '#CBD5E1' }}>
+                            <Clock size={9} style={{ color: '#9A9A9A' }} />
+                            <span style={{ fontSize: '10px', fontWeight: 600, color: rec.checkIn ? '#333333' : '#C8C8C8' }}>
                               {fmtTime(rec.checkIn) ?? '—'}
                             </span>
                           </div>
@@ -848,11 +848,11 @@ function Panel({ companyId, setTab, companyName }) {
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: '8px',
           padding: '8px 14px', borderRadius: '999px',
-          background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.07)',
-          boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+          background: '#FFFFFF', border: '1px solid rgba(11, 11, 11,0.07)',
+          boxShadow: '0 1px 2px rgba(11, 11, 11,0.04)',
         }}>
-          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 0 3px rgba(16,185,129,0.15)' }} />
-          <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Sistema em operação</span>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#0B0B0B', boxShadow: '0 0 0 3px rgba(11, 11, 11,0.15)' }} />
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#4A4A4A' }}>Sistema em operação</span>
         </div>
       </div>
 
@@ -861,9 +861,9 @@ function Panel({ companyId, setTab, companyName }) {
         <EscalaCard
           title="Escala do Dia"
           date={TODAY}
-          accentColor="#64748B"
+          accentColor="#6B6B6B"
           badgeLabel="Hoje"
-          badgeBg="#F1F5F9"
+          badgeBg="#F5F5F5"
           records={todayRecords}
           isToday={true}
           lider={todayLider}
@@ -874,9 +874,9 @@ function Panel({ companyId, setTab, companyName }) {
         <EscalaCard
           title="Próxima Escala"
           date={nextDate}
-          accentColor="#64748B"
+          accentColor="#6B6B6B"
           badgeLabel={nextDate ? fmtDateShort(nextDate) : 'Sem agend.'}
-          badgeBg="#F1F5F9"
+          badgeBg="#F5F5F5"
           records={nextRecords}
           isToday={false}
           lider={nextLider}
@@ -889,7 +889,7 @@ function Panel({ companyId, setTab, companyName }) {
       {recentPastDates.length > 0 && (
         <div className="card p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Últimos Serviços Realizados</p>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0B0B0B' }}>Últimos Serviços Realizados</p>
             <button
               onClick={() => setTab('escalas')}
               style={{ fontSize: '12px', fontWeight: 600, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -911,11 +911,11 @@ function Panel({ companyId, setTab, companyName }) {
                     padding: '8px 10px', borderRadius: '8px', cursor: 'pointer',
                     transition: 'background 0.12s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#F7F7F7'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#334155', margin: 0, whiteSpace: 'nowrap' }}>
-                    {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{String(y).slice(-2)} - <span style={{ color: '#059669' }}>{presentes} ajudante{presentes !== 1 ? 's' : ''} presentes</span>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#333333', margin: 0, whiteSpace: 'nowrap' }}>
+                    {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{String(y).slice(-2)} - <span style={{ color: '#0B0B0B' }}>{presentes} ajudante{presentes !== 1 ? 's' : ''} presentes</span>
                   </p>
                 </div>
               );
@@ -936,7 +936,7 @@ function DiaModal({ date, records, onClose }) {
   const atrasos   = records.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
   const presentes = escala - faltas;
   const pct       = escala > 0 ? Math.round((presentes / escala) * 100) : 0;
-  const pctColor  = pct >= 80 ? '#059669' : pct >= 50 ? '#D97706' : '#E11D48';
+  const pctColor  = pct >= 80 ? '#0B0B0B' : pct >= 50 ? '#6B6B6B' : '#4A4A4A';
 
   const [y, m, d] = date.split('-');
   const dow = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][new Date(`${date}T12:00:00Z`).getUTCDay()];
@@ -954,39 +954,39 @@ function DiaModal({ date, records, onClose }) {
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-xs font-semibold uppercase" style={{ color:'#94A3B8', letterSpacing:'0.08em', marginBottom:'4px' }}>Detalhe do dia</p>
-            <h2 className="text-base font-bold" style={{ color:'#0F172A' }}>
+            <p className="text-xs font-semibold uppercase" style={{ color:'#9A9A9A', letterSpacing:'0.08em', marginBottom:'4px' }}>Detalhe do dia</p>
+            <h2 className="text-base font-bold" style={{ color:'#0B0B0B' }}>
               {dow}, {d}/{m}/{y} {isToday && <span className="badge badge-active" style={{ fontSize:'10px', verticalAlign:'middle', marginLeft:'6px' }}>Hoje</span>}
             </h2>
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {pill('#FFF2EE','#FF4D0C','#CC3D00', `${escala} escalado${escala !== 1 ? 's' : ''}`)}
-              {faltas  > 0 && pill('#FFE4E6','#F43F5E','#BE123C', `${faltas} falta${faltas !== 1 ? 's' : ''}`)}
-              {atrasos > 0 && pill('#FEF3C7','#F59E0B','#B45309', `${atrasos} atraso${atrasos !== 1 ? 's' : ''}`)}
+              {pill('#FFF7F4','#FF4D0C','#E03A00', `${escala} escalado${escala !== 1 ? 's' : ''}`)}
+              {faltas  > 0 && pill('#F5F5F5','#4A4A4A','#4A4A4A', `${faltas} falta${faltas !== 1 ? 's' : ''}`)}
+              {atrasos > 0 && pill('#F7F7F7','#6B6B6B','#6B6B6B', `${atrasos} atraso${atrasos !== 1 ? 's' : ''}`)}
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color:'#94A3B8', background:'#F1F5F9' }}>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color:'#9A9A9A', background:'#F5F5F5' }}>
             <X size={15} />
           </button>
         </div>
 
         {/* Barra de presença */}
-        <div className="flex items-center gap-3 mb-4 p-3 rounded-xl" style={{ background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.05)' }}>
+        <div className="flex items-center gap-3 mb-4 p-3 rounded-xl" style={{ background:'#F7F7F7', border:'1px solid rgba(0,0,0,0.05)' }}>
           <div style={{ flex:1 }}>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-semibold" style={{ color:'#475569' }}>Presença</span>
+              <span className="text-xs font-semibold" style={{ color:'#4A4A4A' }}>Presença</span>
               <span className="text-sm font-black" style={{ color: pctColor }}>{pct}%</span>
             </div>
             <div style={{ height:'5px', borderRadius:'4px', background:'rgba(0,0,0,0.07)' }}>
               <div style={{ height:'100%', borderRadius:'4px', background: pctColor, width:`${pct}%`, transition:'width 0.4s ease' }} />
             </div>
           </div>
-          <span className="text-xs font-medium" style={{ color:'#94A3B8', flexShrink:0 }}>{presentes}/{escala}</span>
+          <span className="text-xs font-medium" style={{ color:'#9A9A9A', flexShrink:0 }}>{presentes}/{escala}</span>
         </div>
 
         {/* Lista */}
         <div className="card overflow-hidden">
           {records.length === 0 ? (
-            <div className="py-10 text-center text-sm" style={{ color:'#94A3B8' }}>Nenhum registro neste dia</div>
+            <div className="py-10 text-center text-sm" style={{ color:'#9A9A9A' }}>Nenhum registro neste dia</div>
           ) : records.map(rec => {
             const emp = findEmp(employees, rec.employeeId);
             const timeCols = isCargaDescarga
@@ -995,15 +995,15 @@ function DiaModal({ date, records, onClose }) {
             const gridCols = isCargaDescarga ? 'auto 160px 1fr 1fr auto' : 'auto 160px 1fr 1fr 1fr 1fr 1fr auto';
             return (
               <div key={rec.id} className="table-row" style={{ gridTemplateColumns: gridCols }}>
-                <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
+                <div className="avatar" style={{ background: '#6B6B6B' }}>{emp?.initials}</div>
                 <div className="px-3">
                   <p className="text-xs font-semibold" style={T}>{emp?.name}</p>
                   <p className="text-xs" style={TM}>{rec.service}</p>
                 </div>
                 {timeCols.map(t => (
                   <div key={t.label} className="px-3 text-center">
-                    <p style={{ fontSize:'9px', color:'#94A3B8', fontWeight:500, marginBottom:'2px' }}>{t.label}</p>
-                    <div className="flex items-center justify-center gap-1" style={{ color: t.value ? '#0F172A' : '#CBD5E1' }}>
+                    <p style={{ fontSize:'9px', color:'#9A9A9A', fontWeight:500, marginBottom:'2px' }}>{t.label}</p>
+                    <div className="flex items-center justify-center gap-1" style={{ color: t.value ? '#0B0B0B' : '#C8C8C8' }}>
                       <Clock size={10} />
                       <span className="text-xs font-semibold">{fmtTime(t.value) ?? '—'}</span>
                     </div>
@@ -1049,7 +1049,7 @@ function CalendarPicker({ period, offset, onSelect, onClose }) {
     return (
       <div style={popStyle}>
         <div style={{ padding:'12px 14px 8px', borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
-          <p style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.08em' }}>Selecionar quinzena</p>
+          <p style={{ fontSize:'10px', fontWeight:700, color:'#9A9A9A', textTransform:'uppercase', letterSpacing:'0.08em' }}>Selecionar quinzena</p>
         </div>
         <div style={{ maxHeight:'300px', overflowY:'auto' }}>
           {items.map(({ offsetVal, month, num: n, year: y, isCur }) => {
@@ -1059,22 +1059,22 @@ function CalendarPicker({ period, offset, onSelect, onClose }) {
             return (
               <div key={offsetVal}>
                 {showYear && (
-                  <div style={{ padding:'8px 14px 4px', background:'#F8FAFC', borderTop: lastYear !== y ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
-                    <p style={{ fontSize:'11px', fontWeight:700, color:'#64748B', letterSpacing:'0.05em' }}>{y}</p>
+                  <div style={{ padding:'8px 14px 4px', background:'#F7F7F7', borderTop: lastYear !== y ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
+                    <p style={{ fontSize:'11px', fontWeight:700, color:'#6B6B6B', letterSpacing:'0.05em' }}>{y}</p>
                   </div>
                 )}
                 <button onClick={() => { onSelect(offsetVal); onClose(); }}
                   style={{
                     width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
-                    padding:'9px 14px 9px 20px', border:'none', background: active ? '#FFF2EE' : 'transparent',
+                    padding:'9px 14px 9px 20px', border:'none', background: active ? '#FFF7F4' : 'transparent',
                     cursor:'pointer', textAlign:'left', transition:'background 0.15s',
                   }}
-                  onMouseEnter={e => { if (!active) e.currentTarget.style.background='#F8FAFC'; }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.background='#F7F7F7'; }}
                   onMouseLeave={e => { if (!active) e.currentTarget.style.background='transparent'; }}>
-                  <span style={{ fontSize:'13px', fontWeight: active ? 700 : 500, color: active ? '#FF4D0C' : '#374151' }}>
+                  <span style={{ fontSize:'13px', fontWeight: active ? 700 : 500, color: active ? '#FF4D0C' : '#333333' }}>
                     {month} - {n}
                   </span>
-                  {isCur && <span style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8' }}>atual</span>}
+                  {isCur && <span style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A' }}>atual</span>}
                 </button>
               </div>
             );
@@ -1094,7 +1094,7 @@ function CalendarPicker({ period, offset, onSelect, onClose }) {
     return (
       <div style={popStyle}>
         <div style={{ padding:'12px 14px 8px', borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
-          <p style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.08em' }}>Selecionar mês</p>
+          <p style={{ fontSize:'10px', fontWeight:700, color:'#9A9A9A', textTransform:'uppercase', letterSpacing:'0.08em' }}>Selecionar mês</p>
         </div>
         <div style={{ maxHeight:'260px', overflowY:'auto' }}>
           {items.map(({ offsetVal, label, isCur }) => {
@@ -1103,13 +1103,13 @@ function CalendarPicker({ period, offset, onSelect, onClose }) {
               <button key={offsetVal} onClick={() => { onSelect(offsetVal); onClose(); }}
                 style={{
                   width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
-                  padding:'10px 14px', border:'none', background: active ? '#FFF2EE' : 'transparent',
+                  padding:'10px 14px', border:'none', background: active ? '#FFF7F4' : 'transparent',
                   cursor:'pointer', textAlign:'left', transition:'background 0.15s',
                 }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.background='#F8FAFC'; }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background='#F7F7F7'; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background='transparent'; }}>
-                <span style={{ fontSize:'13px', fontWeight: active ? 700 : 500, color: active ? '#FF4D0C' : '#374151' }}>{label}</span>
-                {isCur && <span style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8' }}>atual</span>}
+                <span style={{ fontSize:'13px', fontWeight: active ? 700 : 500, color: active ? '#FF4D0C' : '#333333' }}>{label}</span>
+                {isCur && <span style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A' }}>atual</span>}
               </button>
             );
           })}
@@ -1140,12 +1140,12 @@ function CalendarPicker({ period, offset, onSelect, onClose }) {
   return (
     <div style={{ ...popStyle, padding:'14px', width:'268px' }}>
       <div className="flex items-center justify-between mb-3">
-        <button onClick={prevMonth} style={{ background:'#F1F5F9', border:'none', borderRadius:'8px', padding:'5px 8px', cursor:'pointer', color:'#64748B', display:'flex' }}><ChevronLeft size={13}/></button>
-        <span style={{ fontSize:'13px', fontWeight:700, color:'#0F172A' }}>{MONTH_FULL[vMonth]} {vYear}</span>
-        <button onClick={nextMonth} style={{ background: !(vYear===curYear&&vMonth>=curMonth) ? '#F1F5F9':'transparent', border:'none', borderRadius:'8px', padding:'5px 8px', cursor: !(vYear===curYear&&vMonth>=curMonth)?'pointer':'default', color: !(vYear===curYear&&vMonth>=curMonth)?'#64748B':'#CBD5E1', display:'flex' }}><ChevronRight size={13}/></button>
+        <button onClick={prevMonth} style={{ background:'#F5F5F5', border:'none', borderRadius:'8px', padding:'5px 8px', cursor:'pointer', color:'#6B6B6B', display:'flex' }}><ChevronLeft size={13}/></button>
+        <span style={{ fontSize:'13px', fontWeight:700, color:'#0B0B0B' }}>{MONTH_FULL[vMonth]} {vYear}</span>
+        <button onClick={nextMonth} style={{ background: !(vYear===curYear&&vMonth>=curMonth) ? '#F5F5F5':'transparent', border:'none', borderRadius:'8px', padding:'5px 8px', cursor: !(vYear===curYear&&vMonth>=curMonth)?'pointer':'default', color: !(vYear===curYear&&vMonth>=curMonth)?'#6B6B6B':'#C8C8C8', display:'flex' }}><ChevronRight size={13}/></button>
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:'4px' }}>
-        {['D','S','T','Q','Q','S','S'].map((d,i)=><div key={i} style={{ textAlign:'center', fontSize:'10px', fontWeight:600, color:'#94A3B8' }}>{d}</div>)}
+        {['D','S','T','Q','Q','S','S'].map((d,i)=><div key={i} style={{ textAlign:'center', fontSize:'10px', fontWeight:600, color:'#9A9A9A' }}>{d}</div>)}
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'2px' }}>
         {Array.from({ length: firstDow }).map((_,i)=><div key={`e${i}`}/>)}
@@ -1154,8 +1154,8 @@ function CalendarPicker({ period, offset, onSelect, onClose }) {
           return (
             <button key={day} onClick={()=>{ if(future) return; const diff=Math.round((new Date(vYear,vMonth,day)-TODAY_DATE)/86400000); onSelect(diff); onClose(); }}
               style={{ padding:'6px 2px', border:'none', cursor:future?'not-allowed':'pointer', fontSize:'12px', fontWeight:today?700:500,
-                background: sel?'#FF4D0C': today?'#FFF2EE':'transparent',
-                color: sel?'white': future?'#CBD5E1': today?'#FF4D0C':'#374151',
+                background: sel?'#FF4D0C': today?'#FFF7F4':'transparent',
+                color: sel?'white': future?'#C8C8C8': today?'#FF4D0C':'#333333',
                 borderRadius:'8px', outline:'none' }}>
               {day}
             </button>
@@ -1342,7 +1342,7 @@ function HistoryTab({ companyId }) {
   const PERIODS = [['dia','Dia'],['quinzena','Quinzena'],['mes','Mês']];
   const navBtn  = (icon, onClick) => (
     <button onClick={onClick} className="p-1.5 rounded-lg transition-colors"
-      style={{ background:'#F1F5F9', border:'none', cursor:'pointer', color:'#64748B', display:'flex' }}>
+      style={{ background:'#F5F5F5', border:'none', cursor:'pointer', color:'#6B6B6B', display:'flex' }}>
       {icon}
     </button>
   );
@@ -1363,11 +1363,11 @@ function HistoryTab({ companyId }) {
       </div>
 
       {/* Tipo de período */}
-      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background:'#F1F5F9', border:'1px solid rgba(0,0,0,0.06)' }}>
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background:'#F5F5F5', border:'1px solid rgba(0,0,0,0.06)' }}>
         {PERIODS.map(([val, lbl]) => (
           <button key={val} onClick={() => handlePeriod(val)}
             className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{ background: period === val ? '#FF4D0C' : 'transparent', color: period === val ? 'white' : '#64748B', border:'none', cursor:'pointer' }}>
+            style={{ background: period === val ? '#0B0B0B' : 'transparent', color: period === val ? 'white' : '#6B6B6B', border:'none', cursor:'pointer' }}>
             {lbl}
           </button>
         ))}
@@ -1375,11 +1375,11 @@ function HistoryTab({ companyId }) {
 
       {/* Navegação de período */}
       <div style={{ position:'relative' }} ref={calRef}>
-        <div className="flex items-center justify-between p-3 rounded-xl" style={{ background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.05)' }}>
+        <div className="flex items-center justify-between p-3 rounded-xl" style={{ background:'#F7F7F7', border:'1px solid rgba(0,0,0,0.05)' }}>
           {navBtn(<ChevronLeft size={15}/>, () => setOffset(o => o - 1))}
           <button onClick={() => setShowCal(v => !v)}
             className="flex items-center gap-2"
-            style={{ background:'none', border:'none', cursor:'pointer', fontSize:'13px', fontWeight:700, color:'#0F172A' }}>
+            style={{ background:'none', border:'none', cursor:'pointer', fontSize:'13px', fontWeight:700, color:'#0B0B0B' }}>
             <Calendar size={14} style={{ color:'#FF4D0C' }} />
             {label}
           </button>
@@ -1399,8 +1399,8 @@ function HistoryTab({ companyId }) {
       <div className="grid grid-cols-3 gap-3">
         {[
           { label:'Escalados', value: totalEscala,    color:'#FF4D0C' },
-          { label:'Presentes', value: totalPresentes,  color:'#059669' },
-          { label:'Faltas',    value: totalFaltas,     color: totalFaltas > 0 ? '#E11D48' : '#94A3B8' },
+          { label:'Presentes', value: totalPresentes,  color:'#0B0B0B' },
+          { label:'Faltas',    value: totalFaltas,     color: totalFaltas > 0 ? '#4A4A4A' : '#9A9A9A' },
         ].map((s,i) => (
           <div key={i} className="stat-card text-center" style={{ padding:'14px' }}>
             <p className="text-2xl font-black leading-none" style={{ color: s.color }}>{s.value}</p>
@@ -1429,20 +1429,20 @@ function HistoryTab({ companyId }) {
                 padding:'12px 20px', border:'none', background:'transparent', cursor:'pointer',
                 borderBottom: idx < days.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
               }}
-              onMouseEnter={e => e.currentTarget.style.background='#F8FAFC'}
+              onMouseEnter={e => e.currentTarget.style.background='#F7F7F7'}
               onMouseLeave={e => e.currentTarget.style.background='transparent'}>
               <div style={{ display:'grid', gridTemplateColumns:'52px 1px 1fr', columnGap:'14px', alignItems:'center', flex:1 }}>
                 <div style={{ textAlign:'center' }}>
-                  <p className="text-xs uppercase font-semibold" style={{ color:'#94A3B8', letterSpacing:'0.05em' }}>{dow}</p>
-                  <p className="text-lg font-black leading-tight" style={{ color: isToday ? '#FF4D0C' : '#0F172A' }}>{d}/{m}</p>
+                  <p className="text-xs uppercase font-semibold" style={{ color:'#9A9A9A', letterSpacing:'0.05em' }}>{dow}</p>
+                  <p className="text-lg font-black leading-tight" style={{ color: isToday ? '#FF4D0C' : '#0B0B0B' }}>{d}/{m}</p>
                 </div>
                 <div style={{ width:'1px', height:'28px', background:'rgba(0,0,0,0.08)', justifySelf:'center' }} />
-                <p style={{ fontSize:'13px', fontWeight:600, color:'#475569' }}>
+                <p style={{ fontSize:'13px', fontWeight:600, color:'#4A4A4A' }}>
                   {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
-                  <span style={{ fontWeight:400, color:'#94A3B8' }}> ({escala} ajudante{escala !== 1 ? 's' : ''})</span>
+                  <span style={{ fontWeight:400, color:'#9A9A9A' }}> ({escala} ajudante{escala !== 1 ? 's' : ''})</span>
                 </p>
               </div>
-              <ChevronRight size={14} style={{ color:'#CBD5E1', flexShrink:0, marginLeft:'8px' }} />
+              <ChevronRight size={14} style={{ color:'#C8C8C8', flexShrink:0, marginLeft:'8px' }} />
             </button>
           );
         })}
@@ -1469,16 +1469,16 @@ function HistoryTab({ companyId }) {
 
         return createPortal(
           <div onClick={e => e.target === e.currentTarget && setSelectedDay(null)}
-            style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(15,23,42,0.45)', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+            style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(11, 11, 11,0.45)', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
             <div style={{ background:'#fff', borderRadius:'18px', boxShadow:'0 20px 60px rgba(0,0,0,0.18)', width:'100%', maxWidth:'820px', height:'90vh', overflowY:'auto', display:'flex', flexDirection:'column' }}>
 
               {/* Header */}
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 24px 16px', borderBottom:'1px solid rgba(0,0,0,0.06)' }}>
                 <div>
-                  <p style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'4px' }}>Histórico</p>
-                  <h2 style={{ fontSize:'18px', fontWeight:800, color:'#0F172A' }}>{dow}, {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{y}</h2>
+                  <p style={{ fontSize:'10px', fontWeight:700, color:'#9A9A9A', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'4px' }}>Histórico</p>
+                  <h2 style={{ fontSize:'18px', fontWeight:800, color:'#0B0B0B' }}>{dow}, {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{y}</h2>
                 </div>
-                <button onClick={() => setSelectedDay(null)} style={{ background:'#F1F5F9', border:'none', borderRadius:'8px', padding:'6px', cursor:'pointer', display:'flex', color:'#64748B' }}>
+                <button onClick={() => setSelectedDay(null)} style={{ background:'#F5F5F5', border:'none', borderRadius:'8px', padding:'6px', cursor:'pointer', display:'flex', color:'#6B6B6B' }}>
                   <X size={15} />
                 </button>
               </div>
@@ -1487,29 +1487,29 @@ function HistoryTab({ companyId }) {
 
                 {/* Líder */}
                 {dateLider ? (
-                  <div style={{ display:'flex', alignItems:'center', gap:'12px', padding:'10px 12px', borderRadius:'12px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.07)' }}>
-                    <div style={{ width:'40px', height:'40px', borderRadius:'12px', background: dateLider.cor || '#64748B', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:800, color:'white', flexShrink:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'12px', padding:'10px 12px', borderRadius:'12px', background:'#F7F7F7', border:'1px solid rgba(0,0,0,0.07)' }}>
+                    <div style={{ width:'40px', height:'40px', borderRadius:'12px', background: dateLider.cor || '#6B6B6B', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:800, color:'white', flexShrink:0 }}>
                       {dateLider.iniciais}
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'1px' }}>Líder de Equipe</p>
-                      <p style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>{dateLider.nome}</p>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'1px' }}>Líder de Equipe</p>
+                      <p style={{ fontSize:'14px', fontWeight:700, color:'#0B0B0B' }}>{dateLider.nome}</p>
                     </div>
                     {whatsappLink(dateLider.telefone) && (
                       <a href={whatsappLink(dateLider.telefone)} target="_blank" rel="noopener noreferrer"
-                        style={{ display:'flex', alignItems:'center', gap:'5px', padding:'7px 12px', borderRadius:'9px', background:'#DCFCE7', color:'#15803D', textDecoration:'none', fontSize:'12px', fontWeight:700, flexShrink:0 }}>
+                        style={{ display:'flex', alignItems:'center', gap:'5px', padding:'7px 12px', borderRadius:'9px', background:'#F5F5F5', color:'#0B0B0B', textDecoration:'none', fontSize:'12px', fontWeight:700, flexShrink:0 }}>
                         <WaSVG size={13} /> WhatsApp
                       </a>
                     )}
                   </div>
                 ) : (
-                  <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'12px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.07)' }}>
-                    <div style={{ width:'40px', height:'40px', borderRadius:'12px', background:'#E2E8F0', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      <Users size={18} style={{ color:'#94A3B8' }} />
+                  <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'12px', background:'#F7F7F7', border:'1px solid rgba(0,0,0,0.07)' }}>
+                    <div style={{ width:'40px', height:'40px', borderRadius:'12px', background:'#E4E4E4', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <Users size={18} style={{ color:'#9A9A9A' }} />
                     </div>
                     <div>
-                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'1px' }}>Líder de Equipe</p>
-                      <p style={{ fontSize:'13px', fontWeight:600, color:'#94A3B8' }}>Não atribuído</p>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'1px' }}>Líder de Equipe</p>
+                      <p style={{ fontSize:'13px', fontWeight:600, color:'#9A9A9A' }}>Não atribuído</p>
                     </div>
                   </div>
                 )}
@@ -1517,17 +1517,17 @@ function HistoryTab({ companyId }) {
                 {/* KPI cards */}
                 {isCargaDescarga ? (
                   <div style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr 1fr 1.1fr', gap:'8px' }}>
-                    <div style={{ padding:'10px 8px', borderRadius:'10px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
-                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Escala</p>
-                      <p style={{ fontSize:'24px', fontWeight:800, color:'#0F172A', lineHeight:1 }}>{escala}</p>
+                    <div style={{ padding:'10px 8px', borderRadius:'10px', background:'#F7F7F7', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A', textTransform:'uppercase', letterSpacing:'0.06em' }}>Escala</p>
+                      <p style={{ fontSize:'24px', fontWeight:800, color:'#0B0B0B', lineHeight:1 }}>{escala}</p>
                     </div>
-                    <div style={{ padding:'10px 6px', borderRadius:'10px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
-                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Início</p>
-                      <p style={{ fontSize:'16px', fontWeight:800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight:1 }}>{teamStart ?? '—'}</p>
+                    <div style={{ padding:'10px 6px', borderRadius:'10px', background:'#F7F7F7', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A', textTransform:'uppercase', letterSpacing:'0.06em' }}>Início</p>
+                      <p style={{ fontSize:'16px', fontWeight:800, color: teamStart ? '#0B0B0B' : '#C8C8C8', lineHeight:1 }}>{teamStart ?? '—'}</p>
                     </div>
-                    <div style={{ padding:'10px 6px', borderRadius:'10px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
-                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Final</p>
-                      <p style={{ fontSize:'16px', fontWeight:800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight:1 }}>{teamEnd ?? '—'}</p>
+                    <div style={{ padding:'10px 6px', borderRadius:'10px', background:'#F7F7F7', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A', textTransform:'uppercase', letterSpacing:'0.06em' }}>Final</p>
+                      <p style={{ fontSize:'16px', fontWeight:800, color: teamEnd ? '#0B0B0B' : '#C8C8C8', lineHeight:1 }}>{teamEnd ?? '—'}</p>
                     </div>
                     <div style={{ padding:'10px 8px', borderRadius:'10px', background: operCfg.bg, border:`1px solid ${operCfg.border}`, textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'6px' }}>
                       <span style={{ width:'8px', height:'8px', borderRadius:'50%', background: operCfg.dot, boxShadow:`0 0 0 3px ${operCfg.dot}33` }} />
@@ -1537,33 +1537,33 @@ function HistoryTab({ companyId }) {
                   </div>
                 ) : (
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px' }}>
-                    <div style={{ padding:'10px 8px', borderRadius:'10px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
-                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Escala</p>
-                      <p style={{ fontSize:'24px', fontWeight:800, color:'#0F172A', lineHeight:1 }}>{escala}</p>
+                    <div style={{ padding:'10px 8px', borderRadius:'10px', background:'#F7F7F7', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A', textTransform:'uppercase', letterSpacing:'0.06em' }}>Escala</p>
+                      <p style={{ fontSize:'24px', fontWeight:800, color:'#0B0B0B', lineHeight:1 }}>{escala}</p>
                     </div>
-                    <div style={{ padding:'10px 8px', borderRadius:'10px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.06)', display:'flex', flexDirection:'column', justifyContent:'center', gap:'6px' }}>
+                    <div style={{ padding:'10px 8px', borderRadius:'10px', background:'#F7F7F7', border:'1px solid rgba(0,0,0,0.06)', display:'flex', flexDirection:'column', justifyContent:'center', gap:'6px' }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                        <span style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8' }}>Faltas</span>
-                        <span style={{ fontSize:'16px', fontWeight:800, color: faltas > 0 ? '#E11D48' : '#CBD5E1' }}>{faltas}</span>
+                        <span style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A' }}>Faltas</span>
+                        <span style={{ fontSize:'16px', fontWeight:800, color: faltas > 0 ? '#4A4A4A' : '#C8C8C8' }}>{faltas}</span>
                       </div>
                       <div style={{ height:'1px', background:'rgba(0,0,0,0.07)' }} />
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                        <span style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8' }}>Atrasos</span>
-                        <span style={{ fontSize:'16px', fontWeight:800, color: atrasos > 0 ? '#D97706' : '#CBD5E1' }}>{atrasos}</span>
+                        <span style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A' }}>Atrasos</span>
+                        <span style={{ fontSize:'16px', fontWeight:800, color: atrasos > 0 ? '#6B6B6B' : '#C8C8C8' }}>{atrasos}</span>
                       </div>
                     </div>
-                    <div style={{ padding:'10px 8px', borderRadius:'10px', background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
-                      <p style={{ fontSize:'10px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Presença</p>
-                      <p style={{ fontSize:'20px', fontWeight:800, color: escala > 0 ? '#0F172A' : '#CBD5E1', lineHeight:1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
+                    <div style={{ padding:'10px 8px', borderRadius:'10px', background:'#F7F7F7', border:'1px solid rgba(0,0,0,0.06)', textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:'4px' }}>
+                      <p style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A', textTransform:'uppercase', letterSpacing:'0.06em' }}>Presença</p>
+                      <p style={{ fontSize:'20px', fontWeight:800, color: escala > 0 ? '#0B0B0B' : '#C8C8C8', lineHeight:1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
                     </div>
                   </div>
                 )}
 
                 {/* Equipe + Descargas */}
                 <div>
-                  <p style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'10px' }}>Equipe</p>
+                  <p style={{ fontSize:'10px', fontWeight:700, color:'#9A9A9A', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'10px' }}>Equipe</p>
                   {dateRecs.length === 0 ? (
-                    <p style={{ fontSize:'12px', color:'#94A3B8' }}>Nenhum registro neste dia</p>
+                    <p style={{ fontSize:'12px', color:'#9A9A9A' }}>Nenhum registro neste dia</p>
                   ) : isCargaDescarga ? (
                     <div style={{ display:'flex', gap:'16px', alignItems:'flex-start' }}>
                       <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:'4px' }}>
@@ -1572,9 +1572,9 @@ function HistoryTab({ companyId }) {
                             {recs.map(rec => {
                               const emp = findEmp(employees, rec.employeeId);
                               return (
-                                <div key={rec.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 12px', borderRadius:'10px', background:'#EEF2F7', marginBottom:'3px' }}>
-                                  <div className="avatar" style={{ background:'#64748B' }}>{emp?.initials}</div>
-                                  <p style={{ fontSize:'12px', fontWeight:700, color:'#0F172A', flex:1 }}>{emp?.name}</p>
+                                <div key={rec.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 12px', borderRadius:'10px', background:'#F5F5F5', marginBottom:'3px' }}>
+                                  <div className="avatar" style={{ background:'#6B6B6B' }}>{emp?.initials}</div>
+                                  <p style={{ fontSize:'12px', fontWeight:700, color:'#0B0B0B', flex:1 }}>{emp?.name}</p>
                                 </div>
                               );
                             })}
@@ -1594,10 +1594,10 @@ function HistoryTab({ companyId }) {
                             const emp = findEmp(employees, rec.employeeId);
                             const isAbsent = rec.status === 'absent';
                             return (
-                              <div key={rec.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 12px', borderRadius:'10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom:'3px' }}>
-                                <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : '#64748B', color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
-                                <p style={{ fontSize:'12px', fontWeight:700, color: isAbsent ? '#94A3B8' : '#0F172A', flex:1 }}>{emp?.name}</p>
-                                {isAbsent && <span style={{ fontSize:'10px', fontWeight:700, padding:'2px 8px', borderRadius:'6px', background:'#FFE4E6', color:'#E11D48', flexShrink:0 }}>Falta</span>}
+                              <div key={rec.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 12px', borderRadius:'10px', background: isAbsent ? 'rgba(74, 74, 74,0.05)' : '#F5F5F5', marginBottom:'3px' }}>
+                                <div className="avatar" style={{ background: isAbsent ? '#D6D6D6' : '#6B6B6B', color: isAbsent ? '#6B6B6B' : 'white' }}>{emp?.initials}</div>
+                                <p style={{ fontSize:'12px', fontWeight:700, color: isAbsent ? '#9A9A9A' : '#0B0B0B', flex:1 }}>{emp?.name}</p>
+                                {isAbsent && <span style={{ fontSize:'10px', fontWeight:700, padding:'2px 8px', borderRadius:'6px', background:'#F5F5F5', color:'#4A4A4A', flexShrink:0 }}>Falta</span>}
                               </div>
                             );
                           })}
@@ -1632,9 +1632,9 @@ const FinTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   return (
-    <div style={{ background:'#1E293B', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'10px', padding:'10px 14px', minWidth:'130px' }}>
-      <p style={{ color:'#94A3B8', fontSize:'10px', fontWeight:600, marginBottom:'6px', textTransform:'uppercase', letterSpacing:'0.06em' }}>{d?.shortDay}, {d?.label}</p>
-      <p style={{ color:'#059669', fontSize:'15px', fontWeight:700 }}>{fmtCurrency(d?.value || 0)}</p>
+    <div style={{ background:'#1C1C1C', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'10px', padding:'10px 14px', minWidth:'130px' }}>
+      <p style={{ color:'#9A9A9A', fontSize:'10px', fontWeight:600, marginBottom:'6px', textTransform:'uppercase', letterSpacing:'0.06em' }}>{d?.shortDay}, {d?.label}</p>
+      <p style={{ color:'#0B0B0B', fontSize:'15px', fontWeight:700 }}>{fmtCurrency(d?.value || 0)}</p>
     </div>
   );
 };
@@ -1694,7 +1694,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
   const heMin          = sumOvertimeMinutes(allRecs.filter(r => r.status !== 'absent'));
   const totalValorDiarias = allRecs.filter(r => r.status !== 'absent').reduce((s, r) => s + dailyRate, 0);
   const totalValor     = totalValorDiarias + (heMin / 60) * VALOR_HORA_EXTRA(dailyRate);
-  const statusColor = payment.status === 'paid' ? '#059669' : payment.status === 'overdue' ? '#E11D48' : '#D97706';
+  const statusColor = payment.status === 'paid' ? '#0B0B0B' : payment.status === 'overdue' ? '#4A4A4A' : '#6B6B6B';
   const statusLabel = payment.status === 'paid' ? 'Pago' : payment.status === 'pending' ? 'Pendente' : 'Atrasado';
 
   return createPortal(
@@ -1705,13 +1705,13 @@ function FinPeriodModal({ payment, companyId, onClose }) {
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div>
-              <p className="text-xs font-semibold uppercase" style={{ color:'#94A3B8', letterSpacing:'0.08em', marginBottom:'4px' }}>Detalhe do período</p>
-              <h2 className="text-base font-bold" style={{ color:'#0F172A' }}>{label}</h2>
+              <p className="text-xs font-semibold uppercase" style={{ color:'#9A9A9A', letterSpacing:'0.08em', marginBottom:'4px' }}>Detalhe do período</p>
+              <h2 className="text-base font-bold" style={{ color:'#0B0B0B' }}>{label}</h2>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className={`badge badge-${payment.status}`}>{statusLabel}</span>
               </div>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color:'#94A3B8', background:'#F1F5F9' }}>
+            <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color:'#9A9A9A', background:'#F5F5F5' }}>
               <X size={15} />
             </button>
           </div>
@@ -1720,13 +1720,13 @@ function FinPeriodModal({ payment, companyId, onClose }) {
           <div className="grid grid-cols-4 gap-3 mb-4">
             {[
               { label:'Diárias',  value: totalEscala,    color:'#FF4D0C' },
-              { label:'Presentes', value: totalPresentes, color:'#059669' },
-              { label:'H. Extras', value: minutesToOvertimeString(heMin), color:'#D97706' },
-              { label:'Faltas',   value: totalFaltas,    color: totalFaltas > 0 ? '#E11D48' : '#94A3B8' },
+              { label:'Presentes', value: totalPresentes, color:'#0B0B0B' },
+              { label:'H. Extras', value: minutesToOvertimeString(heMin), color:'#6B6B6B' },
+              { label:'Faltas',   value: totalFaltas,    color: totalFaltas > 0 ? '#4A4A4A' : '#9A9A9A' },
             ].map((s, i) => (
               <div key={i} className="card-inner text-center" style={{ padding:'12px 8px' }}>
                 <p className="text-xl font-black leading-none" style={{ color: s.color }}>{s.value}</p>
-                <p className="text-xs mt-1" style={{ color:'#94A3B8' }}>{s.label}</p>
+                <p className="text-xs mt-1" style={{ color:'#9A9A9A' }}>{s.label}</p>
               </div>
             ))}
           </div>
@@ -1734,7 +1734,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
           {/* Lista de dias */}
           <div className="card overflow-hidden">
             {days.length === 0 ? (
-              <div className="py-10 text-center text-sm" style={{ color:'#94A3B8' }}>Sem registros neste período</div>
+              <div className="py-10 text-center text-sm" style={{ color:'#9A9A9A' }}>Sem registros neste período</div>
             ) : days.map(([date, recs], idx) => {
               const escala    = recs.length;
               const faltas    = recs.filter(r => r.status === 'absent').length;
@@ -1754,26 +1754,26 @@ function FinPeriodModal({ payment, companyId, onClose }) {
                     padding:'12px 16px', border:'none', background:'transparent', cursor:'pointer',
                     borderBottom: idx < days.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F7F7F7'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
 
                   <div style={{ display:'grid', gridTemplateColumns:'52px 1px 1fr', columnGap:'14px', alignItems:'center', flex:1 }}>
                     <div style={{ textAlign:'center' }}>
-                      <p className="text-xs uppercase font-semibold" style={{ color:'#94A3B8', letterSpacing:'0.05em' }}>{dow}</p>
-                      <p className="text-base font-black leading-tight" style={{ color: isToday ? '#FF4D0C' : '#0F172A' }}>{d}/{m}</p>
+                      <p className="text-xs uppercase font-semibold" style={{ color:'#9A9A9A', letterSpacing:'0.05em' }}>{dow}</p>
+                      <p className="text-base font-black leading-tight" style={{ color: isToday ? '#FF4D0C' : '#0B0B0B' }}>{d}/{m}</p>
                     </div>
                     <div style={{ width:'1px', height:'26px', background:'rgba(0,0,0,0.08)', justifySelf:'center' }} />
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs" style={{ color:'#475569' }}>{escala} ajudante{escala !== 1 ? 's' : ''}</span>
-                      {faltas  > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#FFE4E6', color:'#BE123C' }}>{faltas} falta{faltas !== 1 ? 's' : ''}</span>}
-                      {atrasos > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#FEF3C7', color:'#B45309' }}>{atrasos} atraso{atrasos !== 1 ? 's' : ''}</span>}
-                      {heMin > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#FFF7ED', color:'#C2410C' }}>{minutesToOvertimeString(heMin)} de h. extra</span>}
+                      <span className="text-xs" style={{ color:'#4A4A4A' }}>{escala} ajudante{escala !== 1 ? 's' : ''}</span>
+                      {faltas  > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#F5F5F5', color:'#4A4A4A' }}>{faltas} falta{faltas !== 1 ? 's' : ''}</span>}
+                      {atrasos > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#F7F7F7', color:'#6B6B6B' }}>{atrasos} atraso{atrasos !== 1 ? 's' : ''}</span>}
+                      {heMin > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#F7F7F7', color:'#C2410C' }}>{minutesToOvertimeString(heMin)} de h. extra</span>}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3" style={{ marginLeft:'8px' }}>
-                    <span className="text-xs font-semibold" style={{ color:'#059669' }}>{fmtCurrency(valor)}</span>
-                    <ChevronRight size={13} style={{ color:'#CBD5E1' }} />
+                    <span className="text-xs font-semibold" style={{ color:'#0B0B0B' }}>{fmtCurrency(valor)}</span>
+                    <ChevronRight size={13} style={{ color:'#C8C8C8' }} />
                   </div>
                 </button>
               );
@@ -1782,16 +1782,16 @@ function FinPeriodModal({ payment, companyId, onClose }) {
 
           {/* Footer: Valor Total + Vencimento */}
           <div className="flex items-center justify-between mt-4 px-1 py-3 rounded-xl"
-            style={{ background:'#F8FAFC', border:'1px solid rgba(0,0,0,0.05)', padding:'14px 16px' }}>
+            style={{ background:'#F7F7F7', border:'1px solid rgba(0,0,0,0.05)', padding:'14px 16px' }}>
             <div>
-              <p className="text-xs font-semibold" style={{ color:'#64748B' }}>Valor Total</p>
+              <p className="text-xs font-semibold" style={{ color:'#6B6B6B' }}>Valor Total</p>
               <p className="text-xl font-black mt-0.5" style={{ color: statusColor }}>{fmtCurrency(totalValor)}</p>
             </div>
             <div className="text-right">
-              <p className="text-xs font-semibold" style={{ color:'#64748B' }}>
+              <p className="text-xs font-semibold" style={{ color:'#6B6B6B' }}>
                 {payment.status === 'paid' ? 'Pago em' : 'Vencimento'}
               </p>
-              <p className="text-base font-bold mt-0.5" style={{ color:'#0F172A' }}>
+              <p className="text-base font-bold mt-0.5" style={{ color:'#0B0B0B' }}>
                 {payment.status === 'paid' && payment.paidDate ? fmtDate(payment.paidDate) : fmtDate(payment.dueDate)}
               </p>
             </div>
@@ -1841,19 +1841,19 @@ function Financial({ companyId }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <button onClick={() => setQOffset(o => o - 1)}
-            style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.09)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', boxShadow: '0 1px 2px rgba(15,23,42,0.05)', transition: 'all 0.15s' }}>
+            style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#FFFFFF', border: '1px solid rgba(11, 11, 11,0.09)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B6B6B', boxShadow: '0 1px 2px rgba(11, 11, 11,0.05)', transition: 'all 0.15s' }}>
             <ChevronLeft size={16} />
           </button>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', minWidth: '160px', textAlign: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0B0B0B', whiteSpace: 'nowrap', minWidth: '160px', textAlign: 'center' }}>
             {quinzenaInfo.badgeLabel}
           </span>
           <button onClick={() => setQOffset(o => Math.min(o + 1, 0))} disabled={qOffset >= 0}
-            style={{ width: '32px', height: '32px', borderRadius: '10px', background: qOffset < 0 ? '#FFFFFF' : 'transparent', border: qOffset < 0 ? '1px solid rgba(15,23,42,0.09)' : '1px solid transparent', cursor: qOffset < 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: qOffset < 0 ? '#64748B' : '#CBD5E1', boxShadow: qOffset < 0 ? '0 1px 2px rgba(15,23,42,0.05)' : 'none', transition: 'all 0.15s' }}>
+            style={{ width: '32px', height: '32px', borderRadius: '10px', background: qOffset < 0 ? '#FFFFFF' : 'transparent', border: qOffset < 0 ? '1px solid rgba(11, 11, 11,0.09)' : '1px solid transparent', cursor: qOffset < 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: qOffset < 0 ? '#6B6B6B' : '#C8C8C8', boxShadow: qOffset < 0 ? '0 1px 2px rgba(11, 11, 11,0.05)' : 'none', transition: 'all 0.15s' }}>
             <ChevronRight size={16} />
           </button>
           {qOffset < 0 && (
             <button onClick={() => setQOffset(0)}
-              style={{ padding: '7px 14px', borderRadius: '10px', background: 'linear-gradient(180deg,#FF5A1F,#FF4D0C)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(255,77,12,0.5)', transition: 'all 0.15s' }}>
+              style={{ padding: '7px 14px', borderRadius: '10px', background: 'linear-gradient(180deg,#FF4D0C,#FF4D0C)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(255,77,12,0.5)', transition: 'all 0.15s' }}>
               Período Atual
             </button>
           )}
@@ -1864,10 +1864,10 @@ function Financial({ companyId }) {
       <>
         {/* Próximo pagamento — só na quinzena atual */}
         {qOffset === 0 && nextPayment && (
-          <div className="card p-5" style={{ borderLeft: '4px solid #D97706' }}>
+          <div className="card p-5" style={{ borderLeft: '4px solid #6B6B6B' }}>
             <div className="flex items-center gap-2 mb-3">
-              <Calendar size={14} style={{ color: '#D97706' }} />
-              <span className="text-sm font-semibold" style={{ color: '#D97706' }}>Próximo Pagamento</span>
+              <Calendar size={14} style={{ color: '#6B6B6B' }} />
+              <span className="text-sm font-semibold" style={{ color: '#6B6B6B' }}>Próximo Pagamento</span>
             </div>
             <div className="flex items-end justify-between">
               <div>
@@ -1875,7 +1875,7 @@ function Financial({ companyId }) {
                 <p className="text-xs mt-1" style={TM}>Período: {formatPeriod(nextPayment.period)}</p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-lg" style={{ color: '#D97706' }}>{fmtDate(nextPayment.dueDate)}</p>
+                <p className="font-bold text-lg" style={{ color: '#6B6B6B' }}>{fmtDate(nextPayment.dueDate)}</p>
                 {daysLeft !== null && <p className="text-xs" style={TM}>{daysLeft > 0 ? `em ${daysLeft} dias` : 'Hoje'}</p>}
               </div>
             </div>
@@ -1886,13 +1886,13 @@ function Financial({ companyId }) {
           <div className="card p-5">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <span style={{ fontSize:'12px', fontWeight:700, padding:'3px 12px', borderRadius:'20px', background:'#FFF7ED', color:'#FB923C' }}>
-                  {quinzenaInfo.badgeLabel} <span style={{ color: '#0F172A', fontWeight: 500 }}>({quinzenaInfo.rangeLabel})</span>
+                <span style={{ fontSize:'12px', fontWeight:700, padding:'3px 12px', borderRadius:'20px', background:'#F7F7F7', color:'#FF4D0C' }}>
+                  {quinzenaInfo.badgeLabel} <span style={{ color: '#0B0B0B', fontWeight: 500 }}>({quinzenaInfo.rangeLabel})</span>
                 </span>
               </div>
               <div className="text-right">
                 <p className="text-xs" style={TM}>Faturado na quinzena</p>
-                <p className="font-bold text-lg" style={{ color:'#059669' }}>{fmtCurrency(quinzenaValue)}</p>
+                <p className="font-bold text-lg" style={{ color:'#0B0B0B' }}>{fmtCurrency(quinzenaValue)}</p>
                 {quinzenaHEMin > 0 && (
                   <p className="text-xs mt-0.5" style={TM}>
                     {quinzenaTotal} diária{quinzenaTotal !== 1 ? 's' : ''} + {minutesToOvertimeString(quinzenaHEMin)} de hora extra
@@ -1905,29 +1905,29 @@ function Financial({ companyId }) {
               <BarChart data={quinzenaData} margin={{ top: 8, right: 8, bottom: 4, left: 8 }} barSize={28} barCategoryGap="25%">
                 <defs>
                   <linearGradient id="finBar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#059669" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#059669" stopOpacity={0.65} />
+                    <stop offset="0%"   stopColor="#0B0B0B" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#0B0B0B" stopOpacity={0.65} />
                   </linearGradient>
                   <linearGradient id="finToday" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%"   stopColor="#FF4D0C" stopOpacity={1} />
                     <stop offset="100%" stopColor="#FF4D0C" stopOpacity={0.7} />
                   </linearGradient>
                   <linearGradient id="finEmpty" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#E2E8F0" stopOpacity={0.9} />
-                    <stop offset="100%" stopColor="#F1F5F9" stopOpacity={0.9} />
+                    <stop offset="0%"   stopColor="#E4E4E4" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="#F5F5F5" stopOpacity={0.9} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: '#475569', fontSize: 10, fontFamily: 'Inter' }}
+                  tick={{ fill: '#4A4A4A', fontSize: 10, fontFamily: 'Inter' }}
                   axisLine={{ stroke: 'rgba(0,0,0,0.08)' }}
                   tickLine={false}
                   interval={0}
                 />
                 <YAxis
                   width={55}
-                  tick={{ fill: '#475569', fontSize: 10, fontFamily: 'Inter' }}
+                  tick={{ fill: '#4A4A4A', fontSize: 10, fontFamily: 'Inter' }}
                   axisLine={false}
                   tickLine={false}
                   allowDecimals={false}
@@ -1945,8 +1945,8 @@ function Financial({ companyId }) {
 
             <div className="flex items-center gap-5 mt-3 pt-3" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
               {[
-                { solid: '#059669', label: 'Dias faturados' },
-                { solid: '#E2E8F0', label: 'Sem faturamento' },
+                { solid: '#0B0B0B', label: 'Dias faturados' },
+                { solid: '#E4E4E4', label: 'Sem faturamento' },
               ].map((l, i) => (
                 <div key={i} className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: l.solid }} />
@@ -1963,13 +1963,13 @@ function Financial({ companyId }) {
           return (
             <div style={{ padding: '14px 20px', borderRadius: '12px', background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', display: 'inline-flex', alignItems: 'center', gap: '24px' }}>
               <div>
-                <p style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>Valor a pagar</p>
-                <p style={{ fontSize: '17px', fontWeight: 700, color: '#0F172A', lineHeight: 1 }}>{fmtCurrency(quinzenaValue)}</p>
+                <p style={{ fontSize: '10px', fontWeight: 500, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>Valor a pagar</p>
+                <p style={{ fontSize: '17px', fontWeight: 700, color: '#0B0B0B', lineHeight: 1 }}>{fmtCurrency(quinzenaValue)}</p>
               </div>
               <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)' }} />
               <div>
-                <p style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>Data de pagamento</p>
-                <p style={{ fontSize: '17px', fontWeight: 700, color: '#0F172A', lineHeight: 1 }}>{payStr}</p>
+                <p style={{ fontSize: '10px', fontWeight: 500, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>Data de pagamento</p>
+                <p style={{ fontSize: '17px', fontWeight: 700, color: '#0B0B0B', lineHeight: 1 }}>{payStr}</p>
               </div>
             </div>
           );
@@ -1978,10 +1978,10 @@ function Financial({ companyId }) {
         {/* Alertas de atraso — só na quinzena atual */}
         {qOffset === 0 && myPayments.filter(p => p.status === 'overdue').map(p => (
           <div key={p.id} className="card p-4 flex items-center gap-3"
-            style={{ border: '1px solid rgba(220,38,38,0.2)', borderLeft: '4px solid #DC2626' }}>
-            <AlertTriangle size={18} style={{ color: '#DC2626' }} />
+            style={{ border: '1px solid rgba(74, 74, 74,0.2)', borderLeft: '4px solid #4A4A4A' }}>
+            <AlertTriangle size={18} style={{ color: '#4A4A4A' }} />
             <div>
-              <p className="text-sm font-semibold" style={{ color: '#DC2626' }}>Pagamento em atraso</p>
+              <p className="text-sm font-semibold" style={{ color: '#4A4A4A' }}>Pagamento em atraso</p>
               <p className="text-xs" style={TM}>{fmtCurrency(calcPaymentTotal(p, records, dailyRate).total)} · venceu em {fmtDate(p.dueDate)}</p>
             </div>
           </div>
@@ -2036,17 +2036,17 @@ function EscalasHoje({ companyId }) {
       {isCargaDescarga ? (
         /* Carga/Descarga: Escala | Início | Final | Status */
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.1fr', gap: '8px', alignItems: 'stretch' }}>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
-            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
+            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{escala}</p>
           </div>
-          <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
-            <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamStart ?? '—'}</p>
+          <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0B0B0B' : '#C8C8C8', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamStart ?? '—'}</p>
           </div>
-          <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
-            <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
+          <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#0B0B0B' : '#C8C8C8', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{teamEnd ?? '—'}</p>
           </div>
           <div style={{ padding: '10px 8px', borderRadius: '10px', background: operCfg.bg, border: `1px solid ${operCfg.border}`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: operCfg.dot, boxShadow: `0 0 0 3px ${operCfg.dot}33`, flexShrink: 0 }} />
@@ -2057,28 +2057,28 @@ function EscalasHoje({ companyId }) {
       ) : (
         /* Entrega: Escala | Faltas/Atrasos | Presença */
         <div className="grid grid-cols-3 gap-4">
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.18)', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Escala</p>
-            <p style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.18)', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A' }}>Escala</p>
+            <p style={{ fontSize: '32px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{escala}</p>
           </div>
-          <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.18)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px', minHeight: '80px' }}>
+          <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.18)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px', minHeight: '80px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Faltas</span>
-              <span style={{ fontSize: '16px', fontWeight: 800, color: faltas > 0 ? '#E11D48' : '#CBD5E1' }}>{faltas}</span>
+              <span style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A' }}>Faltas</span>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: faltas > 0 ? '#4A4A4A' : '#C8C8C8' }}>{faltas}</span>
             </div>
             <div style={{ height: '1px', background: 'rgba(0,0,0,0.07)' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Atrasos</span>
-              <span style={{ fontSize: '16px', fontWeight: 800, color: atrasos > 0 ? '#D97706' : '#CBD5E1' }}>{atrasos}</span>
+              <span style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A' }}>Atrasos</span>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: atrasos > 0 ? '#6B6B6B' : '#C8C8C8' }}>{atrasos}</span>
             </div>
           </div>
-          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.18)', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Presença</p>
-            <p style={{ fontSize: '24px', fontWeight: 800, color: escala > 0 ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
-            <p style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8' }}>{escala > 0 ? `${presenteCount}/${escala}` : '0/0'}</p>
+          <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.18)', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A' }}>Presença</p>
+            <p style={{ fontSize: '24px', fontWeight: 800, color: escala > 0 ? '#0B0B0B' : '#C8C8C8', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
+            <p style={{ fontSize: '10px', fontWeight: 500, color: '#9A9A9A' }}>{escala > 0 ? `${presenteCount}/${escala}` : '0/0'}</p>
             {escala > 0 && (
               <div style={{ height: '3px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)', marginTop: '2px' }}>
-                <div style={{ height: '100%', borderRadius: '4px', background: '#0F172A', width: `${pct}%`, transition: 'width 0.4s ease' }} />
+                <div style={{ height: '100%', borderRadius: '4px', background: '#0B0B0B', width: `${pct}%`, transition: 'width 0.4s ease' }} />
               </div>
             )}
           </div>
@@ -2103,23 +2103,23 @@ function EscalasHoje({ companyId }) {
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {Object.entries(groupByService(todayRecords)).map(([service, recs], gIdx) => (
                     <div key={service}>
-                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '8px 0 4px' : '0 0 4px' }}>
                       </p>
                       {recs.map(rec => {
                         const emp = findEmp(employees, rec.employeeId);
                         const isAbsent = rec.status === 'absent';
                         const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
                         return (
-                          <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
-                            <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#64748B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                          <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(74, 74, 74,0.04)' : '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
+                            <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D6D6D6' : (emp?.color || '#6B6B6B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                               {emp?.initials}
                             </div>
-                            <p onClick={() => setPopupEmp(emp)} style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <p onClick={() => setPopupEmp(emp)} style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#9A9A9A' : '#0B0B0B', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {emp?.name}
-                              {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>}
+                              {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#9A9A9A' }}> · Motorista {motorista}</span>}
                             </p>
                             {isAbsent && (
-                              <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
+                              <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#F5F5F5', color: '#4A4A4A', flexShrink: 0 }}>Falta</span>
                             )}
                           </div>
                         );
@@ -2149,7 +2149,7 @@ function EscalasHoje({ companyId }) {
             {todayRecords.length > 0 && (
               <button onClick={() => setShowModal(true)}
                 className="flex items-center gap-1 text-xs font-semibold"
-                style={{ color: '#64748B', background: 'none', border: 'none', cursor: 'pointer' }}>
+                style={{ color: '#6B6B6B', background: 'none', border: 'none', cursor: 'pointer' }}>
                 Ver mais <ChevronRight size={13} />
               </button>
             )}
@@ -2167,27 +2167,27 @@ function EscalasHoje({ companyId }) {
               ];
               return (
                 <div key={service}>
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '10px 0 5px' : '0 0 5px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#0B0B0B', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '10px 0 5px' : '0 0 5px' }}>
                   </p>
                   {recs.map(rec => {
                     const emp = findEmp(employees, rec.employeeId);
                     const isAbsent = rec.status === 'absent';
                     const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
                     return (
-                      <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
-                        <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#64748B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                      <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(74, 74, 74,0.04)' : '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
+                        <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D6D6D6' : (emp?.color || '#6B6B6B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                           {emp?.initials}
                         </div>
-                        <p onClick={() => setPopupEmp(emp)} style={{ minWidth: '130px', flexShrink: 0, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <p onClick={() => setPopupEmp(emp)} style={{ minWidth: '130px', flexShrink: 0, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#9A9A9A' : '#0B0B0B', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {emp?.name}
-                          {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>}
+                          {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#9A9A9A' }}> · Motorista {motorista}</span>}
                         </p>
                         <div style={{ flex: 1 }} />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
                           {TIMES.map(t => (
                             <div key={t.label} style={{ textAlign: 'center', minWidth: '42px' }}>
-                              <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '3px' }}>{t.label}</p>
-                              <span style={{ fontSize: '13px', fontWeight: 700, color: !rec[t.key] ? '#CBD5E1' : t.key === 'overtime' ? '#059669' : '#0F172A' }}>
+                              <p style={{ fontSize: '9px', color: '#9A9A9A', fontWeight: 500, marginBottom: '3px' }}>{t.label}</p>
+                              <span style={{ fontSize: '13px', fontWeight: 700, color: !rec[t.key] ? '#C8C8C8' : t.key === 'overtime' ? '#0B0B0B' : '#0B0B0B' }}>
                                 {fmtTime(rec[t.key]) ?? '—'}
                               </span>
                             </div>
@@ -2237,7 +2237,7 @@ function EscalasProximas({ companyId }) {
   if (futureDates.length === 0) {
     return (
       <div className="py-14 text-center">
-        <CalendarCheck size={32} className="mx-auto mb-3" style={{ color: '#CBD5E1' }} />
+        <CalendarCheck size={32} className="mx-auto mb-3" style={{ color: '#C8C8C8' }} />
         <p className="text-sm" style={TM}>Nenhuma escala futura lançada</p>
       </div>
     );
@@ -2261,16 +2261,16 @@ function EscalasProximas({ companyId }) {
 
     return createPortal(
       <div onClick={e => e.target === e.currentTarget && onClose()}
-        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(11, 11, 11,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
         <div style={{ background: '#fff', borderRadius: '18px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', width: '100%', maxWidth: '820px', height: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
             <div>
-              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Próxima Escala</p>
-              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>{dow}, {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{y}</h2>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Próxima Escala</p>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0B0B0B' }}>{dow}, {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{y}</h2>
             </div>
-            <button onClick={onClose} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', color: '#64748B' }}>
+            <button onClick={onClose} style={{ background: '#F5F5F5', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', color: '#6B6B6B' }}>
               <X size={15} />
             </button>
           </div>
@@ -2279,29 +2279,29 @@ function EscalasProximas({ companyId }) {
 
             {/* Líder */}
             {dateLider ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: dateLider.cor || '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.07)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: dateLider.cor || '#6B6B6B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
                   {dateLider.iniciais}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-                  <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{dateLider.nome}</p>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: '#0B0B0B' }}>{dateLider.nome}</p>
                 </div>
                 {whatsappLink(dateLider.telefone) && (
                   <a href={whatsappLink(dateLider.telefone)} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#F5F5F5', color: '#0B0B0B', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
                     <WaSVG size={13} /> WhatsApp
                   </a>
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Users size={18} style={{ color: '#94A3B8' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.07)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E4E4E4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Users size={18} style={{ color: '#9A9A9A' }} />
                 </div>
                 <div>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Não atribuído</p>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#9A9A9A' }}>Não atribuído</p>
                 </div>
               </div>
             )}
@@ -2309,17 +2309,17 @@ function EscalasProximas({ companyId }) {
             {/* KPI cards */}
             {isCargaDescarga ? (
               <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.1fr', gap: '8px' }}>
-                <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
-                  <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+                <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
+                  <p style={{ fontSize: '24px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{escala}</p>
                 </div>
-                <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
-                  <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{teamStart ?? '—'}</p>
+                <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
+                  <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0B0B0B' : '#C8C8C8', lineHeight: 1 }}>{teamStart ?? '—'}</p>
                 </div>
-                <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
-                  <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1 }}>{teamEnd ?? '—'}</p>
+                <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
+                  <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#0B0B0B' : '#C8C8C8', lineHeight: 1 }}>{teamEnd ?? '—'}</p>
                 </div>
                 <div style={{ padding: '10px 8px', borderRadius: '10px', background: operCfg.bg, border: `1px solid ${operCfg.border}`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: operCfg.dot, boxShadow: `0 0 0 3px ${operCfg.dot}33` }} />
@@ -2329,13 +2329,13 @@ function EscalasProximas({ companyId }) {
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
-                  <p style={{ fontSize: '28px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+                <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
+                  <p style={{ fontSize: '28px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{escala}</p>
                 </div>
-                <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</p>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>Agendado</span>
+                <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</p>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#6B6B6B' }}>Agendado</span>
                 </div>
               </div>
             )}
@@ -2343,11 +2343,11 @@ function EscalasProximas({ companyId }) {
             {/* Equipe + Descargas */}
             <div>
               <div style={{ marginBottom: '10px' }}>
-                <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Equipe escalada</p>
+                <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Equipe escalada</p>
               </div>
 
               {dateRecs.length === 0 ? (
-                <p style={{ fontSize: '12px', color: '#94A3B8', padding: '8px 0' }}>Nenhum ajudante escalado</p>
+                <p style={{ fontSize: '12px', color: '#9A9A9A', padding: '8px 0' }}>Nenhum ajudante escalado</p>
               ) : isCargaDescarga ? (
                 /* Carga e Descarga: split equipe | carretas */
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
@@ -2358,9 +2358,9 @@ function EscalasProximas({ companyId }) {
                         {recs.map(rec => {
                           const emp = findEmp(employees, rec.employeeId);
                           return (
-                            <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
-                              <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
-                              <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{emp?.name}</p>
+                            <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#F5F5F5', marginBottom: '3px' }}>
+                              <div className="avatar" style={{ background: '#6B6B6B' }}>{emp?.initials}</div>
+                              <p style={{ fontSize: '12px', fontWeight: 700, color: '#0B0B0B', flex: 1 }}>{emp?.name}</p>
                             </div>
                           );
                         })}
@@ -2382,9 +2382,9 @@ function EscalasProximas({ companyId }) {
                       {recs.map(rec => {
                         const emp = findEmp(employees, rec.employeeId);
                         return (
-                          <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
-                            <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
-                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{emp?.name}</p>
+                          <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#F5F5F5', marginBottom: '3px' }}>
+                            <div className="avatar" style={{ background: '#6B6B6B' }}>{emp?.initials}</div>
+                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#0B0B0B', flex: 1 }}>{emp?.name}</p>
                           </div>
                         );
                       })}
@@ -2432,21 +2432,21 @@ function EscalasProximas({ companyId }) {
                 borderBottom: idx < futureDates.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
                 textAlign: 'left', transition: 'background 0.12s',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+              onMouseEnter={e => e.currentTarget.style.background = '#F7F7F7'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div style={{ textAlign: 'center', minWidth: '44px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{dow}</p>
-                  <p style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}</p>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{dow}</p>
+                  <p style={{ fontSize: '18px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1.1 }}>{String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}</p>
                 </div>
                 <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)', flexShrink: 0 }} />
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A' }}>
                   {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
-                  <span style={{ fontWeight: 400, color: '#94A3B8' }}> ({dateRecs.length} ajudante{dateRecs.length !== 1 ? 's' : ''})</span>
+                  <span style={{ fontWeight: 400, color: '#9A9A9A' }}> ({dateRecs.length} ajudante{dateRecs.length !== 1 ? 's' : ''})</span>
                 </p>
               </div>
-              <ChevronRight size={15} style={{ color: '#CBD5E1', flexShrink: 0 }} />
+              <ChevronRight size={15} style={{ color: '#C8C8C8', flexShrink: 0 }} />
             </button>
           );
         })}
@@ -2472,7 +2472,7 @@ function EscalasAnteriores({ companyId }) {
   if (pastDates.length === 0) {
     return (
       <div className="py-14 text-center">
-        <CalendarCheck size={32} className="mx-auto mb-3" style={{ color: '#CBD5E1' }} />
+        <CalendarCheck size={32} className="mx-auto mb-3" style={{ color: '#C8C8C8' }} />
         <p className="text-sm" style={TM}>Nenhuma escala ou serviço anterior registrado</p>
       </div>
     );
@@ -2495,16 +2495,16 @@ function EscalasAnteriores({ companyId }) {
 
     return createPortal(
       <div onClick={e => e.target === e.currentTarget && onClose()}
-        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(11, 11, 11,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
         <div style={{ background: '#fff', borderRadius: '18px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', width: '100%', maxWidth: '820px', height: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
             <div>
-              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Escala Realizada (Histórico)</p>
-              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>{dow}, {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{y}</h2>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Escala Realizada (Histórico)</p>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0B0B0B' }}>{dow}, {String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}/{y}</h2>
             </div>
-            <button onClick={onClose} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', color: '#64748B' }}>
+            <button onClick={onClose} style={{ background: '#F5F5F5', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', color: '#6B6B6B' }}>
               <X size={15} />
             </button>
           </div>
@@ -2513,74 +2513,74 @@ function EscalasAnteriores({ companyId }) {
 
             {/* Líder */}
             {dateLider ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: dateLider.cor || '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.07)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: dateLider.cor || '#6B6B6B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
                   {dateLider.iniciais}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-                  <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{dateLider.nome}</p>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: '#0B0B0B' }}>{dateLider.nome}</p>
                 </div>
                 {whatsappLink(dateLider.telefone) && (
                   <a href={whatsappLink(dateLider.telefone)} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#F5F5F5', color: '#0B0B0B', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
                     <WaSVG size={13} /> WhatsApp
                   </a>
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Users size={18} style={{ color: '#94A3B8' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.07)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E4E4E4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Users size={18} style={{ color: '#9A9A9A' }} />
                 </div>
                 <div>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Não atribuído</p>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#9A9A9A' }}>Não atribuído</p>
                 </div>
               </div>
             )}
 
             {/* KPI cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px' }}>
-              <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
-                <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+              <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
+                <p style={{ fontSize: '24px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{escala}</p>
               </div>
-              <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Presentes</p>
-                <p style={{ fontSize: '24px', fontWeight: 800, color: '#059669', lineHeight: 1 }}>{presentes.length}</p>
+              <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Presentes</p>
+                <p style={{ fontSize: '24px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{presentes.length}</p>
               </div>
               {faltas > 0 && (
-                <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#FFF1F2', border: '1px solid #FFE4E6', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#E11D48', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Faltas</p>
-                  <p style={{ fontSize: '24px', fontWeight: 800, color: '#E11D48', lineHeight: 1 }}>{faltas}</p>
+                <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F5F5F5', border: '1px solid #F5F5F5', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#4A4A4A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Faltas</p>
+                  <p style={{ fontSize: '24px', fontWeight: 800, color: '#4A4A4A', lineHeight: 1 }}>{faltas}</p>
                 </div>
               )}
-              <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
-                <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{teamStart ?? '—'}</p>
+              <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
+                <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0B0B0B' : '#C8C8C8', lineHeight: 1 }}>{teamStart ?? '—'}</p>
               </div>
-              <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
-                <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1 }}>{teamEnd ?? '—'}</p>
+              <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
+                <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#0B0B0B' : '#C8C8C8', lineHeight: 1 }}>{teamEnd ?? '—'}</p>
               </div>
             </div>
 
             {/* Equipe + Descargas */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Equipe do Dia</p>
+                <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Equipe do Dia</p>
                 {dateRecs.length > 0 && (
                   <button onClick={() => setShowAjudantes(true)}
                     className="flex items-center gap-1 text-xs font-semibold"
-                    style={{ color: '#64748B', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    style={{ color: '#6B6B6B', background: 'none', border: 'none', cursor: 'pointer' }}>
                     Ver mais detalhes <ChevronRight size={13} />
                   </button>
                 )}
               </div>
 
               {dateRecs.length === 0 ? (
-                <p style={{ fontSize: '12px', color: '#94A3B8', padding: '8px 0' }}>Nenhum ajudante escalado</p>
+                <p style={{ fontSize: '12px', color: '#9A9A9A', padding: '8px 0' }}>Nenhum ajudante escalado</p>
               ) : isCargaDescarga ? (
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                   {/* Esquerda: ajudantes */}
@@ -2592,18 +2592,18 @@ function EscalasAnteriores({ companyId }) {
                           const isAbsent = rec.status === 'absent';
                           const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
                           return (
-                            <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
-                              <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#64748B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                            <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(74, 74, 74,0.04)' : '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
+                              <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D6D6D6' : (emp?.color || '#6B6B6B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                                 {emp?.initials}
                               </div>
-                              <p style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <p style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#9A9A9A' : '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {emp?.name}
-                                {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>}
+                                {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#9A9A9A' }}> · Motorista {motorista}</span>}
                               </p>
                               {isAbsent ? (
-                                <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>
+                                <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#F5F5F5', color: '#4A4A4A', flexShrink: 0 }}>Falta</span>
                               ) : (
-                                <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569', fontVariantNumeric: 'tabular-nums' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: '#4A4A4A', fontVariantNumeric: 'tabular-nums' }}>
                                   {fmtTime(rec.checkIn) || '—'} - {fmtTime(rec.checkOut) || '—'}
                                 </span>
                               )}
@@ -2637,20 +2637,20 @@ function EscalasAnteriores({ companyId }) {
                           const isAbsent = rec.status === 'absent';
                           const motorista = rec.observacoes?.match(/\(Motorista ([^)]+)\)/)?.[1] || null;
                           return (
-                            <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(244,63,94,0.04)' : '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
-                              <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#64748B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                            <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', borderRadius: '7px', background: isAbsent ? 'rgba(74, 74, 74,0.04)' : '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '3px' }}>
+                              <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: isAbsent ? '#D6D6D6' : (emp?.color || '#6B6B6B'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                                 {emp?.initials}
                               </div>
-                              <p style={{ minWidth: '130px', flexShrink: 0, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#94A3B8' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <p style={{ minWidth: '130px', flexShrink: 0, fontSize: '12px', fontWeight: 600, color: isAbsent ? '#9A9A9A' : '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {emp?.name}
-                                {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#94A3B8' }}> · Motorista {motorista}</span>}
+                                {motorista && !isAbsent && <span style={{ fontWeight: 400, color: '#9A9A9A' }}> · Motorista {motorista}</span>}
                               </p>
                               <div style={{ flex: 1 }} />
                               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
                                 {TIMES.map(t => (
                                   <div key={t.label} style={{ textAlign: 'center', minWidth: '38px' }}>
-                                    <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
-                                    <span style={{ fontSize: '12px', fontWeight: 700, color: !rec[t.key] ? '#CBD5E1' : t.key === 'overtime' ? '#059669' : '#0F172A' }}>
+                                    <p style={{ fontSize: '9px', color: '#9A9A9A', fontWeight: 500, marginBottom: '2px' }}>{t.label}</p>
+                                    <span style={{ fontSize: '12px', fontWeight: 700, color: !rec[t.key] ? '#C8C8C8' : t.key === 'overtime' ? '#0B0B0B' : '#0B0B0B' }}>
                                       {fmtTime(rec[t.key]) ?? '—'}
                                     </span>
                                   </div>
@@ -2710,28 +2710,28 @@ function EscalasAnteriores({ companyId }) {
                 borderBottom: idx < pastDates.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
                 textAlign: 'left', transition: 'background 0.12s',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+              onMouseEnter={e => e.currentTarget.style.background = '#F7F7F7'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div style={{ textAlign: 'center', minWidth: '44px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{dow}</p>
-                  <p style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}</p>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{dow}</p>
+                  <p style={{ fontSize: '18px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1.1 }}>{String(d).padStart(2,'0')}/{String(m).padStart(2,'0')}</p>
                 </div>
                 <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)', flexShrink: 0 }} />
                 <div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A' }}>
                     {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
-                    <span style={{ fontWeight: 400, color: '#94A3B8' }}> ({dateRecs.length} ajudante{dateRecs.length !== 1 ? 's' : ''})</span>
+                    <span style={{ fontWeight: 400, color: '#9A9A9A' }}> ({dateRecs.length} ajudante{dateRecs.length !== 1 ? 's' : ''})</span>
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                    <span style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>{presentes} presentes</span>
-                    {faltas > 0 && <span style={{ fontSize: '11px', color: '#E11D48', fontWeight: 600 }}>· {faltas} falta{faltas !== 1 ? 's' : ''}</span>}
-                    {dateLider && <span style={{ fontSize: '11px', color: '#64748B' }}>· Líder: {dateLider.nome}</span>}
+                    <span style={{ fontSize: '11px', color: '#0B0B0B', fontWeight: 600 }}>{presentes} presentes</span>
+                    {faltas > 0 && <span style={{ fontSize: '11px', color: '#4A4A4A', fontWeight: 600 }}>· {faltas} falta{faltas !== 1 ? 's' : ''}</span>}
+                    {dateLider && <span style={{ fontSize: '11px', color: '#6B6B6B' }}>· Líder: {dateLider.nome}</span>}
                   </div>
                 </div>
               </div>
-              <ChevronRight size={15} style={{ color: '#CBD5E1', flexShrink: 0 }} />
+              <ChevronRight size={15} style={{ color: '#C8C8C8', flexShrink: 0 }} />
             </button>
           );
         })}
@@ -2762,7 +2762,7 @@ function EscalasTab({ companyId }) {
             className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
             style={sub === s.key
               ? { background: '#fff', color: '#FF4D0C', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }
-              : { color: '#64748B' }}>
+              : { color: '#6B6B6B' }}>
             {s.label}
           </button>
         ))}
@@ -2827,7 +2827,7 @@ function SettingsTab({ company }) {
           <div className="card p-5 space-y-4">
             {fields.map(({ key, label }) => (
               <div key={key}>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>{label}</label>
                 <input className="input-field" value={form[key] || ''} onChange={e => setForm({ ...form, [key]: e.target.value })} />
               </div>
             ))}
@@ -2837,7 +2837,7 @@ function SettingsTab({ company }) {
               <Save size={14} /> Salvar alterações
             </button>
             {saved && (
-              <div className="flex items-center gap-2 text-xs font-medium" style={{ color: '#059669' }}>
+              <div className="flex items-center gap-2 text-xs font-medium" style={{ color: '#0B0B0B' }}>
                 <CheckCircle2 size={14} /> Salvo com sucesso!
               </div>
             )}
@@ -2858,7 +2858,7 @@ function SettingsTab({ company }) {
               { key: 'confirm', label: 'Confirmar nova senha' },
             ].map(({ key, label }) => (
               <div key={key}>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#64748B' }}>{label}</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>{label}</label>
                 <input
                   type="password"
                   className="input-field"
@@ -2874,7 +2874,7 @@ function SettingsTab({ company }) {
               <Save size={14} /> Alterar senha
             </button>
             {pwMsg && (
-              <div className="flex items-center gap-2 text-xs font-medium" style={{ color: pwMsg.type === 'ok' ? '#059669' : '#DC2626' }}>
+              <div className="flex items-center gap-2 text-xs font-medium" style={{ color: pwMsg.type === 'ok' ? '#0B0B0B' : '#4A4A4A' }}>
                 <CheckCircle2 size={14} /> {pwMsg.text}
               </div>
             )}
@@ -2907,18 +2907,18 @@ function DiaDetalheRelModal({ date, records, onClose }) {
         {/* Header */}
         <div className="flex items-start justify-between mb-5">
           <div>
-            <p className="text-xs font-semibold uppercase" style={{ color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '6px' }}>Ajudantes em serviço</p>
-            <h2 className="text-lg font-bold" style={{ color: '#0F172A' }}>{dow}, {d}/{m}</h2>
+            <p className="text-xs font-semibold uppercase" style={{ color: '#9A9A9A', letterSpacing: '0.08em', marginBottom: '6px' }}>Ajudantes em serviço</p>
+            <h2 className="text-lg font-bold" style={{ color: '#0B0B0B' }}>{dow}, {d}/{m}</h2>
             <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
-                Diárias: <span style={{ color: '#0369A1' }}>{ativos.length}</span>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: '#0B0B0B' }}>
+                Diárias: <span style={{ color: '#4A4A4A' }}>{ativos.length}</span>
               </p>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
-                Horas Extras: <span style={{ color: '#0369A1' }}>{minutesToOvertimeString(heMin)}</span>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: '#0B0B0B' }}>
+                Horas Extras: <span style={{ color: '#4A4A4A' }}>{minutesToOvertimeString(heMin)}</span>
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#94A3B8', background: '#F1F5F9' }}>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#9A9A9A', background: '#F5F5F5' }}>
             <X size={15} />
           </button>
         </div>
@@ -2926,20 +2926,20 @@ function DiaDetalheRelModal({ date, records, onClose }) {
         {/* Lista */}
         <div className="card p-4" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
           {ativos.length === 0 ? (
-            <div className="py-10 text-center text-sm" style={{ color: '#94A3B8' }}>Nenhum ajudante ativo neste dia</div>
+            <div className="py-10 text-center text-sm" style={{ color: '#9A9A9A' }}>Nenhum ajudante ativo neste dia</div>
           ) : Object.entries(groupByService(ativos)).map(([service, recs], gIdx) => {
             const color = GROUP_PALETTE[gIdx % GROUP_PALETTE.length];
             return (
               <div key={service}>
-                <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '10px 0 5px' : '0 0 5px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 700, color: '#0B0B0B', letterSpacing: '0.06em', textTransform: 'uppercase', margin: gIdx > 0 ? '10px 0 5px' : '0 0 5px' }}>
                 </p>
                 {recs.map(rec => {
                   const emp = findEmp(employees, rec.employeeId);
                   return (
-                    <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
-                      <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
+                    <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#F5F5F5', marginBottom: '3px' }}>
+                      <div className="avatar" style={{ background: '#6B6B6B' }}>{emp?.initials}</div>
                       <div style={{ minWidth: '110px', flexShrink: 0 }}>
-                        <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', lineHeight: 1.2 }}>{emp?.name}</p>
+                        <p style={{ fontSize: '12px', fontWeight: 700, color: '#0B0B0B', lineHeight: 1.2 }}>{emp?.name}</p>
                       </div>
                       <div style={{ flex: 1 }} />
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
@@ -2948,8 +2948,8 @@ function DiaDetalheRelModal({ date, records, onClose }) {
                           const isHE = t.key === 'overtime';
                           return (
                             <div key={t.label} style={{ textAlign: 'center', minWidth: '40px' }}>
-                              <p style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8', marginBottom: '2px' }}>{t.label}</p>
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: val ? (isHE ? '#059669' : '#0F172A') : '#CBD5E1' }}>
+                              <p style={{ fontSize: '9px', fontWeight: 600, color: '#9A9A9A', marginBottom: '2px' }}>{t.label}</p>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: val ? (isHE ? '#0B0B0B' : '#0B0B0B') : '#C8C8C8' }}>
                                 <Clock size={9} />
                                 <span style={{ fontSize: '11px', fontWeight: 700 }}>{val ?? '—'}</span>
                               </div>
@@ -2979,24 +2979,24 @@ function LiderReportBlock({ date }) {
   const relatorio = relatorios.find(r => r.data === date);
   return (
     <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '14px' }}>
-      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Relatório do Líder</p>
+      <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Relatório do Líder</p>
       {relatorio ? (
-        <div style={{ padding: '12px 14px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)' }}>
+        <div style={{ padding: '12px 14px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: relatorio.observacoes ? '10px' : 0 }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: relatorio.liderCor || '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: relatorio.liderCor || '#6B6B6B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
               {relatorio.liderIni}
             </div>
-            <p style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A', flex: 1 }}>{relatorio.liderNome}</p>
-            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: relatorio.finalizado ? '#DCFCE7' : '#EEF2F7', color: relatorio.finalizado ? '#059669' : '#64748B', flexShrink: 0 }}>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: '#0B0B0B', flex: 1 }}>{relatorio.liderNome}</p>
+            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: relatorio.finalizado ? '#F5F5F5' : '#F5F5F5', color: relatorio.finalizado ? '#0B0B0B' : '#6B6B6B', flexShrink: 0 }}>
               {relatorio.finalizado ? '✓ Finalizado' : 'Em aberto'}
             </span>
           </div>
           {relatorio.observacoes && (
-            <p style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6, paddingLeft: '36px' }}>{relatorio.observacoes}</p>
+            <p style={{ fontSize: '13px', color: '#333333', lineHeight: 1.6, paddingLeft: '36px' }}>{relatorio.observacoes}</p>
           )}
         </div>
       ) : (
-        <p style={{ fontSize: '12px', color: '#94A3B8' }}>Relatório do líder não disponível para este dia.</p>
+        <p style={{ fontSize: '12px', color: '#9A9A9A' }}>Relatório do líder não disponível para este dia.</p>
       )}
     </div>
   );
@@ -3260,7 +3260,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
 
   const navBtn = (icon, fn) => (
     <button onClick={fn} className="p-1.5 rounded-lg"
-      style={{ background: '#EEF2F7', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex' }}>
+      style={{ background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#4A4A4A', display: 'flex' }}>
       {icon}
     </button>
   );
@@ -3291,8 +3291,8 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
       <div className="card flex items-center justify-between p-3" style={{ background: '#FFFFFF' }}>
         {navBtn(<ChevronLeft size={15} />, () => setOffset(o => o - 1))}
         <div className="text-center">
-          <p className="text-sm font-bold" style={{ color: '#0F172A' }}>{label}</p>
-          <p className="text-xs mt-0.5" style={{ color: '#64748B' }}>{rangeStr}</p>
+          <p className="text-sm font-bold" style={{ color: '#0B0B0B' }}>{label}</p>
+          <p className="text-xs mt-0.5" style={{ color: '#6B6B6B' }}>{rangeStr}</p>
         </div>
         {navBtn(<ChevronRight size={15} />, () => setOffset(o => Math.min(o + 1, 0)))}
       </div>
@@ -3307,8 +3307,8 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                 style={{
                   padding: '8px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer',
                   fontSize: '12px', fontWeight: 700, transition: 'all 0.15s',
-                  background: ativo ? '#0F172A' : '#FFFFFF',
-                  color: ativo ? '#FFFFFF' : '#64748B',
+                  background: ativo ? '#0B0B0B' : '#FFFFFF',
+                  color: ativo ? '#FFFFFF' : '#6B6B6B',
                   boxShadow: ativo ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
                 }}>
                 {tipo === null ? 'Todos' : TIPO_LABEL[tipo] ?? tipo}
@@ -3337,12 +3337,12 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
               {statItems.map(({ label, value, fmt, highlight }, i) => (
                 <div key={label} style={{
                   padding: '16px 20px',
-                  background: highlight ? '#0F172A' : '#FFFFFF',
+                  background: highlight ? '#0B0B0B' : '#FFFFFF',
                   borderLeft: i > 0 ? '1px solid rgba(0,0,0,0.06)' : 'none',
                   display: 'flex', flexDirection: 'column', gap: '4px',
                 }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: highlight ? '#64748B' : '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
-                  <p style={{ fontSize: highlight ? '20px' : '16px', fontWeight: 800, color: highlight ? '#FFFFFF' : '#0F172A', lineHeight: 1 }}>{fmt(value)}</p>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: highlight ? '#6B6B6B' : '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+                  <p style={{ fontSize: highlight ? '20px' : '16px', fontWeight: 800, color: highlight ? '#FFFFFF' : '#0B0B0B', lineHeight: 1 }}>{fmt(value)}</p>
                 </div>
               ))}
             </div>
@@ -3359,12 +3359,12 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
           return (
             <div style={{
               display: 'grid', gridTemplateColumns: COL,
-              padding: '8px 16px', background: '#E2E8F0',
+              padding: '8px 16px', background: '#E4E4E4',
               borderBottom: '1px solid rgba(0,0,0,0.08)',
             }}>
               {cols.map((h, i) => (
                 <p key={i} style={{
-                  fontSize: '10px', fontWeight: 700, color: '#475569',
+                  fontSize: '10px', fontWeight: 700, color: '#4A4A4A',
                   textTransform: 'uppercase', letterSpacing: '0.05em',
                   textAlign: 'center', whiteSpace: 'nowrap',
                   overflow: 'hidden', textOverflow: 'ellipsis',
@@ -3386,35 +3386,35 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                 style={{
                   width: '100%', display: 'grid', gridTemplateColumns: COL,
                   alignItems: 'center', padding: '10px 16px', border: 'none',
-                  background: day.isWeekend ? '#FAFBFC' : 'transparent',
+                  background: day.isWeekend ? '#FAFAFA' : 'transparent',
                   cursor: hasData ? 'pointer' : 'default',
                   transition: 'background 0.12s',
                 }}
-                onMouseEnter={e => { if (hasData) e.currentTarget.style.background = '#F0F9FF'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = day.isWeekend ? '#FAFBFC' : 'transparent'; }}
+                onMouseEnter={e => { if (hasData) e.currentTarget.style.background = '#F7F7F7'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = day.isWeekend ? '#FAFAFA' : 'transparent'; }}
               >
-                <p style={{ fontSize: '12px', fontWeight: hasData ? 600 : 400, color: day.isWeekend ? '#CBD5E1' : hasData ? '#0F172A' : '#94A3B8', textAlign: 'center' }}>{day.label}</p>
+                <p style={{ fontSize: '12px', fontWeight: hasData ? 600 : 400, color: day.isWeekend ? '#C8C8C8' : hasData ? '#0B0B0B' : '#9A9A9A', textAlign: 'center' }}>{day.label}</p>
                 {(() => {
                   const dayTipo = day.recs[0]?.tipoServico || 'entrega';
                   const tipoLabel = !tipoAtivo && day.diarias > 0
                     ? `/ ${dayTipo === 'carga_descarga' ? 'descargas' : 'diárias'}`
                     : '';
                   return (
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: day.diarias > 0 ? '#0B0B0B' : '#E4E4E4', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {day.diarias > 0 ? (
                         <>
-                          {day.diarias}{tipoLabel && <span style={{ fontSize: '10px', fontWeight: 500, color: '#94A3B8', marginLeft: '4px' }}>{tipoLabel}</span>}
+                          {day.diarias}{tipoLabel && <span style={{ fontSize: '10px', fontWeight: 500, color: '#9A9A9A', marginLeft: '4px' }}>{tipoLabel}</span>}
                         </>
                       ) : '—'}
                     </p>
                   );
                 })()}
-                <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorDiarias > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>{day.valorDiarias > 0 ? fmtCurrency(day.valorDiarias) : '—'}</p>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: day.heMin > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{minutesToOvertimeString(day.heMin)}</p>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorHE > 0 ? '#059669' : '#E2E8F0', textAlign: 'center' }}>{day.valorHE > 0 ? fmtCurrency(day.valorHE) : '—'}</p>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: day.total > 0 ? '#0F172A' : '#E2E8F0', textAlign: 'center' }}>{day.total > 0 ? fmtCurrency(day.total) : '—'}</p>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorDiarias > 0 ? '#0B0B0B' : '#E4E4E4', textAlign: 'center' }}>{day.valorDiarias > 0 ? fmtCurrency(day.valorDiarias) : '—'}</p>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: day.heMin > 0 ? '#0B0B0B' : '#E4E4E4', textAlign: 'center' }}>{minutesToOvertimeString(day.heMin)}</p>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: day.valorHE > 0 ? '#0B0B0B' : '#E4E4E4', textAlign: 'center' }}>{day.valorHE > 0 ? fmtCurrency(day.valorHE) : '—'}</p>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: day.total > 0 ? '#0B0B0B' : '#E4E4E4', textAlign: 'center' }}>{day.total > 0 ? fmtCurrency(day.total) : '—'}</p>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  {hasData && <ChevronRight size={13} style={{ color: '#94A3B8' }} />}
+                  {hasData && <ChevronRight size={13} style={{ color: '#9A9A9A' }} />}
                 </div>
               </button>
             </div>
@@ -3443,16 +3443,16 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
 
           return createPortal(
             <div onClick={e => e.target === e.currentTarget && setOpenDay(null)}
-              style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+              style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(11, 11, 11,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
               <div style={{ background: '#fff', borderRadius: '18px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', width: '100%', maxWidth: '820px', height: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                   <div>
-                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Detalhe do dia</p>
-                    <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>{dow}, {String(dd).padStart(2,'0')}/{String(mm).padStart(2,'0')}/{y}</h2>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Detalhe do dia</p>
+                    <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0B0B0B' }}>{dow}, {String(dd).padStart(2,'0')}/{String(mm).padStart(2,'0')}/{y}</h2>
                   </div>
-                  <button onClick={() => setOpenDay(null)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', color: '#64748B' }}>
+                  <button onClick={() => setOpenDay(null)} style={{ background: '#F5F5F5', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', color: '#6B6B6B' }}>
                     <X size={15} />
                   </button>
                 </div>
@@ -3461,29 +3461,29 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
 
                   {/* Líder */}
                   {dateLider ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: dateLider.cor || '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.07)' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: dateLider.cor || '#6B6B6B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
                         {dateLider.iniciais}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-                        <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{dateLider.nome}</p>
+                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+                        <p style={{ fontSize: '14px', fontWeight: 700, color: '#0B0B0B' }}>{dateLider.nome}</p>
                       </div>
                       {whatsappLink(dateLider.telefone) && (
                         <a href={whatsappLink(dateLider.telefone)} target="_blank" rel="noopener noreferrer"
-                          style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '9px', background: '#F5F5F5', color: '#0B0B0B', textDecoration: 'none', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
                           <WaSVG size={13} /> WhatsApp
                         </a>
                       )}
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Users size={18} style={{ color: '#94A3B8' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.07)' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#E4E4E4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Users size={18} style={{ color: '#9A9A9A' }} />
                       </div>
                       <div>
-                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
-                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>Não atribuído</p>
+                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Líder de Equipe</p>
+                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#9A9A9A' }}>Não atribuído</p>
                       </div>
                     </div>
                   )}
@@ -3491,17 +3491,17 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                   {/* KPI cards */}
                   {isCargaDescarga ? (
                     <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.1fr', gap: '8px' }}>
-                      <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
-                        <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+                      <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
+                        <p style={{ fontSize: '24px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{escala}</p>
                       </div>
-                      <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
-                        <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{teamStart ?? '—'}</p>
+                      <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Início</p>
+                        <p style={{ fontSize: '16px', fontWeight: 800, color: teamStart ? '#0B0B0B' : '#C8C8C8', lineHeight: 1 }}>{teamStart ?? '—'}</p>
                       </div>
-                      <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
-                        <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#059669' : '#CBD5E1', lineHeight: 1 }}>{teamEnd ?? '—'}</p>
+                      <div style={{ padding: '10px 6px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final</p>
+                        <p style={{ fontSize: '16px', fontWeight: 800, color: teamEnd ? '#0B0B0B' : '#C8C8C8', lineHeight: 1 }}>{teamEnd ?? '—'}</p>
                       </div>
                       <div style={{ padding: '10px 8px', borderRadius: '10px', background: operCfg.bg, border: `1px solid ${operCfg.border}`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: operCfg.dot, boxShadow: `0 0 0 3px ${operCfg.dot}33` }} />
@@ -3511,24 +3511,24 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                     </div>
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                      <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
-                        <p style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{escala}</p>
+                      <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escala</p>
+                        <p style={{ fontSize: '24px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{escala}</p>
                       </div>
-                      <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
+                      <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Faltas</span>
-                          <span style={{ fontSize: '16px', fontWeight: 800, color: faltas > 0 ? '#E11D48' : '#CBD5E1' }}>{faltas}</span>
+                          <span style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A' }}>Faltas</span>
+                          <span style={{ fontSize: '16px', fontWeight: 800, color: faltas > 0 ? '#4A4A4A' : '#C8C8C8' }}>{faltas}</span>
                         </div>
                         <div style={{ height: '1px', background: 'rgba(0,0,0,0.07)' }} />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Atrasos</span>
-                          <span style={{ fontSize: '16px', fontWeight: 800, color: atrasos > 0 ? '#D97706' : '#CBD5E1' }}>{atrasos}</span>
+                          <span style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A' }}>Atrasos</span>
+                          <span style={{ fontSize: '16px', fontWeight: 800, color: atrasos > 0 ? '#6B6B6B' : '#C8C8C8' }}>{atrasos}</span>
                         </div>
                       </div>
-                      <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Presença</p>
-                        <p style={{ fontSize: '20px', fontWeight: 800, color: escala > 0 ? '#0F172A' : '#CBD5E1', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
+                      <div style={{ padding: '10px 8px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Presença</p>
+                        <p style={{ fontSize: '20px', fontWeight: 800, color: escala > 0 ? '#0B0B0B' : '#C8C8C8', lineHeight: 1 }}>{escala > 0 ? `${pct}%` : '—'}</p>
                       </div>
                     </div>
                   )}
@@ -3541,42 +3541,42 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                       ? `${dayInfo.diarias} descarga${dayInfo.diarias !== 1 ? 's' : ''}`
                       : `${dayInfo.diarias} diária${dayInfo.diarias !== 1 ? 's' : ''}${dayInfo.heMin > 0 ? ` · ${minutesToOvertimeString(dayInfo.heMin)} H. extras` : ''}`;
                     return (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '12px', background: 'linear-gradient(135deg,#ECFDF5,#F0FDF4)', border: '1px solid rgba(5,150,105,0.18)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '12px', background: 'linear-gradient(135deg,#F5F5F5,#F5F5F5)', border: '1px solid rgba(11, 11, 11,0.18)' }}>
                         <div>
-                          <p style={{ fontSize: '10px', fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Faturado no dia</p>
-                          <p style={{ fontSize: '11px', fontWeight: 600, color: '#059669', opacity: 0.75 }}>{desc}</p>
+                          <p style={{ fontSize: '10px', fontWeight: 700, color: '#0B0B0B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Faturado no dia</p>
+                          <p style={{ fontSize: '11px', fontWeight: 600, color: '#0B0B0B', opacity: 0.75 }}>{desc}</p>
                         </div>
-                        <p style={{ fontSize: '22px', fontWeight: 800, color: '#059669', lineHeight: 1 }}>{fmtCurrency(dayInfo.total)}</p>
+                        <p style={{ fontSize: '22px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{fmtCurrency(dayInfo.total)}</p>
                       </div>
                     );
                   })()}
 
                   {/* Equipe + Descargas */}
                   <div>
-                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Equipe</p>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Equipe</p>
                     {dayRecs.length === 0 ? (
-                      <p style={{ fontSize: '12px', color: '#94A3B8' }}>Nenhum registro neste dia</p>
+                      <p style={{ fontSize: '12px', color: '#9A9A9A' }}>Nenhum registro neste dia</p>
                     ) : isCargaDescarga ? (
                       <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           {ativos.map(rec => {
                             const emp = findEmp(employees, rec.employeeId);
                             return (
-                              <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#EEF2F7', marginBottom: '3px' }}>
-                                <div className="avatar" style={{ background: '#64748B' }}>{emp?.initials}</div>
-                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', flex: 1 }}>{emp?.name}</p>
+                              <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: '#F5F5F5', marginBottom: '3px' }}>
+                                <div className="avatar" style={{ background: '#6B6B6B' }}>{emp?.initials}</div>
+                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0B0B0B', flex: 1 }}>{emp?.name}</p>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                                   <div style={{ textAlign: 'center' }}>
-                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Entrada</p>
-                                    <p style={{ fontSize: '10px', fontWeight: 700, color: fmtTime(rec.checkIn) ? '#0F172A' : '#CBD5E1', background: fmtTime(rec.checkIn) ? '#F1F5F9' : 'transparent', padding: '2px 6px', borderRadius: '5px' }}>{fmtTime(rec.checkIn) ?? '—'}</p>
+                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Entrada</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: fmtTime(rec.checkIn) ? '#0B0B0B' : '#C8C8C8', background: fmtTime(rec.checkIn) ? '#F5F5F5' : 'transparent', padding: '2px 6px', borderRadius: '5px' }}>{fmtTime(rec.checkIn) ?? '—'}</p>
                                   </div>
                                   <div style={{ textAlign: 'center' }}>
-                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Saída</p>
-                                    <p style={{ fontSize: '10px', fontWeight: 700, color: fmtTime(rec.checkOut) ? '#059669' : '#CBD5E1', background: fmtTime(rec.checkOut) ? '#ECFDF5' : 'transparent', padding: '2px 6px', borderRadius: '5px' }}>{fmtTime(rec.checkOut) ?? '—'}</p>
+                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Saída</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: fmtTime(rec.checkOut) ? '#0B0B0B' : '#C8C8C8', background: fmtTime(rec.checkOut) ? '#F5F5F5' : 'transparent', padding: '2px 6px', borderRadius: '5px' }}>{fmtTime(rec.checkOut) ?? '—'}</p>
                                   </div>
                                   <div style={{ textAlign: 'center' }}>
-                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Descargas</p>
-                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', background: '#F1F5F9', padding: '2px 6px', borderRadius: '5px' }}>
+                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Descargas</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#0B0B0B', background: '#F5F5F5', padding: '2px 6px', borderRadius: '5px' }}>
                                       {escalas.filter(e => e.date === openDay && e.tipoServico === 'carga_descarga').reduce((s, e) => s + (carretasMap[e.id] || []).filter(c => c.value?.trim()).length, 0) || '—'}
                                     </p>
                                   </div>
@@ -3596,9 +3596,9 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                           const emp = findEmp(employees, rec.employeeId);
                           const isAbsent = rec.status === 'absent';
                           return (
-                            <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
-                              <div className="avatar" style={{ background: isAbsent ? '#D1D9E0' : '#64748B', color: isAbsent ? '#64748B' : 'white' }}>{emp?.initials}</div>
-                              <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', flex: 1 }}>{emp?.name}</p>
+                            <div key={rec.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(74, 74, 74,0.05)' : '#F5F5F5', marginBottom: '3px' }}>
+                              <div className="avatar" style={{ background: isAbsent ? '#D6D6D6' : '#6B6B6B', color: isAbsent ? '#6B6B6B' : 'white' }}>{emp?.initials}</div>
+                              <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#9A9A9A' : '#0B0B0B', flex: 1 }}>{emp?.name}</p>
                               {!isAbsent && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                                   {[
@@ -3606,21 +3606,21 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                                     ['Saída', fmtTime(rec.checkOut)],
                                   ].map(([lbl, v]) => (
                                     <div key={lbl} style={{ textAlign: 'center' }}>
-                                      <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{lbl}</p>
-                                      <p style={{ fontSize: '10px', fontWeight: 700, color: v ? '#0F172A' : '#CBD5E1', background: v ? '#F1F5F9' : 'transparent', padding: '2px 6px', borderRadius: '5px' }}>{v ?? '—'}</p>
+                                      <p style={{ fontSize: '8px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{lbl}</p>
+                                      <p style={{ fontSize: '10px', fontWeight: 700, color: v ? '#0B0B0B' : '#C8C8C8', background: v ? '#F5F5F5' : 'transparent', padding: '2px 6px', borderRadius: '5px' }}>{v ?? '—'}</p>
                                     </div>
                                   ))}
                                   <div style={{ textAlign: 'center' }}>
-                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>H. Extra</p>
-                                    <p style={{ fontSize: '10px', fontWeight: 700, color: rec.overtime ? '#D97706' : '#CBD5E1', background: rec.overtime ? '#FFF7ED' : 'transparent', padding: '2px 6px', borderRadius: '5px' }}>{rec.overtime || '—'}</p>
+                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>H. Extra</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: rec.overtime ? '#6B6B6B' : '#C8C8C8', background: rec.overtime ? '#F7F7F7' : 'transparent', padding: '2px 6px', borderRadius: '5px' }}>{rec.overtime || '—'}</p>
                                   </div>
                                   <div style={{ textAlign: 'center' }}>
-                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Valor</p>
-                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#059669', background: '#ECFDF5', padding: '2px 6px', borderRadius: '5px' }}>{fmtCurrency(dailyRate + (overtimeToMinutes(rec.overtime) / 60) * VALOR_HORA_EXTRA(dailyRate))}</p>
+                                    <p style={{ fontSize: '8px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Valor</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#0B0B0B', background: '#F5F5F5', padding: '2px 6px', borderRadius: '5px' }}>{fmtCurrency(dailyRate + (overtimeToMinutes(rec.overtime) / 60) * VALOR_HORA_EXTRA(dailyRate))}</p>
                                   </div>
                                 </div>
                               )}
-                              {isAbsent && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#FFE4E6', color: '#E11D48', flexShrink: 0 }}>Falta</span>}
+                              {isAbsent && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#F5F5F5', color: '#4A4A4A', flexShrink: 0 }}>Falta</span>}
                             </div>
                           );
                         })}
@@ -3670,34 +3670,34 @@ function EquipeTab({ companyId }) {
     });
   }, [companyId]);
 
-  if (loading) return <div className="card p-10 text-center text-sm" style={{ color: '#94A3B8' }}>Carregando...</div>;
+  if (loading) return <div className="card p-10 text-center text-sm" style={{ color: '#9A9A9A' }}>Carregando...</div>;
 
   return (
     <div className="space-y-5">
       {/* Líder de hoje */}
       <div>
-        <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#0F172A', marginBottom: '12px' }}>Líder de equipe — hoje</h2>
+        <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#0B0B0B', marginBottom: '12px' }}>Líder de equipe — hoje</h2>
         {escalaHoje?.lider ? (
           <div className="card p-4">
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: escalaHoje.lider.cor || '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: escalaHoje.lider.cor || '#0B0B0B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
                 {escalaHoje.lider.iniciais}
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>{escalaHoje.lider.nome}</p>
-                <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>Líder de Equipe · Farilog</p>
+                <p style={{ fontSize: '16px', fontWeight: 700, color: '#0B0B0B' }}>{escalaHoje.lider.nome}</p>
+                <p style={{ fontSize: '12px', color: '#6B6B6B', marginTop: '2px' }}>Líder de Equipe · Farilog</p>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
               {escalaHoje.lider.telefone && (
                 <a href={`tel:${escalaHoje.lider.telefone}`}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', background: '#F1F5F9', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', background: '#F5F5F5', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0B0B0B' }}>
                   <Phone size={14} /> {escalaHoje.lider.telefone}
                 </a>
               )}
               {escalaHoje.lider.email && (
                 <a href={`mailto:${escalaHoje.lider.email}`}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', background: '#F1F5F9', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', background: '#F5F5F5', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0B0B0B' }}>
                   <Mail size={14} /> E-mail
                 </a>
               )}
@@ -3705,19 +3705,19 @@ function EquipeTab({ companyId }) {
           </div>
         ) : (
           <div className="card p-6 text-center">
-            <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhuma escala com líder designado para hoje</p>
+            <p style={{ fontSize: '13px', color: '#9A9A9A' }}>Nenhuma escala com líder designado para hoje</p>
           </div>
         )}
       </div>
 
       {/* Relatórios do líder */}
       <div>
-        <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#0F172A', marginBottom: '12px' }}>
+        <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#0B0B0B', marginBottom: '12px' }}>
           Relatórios diários — {relatorios.length > 0 ? `${relatorios.length} registros` : 'nenhum'}
         </h2>
         {relatorios.length === 0 ? (
           <div className="card p-6 text-center">
-            <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhum relatório disponível</p>
+            <p style={{ fontSize: '13px', color: '#9A9A9A' }}>Nenhum relatório disponível</p>
           </div>
         ) : relatorios.map(r => (
           <div key={r.id} className="card overflow-hidden" style={{ marginBottom: '8px' }}>
@@ -3727,19 +3727,19 @@ function EquipeTab({ companyId }) {
                 {r.liderIni}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{fmtD(r.data)}</p>
-                <p style={{ fontSize: '11px', color: '#64748B', marginTop: '1px' }}>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#0B0B0B' }}>{fmtD(r.data)}</p>
+                <p style={{ fontSize: '11px', color: '#6B6B6B', marginTop: '1px' }}>
                   Líder: {r.liderNome}
                 </p>
               </div>
-              <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: r.finalizado ? '#DCFCE7' : '#FEF3C7', color: r.finalizado ? '#059669' : '#D97706', flexShrink: 0 }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: r.finalizado ? '#F5F5F5' : '#F7F7F7', color: r.finalizado ? '#0B0B0B' : '#6B6B6B', flexShrink: 0 }}>
                 {r.finalizado ? 'Finalizado' : 'Em aberto'}
               </span>
             </button>
             {openId === r.id && r.observacoes && (
-              <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFBFC' }}>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '6px' }}>Observações do líder</p>
-                <p style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6 }}>{r.observacoes}</p>
+              <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA' }}>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: '#9A9A9A', marginBottom: '6px' }}>Observações do líder</p>
+                <p style={{ fontSize: '13px', color: '#333333', lineHeight: 1.6 }}>{r.observacoes}</p>
               </div>
             )}
           </div>
