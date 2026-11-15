@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FariLog — Prévia: Encarregado de Equipe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --brand:#FF4D0C; --brand-2:#E03A00; --ink:#0B0B0B; --ink-2:#4A4A4A; --muted:#6B6B6B;
+  --line:rgba(0,0,0,.07); --bg:#F0F0F0; --card:#fff;
+  --navy-1:#0F0F0F; --navy-2:#000000;
+  --green:#4A4A4A; --green-bg:#F5F5F5; --amber:#C2410C; --amber-bg:#FFF2EE;
+  --red:#C2410C; --red-bg:#F7F7F7; --blue:#0B0B0B; --blue-bg:#F5F5F5;
+  --shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px -12px rgba(0,0,0,.10);
+  --shadow-lg:0 24px 48px -12px rgba(0,0,0,.25), 0 48px 96px -24px rgba(0,0,0,.2);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;letter-spacing:-.011em;min-height:100vh}
+button,input,select{font-family:inherit}
+a{text-decoration:none;color:inherit}
+img{display:block}
+
+/* ---------- Layout ---------- */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:224px;flex:0 0 224px;background:linear-gradient(180deg,var(--navy-1) 0%,var(--navy-2) 100%);border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:50}
+.logo-wrap{height:120px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid rgba(255,255,255,.06);padding:8px 10px;overflow:hidden}
+.logo-wrap img{height:76px;max-width:none;object-fit:contain;transform:scale(2.55);transform-origin:center}
+.logo-fallback{display:none;color:#fff;font-weight:800;letter-spacing:.2em;font-size:15px}
+.menu-label{font-size:10px;font-weight:600;letter-spacing:.12em;color:#8A8A8A;text-transform:uppercase;padding:20px 20px 8px}
+.nav{padding:0 8px;display:flex;flex-direction:column;gap:3px}
+.nav-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:#B0B0B0;font-size:13px;font-weight:500;position:relative;transition:all .2s}
+.nav-link:hover{background:rgba(255,255,255,.06);color:#EDEDED}
+.nav-link.active{background:rgba(255,255,255,.09);color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.nav-link.active::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:18px;border-radius:0 3px 3px 0;background:var(--brand)}
+.nav-link svg{flex-shrink:0}
+.nav-badge{margin-left:auto;font-size:8.5px;font-weight:800;letter-spacing:.08em;background:rgba(255,255,255,.14);color:#EDEDED;padding:2px 6px;border-radius:999px}
+.nav-link.active .nav-badge{background:rgba(255,255,255,.22);color:#fff}
+.sidebar-foot{margin-top:auto;padding:12px;border-top:1px solid rgba(255,255,255,.06)}
+.user-mini{display:flex;align-items:center;gap:10px;padding:8px 10px 12px}
+.user-mini p{font-size:12px;font-weight:600;color:#F5F5F5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-mini span{font-size:11px;color:#9A9A9A}
+.logout{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:#9A9A9A;font-size:13px;width:100%;background:none;border:none;cursor:pointer}
+.logout:hover{background:rgba(255,255,255,.05);color:#BEBEBE}
+.main{flex:1;margin-left:224px;min-width:0;display:flex;flex-direction:column}
+
+/* ---------- Topbar ---------- */
+.topbar{position:sticky;top:0;z-index:40;background:rgba(244,245,247,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,0,0,.04)}
+.topbar-in{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 28px}
+.topbar-title{font-size:15px;font-weight:600;letter-spacing:-.02em}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.search{position:relative}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.search input{padding:9px 14px 9px 35px;width:228px;border-radius:12px;border:1px solid rgba(0,0,0,.09);background:#fff;font-size:13px;outline:none;color:var(--ink);transition:.18s}
+.search input:focus{border-color:var(--brand);box-shadow:0 0 0 3.5px rgba(255,77,12,.10)}
+.icon-btn{width:36px;height:36px;border-radius:12px;background:#fff;border:1px solid rgba(0,0,0,.09);color:#6B6B6B;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 1px 2px rgba(0,0,0,.04);cursor:pointer}
+.icon-btn .dot{position:absolute;top:7px;right:7px;width:6px;height:6px;border-radius:50%;background:var(--brand);box-shadow:0 0 6px rgba(255,77,12,.8)}
+
+/* ---------- Page ---------- */
+.page{padding:24px 28px 44px;width:100%;max-width:1520px;margin:0 auto}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+h1{font-size:22px;font-weight:700;letter-spacing:-.03em;line-height:1.2}
+.sub{font-size:12.5px;color:var(--muted);margin-top:5px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;border-radius:12px;font-size:13px;font-weight:600;padding:10px 18px;transition:all .2s;white-space:nowrap}
+.btn-primary{background:linear-gradient(180deg,#FF5A1F 0%,#FF4D0C 100%);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(255,77,12,.24),0 8px 20px -6px rgba(255,77,12,.45)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 12px 28px -6px rgba(255,77,12,.55)}
+.btn-ghost{background:#fff;color:var(--ink-2);border:1px solid rgba(0,0,0,.10);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.btn-ghost:hover{background:#F7F7F7;transform:translateY(-1px)}
+.btn-soft{background:#F7F7F7;color:#333333;border:1px solid rgba(0,0,0,.10)}
+.btn-soft:hover{background:#F5F5F5;color:#0B0B0B}
+.btn-sm{padding:7px 12px;font-size:11.5px;border-radius:10px;gap:6px}
+.card{background:var(--card);border:1px solid rgba(0,0,0,.06);border-radius:16px;box-shadow:var(--shadow)}
+.pad{padding:20px}
+.section-title{font-size:14px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.link{font-size:12px;font-weight:600;color:#4A4A4A;display:inline-flex;align-items:center;gap:4px;cursor:pointer;background:none;border:none;transition:color .15s}
+.link:hover{color:var(--brand)}
+
+/* ---------- Avatars / badges / chips ---------- */
+.avatar{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:11px;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;background:linear-gradient(135deg,#1C1C1C,#0B0B0B);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+.avatar.gray{background:linear-gradient(135deg,#6B6B6B,#4A4A4A)}
+.avatar.green{background:linear-gradient(135deg,#4A4A4A,#333333)}
+.avatar.violet{background:linear-gradient(135deg,#6B6B6B,#4A4A4A)}
+
+/* Monograma corporativo: escuro, letras brancas e um detalhe gráfico discreto */
+.co-logo{position:relative;overflow:hidden;isolation:isolate;background:var(--co-bg,linear-gradient(145deg,#1A1A1A,#050505));color:#fff;letter-spacing:-.07em;text-indent:-.03em;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),inset 0 1px 0 rgba(255,255,255,.26),0 1px 3px rgba(0,0,0,.18)}
+.co-logo::before{content:'';position:absolute;width:82%;height:82%;border-radius:50%;right:-30%;top:-38%;border:1px solid rgba(255,255,255,.32);background:radial-gradient(circle at 32% 34%,rgba(255,255,255,.12),transparent 62%)}
+.co-logo::after{content:'';position:absolute;left:-22%;bottom:27%;width:150%;height:1px;background:rgba(255,255,255,.20);transform:rotate(-42deg)}
+.co-logo.co-xs::after{display:none}
+.co-logo.co-xs::before{width:72%;height:72%;right:-34%;top:-42%;border-color:rgba(255,255,255,.24);background:none}
+
+/* Marcação enxuta "tirou almoço": apenas uma caixa ao lado da saída */
+.lunchcheck{position:relative;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;user-select:none}
+.lunchcheck input{position:absolute;opacity:0;width:0;height:0}
+.lunchcheck .box{width:20px;height:20px;border-radius:6px;border:1.5px solid #C8C8C8;background:#fff;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;transition:.15s}
+.lunchcheck input:checked ~ .box{background:#0B0B0B;border-color:#0B0B0B}
+.lunchcheck input:not(:checked) ~ .box{border-color:#FF4D0C;background:#FFF2EE;color:#FF4D0C}
+.lunchcheck input:not(:checked) ~ .box svg{opacity:0}
+/* Caixa que mostra a quantidade de hora extra da diária */
+.he-box{display:flex;align-items:center;justify-content:center;min-height:34px;padding:8px 6px;border:1.5px solid rgba(0,0,0,.10);border-radius:10px;background:#fff;font-size:11.5px;font-weight:700;color:#6B6B6B;text-align:center}
+.he-box.he-extra{color:#C2410C;border-color:rgba(255,77,12,.35);background:#FFF2EE}
+.he-box.sm{min-height:31px;padding:7px 4px;font-size:10.5px}
+
+/* ---------- Pagamentos (encarregado) ---------- */
+.paybox{border:1.5px solid rgba(0,0,0,.08);border-radius:14px;background:#fff;margin-bottom:10px;overflow:hidden;transition:border-color .15s}
+.paybox:hover{border-color:rgba(255,77,12,.30)}
+.paybox.open{border-color:rgba(255,77,12,.45)}
+.paybox-head{display:flex;align-items:center;gap:12px;width:100%;padding:13px 15px;background:none;border:none;cursor:pointer;text-align:left;font-family:inherit}
+.pb-date{display:flex;flex-direction:column;align-items:center;justify-content:center;width:44px;height:44px;border-radius:11px;background:#F5F5F5;border:1px solid rgba(0,0,0,.05);flex-shrink:0}
+.pb-date b{font-size:14px;font-weight:800;line-height:1;color:var(--ink)}
+.pb-date span{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px}
+.pb-info{flex:1;min-width:0}
+.pb-info b{font-size:12.5px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pb-info span{font-size:10.5px;color:var(--muted);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pb-val{text-align:right;flex-shrink:0}
+.pb-val b{font-size:13.5px;font-weight:800;letter-spacing:-.02em;display:block}
+.pb-val small{font-size:9.5px;font-weight:700;color:#C2410C}
+.pb-val small.pago{color:#16A34A}
+.pb-chev{color:#8A8A8A;flex-shrink:0;transition:transform .18s;display:flex}
+.paybox.open .pb-chev{transform:rotate(180deg)}
+.paybox-body{border-top:1px solid rgba(0,0,0,.06);background:#FAFAFA;padding:6px 15px 13px}
+.pb-day{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+.pb-day:last-of-type{border-bottom:none}
+.pb-day .d{width:34px;text-align:center;flex-shrink:0}
+.pb-day .d b{font-size:12px;font-weight:700;display:block;line-height:1.1}
+.pb-day .d span{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pb-day .info{flex:1;min-width:0}
+.pb-day .info b{font-size:11.5px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pb-day .info span{font-size:10px;color:var(--muted);display:block;margin-top:1px}
+.pb-day .he{flex-shrink:0}
+.pb-day .val{font-size:11.5px;font-weight:700;white-space:nowrap;flex-shrink:0}
+.pb-sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:11px}
+.pb-sum>div{padding:9px 11px;border-radius:10px;background:#F7F7F7;border:1px solid rgba(0,0,0,.05)}
+.pb-sum p{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6B6B6B}
+.pb-sum b{font-size:11.5px;display:block;margin-top:2px}
+.pb-sum .tot{background:#FFF7F3;border-color:rgba(255,77,12,.16)}
+.pb-sum .tot p{color:#C2410C}
+.pb-sum .tot b{color:#C2410C;font-size:13px}
+.pay-cycle{padding:10px 12px;border-radius:11px;background:#F7F7F7;border:1px solid rgba(0,0,0,.05);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pay-cycle p{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6B6B}
+.pay-cycle b{font-size:12px;display:block;margin-top:2px}
+.pay-cycle .when{font-size:10px;font-weight:700;color:#C2410C;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+.pay-day{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(0,0,0,.045)}
+.pay-day:last-child{border-bottom:none}
+.pay-day .d{width:38px;text-align:center;flex-shrink:0}
+.pay-day .d b{font-size:12px;font-weight:700;display:block;line-height:1.1}
+.pay-day .d span{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pay-day .info{flex:1;min-width:0}
+.pay-day .info b{font-size:11.5px;font-weight:600;display:block}
+.pay-day .info span{font-size:10px;color:var(--muted);display:block;margin-top:1px}
+.pay-day .val{font-size:11.5px;font-weight:700;white-space:nowrap}
+.period-seg{display:inline-flex;background:#F5F5F5;border:1px solid rgba(0,0,0,.07);border-radius:11px;padding:3px;gap:2px}
+.period-seg button{border:none;background:transparent;padding:7px 13px;border-radius:8px;font-size:11.5px;font-weight:600;color:#6B6B6B;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.period-seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.10);font-weight:700}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.b-green{background:#FFFFFF;color:#333333;border:1px solid rgba(0,0,0,.12)}
+.b-blue{background:#0B0B0B;color:#FFFFFF;border:1px solid #0B0B0B}
+.b-gray{background:#F5F5F5;color:#6B6B6B;border:1px solid rgba(0,0,0,.06)}
+.b-amber{background:#FFF2EE;color:#C2410C;border:1px solid rgba(255,77,12,.18)}
+.b-red{background:#FFF2EE;color:#C2410C;border:1px solid rgba(255,77,12,.18)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#F5F5F5;border:1px solid rgba(0,0,0,.06);font-size:10.5px;font-weight:600;color:#4A4A4A;white-space:nowrap}
+.chip svg{color:#6B6B6B}
+.chip.on{background:#FFF2EE;border-color:rgba(255,77,12,.20);color:#C2410C}
+.chip.on svg{color:#FF7A38}
+.chip .x{display:inline-flex;width:15px;height:15px;border-radius:50%;background:rgba(0,0,0,.08);align-items:center;justify-content:center;cursor:pointer;margin-left:2px}
+
+/* ---------- Stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.stat{padding:17px 18px;display:flex;align-items:center;gap:14px}
+.stat-ico{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stat b{font-size:22px;font-weight:700;letter-spacing:-.03em;display:block;line-height:1.05}
+.stat p{font-size:11.5px;color:var(--muted);font-weight:500;margin-top:4px}
+.stat small{display:block;font-size:10.5px;font-weight:600;margin-top:3px}
+
+/* ---------- Pickers / modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:20px;box-shadow:var(--shadow-lg);width:100%;max-width:620px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-head{padding:22px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.modal-kicker{display:flex;align-items:center;gap:12px}
+.modal-ico{width:42px;height:42px;border-radius:13px;background:#F5F5F5;border:1px solid rgba(0,0,0,.10);display:flex;align-items:center;justify-content:center;color:#333333;flex-shrink:0}
+.modal-head h2{font-size:17px;font-weight:700;letter-spacing:-.025em}
+.modal-head p{font-size:12px;color:var(--muted);margin-top:3px}
+.xbtn{width:30px;height:30px;border-radius:9px;background:#F5F5F5;color:var(--muted);display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0}
+.modal-body{padding:18px 24px 20px;overflow-y:auto}
+.modal-foot{padding:15px 24px 20px;display:flex;align-items:center;gap:10px;border-top:1px solid rgba(0,0,0,.06);background:#fff}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:700;color:#6B6B6B;margin-bottom:6px}
+.field label span{font-weight:500;color:#C8C8C8}
+.input{width:100%;padding:10px 13px;background:#fff;border:1.5px solid rgba(0,0,0,.10);border-radius:11px;color:var(--ink);font-size:13px;outline:none;transition:.18s}
+.input:focus{border-color:var(--brand);box-shadow:0 0 0 3.5px rgba(255,77,12,.10)}
+.input::placeholder{color:#C8C8C8}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.divider{height:1px;background:rgba(0,0,0,.06);margin:16px 0}
+.section-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
+.section-h b{font-size:12.5px;font-weight:700}
+.section-h span{font-size:10.5px;font-weight:600;color:var(--muted)}
+.helper{font-size:11px;color:var(--muted);line-height:1.5;margin:4px 0 10px}
+.pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pick{display:flex;align-items:center;gap:10px;padding:10px 11px;border:1.5px solid rgba(0,0,0,.08);border-radius:11px;cursor:pointer;background:#fff;transition:.15s}
+.pick.sel{border-color:var(--brand);background:#FFF7F3;box-shadow:0 0 0 3px rgba(255,77,12,.07)}
+.pick .check{width:18px;height:18px;border-radius:5px;border:1.5px solid #C8C8C8;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;background:#fff}
+.pick.sel .check{background:var(--brand);border-color:var(--brand)}
+.pick b{font-size:11.5px;display:block;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick span{font-size:10px;color:var(--muted);display:block;margin-top:2px}
+.pick .avat{width:28px;height:28px;border-radius:8px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+.foot-note{font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-right:auto}
+.chips-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.add-row{display:flex;gap:8px;align-items:center}
+.add-row select{flex:1}
+.hist-note{display:flex;align-items:center;gap:8px;background:#F7F7F7;border:1px solid rgba(0,0,0,.05);border-radius:10px;padding:9px 11px;font-size:10.5px;color:var(--muted);margin-top:12px}
+
+/* ---------- Banner ---------- */
+.banner{display:flex;align-items:center;gap:13px;padding:13px 16px;border-radius:14px;background:#FFFFFF;border:1px solid rgba(0,0,0,.08);margin-bottom:16px}
+.banner-ico{width:34px;height:34px;border-radius:10px;background:#F5F5F5;display:flex;align-items:center;justify-content:center;color:#4A4A4A;flex-shrink:0}
+.banner b{font-size:12px;font-weight:700}
+.banner p{font-size:11px;color:#6B6B6B;margin-top:2px;line-height:1.45}
+
+/* ---------- Toolbar ---------- */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.toolbar .search{flex:1}
+.toolbar .search input{width:100%}
+.select-mini{padding:9px 34px 9px 13px;border-radius:12px;border:1px solid rgba(0,0,0,.09);background:#fff;font-size:12px;font-weight:600;color:var(--ink-2);outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236B6B6B' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center}
+
+/* ---------- Tables ---------- */
+.table-head,.trow{display:grid;align-items:center;gap:16px;padding:12px 20px}
+.table-head{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid rgba(0,0,0,.05);background:#FAFAFA}
+.trow{border-bottom:1px solid rgba(0,0,0,.045);font-size:13px;transition:background .15s}
+.trow:last-child{border-bottom:none}
+.trow:hover{background:#F7F7F7}
+.cell-main{display:flex;align-items:center;gap:11px;min-width:0}
+.cell-main b{font-size:12.5px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell-main span{font-size:10.5px;color:var(--muted);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell-main .avatar,.cell-main .co-logo{display:inline-flex;align-items:center;justify-content:center;color:#fff;margin-top:0;font-weight:800;white-space:nowrap;text-align:center}
+.row-actions{display:flex;gap:5px;justify-content:flex-end}
+.act{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:#F5F5F5;color:#6B6B6B;transition:.15s}
+.act:hover{background:#FFF2EE;color:var(--brand)}
+.act.del:hover{background:#F7F7F7;color:#FF4D0C}
+
+/* ---------- Company cards (leader panel) ---------- */
+.companies{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.company-card{padding:17px;transition:.2s}
+.company-card:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(0,0,0,.05),0 16px 32px -12px rgba(0,0,0,.14);border-color:rgba(255,77,12,.16)}
+.company-top{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+.company-top .avatar{width:40px;height:40px;border-radius:12px;font-size:11px}
+.company-top b{font-size:12.5px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.company-top span{font-size:10.5px;color:var(--muted);display:block;margin-top:2px}
+.company-line{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid rgba(0,0,0,.05);font-size:11px;color:#6B6B6B}
+.company-line:first-of-type{border-top:none}
+.company-line b{font-weight:600;color:var(--ink-2);font-size:11px}
+.company-foot{display:flex;align-items:center;justify-content:space-between;margin-top:11px;padding-top:11px;border-top:1px solid rgba(0,0,0,.05)}
+
+/* ---------- Leader dashboard lists ---------- */
+.two-col{display:grid;grid-template-columns:1.65fr 1fr;gap:16px;align-items:start}
+.list-row{display:grid;align-items:center;gap:12px;padding:11px 20px;border-bottom:1px solid rgba(0,0,0,.045);font-size:12px}
+.list-row:last-child{border-bottom:none}
+.list-row:hover{background:#F7F7F7}
+.date-block{display:flex;flex-direction:column;align-items:center;justify-content:center;width:44px;height:44px;border-radius:11px;background:#F5F5F5;border:1px solid rgba(0,0,0,.05);flex-shrink:0}
+.date-block b{font-size:14px;font-weight:800;line-height:1;color:var(--ink)}
+.date-block span{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px}
+.hist-item{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+.hist-item:last-child{border-bottom:none}
+.hist-dot{width:9px;height:9px;border-radius:50%;background:#0B0B0B;margin-top:5px;flex-shrink:0;box-shadow:0 0 0 3px rgba(0,0,0,.08)}
+.hist-dot.warn{background:#FF4D0C;box-shadow:0 0 0 3px rgba(255,77,12,.10)}
+.hist-item b{font-size:11.5px;font-weight:600;display:block}
+.hist-item span{font-size:10.5px;color:var(--muted);display:block;margin-top:2px}
+.pend{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+.pend:last-child{border-bottom:none}
+.pend b{font-size:11.5px;font-weight:600;display:block}
+.pend span{font-size:10.5px;color:var(--muted);display:block;margin-top:2px}
+
+/* ---------- Shift / times ---------- */
+.shift-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px;flex-wrap:wrap}
+.shift-title{display:flex;gap:13px;align-items:center}
+.shift-title .avatar{width:46px;height:46px;border-radius:14px;font-size:13px}
+.shift-title h2{font-size:16px;font-weight:700;letter-spacing:-.025em}
+.shift-title p{font-size:11.5px;color:var(--muted);margin-top:3px}
+.shift-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.meta-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:10px;background:#F7F7F7;border:1px solid rgba(0,0,0,.05);font-size:11px;font-weight:600;color:#6B6B6B}
+.meta-pill svg{color:#6B6B6B}
+.time-input{width:100%;padding:8px 10px;border:1.5px solid rgba(0,0,0,.10);border-radius:10px;background:#fff;font-size:12.5px;font-weight:700;color:var(--ink);outline:none;text-align:center;letter-spacing:.02em}
+.time-input.filled{border-color:rgba(0,0,0,.12);background:#FFFFFF;color:#0B0B0B}
+.time-input.empty{border-color:rgba(255,77,12,.35);background:#FFF2EE;color:#C2410C}
+.time-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:4px;text-align:center}
+.shift-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 20px;border-top:1px solid rgba(0,0,0,.06);background:#FAFAFA;flex-wrap:wrap}
+.shift-foot .hint{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.progress{height:6px;border-radius:99px;background:#E4E4E4;overflow:hidden;margin-top:9px}
+.progress i{display:block;height:100%;width:80%;border-radius:99px;background:linear-gradient(90deg,#FF7A38,#FF4D0C)}
+
+/* ---------- Company account ---------- */
+.leader-banner{position:relative;overflow:hidden;padding:20px 22px;display:flex;align-items:center;gap:18px;margin-bottom:18px;background:linear-gradient(100deg,#0B0B0B 0%,#242424 55%,#2E2E2E 100%);border:1px solid rgba(0,0,0,.1);border-radius:18px;box-shadow:0 16px 32px -16px rgba(0,0,0,.35)}
+.leader-banner:before{content:'';position:absolute;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.10),transparent 65%);right:-80px;top:-160px}
+.leader-banner .avatar{width:54px;height:54px;border-radius:16px;font-size:15px;background:linear-gradient(135deg,#1C1C1C,#0B0B0B);z-index:1}
+.lb-info{flex:1;min-width:0;position:relative;z-index:1}
+.lb-label{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#FF9A70;margin-bottom:4px}
+.lb-info b{font-size:17px;font-weight:700;color:#fff;letter-spacing:-.02em;display:block}
+.lb-info span{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:rgba(255,255,255,.55);margin-top:5px;margin-right:14px}
+.lb-actions{display:flex;gap:8px;position:relative;z-index:1;flex-wrap:wrap}
+.lb-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:11px;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:#fff;cursor:pointer}
+.lb-btn.wa{background:#0B0B0B;border-color:#0B0B0B;color:#FFFFFF}
+
+/* ---------- Mobile ---------- */
+.mobile-only{display:none}
+.mheader{display:none}
+.mbottom{display:none}
+.fab{display:none}
+body.mobile{background:#F2F2F2}
+body.mobile .sidebar,body.mobile .topbar{display:none}
+body.mobile .main{margin-left:0}
+body.mobile .page{padding:0}
+body.mobile .mobile-only{display:block}
+body.mobile .desktop-only{display:none}
+body.mobile .mheader{display:block}
+body.mobile .mbottom{display:flex}
+body.mobile .fab{display:flex}
+body.mobile .mcontent{padding:0 16px 104px}
+body.mobile .mheader{padding:16px 18px 26px;background:linear-gradient(160deg,#0F0F0F 0%,#000000 100%);color:#fff;position:relative;overflow:hidden}
+body.mobile .mheader:after{content:'';position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.10),transparent 65%);top:-110px;right:-70px}
+.mheader-top{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1}
+.mheader-top img{height:24px;max-width:100px;object-fit:contain}
+.mheader h2{font-size:22px;font-weight:700;letter-spacing:-.035em;margin-top:18px;position:relative;z-index:1}
+.mheader p{font-size:11.5px;color:rgba(255,255,255,.52);margin-top:4px;position:relative;z-index:1}
+.mheader .htools{display:flex;gap:8px;align-items:center;z-index:1;position:relative}
+.mheader .micon{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#D4D4D4;position:relative}
+.mheader .micon .dot{position:absolute;top:6px;right:6px;width:5px;height:5px;border-radius:50%;background:#FF4D0C}
+.mheader .avatar{width:32px;height:32px;border-radius:10px;font-size:10px}
+.mstat{margin:-18px 16px 14px;background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:16px;box-shadow:0 10px 26px -14px rgba(0,0,0,.22);display:grid;grid-template-columns:repeat(3,1fr);position:relative;z-index:2;overflow:hidden}
+.mstat div{padding:12px 8px;text-align:center;border-right:1px solid rgba(0,0,0,.05)}
+.mstat div:last-child{border-right:none}
+.mstat b{font-size:17px;font-weight:800;display:block;letter-spacing:-.03em}
+.mstat span{font-size:9.5px;color:var(--muted);font-weight:600;display:block;margin-top:2px}
+.mchips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
+.mchips::-webkit-scrollbar{display:none}
+.mchip{white-space:nowrap;padding:7px 13px;border-radius:999px;background:#fff;border:1px solid rgba(0,0,0,.08);font-size:11px;font-weight:600;color:#6B6B6B}
+.mchip.active{background:#0B0B0B;color:#fff;border-color:#0B0B0B}
+.msection{display:flex;align-items:center;justify-content:space-between;margin:14px 0 9px}
+.msection b{font-size:12.5px;font-weight:700}
+.msection span{font-size:10.5px;color:var(--muted);font-weight:600}
+.mscale{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:15px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 20px -14px rgba(0,0,0,.16);padding:13px;margin-bottom:9px}
+.mscale-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.mscale-co{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+.mscale-co>div{min-width:0;flex:1}
+.mscale-top .badge{flex-shrink:0}
+.helper-id{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+.helper-id>div{min-width:0;flex:1}
+.helper-head .badge{flex-shrink:0}
+.mscale-co .avatar{width:32px;height:32px;border-radius:10px;font-size:9px}
+.mscale-co b{font-size:12px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mscale-co span{font-size:10px;color:var(--muted);display:block;margin-top:2px}
+.mscale-meta{display:flex;align-items:center;gap:12px;margin:10px 0 11px;flex-wrap:wrap}
+.mm{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:#6B6B6B;font-weight:500}
+.mm svg{color:#6B6B6B}
+.mbtns{display:flex;gap:7px}
+.mbtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border-radius:9px;font-size:10.5px;font-weight:700;border:1px solid rgba(0,0,0,.09);background:#fff;color:#4A4A4A}
+.mbtn.primary{background:linear-gradient(180deg,#FF5A1F,#FF4D0C);border-color:transparent;color:#fff;box-shadow:0 6px 14px -6px rgba(255,77,12,.5)}
+.mbottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid rgba(0,0,0,.07);padding:7px 6px calc(7px + env(safe-area-inset-bottom));justify-content:space-around;z-index:60;box-shadow:0 -8px 24px -18px rgba(0,0,0,.3)}
+.mbottom a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;font-weight:600;color:#6B6B6B;padding:4px 2px;border-radius:10px;flex:1;min-width:0;text-align:center}
+.mbottom a.active{color:var(--brand)}
+.fab{position:fixed;right:17px;bottom:74px;width:52px;height:52px;border-radius:17px;background:linear-gradient(180deg,#FF5A1F,#FF4D0C);color:#fff;align-items:center;justify-content:center;box-shadow:0 12px 24px -6px rgba(255,77,12,.65),inset 0 1px 0 rgba(255,255,255,.2);z-index:61;border:none}
+.mback{display:flex;align-items:center;gap:10px;position:relative;z-index:1}
+.mback .b{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#fff}
+.mback b{font-size:15px;font-weight:700}
+.mback span{font-size:10px;color:rgba(255,255,255,.45);display:block;margin-top:2px}
+.mprogress{margin:14px 0 12px}
+.mprogress-top{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;color:#6B6B6B;font-weight:600}
+.mprogress-top b{color:var(--ink);font-weight:700}
+.helper-card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:15px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:13px;margin-bottom:9px}
+.helper-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.helper-id{display:flex;align-items:center;gap:9px;min-width:0}
+.helper-id .avatar{width:32px;height:32px;border-radius:10px;font-size:9px;display:inline-flex;align-items:center;justify-content:center;color:#fff;margin-top:0;font-weight:800;white-space:nowrap}
+.helper-id b{font-size:11.5px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.helper-id span{font-size:9.5px;color:var(--muted);display:block;margin-top:1px}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.tgrid4{display:grid;grid-template-columns:1fr 1fr 34px 76px;gap:7px;align-items:end}
+.tgrid4 .tfield-check label{font-size:7px;letter-spacing:.01em}
+.tgrid4 .he-box{width:100%}
+.tfield label{display:block;font-size:8.5px;font-weight:700;color:#6B6B6B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;text-align:center}
+.tfield input{width:100%;padding:7px 6px;border:1.5px solid rgba(0,0,0,.1);border-radius:8px;font-size:12px;font-weight:700;text-align:center;color:var(--ink);outline:none;background:#fff}
+.tfield input.filled{border-color:rgba(0,0,0,.12);background:#FFFFFF;color:#0B0B0B}
+.tfield input.empty{border-color:rgba(255,77,12,.35);background:#FFF2EE;color:#C2410C}
+.savebar{position:fixed;bottom:0;left:0;right:0;padding:11px 16px calc(11px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border-top:1px solid rgba(0,0,0,.07);z-index:70;box-shadow:0 -8px 24px -20px rgba(0,0,0,.4)}
+.savebar .btn{width:100%;padding:13px}
+.savebar .subhint{font-size:9.5px;color:var(--muted);text-align:center;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:5px}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#C8C8C8;border-radius:8px;border:2px solid transparent;background-clip:content-box}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const ICONS = {
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  building:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 8h1M14 8h1M9 12h1M14 12h1M9 16h1M14 16h1"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  userCheck:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/>',
+  calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  clipboard:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  edit:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/>',
+  trash:'<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
+  chevronRight:'<path d="m9 18 6-6-6-6"/>',
+  chevronLeft:'<path d="m15 18-6-6 6-6"/>',
+  chevronDown:'<path d="m6 9 6 6 6-6"/>',
+  phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/>',
+  mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/>',
+  whatsapp:'<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.6A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 8.5c0 4 3 7 7 7 .6 0 1.2-.5 1.2-1.1 0-.3-.1-.5-.3-.7l-1.6-1.1c-.2-.1-.4-.2-.6-.1-.2 0-.4.1-.5.3l-.5.6a5.5 5.5 0 0 1-2.4-2.4l.6-.5c.2-.1.3-.3.3-.5s0-.4-.1-.6L10.5 8c-.2-.2-.4-.3-.7-.3-.6 0-1.3.6-1.3 1.2z"/>',
+  mapPin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>',
+  check:'<path d="m20 6-11 11-5-5"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  arrowRight:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  arrowLeft:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  briefcase:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+  activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  dollar:'<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  fileText:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
+  alert:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  filter:'<path d="M22 3H2l8 9.5V19l4 2v-8.5z"/>',
+  userPlus:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
+  eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  truck:'<path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-5l-3-4h-5v9h3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  checkCircle:'<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/>',
+  wallet:'<path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-6"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>',
+  calendarRange:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/>'
+};
+function ic(n, s=18, sw=1.8){ return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]||''}</svg>`; }
+
+const LOGO = 'https://ik.imagekit.io/xsbrdnr0y/Logo%20Farilog%20branco%20(sem%20fundo).png';
+const logoImg = (h) => `<img src="${LOGO}" alt="FariLog" style="height:${h}px" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="logo-fallback">FARILOG</span>`;
+
+const NAV = {
+  admin: [
+    {k:'visao', label:'Visão Geral', icon:'grid'},
+    {k:'operacional', label:'Operacional', icon:'briefcase', chevron:true},
+    {k:'financeiro', label:'Financeiro', icon:'dollar', chevron:true},
+    {k:'rh', label:'RH', icon:'users', chevron:true},
+    {k:'empresas', label:'Empresas', icon:'building'},
+    {k:'relatorios', label:'Relatórios', icon:'fileText'},
+    {k:'encarregados', label:'Encarregados', icon:'userCheck', badge:'NOVO'},
+  ],
+  lider: [
+    {k:'visao', label:'Visão Geral', icon:'grid'},
+    {k:'escalas', label:'Escalas', icon:'calendar'},
+    {k:'historico', label:'Histórico', icon:'clipboard'},
+    {k:'empresas', label:'Empresas', icon:'building'},
+    {k:'pagamentos', label:'Pagamentos', icon:'wallet'},
+    {k:'ocorrencias', label:'Ocorrências', icon:'alert'},
+  ],
+  empresa: [
+    {k:'painel', label:'Painel Inicial', icon:'grid'},
+    {k:'escalas', label:'Escalas', icon:'calendar'},
+    {k:'financeiro', label:'Financeiro', icon:'dollar'},
+    {k:'relatorio', label:'Relatório', icon:'fileText'},
+    {k:'config', label:'Configurações', icon:'settings'},
+  ]
+};
+const USERS = {
+  admin:{n:'Ricardo Farias', r:'Administrador', i:'RF'},
+  lider:{n:'Carlos Mendes', r:'Encarregado', i:'CM'},
+  empresa:{n:'TransLog Distribuição', r:'Empresa', i:'TL'},
+};
+
+function sidebar(role, active){
+  const items = NAV[role];
+  const u = USERS[role];
+  const home = role==='empresa' ? '/company' : role==='admin' ? '/admin' : '/encarregado';
+  return `<aside class="sidebar">
+    <div class="logo-wrap">${logoImg(72)}</div>
+    <p class="menu-label">Menu</p>
+    <nav class="nav">
+      ${items.map(it=>`<a class="nav-link ${active===it.k?'active':''}" href="#${home}?tab=${it.k}">
+        ${ic(it.icon,17)}
+        <span>${it.label}</span>
+        ${it.badge?`<span class="nav-badge">${it.badge}</span>`:''}
+        ${it.chevron?`<span style="margin-left:auto;color:#8A8A8A">${ic('chevronDown',12)}</span>`:''}
+      </a>`).join('')}
+    </nav>
+    <div class="sidebar-foot">
+      <div class="user-mini">
+        <span class="avatar ${role==='empresa'?'co-logo':''}">${u.i}</span>
+        <div style="min-width:0"><p>${u.n}</p><span>${u.r}</span></div>
+      </div>
+      <button class="logout">${ic('logout',16)}<span>Sair</span></button>
+    </div>
+  </aside>`;
+}
+
+function topbar(title, extra=''){
+  return `<div class="topbar"><div class="topbar-in">
+    <span class="topbar-title">${title}</span>
+    <div class="topbar-actions">
+      <div class="search">${ic('search',14)}<input placeholder="Buscar..." /></div>
+      <button class="icon-btn">${ic('bell',15)}<span class="dot"></span></button>
+      <span class="avatar" style="width:32px;height:32px;border-radius:10px;font-size:10px">${extra||'CM'}</span>
+    </div>
+  </div></div>`;
+}
+
+const COMPANIES = [
+  {id:'tl', name:'TransLog Distribuição', city:'Gravataí/RS', ini:'TL', color:'linear-gradient(135deg,#1C1C1C,#0B0B0B)'},
+  {id:'ms', name:'Mercado Sul Atacado', city:'Porto Alegre/RS', ini:'MS', color:'linear-gradient(135deg,#333333,#1C1C1C)'},
+  {id:'av', name:'AgroVale Insumos', city:'Canoas/RS', ini:'AV', color:'linear-gradient(135deg,#4A4A4A,#333333)'},
+  {id:'ca', name:'Central Atacadão', city:'São Leopoldo/RS', ini:'CA', color:'linear-gradient(135deg,#6B6B6B,#4A4A4A)'},
+  {id:'rn', name:'Rota Norte Logística', city:'Novo Hamburgo/RS', ini:'RN', color:'linear-gradient(135deg,#6B6B6B,#333333)'},
+  {id:'dv', name:'Depósito Vila Nova', city:'Sapucaia do Sul/RS', ini:'DV', color:'linear-gradient(135deg,#6B6B6B,#4A4A4A)'},
+];
+const byId = Object.fromEntries(COMPANIES.map(c=>[c.id,c]));
+const compAv = (c, size=28, radius=8, fs=9) => `<span class="avatar co-logo${size < 24 ? ' co-xs' : ''}" style="width:${size}px;height:${size}px;border-radius:${radius}px;font-size:${fs}px;--co-bg:${c.color}">${c.ini}</span>`;
+
+/* Regra de pagamento dos ajudantes por empresa (cada empresa tem o seu prazo).
+   O app calcula a data de pagamento de cada diária e agrupa: 1 caixa por data. */
+const PAYRULES = {
+  tl:{tipo:'Quinzenal', short:'Quinzenal', desc:'1ª quinzena (1–15) paga dia 20 · 2ª (16–31) paga dia 5 do mês seguinte'},
+  ms:{tipo:'Semanal', short:'Semanal', desc:'Seg–sex da semana paga na quarta da semana seguinte'},
+  av:{tipo:'Mensal', short:'Mensal', desc:'Mês fechado paga no dia 10 do mês seguinte'},
+};
+const HE_HORA = 20;          // valor da hora extra (R$/h)
+const HOJE = new Date(2026,10,14); // "hoje" no universo do protótipo
+const WD = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+const MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const MSH = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; // mesmo formato do app
+const parseISO = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const fmtBR = dt => `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`;
+const fmtH = m => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}`;
+
+/* HE do dia: horas trabalhadas além de 8h (almoço desconta 1h; sem almoço não desconta) */
+function heOfDay(day){
+  const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+  const worked = toMin(day.s) - toMin(day.e) - (day.lunch ? 60 : 0);
+  return Math.max(0, worked - 480);
+}
+
+/* Data de pagamento da diária, conforme o prazo da empresa */
+function payDateFor(iso, co){
+  const dt = parseISO(iso);
+  if (co === 'tl') return dt.getDate() <= 15
+    ? new Date(dt.getFullYear(), dt.getMonth(), 20)
+    : new Date(dt.getFullYear(), dt.getMonth()+1, 5);
+  if (co === 'ms') { // quarta da semana seguinte (semana seg–sex)
+    const dsm = (dt.getDay()+6)%7; // 0 = segunda
+    const wed = new Date(dt); wed.setDate(dt.getDate() + (4 - dsm) + 5);
+    return wed;
+  }
+  return new Date(dt.getFullYear(), dt.getMonth()+1, 10); // av: mensal, dia 10
+}
+
+/* Agrupa as diárias por data de pagamento dentro do período selecionado */
+function payGroups(helper, ym){
+  const map = new Map();
+  helper.days.forEach(day=>{
+    const pd = payDateFor(day.d, day.co);
+    const key = `${pd.getFullYear()}-${String(pd.getMonth()+1).padStart(2,'0')}`;
+    if (key !== ym) return;
+    if (!map.has(pd.getTime())) map.set(pd.getTime(), {date:pd, days:[]});
+    map.get(pd.getTime()).days.push(day);
+  });
+  return [...map.values()].sort((a,b)=>a.date-b.date);
+}
+
+/* Título do pagamento no formato do app:
+   Quinzenal (Nov 1) · Semanal (01/11 a 07/11) · Mensal (Nov) */
+function payTitle(g){
+  const cos = [...new Set(g.days.map(d=>d.co))];
+  const tipos = [...new Set(cos.map(id=>PAYRULES[id].tipo))];
+  const dt = g.date;
+  if (tipos.includes('Semanal')) {
+    const ds = g.days.map(d=>parseISO(d.d).getTime());
+    const ini = new Date(Math.min(...ds)), fim = new Date(Math.max(...ds));
+    return `Semanal (${fmtBR(ini)} a ${fmtBR(fim)})`;
+  }
+  if (tipos.includes('Quinzenal')) {
+    const num = g.days.some(d=>parseISO(d.d).getDate() > 15) ? 2 : 1;
+    return `Quinzenal (${MSH[dt.getMonth()]} ${num})`;
+  }
+  return `Mensal (${MSH[dt.getMonth()]})`;
+}
+function groupTotals(g, helper){
+  const dias = g.days.length;
+  const heMin = g.days.reduce((s,d)=>s+heOfDay(d),0);
+  const vDi = dias*helper.diaria, vHe = heMin/60*HE_HORA;
+  return {dias, heMin, vDi, vHe, total:vDi+vHe};
+}
+
+const HELPERS_PAY = [
+  {id:'as', n:'Anderson Souza', i:'AS', col:'linear-gradient(135deg,#1C1C1C,#0B0B0B)', diaria:150, days:[
+    {d:'2026-10-05', co:'ms', e:'08:00', s:'17:00', lunch:true},
+    {d:'2026-10-06', co:'ms', e:'08:00', s:'18:00', lunch:true},
+    {d:'2026-10-07', co:'ms', e:'08:00', s:'17:00', lunch:false},
+    {d:'2026-10-08', co:'ms', e:'08:00', s:'16:30', lunch:true},
+    {d:'2026-10-09', co:'ms', e:'08:00', s:'17:30', lunch:true},
+    {d:'2026-10-19', co:'tl', e:'07:30', s:'17:30', lunch:true},
+    {d:'2026-10-20', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-10-21', co:'tl', e:'07:28', s:'18:05', lunch:false},
+    {d:'2026-10-22', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-10-23', co:'tl', e:'07:30', s:'17:00', lunch:true},
+    {d:'2026-10-26', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-10-27', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-10-28', co:'tl', e:'07:35', s:'17:35', lunch:false},
+    {d:'2026-11-02', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-11-03', co:'tl', e:'07:30', s:'18:00', lunch:true},
+    {d:'2026-11-04', co:'tl', e:'07:30', s:'16:30', lunch:false},
+    {d:'2026-11-05', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-11-06', co:'tl', e:'07:30', s:'17:30', lunch:true},
+    {d:'2026-11-09', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-11-10', co:'tl', e:'07:35', s:'18:20', lunch:false},
+    {d:'2026-11-11', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-11-12', co:'ms', e:'08:00', s:'17:30', lunch:true},
+    {d:'2026-11-13', co:'ms', e:'08:00', s:'18:00', lunch:false},
+    {d:'2026-11-16', co:'ms', e:'08:00', s:'17:00', lunch:true},
+    {d:'2026-11-17', co:'ms', e:'08:00', s:'17:00', lunch:false},
+    {d:'2026-11-18', co:'ms', e:'08:00', s:'18:00', lunch:true},
+  ]},
+  {id:'bc', n:'Bruno Carvalho', i:'BC', col:'linear-gradient(135deg,#333333,#1C1C1C)', diaria:150, days:[
+    {d:'2026-11-02', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-11-03', co:'tl', e:'07:30', s:'17:30', lunch:true},
+    {d:'2026-11-04', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-11-05', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-11-06', co:'tl', e:'07:30', s:'17:30', lunch:true},
+    {d:'2026-11-09', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-11-10', co:'tl', e:'07:30', s:'17:30', lunch:true},
+    {d:'2026-11-11', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-11-19', co:'ms', e:'08:00', s:'17:30', lunch:true},
+    {d:'2026-11-20', co:'ms', e:'08:00', s:'17:00', lunch:false},
+  ]},
+  {id:'dm', n:'Diego Martins', i:'DM', col:'linear-gradient(135deg,#4A4A4A,#333333)', diaria:150, days:[
+    {d:'2026-11-02', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-11-03', co:'tl', e:'07:30', s:'17:30', lunch:true},
+    {d:'2026-11-04', co:'tl', e:'07:30', s:'16:30', lunch:true},
+    {d:'2026-11-05', co:'tl', e:'07:30', s:'16:30', lunch:false},
+    {d:'2026-11-06', co:'tl', e:'07:30', s:'16:30', lunch:true},
+  ]},
+  {id:'fn', n:'Felipe Nunes', i:'FN', col:'linear-gradient(135deg,#6B6B6B,#4A4A4A)', diaria:150, days:[
+    {d:'2026-11-10', co:'ms', e:'08:00', s:'17:00', lunch:true},
+    {d:'2026-11-11', co:'ms', e:'08:00', s:'17:30', lunch:true},
+  ]},
+];
+const brl = v => 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
+
+/* ============================================================
+   ADMIN — LISTA DE ENCARREGADOS
+============================================================ */
+function adminBase(){
+  const rows = [
+    {name:'Carlos Mendes', email:'carlos.mendes@farilog.com', phone:'(51) 99876-1234', ini:'CM', color:'linear-gradient(135deg,#1C1C1C,#0B0B0B)', comps:['tl','ms','av'], escalas:4, last:'há 12 min', status:'Ativo'},
+    {name:'Juliana Rocha', email:'juliana.rocha@farilog.com', phone:'(51) 99123-7788', ini:'JR', color:'linear-gradient(135deg,#6B6B6B,#4A4A4A)', comps:['ca','rn'], escalas:2, last:'há 1 h', status:'Ativo'},
+    {name:'Rafael Lima', email:'rafael.lima@farilog.com', phone:'(51) 98444-2211', ini:'RL', color:'linear-gradient(135deg,#333333,#1C1C1C)', comps:['dv'], escalas:1, last:'ontem, 18:42', status:'Ativo'},
+  ];
+  return `<div class="layout">
+    ${sidebar('admin','encarregados')}
+    <div class="main">
+      ${topbar('Encarregados','RF')}
+      <div class="page">
+        <div class="page-head">
+          <div>
+            <h1>Encarregados de equipe</h1>
+            <p class="sub">3 encarregados · 6 empresas cobertas · 7 escalas lançadas hoje</p>
+          </div>
+          <button class="btn btn-primary">${ic('userPlus',15)} Novo encarregado</button>
+        </div>
+
+        <div class="banner">
+          <span class="banner-ico">${ic('userCheck',17)}</span>
+          <div>
+            <b>O encarregado acessa somente as empresas vinculadas a ele.</b>
+            <p>Pode criar escalas, lançar horários, editar equipes e consultar o histórico. Você adiciona ou remove empresas quando quiser, sem recriar a conta.</p>
+          </div>
+        </div>
+
+        <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+          <div class="card stat"><span class="stat-ico" style="background:#FFF2EE;color:#FF4D0C">${ic('userCheck',19)}</span><div><b>3</b><p>Encarregados ativos</p><small style="color:#4A4A4A">Todos com acesso</small></div></div>
+          <div class="card stat"><span class="stat-ico" style="background:#F5F5F5;color:#333333">${ic('building',19)}</span><div><b>6</b><p>Empresas cobertas</p><small style="color:#6B6B6B">100% da operação</small></div></div>
+          <div class="card stat"><span class="stat-ico" style="background:#F5F5F5;color:#4A4A4A">${ic('calendar',19)}</span><div><b>7</b><p>Escalas hoje</p><small style="color:#4A4A4A">4 em andamento</small></div></div>
+        </div>
+
+        <div class="toolbar">
+          <div class="search" style="flex:1">${ic('search',14)}<input placeholder="Buscar por nome, e-mail ou empresa..." /></div>
+          <select class="select-mini"><option>Todas as empresas</option><option>TransLog Distribuição</option><option>Mercado Sul Atacado</option></select>
+          <button class="btn btn-ghost btn-sm" style="padding:9px 13px">${ic('filter',13)} Filtrar</button>
+        </div>
+
+        <div class="card" style="overflow:hidden">
+          <div class="table-head" style="grid-template-columns:minmax(220px,1.15fr) minmax(300px,1.5fr) 90px 110px 84px">
+            <span>Encarregado</span><span>Empresas responsáveis</span><span>Escalas hoje</span><span>Última atividade</span><span style="text-align:right">Ações</span>
+          </div>
+          ${rows.map(r=>`<div class="trow" style="grid-template-columns:minmax(220px,1.15fr) minmax(300px,1.5fr) 90px 110px 84px">
+            <div class="cell-main">
+              <span class="avatar" style="width:38px;height:38px;background:${r.color}">${r.ini}</span>
+              <div style="min-width:0">
+                <b>${r.name}</b>
+                <span>${r.email} · ${r.phone}</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">
+              ${r.comps.map(id=>{const c=byId[id];return `<span class="chip">${compAv(c,18,6,7)} ${c.name}</span>`}).join('')}
+            </div>
+            <div><span class="badge b-blue">${r.escalas} escalas</span></div>
+            <div style="font-size:11px;color:#6B6B6B">${r.last}</div>
+            <div class="row-actions">
+              <button class="act" title="Editar encarregado">${ic('edit',13)}</button>
+              <button class="act del" title="Remover acesso">${ic('trash',13)}</button>
+            </div>
+          </div>`).join('')}
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
+          <p style="font-size:10.5px;color:#6B6B6B">Mostrando 3 de 3 encarregados</p>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" disabled style="opacity:.5">${ic('chevronLeft',12)}</button>
+            <button class="btn btn-ghost btn-sm" disabled style="opacity:.5">${ic('chevronRight',12)}</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px;overflow:hidden">
+          <div style="padding:13px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.05);background:#FAFAFA">
+            <div style="display:flex;align-items:center;gap:8px"><b style="font-size:12px;font-weight:700">Últimas alterações de vínculo</b><span class="badge b-gray">Auditoria</span></div>
+            <button class="link">Ver histórico completo ${ic('chevronRight',12)}</button>
+          </div>
+          <div class="table-head" style="grid-template-columns:1.2fr 1.7fr 130px 150px">
+            <span>Encarregado</span><span>Alteração</span><span>Quando</span><span>Feito por</span>
+          </div>
+          ${[
+            {n:'Carlos Mendes', i:'CM', col:'linear-gradient(135deg,#1C1C1C,#0B0B0B)', act:'AgroVale Insumos adicionada', type:'add', when:'02/10/2026 · 14:32'},
+            {n:'Juliana Rocha', i:'JR', col:'linear-gradient(135deg,#6B6B6B,#4A4A4A)', act:'Rota Norte Logística adicionada', type:'add', when:'28/09/2026 · 09:15'},
+            {n:'Rafael Lima', i:'RL', col:'linear-gradient(135deg,#333333,#1C1C1C)', act:'Mercado Sul Atacado removida', type:'rm', when:'15/09/2026 · 17:04'},
+          ].map(a=>`<div class="trow" style="grid-template-columns:1.2fr 1.7fr 130px 150px;padding-top:10px;padding-bottom:10px">
+            <div class="cell-main"><span class="avatar" style="width:30px;height:30px;border-radius:9px;font-size:9px;background:${a.col}">${a.i}</span><b style="font-size:11.5px">${a.n}</b></div>
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:${a.type==='add'?'#F5F5F5':'#F7F7F7'};color:${a.type==='add'?'#4A4A4A':'#FF4D0C'}">${ic(a.type==='add'?'plus':'x',11,2.4)}</span>
+              <span style="font-size:11.5px;color:#4A4A4A">${a.act}</span>
+            </div>
+            <span style="font-size:11px;color:#6B6B6B">${a.when}</span>
+            <div class="cell-main"><span class="avatar" style="width:24px;height:24px;border-radius:7px;font-size:8px;background:linear-gradient(135deg,#6B6B6B,#4A4A4A)">RF</span><span style="font-size:11px;color:#6B6B6B">Ricardo Farias</span></div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function pickItem(c, sel){
+  return `<div class="pick ${sel?'sel':''}">
+    ${compAv(c,28,8,9)}
+    <div style="min-width:0;flex:1"><b>${c.name}</b><span>${c.city}</span></div>
+    <span class="check">${sel?ic('check',11,2.6):''}</span>
+  </div>`;
+}
+
+function adminNovo(){
+  return adminBase() + `<div class="overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-kicker">
+          <span class="modal-ico">${ic('userPlus',19)}</span>
+          <div><h2>Novo encarregado de equipe</h2><p>Crie o acesso e defina as empresas sob responsabilidade dele.</p></div>
+        </div>
+        <button class="xbtn">${ic('x',14)}</button>
+      </div>
+      <div class="modal-body">
+        <div class="field"><label>Nome completo</label><input class="input" value="Carlos Mendes" /></div>
+        <div class="grid2">
+          <div class="field"><label>E-mail de acesso</label><input class="input" value="carlos.mendes@farilog.com" /></div>
+          <div class="field"><label>Telefone / WhatsApp</label><input class="input" value="(51) 99876-1234" /></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Senha provisória</label><input class="input" type="password" value="farilog2026" /></div>
+          <div class="field"><label>Status do acesso</label>
+            <div style="display:flex;align-items:center;gap:9px;padding:9px 12px;border:1.5px solid rgba(0,0,0,.10);background:#F5F5F5;border-radius:11px">
+              <span style="width:18px;height:18px;border-radius:6px;background:#0B0B0B;display:flex;align-items:center;justify-content:center;color:#fff">${ic('check',11,2.6)}</span>
+              <span style="font-size:12px;font-weight:600;color:#0B0B0B">Ativo — pode acessar agora</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-h"><b>Empresas responsáveis</b><span>3 de 6 selecionadas</span></div>
+        <p class="helper">Marque as empresas que ele poderá gerenciar. Escalas, horários e históricos ficam restritos a esta seleção.</p>
+        <div class="pick-grid">
+          ${pickItem(byId.tl,true)}${pickItem(byId.ms,true)}${pickItem(byId.av,true)}
+          ${pickItem(byId.ca,false)}${pickItem(byId.rn,false)}${pickItem(byId.dv,false)}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span class="foot-note">${ic('lock',12)} O encarregado não vê dados de outras empresas.</span>
+        <button class="btn btn-ghost">Cancelar</button>
+        <button class="btn btn-primary">${ic('check',14)} Criar encarregado</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function adminEditar(){
+  return adminBase() + `<div class="overlay">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-head">
+        <div class="modal-kicker">
+          <span class="avatar" style="width:42px;height:42px;border-radius:13px;font-size:12px">CM</span>
+          <div><h2>Editar encarregado</h2><p>Carlos Mendes · carlos.mendes@farilog.com</p></div>
+        </div>
+        <button class="xbtn">${ic('x',14)}</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid2">
+          <div class="field"><label>Nome completo</label><input class="input" value="Carlos Mendes" /></div>
+          <div class="field"><label>Telefone / WhatsApp</label><input class="input" value="(51) 99876-1234" /></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>E-mail de acesso</label><input class="input" value="carlos.mendes@farilog.com" /></div>
+          <div class="field"><label>Nova senha <span>(opcional)</span></label><input class="input" type="password" placeholder="••••••••" /></div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-h"><b>Empresas vinculadas</b><span>3 empresas</span></div>
+        <p class="helper">Remova uma empresa pelo “x” ou adicione outra abaixo. A alteração vale imediatamente para o acesso dele.</p>
+        <div class="chips-wrap">
+          <span class="chip on">${compAv(byId.tl,18,6,7)} TransLog Distribuição <span class="x">${ic('x',8,2.6)}</span></span>
+          <span class="chip on">${compAv(byId.ms,18,6,7)} Mercado Sul Atacado <span class="x">${ic('x',8,2.6)}</span></span>
+          <span class="chip on">${compAv(byId.av,18,6,7)} AgroVale Insumos <span class="x">${ic('x',8,2.6)}</span></span>
+        </div>
+        <div class="add-row">
+          <select class="input" style="padding-right:34px"><option>Selecione uma empresa para adicionar...</option><option>Central Atacadão</option><option>Rota Norte Logística</option><option>Depósito Vila Nova</option></select>
+          <button class="btn btn-soft btn-sm" style="padding:10px 14px">${ic('plus',13)} Adicionar</button>
+        </div>
+        <div class="hist-note">${ic('clock',13)} Última alteração de vínculo: 02/10/2026, por Ricardo Farias (admin)</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" style="background:#FFFFFF;color:#333333;border:1px solid rgba(0,0,0,.12)">${ic('trash',13)} Remover acesso</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-ghost">Cancelar</button>
+        <button class="btn btn-primary">${ic('check',14)} Salvar alterações</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   ADMIN — NOVA EMPRESA (com prazo de pagamento dos ajudantes)
+============================================================ */
+function adminNovaEmpresa(){
+  return adminBase() + `<div class="overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-kicker">
+          <span class="modal-ico">${ic('building',19)}</span>
+          <div><h2>Nova empresa</h2><p>Cadastre a empresa e defina o prazo de pagamento dos ajudantes dela.</p></div>
+        </div>
+        <button class="xbtn">${ic('x',14)}</button>
+      </div>
+      <div class="modal-body">
+        <div class="field"><label>Nome da empresa</label><input class="input" placeholder="Ex.: TransLog Distribuição" /></div>
+        <div class="grid2">
+          <div class="field"><label>Cidade / UF</label><input class="input" placeholder="Ex.: Gravataí/RS" /></div>
+          <div class="field"><label>CNPJ <span>(opcional)</span></label><input class="input" placeholder="00.000.000/0000-00" /></div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-h"><b>Prazo de pagamento dos ajudantes</b><span>Obrigatório</span></div>
+        <p class="helper">Define como o app agrupa as diárias e a data em que o ajudante recebe. Cada empresa tem o seu próprio prazo.</p>
+        <div class="field"><label>Periodicidade</label>
+          <select class="input" id="pay-type">
+            <option>Quinzenal</option>
+            <option>Semanal</option>
+            <option>Mensal</option>
+          </select>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>1ª quinzena (1 a 15) paga em</label>
+            <select class="input"><option>Dia 20 do mesmo mês</option><option>Dia 18 do mesmo mês</option><option>Dia 22 do mesmo mês</option><option>Dia 25 do mesmo mês</option></select>
+          </div>
+          <div class="field"><label>2ª quinzena (16 a 31) paga em</label>
+            <select class="input"><option>Dia 5 do mês seguinte</option><option>Dia 7 do mês seguinte</option><option>Dia 10 do mês seguinte</option></select>
+          </div>
+        </div>
+        <div class="hist-note">${ic('clock',13)} Ex.: diárias de 01/11 a 15/11 → ajudante recebe em 20/11. De 16/11 a 30/11 → recebe em 05/12.</div>
+      </div>
+      <div class="modal-foot">
+        <span class="foot-note">${ic('lock',12)} O prazo vale para todas as escalas dessa empresa.</span>
+        <button class="btn btn-ghost">Cancelar</button>
+        <button class="btn btn-primary">${ic('check',14)} Criar empresa</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   ADMIN — RELATÓRIOS (período selecionável)
+============================================================ */
+function adminRelatorios(){
+  const rows = [
+    {co:'tl', per:'Quinzenal (Nov 1)', diarias:34, he:'18h 30', valor:5480, st:'Fechado', b:'b-gray'},
+    {co:'ms', per:'Semanal (10/11 a 14/11)', diarias:12, he:'6h 00', valor:1980, st:'Fechado', b:'b-gray'},
+    {co:'av', per:'Mensal (Nov)', diarias:9, he:'4h 00', valor:1510, st:'Em curso', b:'b-amber'},
+  ];
+  const total = rows.reduce((s,r)=>s+r.valor,0);
+  return `<div class="layout">
+    ${sidebar('admin','relatorios')}
+    <div class="main">
+      ${topbar('Relatórios','RF')}
+      <div class="page">
+        <div class="page-head">
+          <div>
+            <h1>Relatórios</h1>
+            <p class="sub">Selecione o período do relatório: quinzenal, mensal ou personalizado.</p>
+          </div>
+          <button class="btn btn-primary">${ic('download',15)} Exportar PDF</button>
+        </div>
+
+        <div class="card pad" style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+            <div class="period-seg" id="rel-seg">
+              <button class="on" data-per="quinzenal">${ic('calendarRange',13)} Quinzenal</button>
+              <button data-per="mensal">${ic('calendar',13)} Mensal</button>
+              <button data-per="custom">${ic('edit',13)} Personalizado</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div id="rel-range-q" style="display:flex;gap:8px;align-items:center">
+                <select class="select-mini"><option>Quinzenal (Nov 1)</option><option>Quinzenal (Nov 2)</option><option>Quinzenal (Out 1)</option></select>
+                <select class="select-mini"><option>Todas as empresas</option><option>TransLog Distribuição</option><option>Mercado Sul Atacado</option></select>
+              </div>
+              <div id="rel-range-c" style="display:none;gap:8px;align-items:center">
+                <input class="input" style="width:150px;padding:9px 11px;font-size:12px" value="10/11/2026" />
+                <span style="font-size:11px;color:#6B6B6B">até</span>
+                <input class="input" style="width:150px;padding:9px 11px;font-size:12px" value="15/11/2026" />
+                <select class="select-mini"><option>Todas as empresas</option></select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+          <div class="card stat"><span class="stat-ico" style="background:#F5F5F5;color:#333333">${ic('briefcase',19)}</span><div><b>55</b><p>Diárias no período</p><small style="color:#6B6B6B">3 empresas</small></div></div>
+          <div class="card stat"><span class="stat-ico" style="background:#FFF2EE;color:#FF4D0C">${ic('clock',19)}</span><div><b>28h 30</b><p>Hora extra acumulada</p><small style="color:#C2410C">Inclui supressão de almoço</small></div></div>
+          <div class="card stat"><span class="stat-ico" style="background:#F5F5F5;color:#4A4A4A">${ic('users',19)}</span><div><b>5</b><p>Ajudantes ativos</p><small style="color:#6B6B6B">2 encarregados</small></div></div>
+          <div class="card stat"><span class="stat-ico" style="background:#F5F5F5;color:#333333">${ic('dollar',19)}</span><div><b>${brl(total)}</b><p>Valor do período</p><small style="color:#6B6B6B">Diárias + HE</small></div></div>
+        </div>
+
+        <div class="card" style="overflow:hidden">
+          <div style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,.05);display:flex;align-items:center;justify-content:space-between;background:#FAFAFA">
+            <b style="font-size:12.5px">Detalhamento por empresa</b>
+            <button class="link">${ic('download',12)} Exportar CSV</button>
+          </div>
+          <div class="table-head" style="grid-template-columns:1.4fr 1.2fr 110px 110px 130px 110px">
+            <span>Empresa</span><span>Período</span><span style="text-align:center">Diárias</span><span style="text-align:center">H. extra</span><span style="text-align:right">Valor</span><span style="text-align:center">Status</span>
+          </div>
+          ${rows.map(r=>`<div class="trow" style="grid-template-columns:1.4fr 1.2fr 110px 110px 130px 110px;padding-top:12px;padding-bottom:12px">
+            <div class="cell-main">${compAv(byId[r.co],30,9,9)}<div><b>${byId[r.co].name}</b><span>${byId[r.co].city}</span></div></div>
+            <span style="font-size:11.5px;color:#4A4A4A">${r.per}</span>
+            <span style="text-align:center;font-size:12px;font-weight:700">${r.diarias}</span>
+            <span style="text-align:center;font-size:12px;font-weight:700;color:#C2410C">${r.he}</span>
+            <span style="text-align:right;font-size:12.5px;font-weight:700">${brl(r.valor)}</span>
+            <span style="text-align:center"><span class="badge ${r.b}">${r.st}</span></span>
+          </div>`).join('')}
+          <div style="padding:13px 20px;background:#F7F7F7;display:flex;justify-content:flex-end;gap:24px;font-size:12px">
+            <span style="color:#6B6B6B">Total do período:</span><b>${brl(total)}</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   ENCARREGADO — VISÃO GERAL
+============================================================ */
+function liderDesktop(){
+  const escalaRows = [
+    {date:'14', mon:'NOV', day:'Hoje', comp:'tl', serv:'Entrega', desc:'Descarga de 12 carretas', time:'07:30', qtd:5, status:'Em andamento', badge:'b-blue', action:'Lançar horários'},
+    {date:'14', mon:'NOV', day:'Hoje', comp:'ms', serv:'Carga e descarga', desc:'Conferência de carga', time:'08:00', qtd:4, status:'Agendada', badge:'b-gray', action:'Lançar horários'},
+    {date:'14', mon:'NOV', day:'Hoje', comp:'av', serv:'Entrega', desc:'Rota Canoas', time:'13:00', qtd:3, status:'Agendada', badge:'b-gray', action:'Lançar horários'},
+    {date:'15', mon:'NOV', day:'Amanhã', comp:'tl', serv:'Entrega', desc:'Descarga de 8 carretas', time:'07:30', qtd:5, status:'Agendada', badge:'b-gray', action:'Ver escala'},
+  ];
+  return `<div class="layout">
+    ${sidebar('lider','visao')}
+    <div class="main">
+      ${topbar('Visão Geral','CM')}
+      <div class="page">
+        <div class="page-head">
+          <div>
+            <h1>Olá, Carlos <span style="font-weight:400;font-size:14px;color:#6B6B6B">· sua operação hoje</span></h1>
+            <p class="sub">Sexta-feira, 14 de novembro de 2026 · 3 empresas sob sua responsabilidade</p>
+          </div>
+          <button class="btn btn-primary">${ic('plus',15)} Nova escala</button>
+        </div>
+
+        <div class="stats">
+          <div class="card stat"><span class="stat-ico" style="background:#F5F5F5;color:#333333">${ic('calendar',19)}</span><div><b>4</b><p>Escalas hoje</p><small style="color:#0B0B0B">1 em andamento</small></div></div>
+          <div class="card stat"><span class="stat-ico" style="background:#F5F5F5;color:#333333">${ic('users',19)}</span><div><b>12</b><p>Ajudantes escalados</p><small style="color:#4A4A4A">10 já confirmaram</small></div></div>
+          <div class="card stat"><span class="stat-ico" style="background:#F5F5F5;color:#4A4A4A">${ic('building',19)}</span><div><b>3</b><p>Empresas ativas</p><small style="color:#6B6B6B">6 escalas na semana</small></div></div>
+          <div class="card stat"><span class="stat-ico" style="background:#FFF2EE;color:#FF4D0C">${ic('clock',19)}</span><div><b>2</b><p>Pendências</p><small style="color:#C2410C">Lançar horários</small></div></div>
+        </div>
+
+        <div class="section-title" style="margin:2px 0 11px">
+          <span>Empresas que você gerencia</span>
+          <button class="link">Ver todas ${ic('chevronRight',12)}</button>
+        </div>
+        <div class="companies">
+          <div class="card company-card">
+            <div class="company-top"><span class="avatar co-logo" style="--co-bg:${byId.tl.color}">TL</span><div style="min-width:0"><b>TransLog Distribuição</b><span>Gravataí/RS · 2 escalas hoje</span></div></div>
+            <div class="company-line"><span>Em andamento</span><b style="color:#0B0B0B">07:30 · 5 ajudantes</b></div>
+            <div class="company-line"><span>Última escala</span><b>13/11 · 5 presentes</b></div>
+            <div class="company-foot"><span class="badge b-blue">Operando agora</span><button class="btn btn-soft btn-sm">Abrir ${ic('arrowRight',12)}</button></div>
+          </div>
+          <div class="card company-card">
+            <div class="company-top"><span class="avatar co-logo" style="--co-bg:${byId.ms.color}">MS</span><div style="min-width:0"><b>Mercado Sul Atacado</b><span>Porto Alegre/RS · 1 escala hoje</span></div></div>
+            <div class="company-line"><span>Hoje</span><b>08:00 · 4 ajudantes</b></div>
+            <div class="company-line"><span>Última escala</span><b>13/11 · 4 presentes</b></div>
+            <div class="company-foot"><span class="badge b-amber">Horário pendente</span><button class="btn btn-soft btn-sm">Abrir ${ic('arrowRight',12)}</button></div>
+          </div>
+          <div class="card company-card">
+            <div class="company-top"><span class="avatar co-logo" style="--co-bg:${byId.av.color}">AV</span><div style="min-width:0"><b>AgroVale Insumos</b><span>Canoas/RS · 1 escala hoje</span></div></div>
+            <div class="company-line"><span>Hoje</span><b>13:00 · 3 ajudantes</b></div>
+            <div class="company-line"><span>Última escala</span><b>11/11 · 3 presentes</b></div>
+            <div class="company-foot"><span class="badge b-gray">Agendada</span><button class="btn btn-soft btn-sm">Abrir ${ic('arrowRight',12)}</button></div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card" style="overflow:hidden">
+            <div style="padding:15px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.05)">
+              <span class="section-title"><span>Escalas de hoje e próximas</span></span>
+              <button class="link">Ver agenda ${ic('chevronRight',12)}</button>
+            </div>
+            ${escalaRows.map(r=>{const c=byId[r.comp];return `<div class="list-row" style="grid-template-columns:48px minmax(170px,1.6fr) 58px 64px 104px 106px">
+              <div class="date-block"><b>${r.date}</b><span>${r.mon}</span></div>
+              <div class="cell-main"><span class="avatar co-logo" style="width:32px;height:32px;border-radius:9px;font-size:9px;--co-bg:${c.color}">${c.ini}</span><div style="min-width:0"><b>${c.name}</b><span>${r.serv} · ${r.desc}</span></div></div>
+              <div style="font-size:11px;font-weight:600;color:#4A4A4A">${r.time}</div>
+              <div class="mm" style="font-size:10.5px">${ic('users',12)} ${r.qtd}</div>
+              <div><span class="badge ${r.badge}">${r.status}</span></div>
+              <div style="text-align:right"><button class="btn ${r.action==='Ver escala'?'btn-ghost':'btn-soft'} btn-sm" style="padding:6px 9px">${r.action}</button></div>
+            </div>`}).join('')}
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div class="card pad">
+              <div class="section-title" style="margin-bottom:4px"><span>Histórico recente</span><button class="link">Ver tudo</button></div>
+              <div class="hist-item"><span class="hist-dot"></span><div style="flex:1"><b>TransLog Distribuição</b><span>13/11 · 5 de 5 presentes · 1h 20 de HE</span></div><span class="badge b-green">Finalizada</span></div>
+              <div class="hist-item"><span class="hist-dot"></span><div style="flex:1"><b>Mercado Sul Atacado</b><span>12/11 · 4 de 4 presentes</span></div><span class="badge b-green">Finalizada</span></div>
+              <div class="hist-item"><span class="hist-dot warn"></span><div style="flex:1"><b>AgroVale Insumos</b><span>11/11 · 3 de 4 presentes · 1 falta</span></div><span class="badge b-amber">Ocorrência</span></div>
+            </div>
+            <div class="card pad">
+              <div class="section-title" style="margin-bottom:2px"><span>Pendências de hoje</span><span class="badge b-amber">2</span></div>
+              <div class="pend"><span style="width:8px;height:8px;border-radius:50%;background:#FF4D0C;margin-top:4px;flex-shrink:0"></span><div style="flex:1"><b>Lançar saída · Mercado Sul</b><span>4 ajudantes aguardando horário de saída</span></div><button class="btn btn-soft btn-sm" style="padding:5px 8px">Lançar</button></div>
+              <div class="pend"><span style="width:8px;height:8px;border-radius:50%;background:#FF4D0C;margin-top:4px;flex-shrink:0"></span><div style="flex:1"><b>Confirmar horários · AgroVale</b><span>Escala das 13:00 ainda sem entrada</span></div><button class="btn btn-soft btn-sm" style="padding:5px 8px">Abrir</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   ENCARREGADO — PAGAMENTOS DOS AJUDANTES
+   Sem dashboard: apenas selecionar o ajudante e ver o pagamento
+   detalhado dele, calculado pelos prazos de cada empresa.
+============================================================ */
+function liderPagamentos(){
+  const meses = [['2026-11','Novembro 2026'],['2026-10','Outubro 2026']];
+  const sel = HELPERS_PAY[0], ym = '2026-11';
+  return `<div class="layout">
+    ${sidebar('lider','pagamentos')}
+    <div class="main">
+      ${topbar('Pagamentos','CM')}
+      <div class="page">
+        <div class="page-head">
+          <div>
+            <h1>Pagamentos</h1>
+            <p class="sub">Selecione o ajudante e o período. Cada caixa é uma data de pagamento.</p>
+          </div>
+        </div>
+
+        <div class="card pad" style="margin-bottom:16px">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <div class="search" style="flex:1;min-width:220px;background:#F7F7F7">${ic('search',14)}<input placeholder="Buscar ajudante..." style="background:transparent;border:none;outline:none;font-size:12.5px;width:100%" /></div>
+            <select class="select-mini" style="min-width:220px" id="pay-select">
+              ${HELPERS_PAY.map(h=>`<option value="${h.id}">${h.n}</option>`).join('')}
+            </select>
+            <select class="select-mini" style="min-width:170px" id="pay-month">
+              ${meses.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div id="pay-detail">${payDetail(sel, ym)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* Uma caixa por data de pagamento; ao clicar, abre as diárias daquele pagamento */
+function payBox(g, helper){
+  const t = groupTotals(g, helper);
+  const dt = g.date;
+  const hoje = HOJE;
+  const st = dt < hoje ? {l:'Pago', b:'b-green'} : {l:'A receber', b:'b-amber'};
+  return `<div class="paybox" data-paybox>
+    <button class="paybox-head" data-paybox-toggle>
+      <span class="pb-date"><b>${dt.getDate()}</b><span>${MES[dt.getMonth()]}</span></span>
+      <div class="pb-info">
+        <b>${payTitle(g)}</b>
+      </div>
+      <div class="pb-val"><b>${brl(t.total)}</b><small class="${st.l==='Pago'?'pago':''}">${st.l}</small></div>
+      <span class="pb-chev">${ic('chevronDown',15)}</span>
+    </button>
+    <div class="paybox-body" hidden>
+      ${g.days.map(day=>{const cc=byId[day.co];const he=heOfDay(day);return `
+      <div class="pb-day">
+        <div class="d"><b>${parseISO(day.d).getDate()}</b><span>${MES[parseISO(day.d).getMonth()]}</span></div>
+        <div class="info"><b>${cc.name}</b><span>Entrada ${day.e} · Saída ${day.s} · ${day.lunch?'Almoço descontado':'Sem almoço (+1h)'}</span></div>
+        <div class="he">${he?`<span class="badge b-amber" style="font-size:9.5px">+${fmtH(he)} HE</span>`:'<span style="font-size:10px;color:#6B6B6B">—</span>'}</div>
+        <div class="val">${brl(helper.diaria + he/60*HE_HORA)}</div>
+      </div>`}).join('')}
+      <div class="pb-sum">
+        <div><p>Diárias</p><b>${t.dias} × R$ ${helper.diaria.toFixed(0)} = ${brl(t.vDi)}</b></div>
+        <div><p>H. extra</p><b>${fmtH(t.heMin)} × R$ ${HE_HORA.toFixed(0)}/h = ${brl(t.vHe)}</b></div>
+        <div class="tot"><p>Total a receber</p><b>${brl(t.total)}</b></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function payDetail(sel, ym){
+  const groups = payGroups(sel, ym);
+  const totalMes = groups.reduce((s,g)=>s+groupTotals(g,sel).total,0);
+  return `
+        <div class="card pad" style="margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:11px">
+              <span class="avatar" style="width:40px;height:40px;border-radius:12px;font-size:11px;background:${sel.col}">${sel.i}</span>
+              <div><b style="font-size:14px;display:block">${sel.n}</b><span style="font-size:10.5px;color:var(--muted)">Diária R$ ${sel.diaria.toFixed(2)} · HE R$ ${HE_HORA.toFixed(0)}/h</span></div>
+            </div>
+            <div style="text-align:right"><span style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6B6B">${groups.length} pagamento(s) no período</span><b style="font-size:18px;display:block;letter-spacing:-.02em">${brl(totalMes)}</b></div>
+          </div>
+        </div>
+
+        ${groups.length?groups.map(g=>payBox(g, sel)).join(''):`<div class="card pad" style="text-align:center;padding:26px"><p style="font-size:12px;color:#6B6B6B">Nenhum pagamento neste período.</p></div>`}
+
+        <p style="font-size:10.5px;color:#6B6B6B;display:flex;align-items:center;gap:6px;margin-top:4px">${ic('activity',12)} Cada empresa tem o seu prazo — o app agrupa as diárias pela data em que o ajudante recebe. Toque numa caixa para ver as diárias.</p>`;
+}
+
+/* ============================================================
+   ENCARREGADO — LANÇAR HORÁRIOS
+============================================================ */
+function liderHorarios(demoSemAlmoco=false){
+  const helpers = [
+    {n:'Anderson Souza', c:'Ajudante de logística', i:'AS', col:'linear-gradient(135deg,#1C1C1C,#0B0B0B)', e:'07:32', s:'', lunch:!demoSemAlmoco, st:'Em andamento', b:'b-blue'},
+    {n:'Bruno Carvalho', c:'Ajudante de logística', i:'BC', col:'linear-gradient(135deg,#333333,#1C1C1C)', e:'07:30', s:'', lunch:true, st:'Em andamento', b:'b-blue'},
+    {n:'Diego Martins', c:'Ajudante de logística', i:'DM', col:'linear-gradient(135deg,#4A4A4A,#333333)', e:'07:35', s:'', lunch:true, st:'Em andamento', b:'b-blue'},
+    {n:'Felipe Nunes', c:'Ajudante de logística', i:'FN', col:'linear-gradient(135deg,#6B6B6B,#4A4A4A)', e:'07:28', s:'', lunch:true, st:'Em andamento', b:'b-blue'},
+    {n:'Marcos Silva', c:'Ajudante de logística', i:'MS', col:'linear-gradient(135deg,#6B6B6B,#333333)', e:'', s:'', lunch:true, st:'Aguardando', b:'b-gray'},
+  ];
+  const noLunch = helpers.filter(h=>!h.lunch).length;
+  const baseHeMin = 125; // 2h 05 de HE de jornada no exemplo
+  const suppressionMin = noLunch * 60;
+  const totalHeMin = baseHeMin + suppressionMin;
+  const fmtMin = m => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}`;
+  return `<div class="layout">
+    ${sidebar('lider','escalas')}
+    <div class="main">
+      ${topbar('Escalas','CM')}
+      <div class="page">
+        <button class="link" style="margin-bottom:14px;color:#6B6B6B">${ic('arrowLeft',13)} Voltar para escalas</button>
+        <div class="card" style="margin-bottom:16px">
+          <div class="shift-head">
+            <div class="shift-title">
+              <span class="avatar co-logo" style="--co-bg:${byId.tl.color}">TL</span>
+              <div>
+                <h2>Escala · Sexta, 14 de novembro</h2>
+                <p>TransLog Distribuição · Entrega · Descarga de 12 carretas</p>
+                <div class="shift-meta">
+                  <span class="meta-pill">${ic('clock',13)} Previsto 07:30</span>
+                  <span class="meta-pill">${ic('users',13)} 5 ajudantes</span>
+                  <span class="badge b-blue" style="padding:6px 10px">Em andamento</span>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost">${ic('edit',14)} Editar escala</button>
+              <button class="btn btn-soft">${ic('userPlus',14)} Adicionar ajudante</button>
+            </div>
+          </div>
+          <div class="table-head" style="grid-template-columns:minmax(200px,1.6fr) 104px 104px 40px 96px 112px">
+            <span>Ajudante</span><span style="text-align:center">Entrada</span><span style="text-align:center">Saída</span><span style="text-align:center;font-size:7.5px;letter-spacing:.02em">Almoço</span><span style="text-align:center">H. extra</span><span style="text-align:center">Status</span>
+          </div>
+          ${helpers.map(h=>`<div class="trow" style="grid-template-columns:minmax(200px,1.6fr) 104px 104px 40px 96px 112px;padding-top:9px;padding-bottom:9px" data-lunch-row>
+            <div class="cell-main"><span class="avatar" style="width:34px;height:34px;border-radius:10px;font-size:10px;background:${h.col}">${h.i}</span><div><b>${h.n}</b><span>${h.c}</span></div></div>
+            <div><input class="time-input ${h.e?'filled':'empty'}" value="${h.e}" placeholder="--:--" /></div>
+            <div><input class="time-input ${h.s?'filled':'empty'}" value="${h.s}" placeholder="--:--" /></div>
+            <div style="display:flex;justify-content:center">
+              <label class="lunchcheck" title="Tirou almoço"><input type="checkbox" class="lunch-input" ${h.lunch?'checked':''}><span class="box">${ic('check',11)}</span></label>
+            </div>
+            <div class="he-box ${h.lunch?'':'he-extra'}">${h.lunch?'—':'+1h 00'}</div>
+            <div style="text-align:center"><span class="badge ${h.b}">${h.st}</span></div>
+          </div>`).join('')}
+          <div class="shift-foot">
+            <div>
+              <span class="hint">${ic('checkCircle',14)} <b style="color:#4A4A4A">4 de 5</b> com entrada lançada · almoço desmarcado soma +1h de HE na diária</span>
+              <div class="progress" style="width:250px"><i></i></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost">Salvar rascunho</button>
+              <button class="btn btn-primary">${ic('check',14)} Salvar horários</button>
+            </div>
+          </div>
+        </div>
+        <p style="font-size:10.5px;color:#6B6B6B;display:flex;align-items:center;gap:6px">${ic('activity',12)} Alterações aparecem em tempo real no painel da empresa e no admin.</p>
+
+        <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:16px;margin-top:16px">
+          <div class="card pad">
+            <div class="section-title" style="margin-bottom:10px"><span>Resumo da escala</span><span class="badge b-gray">Cálculo automático</span></div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+              <div style="padding:11px 12px;background:#F7F7F7;border:1px solid rgba(0,0,0,.05);border-radius:11px"><p style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6B6B6B">Diária / ajudante</p><b style="font-size:15px;display:block;margin-top:3px">R$ 150,00</b></div>
+              <div style="padding:11px 12px;background:#F7F7F7;border:1px solid rgba(0,0,0,.05);border-radius:11px"><p style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6B6B6B">Total de diárias</p><b style="font-size:15px;display:block;margin-top:3px">R$ 750,00</b></div>
+              <div style="padding:11px 12px;background:#FFF7F3;border:1px solid rgba(255,77,12,.16);border-radius:11px"><p style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#C2410C">Supressão de almoço</p><b id="suppression-total" style="font-size:15px;display:block;margin-top:3px;color:#C2410C">${fmtMin(suppressionMin)}</b></div>
+              <div style="padding:11px 12px;background:#F7F7F7;border:1px solid rgba(0,0,0,.05);border-radius:11px"><p style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6B6B6B">HE acumulada</p><b id="he-total" style="font-size:15px;display:block;margin-top:3px;color:#0B0B0B">${fmtMin(totalHeMin)}</b></div>
+            </div>
+            <p style="font-size:10px;color:#6B6B6B;margin-top:10px;line-height:1.55"><b style="color:#C2410C">Regra do almoço:</b> com almoço, desconta 1h de intervalo. Sem almoço, não desconta e soma +1h de HE na diária. O valor entra na cobrança da empresa e no pagamento do ajudante.</p>
+            <p style="font-size:10px;color:#6B6B6B;margin-top:6px">Valores usados automaticamente no fechamento da quinzena.</p>
+          </div>
+          <div class="card pad">
+            <div class="section-title" style="margin-bottom:10px"><span>Observações</span><span style="font-size:10px;color:#6B6B6B;font-weight:500">Opcional</span></div>
+            <div style="font-size:11.5px;color:#4A4A4A;line-height:1.6;background:#F7F7F7;border:1px solid rgba(0,0,0,.05);border-radius:11px;padding:10px 12px">Descarga de 12 carretas. Duas docas liberadas; conferência feita pelo encarregado.</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:9px"><input class="input" placeholder="Adicionar observação para a empresa..." style="font-size:11.5px" /><button class="btn btn-ghost btn-sm" style="padding:9px 11px">${ic('plus',13)}</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   EMPRESA — PAINEL COM ENCARREGADO RESPONSÁVEL
+============================================================ */
+function empresaDesktop(){
+  return `<div class="layout">
+    ${sidebar('empresa','painel')}
+    <div class="main">
+      <div class="page" style="padding-top:26px">
+        <div class="page-head">
+          <div>
+            <h1>Olá, TransLog Distribuição</h1>
+            <p class="sub">Sexta-feira, 14 de novembro de 2026</p>
+          </div>
+          <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#fff;border:1px solid rgba(0,0,0,.07);box-shadow:0 1px 2px rgba(0,0,0,.04)">
+            <span style="width:7px;height:7px;border-radius:50%;background:#0B0B0B;box-shadow:0 0 0 3px rgba(0,0,0,.08)"></span>
+            <span style="font-size:12px;font-weight:600;color:#4A4A4A">Sistema em operação</span>
+          </div>
+        </div>
+
+        <div class="leader-banner">
+          <span class="avatar">CM</span>
+          <div class="lb-info">
+            <p class="lb-label">Encarregado responsável desta empresa</p>
+            <b>Carlos Mendes</b>
+            <div>
+              <span>${ic('phone',12)} (51) 99876-1234</span>
+              <span>${ic('mail',12)} carlos.mendes@farilog.com</span>
+              <span>${ic('building',12)} 3 empresas sob responsabilidade</span>
+            </div>
+          </div>
+          <div class="lb-actions">
+            <button class="lb-btn wa">${ic('whatsapp',15)} WhatsApp</button>
+            <button class="lb-btn">${ic('calendar',14)} Ver escalas</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px;align-items:start">
+          <div class="card" style="overflow:hidden">
+            <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.05)">
+              <div style="display:flex;align-items:center;gap:9px"><b style="font-size:13px">Escala do Dia</b><span class="badge b-gray">Hoje</span></div>
+              <span class="badge b-blue">Em andamento</span>
+            </div>
+            <div style="padding:16px 20px">
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F7F7;border:1px solid rgba(0,0,0,.08);border-radius:12px;margin-bottom:12px">
+                <span class="avatar" style="width:34px;height:34px;border-radius:10px;font-size:10px">CM</span>
+                <div style="flex:1"><p style="font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6B6B6B">Encarregado do dia</p><b style="font-size:12px">Carlos Mendes</b></div>
+                <a style="width:32px;height:32px;border-radius:9px;background:#0B0B0B;color:#fff;display:flex;align-items:center;justify-content:center" href="#">${ic('whatsapp',15)}</a>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:13px">
+                <div style="padding:10px 12px;border-radius:11px;background:#F7F7F7;border:1px solid rgba(0,0,0,.05)"><p style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6B6B">Horário</p><b style="font-size:15px;display:block;margin-top:3px">07:30</b></div>
+                <div style="padding:10px 12px;border-radius:11px;background:#F7F7F7;border:1px solid rgba(0,0,0,.05)"><p style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6B6B">Ajudantes</p><b style="font-size:15px;display:block;margin-top:3px">5</b></div>
+                <div style="padding:10px 12px;border-radius:11px;background:#F7F7F7;border:1px solid rgba(0,0,0,.05)"><p style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6B6B">Presentes</p><b style="font-size:15px;display:block;margin-top:3px;color:#4A4A4A">4</b></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                ${[
+                  {n:'Anderson Souza', i:'AS', s:'Entrada 07:32', b:'b-blue', bc:'#0B0B0B'},
+                  {n:'Bruno Carvalho', i:'BC', s:'Entrada 07:30', b:'b-blue', bc:'#333333'},
+                  {n:'Diego Martins', i:'DM', s:'Entrada 07:35', b:'b-blue', bc:'#0B0B0B'},
+                  {n:'Felipe Nunes', i:'FN', s:'Entrada 07:28', b:'b-blue', bc:'#4A4A4A'},
+                  {n:'Marcos Silva', i:'MS', s:'Aguardando entrada', b:'b-amber', bc:'#6B6B6B'},
+                ].map(h=>`<div style="display:flex;align-items:center;gap:9px;padding:6px 2px">
+                  <span class="avatar" style="width:28px;height:28px;border-radius:8px;font-size:9px;background:${h.bc}">${h.i}</span>
+                  <b style="font-size:11.5px;font-weight:600;flex:1">${h.n}</b>
+                  <span style="font-size:10.5px;color:#6B6B6B">${h.s}</span>
+                  <span class="badge ${h.b}">${h.b==='b-gray'?'Pendente':'Confirmado'}</span>
+                </div>`).join('')}
+              </div>
+            </div>
+            <div style="padding:12px 20px;border-top:1px solid rgba(0,0,0,.05);background:#FAFAFA;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:10.5px;color:#6B6B6B">Serviço: Descarga de 12 carretas</span>
+              <button class="link">Ver detalhes da escala ${ic('chevronRight',12)}</button>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div class="card pad">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <span class="section-title"><span>Próxima Escala</span></span>
+                <span class="badge b-gray">Amanhã · 15/11</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="avatar" style="width:38px;height:38px;border-radius:11px;font-size:10px">CM</span>
+                <div><b style="font-size:12px;display:block">Carlos Mendes</b><span style="font-size:10.5px;color:#6B6B6B">Encarregado responsável</span></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px">
+                <div style="padding:9px 11px;border-radius:10px;background:#F7F7F7;border:1px solid rgba(0,0,0,.05)"><p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6B6B">Horário</p><b style="font-size:13px;display:block;margin-top:2px">07:30</b></div>
+                <div style="padding:9px 11px;border-radius:10px;background:#F7F7F7;border:1px solid rgba(0,0,0,.05)"><p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6B6B">Ajudantes</p><b style="font-size:13px;display:block;margin-top:2px">5</b></div>
+              </div>
+              <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;justify-content:center">Ver escala completa</button>
+            </div>
+            <div class="card pad">
+              <div class="section-title" style="margin-bottom:8px"><span>Últimos serviços</span><button class="link">Ver todos</button></div>
+              <div class="hist-item" style="padding-top:7px"><span class="hist-dot"></span><div style="flex:1"><b>13/11 · Entrega</b><span>5 presentes · 5 diárias</span></div><span class="badge b-green">OK</span></div>
+              <div class="hist-item" style="padding-top:7px"><span class="hist-dot"></span><div style="flex:1"><b>12/11 · Carga e descarga</b><span>4 presentes · 4 diárias</span></div><span class="badge b-green">OK</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;overflow:hidden">
+          <div style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,.05);display:flex;align-items:center;justify-content:space-between;background:#FAFAFA">
+            <div style="display:flex;align-items:center;gap:9px"><b style="font-size:12.5px;font-weight:700">Escalas anteriores</b><span class="badge b-gray">Histórico</span></div>
+            <button class="link">Ver histórico completo ${ic('chevronRight',12)}</button>
+          </div>
+          <div class="table-head" style="grid-template-columns:120px 1.5fr 150px 120px 110px">
+            <span>Data</span><span>Serviço</span><span>Encarregado</span><span>Ajudantes</span><span>Status</span>
+          </div>
+          ${[
+            {d:'13/11/2026', s:'Entrega · Descarga de 10 carretas', a:'5 · 5 presentes'},
+            {d:'12/11/2026', s:'Carga e descarga · Conferência', a:'4 · 4 presentes'},
+            {d:'11/11/2026', s:'Entrega · Rota Gravataí', a:'3 · 3 presentes'},
+          ].map(r=>`<div class="trow" style="grid-template-columns:120px 1.5fr 150px 120px 110px;padding-top:11px;padding-bottom:11px">
+            <span style="font-size:11.5px;font-weight:600;color:#4A4A4A">${r.d}</span>
+            <span style="font-size:11.5px;color:#4A4A4A">${r.s}</span>
+            <div class="cell-main"><span class="avatar" style="width:26px;height:26px;border-radius:8px;font-size:8px">CM</span><b style="font-size:11px">Carlos Mendes</b></div>
+            <span style="font-size:11px;color:#6B6B6B">${r.a}</span>
+            <span class="badge b-green">Finalizada</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   MOBILE — DASHBOARD DO ENCARREGADO
+============================================================ */
+function mobileDash(){
+  return `
+  <div class="mheader">
+    <div class="mheader-top">
+      ${logoImg(24)}
+      <div class="htools">
+        <span class="micon">${ic('bell',15)}<span class="dot"></span></span>
+        <span class="avatar">CM</span>
+      </div>
+    </div>
+    <h2>Olá, Carlos</h2>
+    <p>Sexta, 14 de novembro · 3 empresas</p>
+  </div>
+
+  <div class="mstat">
+    <div><b>4</b><span>Escalas hoje</span></div>
+    <div><b>12</b><span>Ajudantes</span></div>
+    <div><b style="color:#FF4D0C">2</b><span>Pendências</span></div>
+  </div>
+
+  <div class="mcontent">
+    <div class="mchips">
+      <span class="mchip active">Todas</span>
+      <span class="mchip">TransLog</span>
+      <span class="mchip">Mercado Sul</span>
+      <span class="mchip">AgroVale</span>
+    </div>
+
+    <div class="msection"><b>Hoje</b><span>4 escalas</span></div>
+
+    <div class="mscale">
+      <div class="mscale-top">
+        <div class="mscale-co"><span class="avatar co-logo" style="--co-bg:${byId.tl.color}">TL</span><div><b>TransLog Distribuição</b><span>Entrega · Descarga de 12 carretas</span></div></div>
+        <span class="badge b-blue">Em andamento</span>
+      </div>
+      <div class="mscale-meta">
+        <span class="mm">${ic('clock',12)} 07:30</span>
+        <span class="mm">${ic('users',12)} 5 ajudantes</span>
+        <span class="mm" style="color:#4A4A4A">${ic('checkCircle',12)} 4 presentes</span>
+      </div>
+      <div class="mbtns">
+        <button class="mbtn primary">${ic('clock',12)} Lançar horários</button>
+        <button class="mbtn">${ic('eye',12)} Ver</button>
+      </div>
+    </div>
+
+    <div class="mscale">
+      <div class="mscale-top">
+        <div class="mscale-co"><span class="avatar co-logo" style="--co-bg:${byId.ms.color}">MS</span><div><b>Mercado Sul Atacado</b><span>Carga e descarga · Conferência</span></div></div>
+        <span class="badge b-amber">Pendente</span>
+      </div>
+      <div class="mscale-meta">
+        <span class="mm">${ic('clock',12)} 08:00</span>
+        <span class="mm">${ic('users',12)} 4 ajudantes</span>
+        <span class="mm" style="color:#C2410C">${ic('alert',12)} Sem entrada</span>
+      </div>
+      <div class="mbtns">
+        <button class="mbtn primary">${ic('clock',12)} Lançar horários</button>
+        <button class="mbtn">${ic('phone',12)} Contato</button>
+      </div>
+    </div>
+
+    <div class="mscale">
+      <div class="mscale-top">
+        <div class="mscale-co"><span class="avatar co-logo" style="--co-bg:${byId.av.color}">AV</span><div><b>AgroVale Insumos</b><span>Entrega · Rota Canoas</span></div></div>
+        <span class="badge b-gray">Agendada</span>
+      </div>
+      <div class="mscale-meta">
+        <span class="mm">${ic('clock',12)} 13:00</span>
+        <span class="mm">${ic('users',12)} 3 ajudantes</span>
+      </div>
+      <div class="mbtns">
+        <button class="mbtn">${ic('eye',12)} Ver escala</button>
+        <button class="mbtn">${ic('edit',12)} Editar</button>
+      </div>
+    </div>
+
+    <div class="msection"><b>Histórico recente</b><span>Ver tudo ›</span></div>
+    <div class="mscale" style="margin-bottom:0">
+      <div class="hist-item" style="padding:4px 0;border:none"><span class="hist-dot"></span><div style="flex:1"><b>13/11 · TransLog Distribuição</b><span>5 de 5 presentes · 1h 20 de HE</span></div><span class="badge b-green">OK</span></div>
+      <div class="hist-item" style="padding:9px 0 0;border:none"><span class="hist-dot warn"></span><div style="flex:1"><b>11/11 · AgroVale Insumos</b><span>3 de 4 presentes · 1 falta</span></div><span class="badge b-amber">Ocorr.</span></div>
+    </div>
+  </div>
+
+  <button class="fab">${ic('plus',23,2.2)}</button>
+  <nav class="mbottom">
+    <a class="active">${ic('grid',19)}<span>Início</span></a>
+    <a>${ic('calendar',19)}<span>Escalas</span></a>
+    <a>${ic('clipboard',19)}<span>Histórico</span></a>
+    <a>${ic('building',19)}<span>Empresas</span></a>
+    <a>${ic('users',19)}<span>Perfil</span></a>
+  </nav>`;
+}
+
+/* ============================================================
+   MOBILE — PAGAMENTOS DO ENCARREGADO
+============================================================ */
+function mobilePagamentos(){
+  const meses = [['2026-11','Novembro 2026'],['2026-10','Outubro 2026']];
+  const sel = HELPERS_PAY[0];
+  return `
+  <div class="mheader" style="padding-bottom:22px">
+    <div class="mheader-top">
+      ${logoImg(24)}
+      <div class="htools">
+        <span class="micon">${ic('bell',15)}<span class="dot"></span></span>
+        <span class="avatar">CM</span>
+      </div>
+    </div>
+    <h2>Pagamentos</h2>
+    <p>Selecione o ajudante e o período</p>
+  </div>
+
+  <div class="mcontent" style="margin-top:12px">
+    <div class="card pad" style="padding:11px 13px">
+      <label style="display:block;font-size:8.5px;font-weight:700;color:#6B6B6B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Ajudante</label>
+      <select class="input" id="pay-select-m" style="padding:10px 12px;font-size:12.5px;font-weight:600">
+        ${HELPERS_PAY.map(h=>`<option value="${h.id}">${h.n}</option>`).join('')}
+      </select>
+      <label style="display:block;font-size:8.5px;font-weight:700;color:#6B6B6B;text-transform:uppercase;letter-spacing:.05em;margin:9px 0 6px">Período</label>
+      <select class="input" id="pay-month-m" style="padding:10px 12px;font-size:12.5px;font-weight:600">
+        ${meses.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+      </select>
+    </div>
+
+    <div id="pay-detail-m" style="margin-top:12px">${payDetailMobile(sel, '2026-11')}</div>
+  </div>
+
+  <nav class="mbottom">
+    <a>${ic('grid',19)}<span>Início</span></a>
+    <a>${ic('calendar',19)}<span>Escalas</span></a>
+    <a class="active">${ic('wallet',19)}<span>Pagamentos</span></a>
+    <a>${ic('building',19)}<span>Empresas</span></a>
+    <a>${ic('users',19)}<span>Perfil</span></a>
+  </nav>`;
+}
+
+function payDetailMobile(sel, ym){
+  const groups = payGroups(sel, ym);
+  const totalMes = groups.reduce((s,g)=>s+groupTotals(g,sel).total,0);
+  return `
+    <div class="mscale" style="border-color:rgba(255,77,12,.35);background:#FFFDFB">
+      <div class="mscale-top">
+        <div class="mscale-co"><span class="avatar" style="width:36px;height:36px;border-radius:11px;font-size:10px;background:${sel.col}">${sel.i}</span><div><b style="font-size:13px">${sel.n}</b><span>Diária R$ ${sel.diaria.toFixed(2)} · HE R$ ${HE_HORA.toFixed(0)}/h</span></div></div>
+        <div style="text-align:right"><b style="font-size:15px;display:block">${brl(totalMes)}</b><span style="font-size:9px;color:var(--muted);font-weight:600">${groups.length} pagamento(s)</span></div>
+      </div>
+    </div>
+
+    ${groups.length?groups.map(g=>payBoxMobile(g, sel)).join(''):`<div class="mscale" style="text-align:center;padding:22px 13px"><p style="font-size:11.5px;color:#6B6B6B">Nenhum pagamento neste período.</p></div>`}
+
+    <div style="display:flex;align-items:center;gap:7px;background:#F7F7F7;border:1px solid rgba(0,0,0,.08);border-radius:11px;padding:10px 12px;margin-top:12px">
+      ${ic('activity',14)}
+      <p style="font-size:9.5px;color:#6B6B6B;line-height:1.45"><b style="color:#C2410C">Uma caixa por data.</b> Empresas com prazos diferentes geram caixas separadas. Toque para ver as diárias.</p>
+    </div>`;
+}
+
+function payBoxMobile(g, helper){
+  const t = groupTotals(g, helper);
+  const dt = g.date;
+  const st = dt < HOJE ? {l:'Pago', b:'b-green'} : {l:'A receber', b:'b-amber'};
+  return `<div class="paybox" data-paybox style="border-radius:15px">
+    <button class="paybox-head" data-paybox-toggle style="padding:12px 13px">
+      <span class="pb-date"><b>${dt.getDate()}</b><span>${MES[dt.getMonth()]}</span></span>
+      <div class="pb-info">
+        <b>${payTitle(g)}</b>
+      </div>
+      <div class="pb-val"><b>${brl(t.total)}</b><small class="${st.l==='Pago'?'pago':''}">${st.l}</small></div>
+      <span class="pb-chev">${ic('chevronDown',15)}</span>
+    </button>
+    <div class="paybox-body" hidden style="padding:6px 13px 12px">
+      ${g.days.map(day=>{const cc=byId[day.co];const he=heOfDay(day);return `
+      <div class="pb-day">
+        <div class="d"><b>${parseISO(day.d).getDate()}</b><span>${MES[parseISO(day.d).getMonth()]}</span></div>
+        <div class="info"><b>${cc.name}</b><span>${day.e} – ${day.s} · ${day.lunch?'Almoço':'Sem almoço (+1h)'}</span></div>
+        <div class="he">${he?`<span class="badge b-amber" style="font-size:9px">+${fmtH(he)}</span>`:'<span style="font-size:10px;color:#6B6B6B">—</span>'}</div>
+        <div class="val" style="font-size:11px">${brl(helper.diaria + he/60*HE_HORA)}</div>
+      </div>`}).join('')}
+      <div class="pb-sum" style="grid-template-columns:1fr 1fr">
+        <div><p>Diárias</p><b>${t.dias} × R$ ${helper.diaria.toFixed(0)} = ${brl(t.vDi)}</b></div>
+        <div class="tot"><p>Total a receber</p><b>${brl(t.total)}</b></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   MOBILE — LANÇAR HORÁRIOS
+============================================================ */
+function mobileHorarios(demoSemAlmoco=false){
+  const helpers = [
+    {n:'Anderson Souza', c:'Ajudante de logística', i:'AS', col:'linear-gradient(135deg,#1C1C1C,#0B0B0B)', e:'07:32', s:'', lunch:!demoSemAlmoco, st:'Em andamento', b:'b-blue'},
+    {n:'Bruno Carvalho', c:'Ajudante de logística', i:'BC', col:'linear-gradient(135deg,#333333,#1C1C1C)', e:'07:30', s:'', lunch:true, st:'Em andamento', b:'b-blue'},
+    {n:'Diego Martins', c:'Ajudante de logística', i:'DM', col:'linear-gradient(135deg,#4A4A4A,#333333)', e:'07:35', s:'', lunch:true, st:'Em andamento', b:'b-blue'},
+    {n:'Marcos Silva', c:'Ajudante de logística', i:'MS', col:'linear-gradient(135deg,#6B6B6B,#333333)', e:'', s:'', lunch:true, st:'Aguardando', b:'b-gray'},
+  ];
+  return `
+  <div class="mheader" style="padding-bottom:22px">
+    <div class="mheader-top">
+      <div class="mback">
+        <span class="b">${ic('arrowLeft',16)}</span>
+        <div><b>Lançar horários</b><span>TransLog · Hoje, 14/11 · Entrega</span></div>
+      </div>
+      <div class="htools"><span class="micon">${ic('bell',15)}<span class="dot"></span></span></div>
+    </div>
+  </div>
+
+  <div class="mcontent" style="margin-top:12px">
+    <div class="card pad" style="padding:13px 15px">
+      <div class="mprogress" style="margin:0">
+        <div class="mprogress-top"><span><b>3 de 4</b> com entrada lançada</span><span style="color:#4A4A4A">75%</span></div>
+        <div class="progress" style="margin-top:7px"><i style="width:75%"></i></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:11px">
+        <span class="mm">${ic('clock',12)} Previsto 07:30</span>
+        <span class="mm">${ic('users',12)} 4 ajudantes</span>
+        <span class="badge b-blue">Em andamento</span>
+      </div>
+    </div>
+
+    <div class="msection"><b>Ajudantes</b><span>Preencha e salve</span></div>
+
+    ${helpers.map(h=>`<div class="helper-card" data-lunch-row>
+      <div class="helper-head">
+        <div class="helper-id">
+          <span class="avatar" style="background:${h.col}">${h.i}</span>
+          <div><b>${h.n}</b><span>${h.c}</span></div>
+        </div>
+        <span class="badge ${h.b}">${h.st}</span>
+      </div>
+      <div class="tgrid4">
+        <div class="tfield"><label>Entrada</label><input class="${h.e?'filled':'empty'}" value="${h.e}" placeholder="--:--" /></div>
+        <div class="tfield"><label>Saída</label><input class="${h.s?'filled':'empty'}" value="${h.s}" placeholder="--:--" /></div>
+        <div class="tfield tfield-check"><label>Almoço</label><div style="display:flex;justify-content:center"><label class="lunchcheck" title="Tirou almoço"><input type="checkbox" class="lunch-input" ${h.lunch?'checked':''}><span class="box">${ic('check',11)}</span></label></div></div>
+        <div class="tfield"><label>H. extra</label><div class="he-box sm ${h.lunch?'':'he-extra'}">${h.lunch?'—':'+1h 00'}</div></div>
+      </div>
+    </div>`).join('')}
+
+    <div style="display:flex;align-items:center;gap:7px;background:#F7F7F7;border:1px solid rgba(0,0,0,.08);border-radius:11px;padding:10px 12px;margin-top:2px">
+      ${ic('activity',14)}
+      <p style="font-size:9.5px;color:#6B6B6B;line-height:1.45"><b style="color:#C2410C">Hora extra automática.</b> Sem almoço soma +1h de HE na diária; a saída calcula o restante e atualiza a empresa.</p>
+    </div>
+  </div>
+
+  <div class="savebar">
+    <button class="btn btn-primary">${ic('check',16)} Salvar horários</button>
+    <div class="subhint">${ic('activity',10)} Sincroniza com a empresa em tempo real</div>
+  </div>`;
+}
+
+/* ============================================================
+   RENDER
+============================================================ */
+const view = new URLSearchParams(location.search).get('view') || 'lider';
+let html = '';
+if(view === 'admin') html = adminBase();
+else if(view === 'admin-novo') html = adminNovo();
+else if(view === 'admin-editar') html = adminEditar();
+else if(view === 'admin-empresa-nova') html = adminNovaEmpresa();
+else if(view === 'admin-relatorios') html = adminRelatorios();
+else if(view === 'lider') html = liderDesktop();
+else if(view === 'lider-pagamentos') html = liderPagamentos();
+else if(view === 'lider-horarios') html = liderHorarios();
+else if(view === 'lider-horarios-sem-almoco') html = liderHorarios(true);
+else if(view === 'empresa') html = empresaDesktop();
+else if(view === 'mobile') html = mobileDash();
+else if(view === 'mobile-pagamentos') html = mobilePagamentos();
+else if(view === 'mobile-horarios') html = mobileHorarios();
+else if(view === 'mobile-horarios-sem-almoco') html = mobileHorarios(true);
+else html = liderDesktop();
+
+if(view.startsWith('mobile')) document.body.classList.add('mobile');
+document.getElementById('app').innerHTML = html;
+
+/* Regra do almoço: "Não" não desconta o intervalo e soma +1h de HE na diária. */
+const fmtMinutes = (m) => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}`;
+
+/* Relatórios: troca entre quinzenal, mensal e personalizado */
+document.querySelectorAll('#rel-seg button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#rel-seg button').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    const q = document.getElementById('rel-range-q'), c = document.getElementById('rel-range-c');
+    if (btn.dataset.per === 'custom') { if(q) q.style.display='none'; if(c){ c.style.display='flex'; } }
+    else { if(q) q.style.display='flex'; if(c) c.style.display='none'; }
+  });
+});
+
+/* Pagamentos: ajudante + período re-renderizam o detalhe; caixa abre as diárias */
+const paySelect = document.getElementById('pay-select');
+const payMonth = document.getElementById('pay-month');
+if (paySelect && payMonth) {
+  const rerender = () => {
+    const h = HELPERS_PAY.find(x=>x.id===paySelect.value);
+    if (h) document.getElementById('pay-detail').innerHTML = payDetail(h, payMonth.value);
+  };
+  paySelect.addEventListener('change', rerender);
+  payMonth.addEventListener('change', rerender);
+}
+const paySelectM = document.getElementById('pay-select-m');
+const payMonthM = document.getElementById('pay-month-m');
+if (paySelectM && payMonthM) {
+  const rerenderM = () => {
+    const h = HELPERS_PAY.find(x=>x.id===paySelectM.value);
+    if (h) document.getElementById('pay-detail-m').innerHTML = payDetailMobile(h, payMonthM.value);
+  };
+  paySelectM.addEventListener('change', rerenderM);
+  payMonthM.addEventListener('change', rerenderM);
+}
+/* Abrir/fechar caixa de pagamento */
+document.addEventListener('click', (ev) => {
+  const btn = ev.target.closest('[data-paybox-toggle]');
+  if (!btn) return;
+  const box = btn.closest('[data-paybox]');
+  const body = box.querySelector('.paybox-body');
+  const open = box.classList.toggle('open');
+  body.hidden = !open;
+});
+
+const refreshLunchTotals = () => {
+  const inputs = [...document.querySelectorAll('.lunch-input')];
+  const semAlmoco = inputs.filter(i => !i.checked).length;
+  const heTotal = document.getElementById('he-total');
+  const suppression = document.getElementById('suppression-total');
+  if (heTotal) heTotal.textContent = fmtMinutes(125 + semAlmoco * 60);
+  if (suppression) suppression.textContent = fmtMinutes(semAlmoco * 60);
+};
+document.querySelectorAll('.lunch-input').forEach(inp => {
+  inp.addEventListener('change', () => {
+    const row = inp.closest('[data-lunch-row]');
+    const he = row && row.querySelector('.he-box');
+    if (he) {
+      he.textContent = inp.checked ? '—' : '+1h 00';
+      he.classList.toggle('he-extra', !inp.checked);
+    }
+    refreshLunchTotals();
+  });
+});
+refreshLunchTotals();
+</script>
+</body>
+</html>
