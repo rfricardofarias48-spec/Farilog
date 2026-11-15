@@ -5,9 +5,10 @@ import { avatarTone, whatsappLink } from '../../lib/notas';
 import {
   fetchLideres, createEncarregado, updateLider,
   fetchLiderDesempenho, fetchLiderVinculos, fetchResponsaveisAtivos, fetchLiderAtividade,
+  setLiderEmpresasComPeriodo,
 } from '../../lib/db';
 import {
-  UserPlus, ArrowLeft, MessageCircle, Lock, X, Users, Check,
+  UserPlus, ArrowLeft, MessageCircle, Pencil, Lock, X, Users, Check,
   Briefcase, UserX, AlertTriangle, CheckCircle2, DollarSign, Plus, Loader2,
 } from 'lucide-react';
 
@@ -18,6 +19,9 @@ const ACCENT = '#FF4D0C';
 const COLORS = ['#0B0B0B', '#1C1C1C', '#2A2A2A', '#333333', '#3D3D3D', '#4A4A4A', '#5A5A5A'];
 
 const iniciaisDe = nome => (nome || '?').split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+
+// Contas antigas podem ter vindo com 'inactive' (padrão do app) ou 'inativo' (protótipo)
+const estaInativo = l => l?.status === 'inactive' || l?.status === 'inativo';
 
 // ── Modal: criar conta (senha definida direto, sem e-mail) ──────────────────
 function ModalNovaConta({ companies, onSave, onClose }) {
@@ -102,6 +106,124 @@ function ModalNovaConta({ companies, onSave, onClose }) {
   );
 }
 
+// ── Modal: editar dados e empresas (a troca de empresas registra o período) ─
+function ModalEditar({ lider, companies, onSave, onClose }) {
+  const [form, setForm] = useState({
+    name:     lider.nome || lider.name || '',
+    email:    lider.email || '',
+    phone:    lider.telefone || lider.phone || '',
+    password: '',
+    status:   estaInativo(lider) ? 'inactive' : 'active',
+  });
+  const [empresaIds, setEmpresaIds] = useState(null);   // null = carregando
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchLiderVinculos(lider.id).then(vin =>
+      setEmpresaIds(vin.filter(v => v.atual).map(v => v.empresaId))
+    );
+  }, [lider.id]);
+
+  const selecionadas = empresaIds || [];
+  const toggle = id => setEmpresaIds(prev =>
+    (prev || []).includes(id) ? (prev || []).filter(x => x !== id) : [...(prev || []), id]
+  );
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-box animate-fade-up" style={{ maxWidth: '620px' }}>
+        <div className="flex items-start justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <span style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#F5F5F5', display: 'flex', alignItems: 'center', justifyContent: 'center', ...T }}>
+              <Pencil size={17} />
+            </span>
+            <div>
+              <h2 className="text-base font-bold" style={T}>Editar encarregado</h2>
+              <p className="text-xs mt-0.5" style={TM}>Alterar as empresas registra o fim do período antigo e o início do novo, na data de hoje.</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#9A9A9A', background: '#F5F5F5' }}><X size={15} /></button>
+        </div>
+
+        <form onSubmit={async e => { e.preventDefault(); setSaving(true); await onSave({ ...form, empresaIds: selecionadas }); setSaving(false); }} className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Nome completo</label>
+            <input className="input-field" required autoComplete="off" value={form.name}
+              onChange={e => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>E-mail de acesso</label>
+              <input className="input-field" type="email" required autoComplete="off" value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Telefone / WhatsApp</label>
+              <input className="input-field" autoComplete="off" value={form.phone}
+                onChange={e => setForm({ ...form, phone: e.target.value })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Nova senha (opcional)</label>
+              <input className="input-field" autoComplete="off" value={form.password} placeholder="deixe vazio para manter"
+                style={{ fontFamily: 'monospace' }} onChange={e => setForm({ ...form, password: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Status do acesso</label>
+              <div className="flex gap-2">
+                {[['active', 'Ativo'], ['inactive', 'Inativo']].map(([val, lbl]) => (
+                  <button key={val} type="button" onClick={() => setForm({ ...form, status: val })}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all"
+                    style={{
+                      background: form.status === val ? '#F5F5F5' : '#F7F7F7',
+                      borderColor: form.status === val ? '#0B0B0B' : 'rgba(0,0,0,0.08)',
+                      color: form.status === val ? '#0B0B0B' : '#9A9A9A',
+                    }}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '14px' }}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-bold" style={T}>Empresas responsáveis</span>
+              <span className="text-xs" style={TM}>
+                {empresaIds === null ? 'carregando...' : `${selecionadas.length} selecionada${selecionadas.length === 1 ? '' : 's'}`}
+              </span>
+            </div>
+            <p className="text-xs mb-3" style={TM}>Tirar uma empresa encerra o período dele nela hoje; a empresa passa a valer para o próximo responsável.</p>
+            <div className="grid grid-cols-2 gap-2" style={{ maxHeight: '210px', overflowY: 'auto' }}>
+              {companies.map(c => {
+                const on = selecionadas.includes(c.id);
+                return (
+                  <button type="button" key={c.id} onClick={() => toggle(c.id)}
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
+                    style={{ background: on ? '#FFFFFF' : '#F7F7F7', border: `1.5px solid ${on ? '#0B0B0B' : 'rgba(0,0,0,0.07)'}` }}>
+                    <span style={{ width: '18px', height: '18px', borderRadius: '6px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? '#0B0B0B' : '#FFFFFF', border: on ? 'none' : '1.5px solid rgba(0,0,0,0.14)', color: '#fff' }}>
+                      {on && <Check size={11} strokeWidth={3} />}
+                    </span>
+                    <span className="text-xs font-semibold truncate" style={on ? T : T2}>{c.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+            <button type="submit" disabled={saving || empresaIds === null} className="btn-primary flex-1 flex items-center justify-center gap-2">
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Salvar alterações
+            </button>
+            <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Modal: resetar senha (troca imediata, sem e-mail) ──────────────────────
 function ModalResetSenha({ lider, onSave, onClose }) {
   const [senha, setSenha] = useState('');
@@ -162,7 +284,7 @@ function Indicador({ icon: Icon, valor, legenda, nota, notaCor }) {
 }
 
 // ── Conta do encarregado ───────────────────────────────────────────────────
-function ContaEncarregado({ lider, onVoltar, onResetSenha }) {
+function ContaEncarregado({ lider, versao, onVoltar, onResetSenha, onEditar }) {
   const [desempenho, setDesempenho] = useState(null);
   const [vinculos,   setVinculos]   = useState([]);
   const [substitutos, setSubstitutos] = useState({});
@@ -188,7 +310,7 @@ function ContaEncarregado({ lider, onVoltar, onResetSenha }) {
       setCarregando(false);
     })();
     return () => { ativo = false; };
-  }, [lider.id]);
+  }, [lider.id, versao]);
 
   const wa = whatsappLink(lider.telefone || lider.phone);
   const total = desempenho?.total || { diarias: 0, faltas: 0, pend: 0, faturado: 0 };
@@ -213,8 +335,8 @@ function ContaEncarregado({ lider, onVoltar, onResetSenha }) {
               <p className="text-base font-bold" style={T}>{lider.nome || lider.name}</p>
               <p className="text-xs" style={TM}>{[lider.email, lider.telefone || lider.phone].filter(Boolean).join(' · ') || '—'}</p>
               <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                <span className={`badge ${lider.status === 'inativo' ? 'badge-inactive' : 'badge-active'}`}>
-                  {lider.status === 'inativo' ? 'Inativo' : 'Ativo'}
+                <span className={`badge ${estaInativo(lider) ? 'badge-inactive' : 'badge-active'}`}>
+                  {estaInativo(lider) ? 'Inativo' : 'Ativo'}
                 </span>
                 {desde && <span className="badge badge-pending">Conta desde {desde}</span>}
                 <span className="badge badge-pending">{empresas.length || ativos} empresa{(empresas.length || ativos) === 1 ? '' : 's'}</span>
@@ -227,6 +349,9 @@ function ContaEncarregado({ lider, onVoltar, onResetSenha }) {
                 <MessageCircle size={13} /> WhatsApp
               </a>
             )}
+            <button onClick={onEditar} className="btn-ghost flex items-center gap-1.5">
+              <Pencil size={13} /> Editar dados
+            </button>
             <button onClick={onResetSenha} className="btn-primary flex items-center gap-1.5">
               <Lock size={13} /> Resetar senha
             </button>
@@ -363,7 +488,8 @@ export default function AdminEncarregados() {
   const [lideres,  setLideres]  = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [selecionado, setSelecionado] = useState(null);
-  const [modal, setModal] = useState(null);   // 'new' | 'reset'
+  const [versao, setVersao] = useState(0);          // incrementa a cada edição para recarregar a conta
+  const [modal, setModal] = useState(null);         // 'new' | {type:'reset'} | {type:'edit'}
   const [busca, setBusca] = useState('');
 
   const carregar = async () => {
@@ -399,17 +525,33 @@ export default function AdminEncarregados() {
     setModal(null);
   };
 
+  const salvarEdicao = async ({ name, email, phone, password, status, empresaIds }) => {
+    const patch = { name, email, phone, status };
+    if (password) patch.password = password;
+    const ok = await updateLider(selecionado, patch);
+    if (!ok) { alert('Não foi possível salvar as alterações.'); return; }
+    await setLiderEmpresasComPeriodo(selecionado, empresaIds);
+    await carregar();
+    setVersao(v => v + 1);
+    setModal(null);
+  };
+
   if (selecionado) {
     const lider = lideres.find(l => l.id === selecionado) || { id: selecionado };
     return (
       <>
         <ContaEncarregado
           lider={lider}
+          versao={versao}
           onVoltar={() => setSelecionado(null)}
           onResetSenha={() => setModal({ type: 'reset', lider })}
+          onEditar={() => setModal({ type: 'edit', lider })}
         />
         {modal?.type === 'reset' && (
           <ModalResetSenha lider={modal.lider} onSave={salvarSenha} onClose={() => setModal(null)} />
+        )}
+        {modal?.type === 'edit' && (
+          <ModalEditar lider={modal.lider} companies={companies} onSave={salvarEdicao} onClose={() => setModal(null)} />
         )}
       </>
     );
@@ -421,7 +563,7 @@ export default function AdminEncarregados() {
         <div>
           <h1 className="text-xl font-bold" style={T}>Encarregados</h1>
           <p className="text-xs mt-0.5" style={TM}>
-            {`${lideres.filter(l => l.status !== 'inativo').length} ativos de ${lideres.length} cadastrados`}
+            {`${lideres.filter(l => !estaInativo(l)).length} ativos de ${lideres.length} cadastrados`}
           </p>
         </div>
         <button onClick={() => setModal({ type: 'new' })} className="btn-primary flex items-center gap-2">
@@ -459,12 +601,15 @@ export default function AdminEncarregados() {
                 </div>
               </div>
               <p className="text-xs truncate self-center" style={T2}>{l.companyName && l.companyName !== '—' ? l.companyName : '—'}</p>
-              <span className={`badge ${l.status === 'inativo' ? 'badge-inactive' : 'badge-active'} self-center`}>
-                {l.status === 'inativo' ? 'Inativo' : 'Ativo'}
+              <span className={`badge ${estaInativo(l) ? 'badge-inactive' : 'badge-active'} self-center`}>
+                {estaInativo(l) ? 'Inativo' : 'Ativo'}
               </span>
               <div className="flex items-center gap-1 justify-end">
                 <button onClick={() => setSelecionado(l.id)} title="Abrir conta" className="p-1.5 rounded-lg" style={{ color: T.color, background: '#F4F4F5' }}>
                   <Briefcase size={13} />
+                </button>
+                <button onClick={() => setModal({ type: 'edit', lider: l })} title="Editar dados e empresas" className="p-1.5 rounded-lg" style={{ color: '#9A9A9A', background: '#F5F5F5' }}>
+                  <Pencil size={13} />
                 </button>
                 <button onClick={() => setModal({ type: 'reset', lider: l })} title="Resetar senha" className="p-1.5 rounded-lg" style={{ color: '#9A9A9A', background: '#F5F5F5' }}>
                   <Lock size={13} />

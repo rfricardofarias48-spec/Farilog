@@ -21,7 +21,7 @@ create index if not exists lider_empresas_empresa_idx on public.lider_empresas (
 
 -- Status de acesso do encarregado (badge Ativo/Inativo na conta).
 alter table public.lideres_equipe
-  add column if not exists status text default 'ativo';
+  add column if not exists status text default 'active';
 
 -- Conferência rápida: mostra os vínculos e seus períodos.
 -- select le.lider_id, l.nome as encarregado, e.nome as empresa,
