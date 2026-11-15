@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import {
-  loginAdmin, loginCompany,
+  loginAdmin, loginCompany, loginLider,
   fetchEmployees, fetchCompanies, fetchDemands,
   createDemand, updateDemandEmployeeStatus, updateDemandEmployeeTimes, updateDemandAllTimes, deleteDemand, archiveDemand, editDemand,
 } from '../lib/db';
@@ -165,6 +165,16 @@ export function AuthProvider({ children }) {
       const u = { role: 'admin', ...admin };
       setUser(u); saveUser(u);
       return { success: true, role: 'admin' };
+    }
+
+    const lider = await loginLider(email, password);
+    if (lider) {
+      if (lider.status === 'inactive' || lider.status === 'inativo') {
+        return { success: false, error: 'Conta desativada. Fale com o administrador.' };
+      }
+      const u = { role: 'lider', ...lider };
+      setUser(u); saveUser(u);
+      return { success: true, role: 'lider' };
     }
 
     return { success: false, error: 'E-mail ou senha inválidos' };

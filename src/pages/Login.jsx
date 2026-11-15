@@ -25,7 +25,7 @@ export default function Login() {
 
   // Já está logado (sessão restaurada) → vai direto para o painel.
   useEffect(() => {
-    if (user) navigate(user.role === 'admin' ? '/admin' : '/company', { replace: true });
+    if (user) navigate(user.role === 'admin' ? '/admin' : user.role === 'lider' ? '/lider' : '/company', { replace: true });
   }, [user, navigate]);
 
   const handleLogin = async (e) => {
@@ -36,8 +36,7 @@ export default function Login() {
     const result = await login(email, password);
     if (result.success) {
       navigate(`/${result.role}`);
-    } else {
-      setError(result.error);
+    } else {      setError(result.error);
       setLoading(false);
     }
   };

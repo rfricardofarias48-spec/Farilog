@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import CompanyLayout from './layouts/CompanyLayout';
 import AdminLayout from './layouts/AdminLayout';
+import LiderLayout from './layouts/LiderLayout';
 import CompanyDashboard from './pages/company/CompanyDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminCompanies from './pages/admin/AdminCompanies';
@@ -12,6 +13,7 @@ import AdminDemanda from './pages/admin/AdminDemanda';
 import AdminOperacional from './pages/admin/AdminOperacional';
 import AdminRH from './pages/admin/AdminRH';
 import AdminSolicitacoes from './pages/admin/AdminSolicitacoes';
+import LiderDashboard from './pages/lider/LiderDashboard';
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user } = useAuth();
@@ -40,6 +42,11 @@ function AppRoutes() {
         <Route path="operacional"  element={<AdminOperacional />} />
         <Route path="rh"           element={<AdminRH />} />
         <Route path="solicitacoes" element={<AdminSolicitacoes />} />
+      </Route>
+      <Route path="/lider" element={
+        <ProtectedRoute allowedRole="lider"><LiderLayout /></ProtectedRoute>
+      }>
+        <Route index element={<LiderDashboard />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
