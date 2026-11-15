@@ -7,12 +7,12 @@
 -- Execute no SQL Editor do Supabase do projeto do Farilog.
 
 create table if not exists public.avaliacoes_diarias (
-  id                uuid primary key default gen_random_uuid(),
-  escala_id         uuid not null references public.escalas(id) on delete cascade,
-  registro_id       uuid references public.registros(id) on delete set null,
+  id                text primary key default gen_random_uuid()::text,
+  escala_id         text not null references public.escalas(id) on delete cascade,
+  registro_id       text,
   funcionario_id    text not null references public.funcionarios(id) on delete cascade,
-  empresa_id        uuid references public.empresas(id) on delete set null,
-  lider_id          uuid,
+  empresa_id        text,
+  lider_id          text,
   data              date not null,
   nota              smallint not null,
   observacao        text,
@@ -24,10 +24,10 @@ create table if not exists public.avaliacoes_diarias (
   constraint avaliacoes_unica_por_diaria unique (funcionario_id, escala_id)
 );
 
-comment on table  public.avaliacoes_diarias is
-  'Notas (0-5) e observações dadas pelo encarregado a cada ajudante em uma diária.';
-comment on column public.avaliacoes_diarias.avaliado_por_tipo is
-  'Origem do lançamento: encarregado, admin ou sistema.';
+comment on column public.avaliacoes_diarias.registro_id is
+  'Registro da diária (quando conhecido). Sem FK: tipos de id variam entre tabelas.';
+comment on column public.avaliacoes_diarias.empresa_id is
+  'Empresa da diária (quando conhecida). Sem FK: tipos de id variam entre tabelas.';
 comment on column public.avaliacoes_diarias.lider_id is
   'Encarregado/líder responsável pela empresa naquela diária (quando conhecido).';
 
