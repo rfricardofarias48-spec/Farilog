@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   fetchEscalasByLider, fetchAjudantesDisponiveis,
-  upsertRelatorioDiario, fetchOcorrencias, createOcorrencia,
+  upsertRelatorioDiario,
   createEscalaByLider, addRegistroToEscala, updateEscalaByLider,
   fetchEmpresasDoLider, fetchRelatoriosDiarios,
   uploadFotoRelatorio, fetchTodosAjudantes, createSolicitacaoAjudantes,
@@ -16,7 +16,7 @@ import AvaliacaoDiariaModal from '../../components/shared/AvaliacaoDiariaModal';
 import {
   Users, Calendar, CheckCircle2, AlertCircle, AlertTriangle,
   Plus, ChevronRight, X, Building2, FileText, RefreshCw,
-  Search, Send, Clock, MessageSquare, ClipboardCheck,
+  Search, Send, Clock, ClipboardCheck,
   Image, Trash2, Star, Save, Loader2,
 } from 'lucide-react';
 
@@ -225,7 +225,7 @@ function ModalSubstituto({ escala, onClose, onRefresh }) {
 }
 
 // ── Modal Finalizar Dia ───────────────────────────────────────────────────
-function ModalFinalizarDia({ user, presentes, ausentes, ocCount, onClose, onSaved }) {
+function ModalFinalizarDia({ user, presentes, ausentes, onClose, onSaved }) {
   const [obs, setObs]           = useState('');
   const [fotos, setFotos]       = useState([]);   // [{ file, preview }]
   const [saving, setSaving]     = useState(false);
@@ -254,7 +254,6 @@ function ModalFinalizarDia({ user, presentes, ausentes, ocCount, onClose, onSave
       data:             TODAY,
       presentes,
       ausentes,
-      ocorrenciasCount: ocCount,
       observacoes:      obs,
       fotosUrls:        urls,
       finalizado:       true,
@@ -277,11 +276,10 @@ function ModalFinalizarDia({ user, presentes, ausentes, ocCount, onClose, onSave
         </div>
 
         {/* Resumo automático */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px', marginBottom: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '8px', marginBottom: '20px' }}>
           {[
             { label: 'Presentes',   value: presentes, color: presentes > 0 ? '#059669' : '#CBD5E1' },
             { label: 'Ausentes',    value: ausentes,  color: ausentes > 0 ? '#E11D48' : '#CBD5E1'  },
-            { label: 'Ocorrências', value: ocCount,   color: ocCount > 0 ? '#D97706' : '#CBD5E1'   },
           ].map((k, i) => (
             <div key={i} style={{ padding: '12px', borderRadius: '10px', background: '#F8FAFC', textAlign: 'center', border: '1px solid rgba(0,0,0,0.07)' }}>
               <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>{k.label}</p>
@@ -360,7 +358,6 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
   const [modalSubst, setModalSubst]   = useState(false);
   const [modalHor, setModalHor]       = useState(false);
   const [showNotas, setShowNotas]     = useState(false);
-  const [ocorrencias, setOcorrencias] = useState([]);
 
   const confirmados = ajudantes.filter(a => ['confirmado','finalizado'].includes(a.status)).length;
   const ausentes    = ajudantes.filter(a => a.status === 'falta').length;
@@ -376,15 +373,8 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
   const operCfg = OPER_CFG[operStatus];
 
   useEffect(() => {
-    if (todayEscala?.id) {
-      fetchOcorrencias({ escalaId: todayEscala.id, data: TODAY }).then(ocs => {
-        setOcorrencias(ocs);
-        onStatsChange?.({ presentes: confirmados, ausentes, ocCount: ocs.length });
-      });
-    } else {
-      onStatsChange?.({ presentes: confirmados, ausentes, ocCount: 0 });
-    }
-  }, [todayEscala?.id, confirmados, ausentes]);
+    onStatsChange?.({ presentes: confirmados, ausentes });
+  }, [confirmados, ausentes]);
 
   return (
     <div className="space-y-5">
@@ -576,49 +566,6 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
             </>
           )}
         </div>
-      </div>
-
-      {/* Reportes dos ajudantes */}
-      <div className="card overflow-hidden">
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <MessageSquare size={14} style={{ color: '#94A3B8' }} />
-          <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Reportes da equipe hoje</p>
-          {ocorrencias.length > 0 && (
-            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', background: '#FEF3C7', color: '#D97706' }}>
-              {ocorrencias.length}
-            </span>
-          )}
-        </div>
-        {ocorrencias.length === 0 ? (
-          <div style={{ padding: '32px 16px', textAlign: 'center' }}>
-            <CheckCircle2 size={24} style={{ color: '#CBD5E1', margin: '0 auto 8px' }} />
-            <p style={{ fontSize: '13px', color: '#94A3B8' }}>Nenhum reporte hoje</p>
-          </div>
-        ) : ocorrencias.map(oc => {
-          const ajNome = oc.funcionarios?.nome || '—';
-          const ajIni  = oc.funcionarios?.iniciais || '?';
-          const ajCor  = oc.funcionarios?.cor || '#94A3B8';
-          return (
-            <div key={oc.id} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                {oc.ajudante_id ? (
-                  <div style={{ width: '24px', height: '24px', borderRadius: '7px', background: ajCor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                    {ajIni}
-                  </div>
-                ) : (
-                  <AlertCircle size={16} style={{ color: '#D97706', flexShrink: 0 }} />
-                )}
-                <p style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>
-                  {oc.ajudante_id ? ajNome : 'Líder'} · {oc.criado_em ? new Date(oc.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—'}
-                </p>
-                <span style={{ marginLeft: 'auto', fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', background: oc.status === 'resolvido' ? '#DCFCE7' : '#FEF3C7', color: oc.status === 'resolvido' ? '#059669' : '#D97706' }}>
-                  {oc.status === 'resolvido' ? 'Resolvido' : 'Aberto'}
-                </span>
-              </div>
-              <p style={{ fontSize: '13px', color: '#0F172A', lineHeight: 1.5, paddingLeft: '32px' }}>{oc.descricao}</p>
-            </div>
-          );
-        })}
       </div>
 
       {modalSubst && todayEscala && (
@@ -879,11 +826,10 @@ function TabHistorico({ user, escalas, employees }) {
                 {relatorio ? (
                   <div style={{ padding: '12px 16px' }}>
                     <p style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Relatório do dia</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px', marginBottom: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '8px', marginBottom: '10px' }}>
                       {[
                         { label: 'Presentes',   value: relatorio.presentes,       color: '#059669' },
                         { label: 'Ausentes',    value: relatorio.ausentes,        color: relatorio.ausentes > 0 ? '#E11D48' : '#CBD5E1' },
-                        { label: 'Ocorrências', value: relatorio.ocorrencias_count, color: relatorio.ocorrencias_count > 0 ? '#D97706' : '#CBD5E1' },
                       ].map((k, i) => (
                         <div key={i} style={{ padding: '8px', borderRadius: '8px', background: 'white', textAlign: 'center', border: '1px solid rgba(0,0,0,0.07)' }}>
                           <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 600, marginBottom: '4px' }}>{k.label}</p>
@@ -1952,167 +1898,6 @@ function TabTarefas({ user }) {
   );
 }
 
-// ── Tab: Ocorrências ──────────────────────────────────────────────────────
-function TabOcorrencias({ user, escalas, employees }) {
-  const [ocorrencias, setOcorrencias] = useState([]);
-  const [showForm, setShowForm]       = useState(false);
-  const [form, setForm]               = useState({ descricao: '', data: TODAY, ajudanteId: '', fotoUrl: '' });
-  const [loading, setLoading]         = useState(true);
-
-  const load = () =>
-    fetchOcorrencias({ empresaId: user.empresa_id })
-      .then(o => { setOcorrencias(o); setLoading(false); });
-
-  useEffect(() => { load(); }, [user.empresa_id]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.descricao.trim()) return;
-    await createOcorrencia({
-      liderId:    user.id,
-      empresaId:  user.empresa_id,
-      ajudanteId: form.ajudanteId || null,
-      data:       form.data,
-      descricao:  form.descricao,
-      fotoUrl:    form.fotoUrl || null,
-    });
-    setForm({ descricao: '', data: TODAY, ajudanteId: '', fotoUrl: '' });
-    setShowForm(false);
-    load();
-  };
-
-  const deAjudantes = ocorrencias.filter(o => o.ajudante_id && !o.lider_id);
-  const doLider     = ocorrencias.filter(o => o.lider_id === user.id);
-
-  const OcCard = ({ oc }) => {
-    const ajNome = oc.funcionarios?.nome || '—';
-    const ajIni  = oc.funcionarios?.iniciais || '?';
-    const ajCor  = oc.funcionarios?.cor || '#94A3B8';
-    return (
-      <div className="card p-4">
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-            {oc.ajudante_id ? (
-              <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: ajCor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                {ajIni}
-              </div>
-            ) : (
-              <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: '#FF4D0C', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <AlertCircle size={16} style={{ color: 'white' }} />
-              </div>
-            )}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>
-                {oc.ajudante_id ? ajNome : 'Registrado pelo líder'} · {fmtDate(oc.data)}
-              </p>
-              <p style={{ fontSize: '13px', color: '#0F172A', lineHeight: 1.5, marginTop: '4px' }}>{oc.descricao}</p>
-              {oc.foto_url && (
-                <a href={oc.foto_url} target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: '11px', color: '#2563EB', fontWeight: 600, marginTop: '4px', display: 'inline-block' }}>
-                  Ver foto →
-                </a>
-              )}
-            </div>
-          </div>
-          <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: oc.status === 'resolvido' ? '#DCFCE7' : '#FEF3C7', color: oc.status === 'resolvido' ? '#059669' : '#D97706', flexShrink: 0 }}>
-            {oc.status === 'resolvido' ? 'Resolvido' : 'Aberto'}
-          </span>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-5">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>
-          {ocorrencias.length} ocorrência{ocorrencias.length !== 1 ? 's' : ''} registrada{ocorrencias.length !== 1 ? 's' : ''}
-        </p>
-        <button onClick={() => setShowForm(!showForm)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer' }}>
-          <Plus size={14} /> Registrar
-        </button>
-      </div>
-
-      {showForm && (
-        <form onSubmit={handleSubmit} className="card p-5 space-y-4 animate-fade-up">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Nova Ocorrência</p>
-            <button type="button" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Data</label>
-              <input type="date" className="input-field" value={form.data}
-                onChange={e => setForm(f => ({ ...f, data: e.target.value }))} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Ajudante envolvido</label>
-              <select className="input-field" value={form.ajudanteId}
-                onChange={e => setForm(f => ({ ...f, ajudanteId: e.target.value }))}>
-                <option value="">Sem ajudante específico</option>
-                {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-              </select>
-            </div>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Descrição *</label>
-            <textarea className="input-field" rows={4} required placeholder="Descreva o incidente com detalhes..."
-              value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} style={{ resize: 'none' }} />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Link da foto (opcional)</label>
-            <input type="url" className="input-field" placeholder="https://..."
-              value={form.fotoUrl} onChange={e => setForm(f => ({ ...f, fotoUrl: e.target.value }))} />
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button type="button" onClick={() => setShowForm(false)}
-              style={{ flex: 1, padding: '11px', borderRadius: '10px', background: '#F1F5F9', color: '#64748B', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-              Cancelar
-            </button>
-            <button type="submit"
-              style={{ flex: 2, padding: '11px', borderRadius: '10px', background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700 }}>
-              Registrar ocorrência
-            </button>
-          </div>
-        </form>
-      )}
-
-      {loading ? (
-        <div className="card p-10 text-center text-sm" style={{ color: '#94A3B8' }}>Carregando...</div>
-      ) : ocorrencias.length === 0 ? (
-        <div className="card" style={{ padding: '48px 16px', textAlign: 'center' }}>
-          <CheckCircle2 size={28} style={{ color: '#CBD5E1', margin: '0 auto 10px' }} />
-          <p style={{ color: '#94A3B8', fontSize: '13px' }}>Nenhuma ocorrência registrada</p>
-        </div>
-      ) : (
-        <>
-          {deAjudantes.length > 0 && (
-            <div>
-              <p style={{ fontSize: '11px', fontWeight: 700, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
-                Reportados pelos ajudantes ({deAjudantes.length})
-              </p>
-              <div className="space-y-3">
-                {deAjudantes.map(o => <OcCard key={o.id} oc={o} />)}
-              </div>
-            </div>
-          )}
-          {doLider.length > 0 && (
-            <div>
-              <p style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
-                Registrados por você ({doLider.length})
-              </p>
-              <div className="space-y-3">
-                {doLider.map(o => <OcCard key={o.id} oc={o} />)}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
 // ── Tab: Relatório ────────────────────────────────────────────────────────
 function TabRelatorio({ user, escalas, employees }) {
   const todayEscala = escalas.find(e => e.date === TODAY);
@@ -2121,20 +1906,12 @@ function TabRelatorio({ user, escalas, employees }) {
   const [obs, setObs]           = useState('');
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
-  const [ocorrencias, setOcorrencias] = useState([]);
-
-  useEffect(() => {
-    if (todayEscala?.id) {
-      fetchOcorrencias({ escalaId: todayEscala.id, data: TODAY }).then(setOcorrencias);
-    }
-  }, [todayEscala?.id]);
 
   const presentes  = ajudantes.filter(a => ['confirmado','finalizado'].includes(a.status)).length;
   const ausentes   = ajudantes.filter(a => a.status === 'falta').length;
   const atrasados  = ajudantes.filter(a => a.status === 'atrasado').length;
   const total      = ajudantes.length;
   const sla        = total > 0 ? Math.round((presentes / total) * 100) : null;
-  const ocCount    = ocorrencias.length;
 
   const handleFinalizar = async () => {
     setSaving(true);
@@ -2144,7 +1921,6 @@ function TabRelatorio({ user, escalas, employees }) {
       data:             TODAY,
       presentes,
       ausentes,
-      ocorrenciasCount: ocCount,
       observacoes:      obs,
       finalizado:       true,
     });
@@ -2156,12 +1932,11 @@ function TabRelatorio({ user, escalas, employees }) {
   return (
     <div className="space-y-5" style={{ maxWidth: '720px' }}>
       {/* Resumo do dia */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
         {[
           { label: 'Presentes',   value: presentes, color: presentes > 0 ? '#059669' : '#CBD5E1' },
           { label: 'Ausentes',    value: ausentes,  color: ausentes > 0 ? '#E11D48' : '#CBD5E1' },
           { label: 'Atrasados',   value: atrasados, color: atrasados > 0 ? '#D97706' : '#CBD5E1' },
-          { label: 'Ocorrências', value: ocCount,   color: ocCount > 0 ? '#D97706' : '#CBD5E1' },
         ].map((k, i) => (
           <div key={i} className="card" style={{ padding: '16px 12px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.08)' }}>
             <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '8px', textTransform: 'uppercase' }}>{k.label}</p>
@@ -2203,26 +1978,6 @@ function TabRelatorio({ user, escalas, employees }) {
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* Ocorrências do dia */}
-      {ocCount > 0 && (
-        <div className="card overflow-hidden">
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AlertTriangle size={14} style={{ color: '#D97706' }} />
-            <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
-              Ocorrências do dia ({ocCount})
-            </p>
-          </div>
-          {ocorrencias.map(oc => (
-            <div key={oc.id} style={{ padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: '#64748B', marginBottom: '3px' }}>
-                {oc.funcionarios?.nome || 'Líder'} — {oc.status === 'resolvido' ? '✓ Resolvido' : 'Aberto'}
-              </p>
-              <p style={{ fontSize: '13px', color: '#0F172A' }}>{oc.descricao}</p>
-            </div>
-          ))}
         </div>
       )}
 
@@ -2344,7 +2099,7 @@ export default function LiderDashboard() {
   const { tab } = useOutletContext();
   const [escalas, setEscalas]           = useState([]);
   const [modalFinalizar, setModalFinalizar] = useState(false);
-  const [hojeStats, setHojeStats]       = useState({ presentes: 0, ausentes: 0, ocCount: 0 });
+  const [hojeStats, setHojeStats]       = useState({ presentes: 0, ausentes: 0 });
 
   const load = useCallback(() => {
     if (user?.id) fetchEscalasByLider(user.id).then(setEscalas);
@@ -2358,7 +2113,6 @@ export default function LiderDashboard() {
     notas:       { sub: 'Notas',           title: 'Notas dos Ajudantes' },
     ajudantes:   { sub: 'Equipe',          title: 'Ajudantes Disponíveis' },
     tarefas:     { sub: 'Admin',           title: 'Minhas Tarefas' },
-    ocorrencias: { sub: 'Ocorrências',     title: 'Incidentes e Reportes' },
   };
   const { sub, title } = TITLES[tab] || TITLES.hoje;
 
@@ -2389,14 +2143,12 @@ export default function LiderDashboard() {
       {tab === 'notas'       && <TabNotas       user={user} escalas={escalas} employees={employees} onRefresh={load} />}
       {tab === 'ajudantes'   && <TabAjudantes user={user} />}
       {tab === 'tarefas'     && <TabTarefas user={user} />}
-      {tab === 'ocorrencias' && <TabOcorrencias user={user} escalas={escalas} employees={employees} />}
 
       {modalFinalizar && (
         <ModalFinalizarDia
           user={user}
           presentes={hojeStats.presentes}
           ausentes={hojeStats.ausentes}
-          ocCount={hojeStats.ocCount}
           onClose={() => setModalFinalizar(false)}
           onSaved={load}
         />

@@ -5,7 +5,6 @@ import { fetchTodayAllRecords, fetchWorkRecordsByPeriod } from '../../lib/db';
 import { fmtCurrency, fmtDate } from '../../data/mockData';
 import { overtimeToMinutes, sumOvertimeMinutes, minutesToOvertimeString, recordRevenue } from '../../lib/timeUtils';
 import AdminDemanda from './AdminDemanda';
-import AdminOcorrencias from './AdminOcorrencias';
 import AdminEncarregados from './AdminEncarregados';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -937,7 +936,6 @@ export default function AdminOperacional() {
       {tab === 'demanda'     && <AdminDemanda />}
       {tab === 'historico'   && <Historico />}
       {tab === 'relatorios'  && <Relatorios />}
-      {tab === 'ocorrencias' && <AdminOcorrencias />}
       {tab === 'encarregados' && <AdminEncarregados />}
     </div>
   );

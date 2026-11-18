@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LogOut, LayoutDashboard, Building2, ChevronLeft, ChevronRight,
   DollarSign, ClipboardList, Search, Bell, Briefcase, Activity,
-  Send, BarChart2, ChevronDown, Users, Heart, Clock, Shield, AlertTriangle,
+  Send, BarChart2, ChevronDown, Users, Heart, Clock, Shield,
   TrendingUp, CreditCard, Wallet, FileText, UserCheck,
 } from 'lucide-react';
 
@@ -13,7 +13,6 @@ const OP_TABS = [
   { key: 'demanda',      label: 'Lançar Demanda',  icon: Send },
   { key: 'historico',    label: 'Histórico',       icon: ClipboardList },
   { key: 'relatorios',   label: 'Relatórios',      icon: BarChart2 },
-  { key: 'ocorrencias',  label: 'Ocorrências',     icon: AlertTriangle },
   { key: 'encarregados', label: 'Encarregados',    icon: UserCheck },
 ];
 

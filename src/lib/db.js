@@ -961,15 +961,7 @@ export async function fetchLiderAtividade(liderId, limite = 6) {
     return { data: esc.data, ok: true, txt: `Escala lançada · ${empresa}` };
   });
 
-  const ocorrencias = await fetchOcorrencias({ liderId });
-  const evOc = (ocorrencias || []).slice(0, 3).map(oc => ({
-    data: oc.data, ok: false,
-    txt: `Ocorrência: ${oc.descricao || 'registrada'}`,
-  }));
-
-  return [...eventos, ...evOc]
-    .sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')))
-    .slice(0, limite);
+  return eventos.slice(0, limite);
 }
 
 // Cria a conta do encarregado e registra os vínculos iniciais (período começa hoje)
@@ -1026,36 +1018,6 @@ export async function setLiderEmpresasComPeriodo(liderId, empresaIds) {
   return true;
 }
 
-// ── Ocorrências ───────────────────────────────────────────────────────────
-
-export async function fetchOcorrencias(filters = {}) {
-  let q = supabase.from('ocorrencias')
-    .select('*, funcionarios(nome, iniciais, cor)')
-    .order('criado_em', { ascending: false });
-  if (filters.liderId)    q = q.eq('lider_id', filters.liderId);
-  if (filters.empresaId)  q = q.eq('empresa_id', filters.empresaId);
-  if (filters.data)       q = q.eq('data', filters.data);
-  if (filters.escalaId)   q = q.eq('escala_id', filters.escalaId);
-  if (filters.ajudanteId) q = q.eq('ajudante_id', filters.ajudanteId);
-  const { data, error } = await q;
-  if (error) { console.error('[db] fetchOcorrencias:', error.message); return []; }
-  return data;
-}
-
-export async function createOcorrencia(oc) {
-  const { data, error } = await supabase
-    .from('ocorrencias')
-    .insert({ id: crypto.randomUUID(), escala_id: oc.escalaId, lider_id: oc.liderId, ajudante_id: oc.ajudanteId, empresa_id: oc.empresaId, data: oc.data, descricao: oc.descricao, foto_url: oc.fotoUrl || null })
-    .select().single();
-  if (error) { console.error('[db] createOcorrencia:', error.message); return null; }
-  return data;
-}
-
-export async function updateOcorrenciaStatus(id, status) {
-  const { error } = await supabase.from('ocorrencias').update({ status }).eq('id', id);
-  if (error) { console.error('[db] updateOcorrenciaStatus:', error.message); }
-}
-
 // ── Relatórios Diários ────────────────────────────────────────────────────
 
 export async function fetchRelatorioByEmpresaData(empresaId, date) {
@@ -1082,7 +1044,7 @@ export async function fetchRelatoriosDiarios(liderId) {
 export async function upsertRelatorioDiario(rel) {
   const { data, error } = await supabase
     .from('relatorios_diarios')
-    .upsert({ id: rel.id || crypto.randomUUID(), lider_id: rel.liderId, empresa_id: rel.empresaId, data: rel.data, presentes: rel.presentes, ausentes: rel.ausentes, ocorrencias_count: rel.ocorrenciasCount, observacoes: rel.observacoes, finalizado: rel.finalizado, fotos_urls: rel.fotosUrls || [] }, { onConflict: 'lider_id,data' })
+    .upsert({ id: rel.id || crypto.randomUUID(), lider_id: rel.liderId, empresa_id: rel.empresaId, data: rel.data, presentes: rel.presentes, ausentes: rel.ausentes, observacoes: rel.observacoes, finalizado: rel.finalizado, fotos_urls: rel.fotosUrls || [] }, { onConflict: 'lider_id,data' })
     .select().single();
   if (error) { console.error('[db] upsertRelatorioDiario:', error.message); return null; }
   return data;
@@ -1333,29 +1295,6 @@ export async function fetchPresencaEquipeHoje(today) {
       sla: total > 0 ? Math.round((presentes / total) * 100) : null,
     };
   });
-}
-
-// ── Ocorrências (admin — com nomes) ───────────────────────────────────────
-
-export async function fetchOcorrenciasAdmin() {
-  const { data, error } = await supabase
-    .from('ocorrencias')
-    .select('*, funcionarios(nome, iniciais, cor), lideres_equipe(nome), empresas(nome)')
-    .order('criado_em', { ascending: false });
-  if (error) { console.error('[db] fetchOcorrenciasAdmin:', error.message); return []; }
-  return (data || []).map(o => ({
-    ...o,
-    ajudanteNome: o.funcionarios?.nome || '—',
-    ajudanteIni:  o.funcionarios?.iniciais || '?',
-    ajudanteCor:  avatarTone(o.funcionarios?.id || o.funcionarios?.nome),
-    liderNome:    o.lideres_equipe?.nome || '—',
-    empresaNome:  o.empresas?.nome || '—',
-  }));
-}
-
-export async function updateOcorrenciaStatusAdmin(id, status) {
-  const { error } = await supabase.from('ocorrencias').update({ status }).eq('id', id);
-  if (error) { console.error('[db] updateOcorrenciaStatusAdmin:', error.message); }
 }
 
 // ── Todas as escalas de uma empresa (com líder) ───────────────────────────
