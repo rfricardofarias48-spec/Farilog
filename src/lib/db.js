@@ -749,14 +749,19 @@ export async function fetchLideres() {
   }));
 }
 
+// Retorna { lider, error }. O erro real precisa subir até a tela: sem isso o
+// admin só via a mensagem genérica de e-mail em uso.
+// Obs.: não usar embed de empresas aqui — lideres_equipe tem duas relações com
+// empresas (empresa_id e lider_empresas), e o PostgREST recusa o embed ambíguo
+// (PGRST201), fazendo a criação da conta falhar.
 export async function createLider(lider) {
   const { data, error } = await supabase
     .from('lideres_equipe')
     .insert({ id: crypto.randomUUID(), nome: lider.name, email: lider.email, telefone: lider.phone, senha: lider.password, iniciais: lider.initials, cor: lider.color || '#0B0B0B', empresa_id: lider.companyId || null })
-    .select('*, empresas(nome)')
+    .select('*')
     .single();
-  if (error) { console.error('[db] createLider:', error.message); return null; }
-  return { ...data, name: data.nome, initials: data.iniciais, color: avatarTone(data.id || data.nome), companyName: data.empresas?.nome };
+  if (error) { console.error('[db] createLider:', error.message); return { lider: null, error }; }
+  return { lider: { ...data, name: data.nome, initials: data.iniciais, color: avatarTone(data.id || data.nome) }, error: null };
 }
 
 export async function updateLider(id, patch) {
@@ -968,11 +973,12 @@ export async function fetchLiderAtividade(liderId, limite = 6) {
 }
 
 // Cria a conta do encarregado e registra os vínculos iniciais (período começa hoje)
+// Retorna { lider, error } para a tela distinguir e-mail duplicado de falha real.
 export async function createEncarregado({ name, email, phone, password, initials, color, empresaIds }) {
-  const lider = await createLider({ name, email, phone, password, initials, color });
-  if (!lider) return null;
+  const { lider, error } = await createLider({ name, email, phone, password, initials, color });
+  if (!lider) return { lider: null, error };
   if (empresaIds?.length) await setLiderEmpresasComPeriodo(lider.id, empresaIds);
-  return lider;
+  return { lider, error: null };
 }
 
 // Ajusta as empresas do encarregado preservando o histórico: encerra (ate = hoje)
@@ -991,7 +997,14 @@ export async function setLiderEmpresasComPeriodo(liderId, empresaIds) {
   if (remover.length) {
     const { error } = await supabase.from('lider_empresas')
       .update({ ate: hoje }).eq('lider_id', liderId).in('empresa_id', remover).is('ate', null);
-    if (error) console.error('[db] setLiderEmpresasComPeriodo encerrar:', error.message);
+    if (error) {
+      console.error('[db] setLiderEmpresasComPeriodo encerrar:', error.message);
+      // Sem as colunas de período (supabase/lider-vinculos.sql pendente) o
+      // vínculo sai de vez, senão a empresa continuaria como responsabilidade dele.
+      if (error.code === 'PGRST204') {
+        await supabase.from('lider_empresas').delete().eq('lider_id', liderId).in('empresa_id', remover);
+      }
+    }
   }
 
   if (adicionar.length) {

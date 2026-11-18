@@ -3,13 +3,13 @@ import { useAuth } from '../../context/AuthContext';
 import { fmtCurrency, fmtDate } from '../../data/mockData';
 import { avatarTone, whatsappLink } from '../../lib/notas';
 import {
-  fetchLideres, createEncarregado, updateLider,
+  fetchLideres, createEncarregado, updateLider, deleteLider,
   fetchLiderDesempenho, fetchLiderVinculos, fetchResponsaveisAtivos, fetchLiderAtividade,
   setLiderEmpresasComPeriodo,
 } from '../../lib/db';
 import {
   UserPlus, ArrowLeft, MessageCircle, Pencil, Lock, X, Users, Check,
-  Briefcase, UserX, AlertTriangle, CheckCircle2, DollarSign, Plus, Loader2,
+  Briefcase, UserX, AlertTriangle, CheckCircle2, DollarSign, Plus, Loader2, Trash2,
 } from 'lucide-react';
 
 const T  = { color: '#0B0B0B' };
@@ -284,7 +284,7 @@ function Indicador({ icon: Icon, valor, legenda, nota, notaCor }) {
 }
 
 // ── Conta do encarregado ───────────────────────────────────────────────────
-function ContaEncarregado({ lider, versao, onVoltar, onResetSenha, onEditar }) {
+function ContaEncarregado({ lider, versao, onVoltar, onResetSenha, onEditar, onExcluir }) {
   const [desempenho, setDesempenho] = useState(null);
   const [vinculos,   setVinculos]   = useState([]);
   const [substitutos, setSubstitutos] = useState({});
@@ -354,6 +354,9 @@ function ContaEncarregado({ lider, versao, onVoltar, onResetSenha, onEditar }) {
             </button>
             <button onClick={onResetSenha} className="btn-primary flex items-center gap-1.5">
               <Lock size={13} /> Resetar senha
+            </button>
+            <button onClick={onExcluir} title="Excluir conta do encarregado" className="btn-ghost flex items-center gap-1.5">
+              <Trash2 size={13} /> Excluir
             </button>
           </div>
         </div>
@@ -490,6 +493,7 @@ export default function AdminEncarregados() {
   const [selecionado, setSelecionado] = useState(null);
   const [versao, setVersao] = useState(0);          // incrementa a cada edição para recarregar a conta
   const [modal, setModal] = useState(null);         // 'new' | {type:'reset'} | {type:'edit'}
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // encarregado aguardando confirmação
   const [busca, setBusca] = useState('');
 
   const carregar = async () => {
@@ -509,12 +513,18 @@ export default function AdminEncarregados() {
   }, [lideres, busca]);
 
   const criarConta = async ({ name, email, phone, password, empresaIds }) => {
-    const novo = await createEncarregado({
+    const { lider: novo, error } = await createEncarregado({
       name, email, phone, password, empresaIds,
       initials: iniciaisDe(name),
       color: COLORS[lideres.length % COLORS.length],
     });
-    if (!novo) { alert('Não foi possível criar a conta. Verifique se o e-mail já está em uso.'); return; }
+    if (!novo) {
+      const duplicado = error?.code === '23505' || /duplicate|unique|já existe/i.test(error?.message || '');
+      alert(duplicado
+        ? 'O e-mail informado já está em uso por outra conta. Use outro e-mail de acesso.'
+        : `Não foi possível criar a conta.${error?.message ? `\n\nDetalhe: ${error.message}` : ' Tente novamente.'}`);
+      return;
+    }
     await carregar();
     setModal(null);
   };
@@ -526,15 +536,41 @@ export default function AdminEncarregados() {
   };
 
   const salvarEdicao = async ({ name, email, phone, password, status, empresaIds }) => {
+    // A edição pode vir da lista (sem conta aberta) ou da conta; o id do modal vale nos dois casos.
+    const liderId = modal?.lider?.id || selecionado;
     const patch = { name, email, phone, status };
     if (password) patch.password = password;
-    const ok = await updateLider(selecionado, patch);
+    const ok = await updateLider(liderId, patch);
     if (!ok) { alert('Não foi possível salvar as alterações.'); return; }
-    await setLiderEmpresasComPeriodo(selecionado, empresaIds);
+    await setLiderEmpresasComPeriodo(liderId, empresaIds);
     await carregar();
     setVersao(v => v + 1);
     setModal(null);
   };
+
+  const excluirConta = async (lider) => {
+    const ok = await deleteLider(lider.id);
+    if (!ok) { alert('Não foi possível excluir a conta.'); return; }
+    setDeleteConfirm(null);
+    setModal(null);
+    if (selecionado === lider.id) setSelecionado(null);
+    await carregar();
+  };
+
+  const confirmarExclusao = deleteConfirm && (
+    <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+      <div className="modal-box max-w-sm animate-fade-up" onClick={e => e.stopPropagation()}>
+        <h3 className="text-base font-bold mb-2" style={T}>Excluir conta de encarregado?</h3>
+        <p className="text-sm mb-5" style={T2}>
+          {deleteConfirm.nome || deleteConfirm.name} perde o acesso ao app. As diárias e o histórico das empresas dele continuam registrados.
+        </p>
+        <div className="flex gap-2">
+          <button onClick={() => excluirConta(deleteConfirm)} className="btn-danger flex-1 py-2.5">Excluir conta</button>
+          <button onClick={() => setDeleteConfirm(null)} className="btn-ghost flex-1">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  );
 
   if (selecionado) {
     const lider = lideres.find(l => l.id === selecionado) || { id: selecionado };
@@ -546,6 +582,7 @@ export default function AdminEncarregados() {
           onVoltar={() => setSelecionado(null)}
           onResetSenha={() => setModal({ type: 'reset', lider })}
           onEditar={() => setModal({ type: 'edit', lider })}
+          onExcluir={() => setDeleteConfirm(lider)}
         />
         {modal?.type === 'reset' && (
           <ModalResetSenha lider={modal.lider} onSave={salvarSenha} onClose={() => setModal(null)} />
@@ -553,6 +590,7 @@ export default function AdminEncarregados() {
         {modal?.type === 'edit' && (
           <ModalEditar lider={modal.lider} companies={companies} onSave={salvarEdicao} onClose={() => setModal(null)} />
         )}
+        {confirmarExclusao}
       </>
     );
   }
@@ -614,6 +652,9 @@ export default function AdminEncarregados() {
                 <button onClick={() => setModal({ type: 'reset', lider: l })} title="Resetar senha" className="p-1.5 rounded-lg" style={{ color: '#9A9A9A', background: '#F5F5F5' }}>
                   <Lock size={13} />
                 </button>
+                <button onClick={() => setDeleteConfirm(l)} title="Excluir conta" className="p-1.5 rounded-lg" style={{ color: '#9A9A9A', background: '#F5F5F5' }}>
+                  <Trash2 size={13} />
+                </button>
               </div>
             </div>
           ))
@@ -623,9 +664,13 @@ export default function AdminEncarregados() {
       {modal?.type === 'new' && (
         <ModalNovaConta companies={companies} onSave={criarConta} onClose={() => setModal(null)} />
       )}
+      {modal?.type === 'edit' && (
+        <ModalEditar lider={modal.lider} companies={companies} onSave={salvarEdicao} onClose={() => setModal(null)} />
+      )}
       {modal?.type === 'reset' && (
         <ModalResetSenha lider={modal.lider} onSave={salvarSenha} onClose={() => setModal(null)} />
       )}
+      {confirmarExclusao}
     </div>
   );
 }
