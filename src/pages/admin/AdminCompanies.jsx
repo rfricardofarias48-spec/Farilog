@@ -32,7 +32,7 @@ function Modal({ company, onSave, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-box animate-fade-up">
+      <div className="modal-box animate-fade-up" style={{ maxWidth: '760px' }}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-base font-bold" style={T}>{company ? 'Editar Empresa' : 'Nova Empresa'}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg transition-colors" style={{ color: '#9A9A9A', background: '#F5F5F5' }}>
