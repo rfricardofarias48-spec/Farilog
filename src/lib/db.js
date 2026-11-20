@@ -1915,7 +1915,7 @@ function mapConvocacao(r) {
     phone:    f.telefone || r.telefone || null,
     color:    avatarTone(r.funcionario_id || f.nome || r.ajudante),
     data:        es.data || r.data_servico || null,
-    horario:     fmtHHMM(es.horario) || r.horario || null,
+    horario:     fmtHHMM(es.horario || r.horario) || null,
     empresaNome: em.nome || r.empresa || null,
     endereco:    em.endereco || r.endereco || null,
     valorDiaria: (em.diaria ?? r.valor_diaria) == null ? null : Number(em.diaria ?? r.valor_diaria),
