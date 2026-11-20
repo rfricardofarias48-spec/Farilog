@@ -158,13 +158,24 @@ function KpiCard({ label, value, icon: Icon, color, bg, sub }) {
 
 function ChartTip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
+  // Bar + Area/Line da mesma série aparecem no payload; mantém um por série,
+  // dando preferência ao item que tem nome (Bar/Line) sobre a Area.
+  const byKey = new Map();
+  payload.forEach(p => {
+    const key = p.dataKey ?? p.name;
+    const cur = byKey.get(key);
+    if (!cur || (!cur.name && p.name)) byKey.set(key, p);
+  });
+  const items = [...byKey.values()];
   return (
-    <div style={{ background: '#1C1C1C', borderRadius: '10px', padding: '10px 14px', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <p style={{ color: '#9A9A9A', fontSize: '11px', marginBottom: '6px' }}>{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color ?? '#F5F5F5', fontSize: '12px', fontWeight: 600, marginBottom: '2px' }}>
-          {p.name}: {fmtCurrency(p.value)}
-        </p>
+    <div style={{ background: '#1C1C1C', borderRadius: '10px', padding: '10px 14px', border: '1px solid rgba(255,255,255,0.08)', minWidth: '150px' }}>
+      <p style={{ color: '#A8A8A8', fontSize: '11px', marginBottom: '6px' }}>{label}</p>
+      {items.map((p, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: p.color ?? '#F5F5F5', flexShrink: 0 }} />
+          <span style={{ color: '#F5F5F5', fontSize: '12px', fontWeight: 600 }}>{p.name}:</span>
+          <span style={{ color: '#F5F5F5', fontSize: '12px', fontWeight: 800, marginLeft: 'auto' }}>{fmtCurrency(p.value)}</span>
+        </div>
       ))}
     </div>
   );
@@ -769,8 +780,8 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
             <p style={{ fontSize: '13px', color: '#C8C8C8' }}>Sem dados no período</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={periodType === 'mensal' ? 300 : 260}>
-            <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: -10 }} barCategoryGap="30%">
+          <ResponsiveContainer width="100%" height={periodType === 'mensal' ? 320 : 280}>
+            <ComposedChart data={chartData} margin={{ top: 30, right: 12, bottom: 8, left: -10 }} barCategoryGap="30%">
               <defs>
                 <linearGradient id="gradSerie" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={activeMode.color} stopOpacity={0.16} />
@@ -806,7 +817,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                   <Line type="monotone" dataKey={chartMode === 'entrada' ? 'aReceber' : 'aPagar'} name={activeMode.label} stroke={activeMode.color} strokeWidth={2.6} dot={false} tooltipType="none" />
                   {chartMode === 'saida' && clippedDay && (
                     <ReferenceDot x={clippedDay.label} y={6000} r={2} fill={CASH_OUT}
-                      label={{ value: fmtCurrency(clippedDay.aPagar), position: 'insideTop', fill: CASH_OUT, fontSize: 9, fontWeight: 700 }} />
+                      label={{ value: fmtCurrency(clippedDay.aPagar), position: 'top', fill: CASH_OUT, fontSize: 10, fontWeight: 800 }} />
                   )}
                 </>
               )}
