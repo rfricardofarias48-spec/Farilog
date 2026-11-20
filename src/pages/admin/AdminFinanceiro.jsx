@@ -29,6 +29,22 @@ const TM = { color: '#9A9A9A' };
 const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const PIE_COLORS  = ['#BC4A2A','#4A4A4A','#0B0B0B','#4A4A4A','#6B6B6B','#4A4A4A','#4A4A4A','#9A9A9A'];
+// Paleta das fatias do faturamento (Visão Geral): cores distintas, sóbrias e
+// com contraste suficiente para o valor também ser legível colorido no branco.
+const REVENUE_COLORS = {
+  lucro:  '#BC4A2A', // terracota (marca)
+  folha:  '#3A4F6B', // azul-aço
+  vt:     '#96671F', // bronze
+  vr:     '#557A3E', // verde-oliva
+  fixos:  '#6E5A8A', // ameixa
+  divida: '#2F6F73', // petróleo
+};
+// Cores semânticas do fluxo de caixa: entrada, saída e saldo.
+const CASH_IN     = '#2F7A4F'; // verde — a receber
+const CASH_OUT    = '#BC4A2A'; // terracota — a pagar
+const CASH_BAL    = '#3A4F6B'; // azul-aço — saldo
+const CASH_IN_BG  = '#EAF4EE';
+const CASH_OUT_BG = '#FBEDE8';
 const TODAY_ISO   = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 
 // ── Period helpers ─────────────────────────────────────────────────────────
@@ -233,12 +249,12 @@ function TabVisaoGeral({ records, lancamentos, employees, companies }) {
   // Fatias do gráfico — devem somar ao faturamento. Item zerado não aparece
   // (ex.: VT/VR zerado no cadastro dos ajudantes que trabalharam → fatia some).
   const slices = [
-    { name: 'Lucro Líquido',        value: Math.max(0, lucroLiquido), color: '#0B0B0B' },
-    { name: 'Folha de Pagamento',   value: folha,                     color: '#4A4A4A' },
-    { name: 'Vale Transporte (VT)', value: beneficiosVT,              color: '#4A4A4A' },
-    { name: 'Vale Refeição (VR)',   value: beneficiosVR,              color: '#4A4A4A' },
-    { name: 'Custos Fixos',         value: custoFixo,                 color: '#6B6B6B' },
-    { name: 'Endividamento',        value: endivPeriodo,              color: '#4A4A4A' },
+    { name: 'Lucro Líquido',        value: Math.max(0, lucroLiquido), color: REVENUE_COLORS.lucro },
+    { name: 'Folha de Pagamento',   value: folha,                     color: REVENUE_COLORS.folha },
+    { name: 'Vale Transporte (VT)', value: beneficiosVT,              color: REVENUE_COLORS.vt },
+    { name: 'Vale Refeição (VR)',   value: beneficiosVR,              color: REVENUE_COLORS.vr },
+    { name: 'Custos Fixos',         value: custoFixo,                 color: REVENUE_COLORS.fixos },
+    { name: 'Endividamento',        value: endivPeriodo,              color: REVENUE_COLORS.divida },
   ].filter(s => s.value > 0);
 
   const kpis = [
@@ -468,15 +484,15 @@ function ListModal({ title, items, onDelete, onClose }) {
           ) : items.map((item, idx) => {
             const [yr, mo, dd] = item.date.split('-');
             return (
-              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px 40px', padding: '12px 24px', borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px' }}>
+              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px 40px', padding: '12px 24px', borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px', boxShadow: `inset 3px 0 0 ${isRec ? CASH_IN : CASH_OUT}` }}>
                 <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B6B6B' }}>{dd}/{mo}/{yr.slice(2)}</span>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.descricao}</span>
                 <span>
-                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: isRec ? '#F5F5F5' : '#F5F5F5', color: isRec ? '#0B0B0B' : '#4A4A4A' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: isRec ? CASH_IN_BG : CASH_OUT_BG, color: isRec ? CASH_IN : CASH_OUT }}>
                     {item.origem}
                   </span>
                 </span>
-                <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: isRec ? '#0B0B0B' : '#4A4A4A' }}>
+                <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: isRec ? CASH_IN : CASH_OUT }}>
                   {isRec ? '+' : '−'}{fmtCurrency(item.valor)}
                 </span>
                 <span style={{ display: 'flex', justifyContent: 'center' }}>
@@ -515,7 +531,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
 
   // Barras: mais grossas conforme período
   const barSize = { quinzenal: 20, mensal: 12, semestral: 40, anual: 24 }[periodType] ?? 16;
-  const xInterval = periodType === 'mensal' ? 2 : 0;
+  const isDaily = periodType === 'quinzenal' || periodType === 'mensal';
 
   // a_receber: registros agrupados + manuais
   const recGroups = useMemo(() => {
@@ -575,11 +591,11 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     <div className="space-y-5">
       {/* Totais */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-        <KpiCard label="A Receber no Período" value={fmtCurrency(totalRec)} icon={TrendingUp}   color="#0B0B0B" bg="#F5F5F5" />
-        <KpiCard label="A Pagar no Período"   value={fmtCurrency(totalPag)} icon={TrendingDown} color="#4A4A4A" bg="#F5F5F5" />
+        <KpiCard label="A Receber no Período" value={fmtCurrency(totalRec)} icon={TrendingUp}   color={CASH_IN}  bg={CASH_IN_BG} />
+        <KpiCard label="A Pagar no Período"   value={fmtCurrency(totalPag)} icon={TrendingDown} color={CASH_OUT} bg={CASH_OUT_BG} />
         <KpiCard label="Saldo Projetado" value={fmtCurrency(totalRec - totalPag)} icon={BarChart2}
-          color={(totalRec - totalPag) >= 0 ? '#0B0B0B' : '#4A4A4A'}
-          bg={(totalRec - totalPag) >= 0 ? '#F5F5F5' : '#F5F5F5'} />
+          color={(totalRec - totalPag) >= 0 ? CASH_BAL : CASH_OUT}
+          bg={(totalRec - totalPag) >= 0 ? '#EDF1F6' : CASH_OUT_BG} />
       </div>
 
       {/* Gráfico */}
@@ -590,7 +606,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
             <p style={{ fontSize: '11px', ...TM, marginTop: '2px' }}>Entradas vs. Saídas por período</p>
           </div>
           <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-            {[['#0B0B0B','A Receber'],['#4A4A4A','A Pagar'],['#4A4A4A','Saldo']].map(([c, l]) => (
+            {[[CASH_IN,'A Receber'],[CASH_OUT,'A Pagar'],[CASH_BAL,'Saldo']].map(([c, l]) => (
               <div key={l} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: c }} />
                 <span style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 500 }}>{l}</span>
@@ -603,16 +619,19 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
             <p style={{ fontSize: '13px', color: '#C8C8C8' }}>Sem dados no período</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: -10 }} barCategoryGap="28%">
+          <ResponsiveContainer width="100%" height={periodType === 'mensal' ? 300 : 260}>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: -10 }} barCategoryGap="34%" barGap={2}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
               <XAxis
                 dataKey="label"
-                tick={{ fill: '#9A9A9A', fontSize: 11 }}
+                tick={{ fill: '#9A9A9A', fontSize: isDaily ? 9.5 : 11 }}
                 axisLine={false}
                 tickLine={false}
-                interval={xInterval}
-                height={30}
+                interval={0}
+                angle={periodType === 'mensal' ? -45 : 0}
+                textAnchor={periodType === 'mensal' ? 'end' : 'middle'}
+                height={periodType === 'mensal' ? 48 : 30}
+                tickMargin={periodType === 'mensal' ? 2 : 0}
               />
               <YAxis
                 tick={{ fill: '#9A9A9A', fontSize: 10 }}
@@ -621,9 +640,9 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                 tickFormatter={v => v === 0 ? '' : `R$${(v / 1000).toFixed(0)}k`}
               />
               <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
-              <Bar dataKey="aReceber" name="A Receber" fill="#0B0B0B" radius={[5,5,0,0]} barSize={barSize} />
-              <Bar dataKey="aPagar"   name="A Pagar"   fill="#4A4A4A" radius={[5,5,0,0]} barSize={barSize} />
-              <Line dataKey="saldo" name="Saldo" stroke="#4A4A4A" strokeWidth={2.5} dot={false} />
+              <Bar dataKey="aReceber" name="A Receber" fill={CASH_IN} radius={[5,5,0,0]} maxBarSize={barSize} />
+              <Bar dataKey="aPagar"   name="A Pagar"   fill={CASH_OUT} radius={[5,5,0,0]} maxBarSize={barSize} />
+              <Line dataKey="saldo" name="Saldo" stroke={CASH_BAL} strokeWidth={2.5} dot={false} />
             </ComposedChart>
           </ResponsiveContainer>
         )}
@@ -642,11 +661,11 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           {/* A Receber + Ver mais */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <button onClick={() => setView('receber')}
-              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'receber' ? '#F5F5F5' : '#fff', color: view === 'receber' ? '#0B0B0B' : '#6B6B6B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
+              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: `1px solid ${view === 'receber' ? 'rgba(47,122,79,0.35)' : 'rgba(11, 11, 11,0.08)'}`, cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'receber' ? CASH_IN_BG : '#fff', color: view === 'receber' ? CASH_IN : '#6B6B6B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
               A Receber
             </button>
             <button onClick={() => setModal('receber')} title="Ver lista completa"
-              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: '1px solid rgba(11, 11, 11,0.08)', borderLeft: 'none', cursor: 'pointer', background: view === 'receber' ? '#F5F5F5' : '#fff', color: '#9A9A9A', display: 'flex', alignItems: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
+              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: '1px solid rgba(11, 11, 11,0.08)', borderLeft: 'none', cursor: 'pointer', background: view === 'receber' ? CASH_IN_BG : '#fff', color: view === 'receber' ? CASH_IN : '#9A9A9A', display: 'flex', alignItems: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
               <Maximize2 size={11} />
             </button>
           </div>
@@ -654,11 +673,11 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           {/* A Pagar + Ver mais */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <button onClick={() => setView('pagar')}
-              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'pagar' ? '#F5F5F5' : '#fff', color: view === 'pagar' ? '#4A4A4A' : '#6B6B6B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
+              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: `1px solid ${view === 'pagar' ? 'rgba(188,74,42,0.35)' : 'rgba(11, 11, 11,0.08)'}`, cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'pagar' ? CASH_OUT_BG : '#fff', color: view === 'pagar' ? CASH_OUT : '#6B6B6B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
               A Pagar
             </button>
             <button onClick={() => setModal('pagar')} title="Ver lista completa"
-              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: '1px solid rgba(11, 11, 11,0.08)', borderLeft: 'none', cursor: 'pointer', background: view === 'pagar' ? '#F5F5F5' : '#fff', color: '#9A9A9A', display: 'flex', alignItems: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
+              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: '1px solid rgba(11, 11, 11,0.08)', borderLeft: 'none', cursor: 'pointer', background: view === 'pagar' ? CASH_OUT_BG : '#fff', color: view === 'pagar' ? CASH_OUT : '#9A9A9A', display: 'flex', alignItems: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
               <Maximize2 size={11} />
             </button>
           </div>
@@ -685,15 +704,15 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
             {inlineItems.map((item, idx) => {
               const [yr, mo, dd] = item.date.split('-');
               return (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px', padding: '11px 16px', borderBottom: idx < inlineItems.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px' }}>
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px', padding: '11px 16px', borderBottom: idx < inlineItems.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px', boxShadow: `inset 3px 0 0 ${item.tipo === 'a_receber' ? CASH_IN : CASH_OUT}` }}>
                   <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B6B6B' }}>{dd}/{mo}/{yr.slice(2)}</span>
                   <span style={{ fontSize: '13px', fontWeight: 600, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.descricao}</span>
                   <span>
-                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: item.tipo === 'a_receber' ? '#F5F5F5' : '#F5F5F5', color: item.tipo === 'a_receber' ? '#0B0B0B' : '#4A4A4A' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: item.tipo === 'a_receber' ? CASH_IN_BG : CASH_OUT_BG, color: item.tipo === 'a_receber' ? CASH_IN : CASH_OUT }}>
                       {item.origem}
                     </span>
                   </span>
-                  <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: item.tipo === 'a_receber' ? '#0B0B0B' : '#4A4A4A' }}>
+                  <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: item.tipo === 'a_receber' ? CASH_IN : CASH_OUT }}>
                     {item.tipo === 'a_pagar' ? '−' : '+'}{fmtCurrency(item.valor)}
                   </span>
                 </div>
