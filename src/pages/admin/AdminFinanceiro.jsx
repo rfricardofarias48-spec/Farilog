@@ -834,8 +834,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
               <XAxis dataKey="label" tick={{ fill: '#9A9A9A', fontSize: isDaily ? 9.5 : 11 }} axisLine={false} tickLine={false} interval={0}
-                angle={periodType === 'mensal' ? -45 : 0} textAnchor={periodType === 'mensal' ? 'end' : 'middle'}
-                height={periodType === 'mensal' ? 48 : 30} tickMargin={periodType === 'mensal' ? 2 : 0} />
+                height={30} />
               <YAxis domain={chartMode === 'saida' ? [0, CASH_CAP] : [0, 'auto']}
                 tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false}
                 tickFormatter={v => v === 0 ? '' : `R$${(v / 1000).toFixed(0)}k`} />
