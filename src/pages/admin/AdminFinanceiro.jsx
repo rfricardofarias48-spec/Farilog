@@ -161,9 +161,9 @@ function KpiCard({ label, value, icon: Icon, color, bg, sub }) {
   );
 }
 
-// Marca só os dias em que o capital de giro (saldo acumulado) fica negativo.
+// Marca só os dias em que a operação (saldo do dia) fica negativa.
 function SaldoNegativeDot({ cx, cy, payload }) {
-  if (!payload || payload.saldoAcum >= 0) return null;
+  if (!payload || payload.saldo >= 0) return null;
   return <circle cx={cx} cy={cy} r={2.8} fill={CASH_OUT} stroke="#fff" strokeWidth={0.8} />;
 }
 
@@ -715,13 +715,12 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     { key: 'saldo',   label: 'Saldo',   color: CASH_BAL },
   ];
   const activeMode = CHART_MODES.find(m => m.key === chartMode) || CHART_MODES[0];
-  const lastSaldo = chartData.length ? chartData[chartData.length - 1] : null;
+  // O gráfico de saldo plota o resultado do dia (operação), não o acumulado:
+  // dias com operação negativa caem abaixo da linha do zero.
   const minSaldo = chartData.length
-    ? chartData.reduce((a, b) => (b.saldoAcum < a.saldoAcum ? b : a), chartData[0])
+    ? chartData.reduce((a, b) => (b.saldo < a.saldo ? b : a), chartData[0])
     : null;
-  // Capital de giro negativo: o zero fica sempre no meio do gráfico, separando
-  // a área negativa (abaixo) da positiva (acima).
-  const saldoVals = chartData.map(b => b.saldoAcum);
+  const saldoVals = chartData.map(b => b.saldo);
   const saldoDataMax = chartData.length ? Math.max(...saldoVals) : 0;
   const saldoDataMin = chartData.length ? Math.min(...saldoVals) : 0;
   const hasNegSaldo = saldoDataMin < 0;
@@ -854,7 +853,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '8px' }}>
               <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: activeMode.color }} />
               <span style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 500 }}>
-                {chartMode === 'saldo' ? 'Saldo acumulado' : activeMode.label}
+                {chartMode === 'saldo' ? 'Saldo do dia' : activeMode.label}
               </span>
             </div>
           </div>
@@ -911,21 +910,17 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
 
               {chartMode === 'saldo' ? (
                 <>
-                  <Area type="monotone" dataKey="saldoAcum" name="Saldo acumulado" stroke="none"
+                  <Area type="monotone" dataKey="saldo" name="Saldo do dia" stroke="none"
                     fill={hasNegSaldo ? 'url(#gradSaldoFill)' : 'url(#gradSerie)'} tooltipType="none" />
-                  <Line type="monotone" dataKey="saldoAcum" name="Saldo acumulado"
+                  <Line type="monotone" dataKey="saldo" name="Saldo do dia"
                     stroke={hasNegSaldo ? 'url(#gradSaldoLine)' : CASH_BAL} strokeWidth={2.8} dot={SaldoNegativeDot} />
                   <ReferenceLine y={0} stroke={hasNegSaldo ? CASH_OUT : '#9A9A9A'} strokeOpacity={hasNegSaldo ? 0.7 : 0.45} strokeDasharray="4 4"
-                    label={{ value: hasNegSaldo ? 'capital de giro negativo' : 'zero', position: 'insideTopLeft', fill: hasNegSaldo ? CASH_OUT : '#9A9A9A', fontSize: 9, fontWeight: 700 }} />
+                    label={{ value: hasNegSaldo ? 'operação negativa' : 'zero', position: 'insideTopLeft', fill: hasNegSaldo ? CASH_OUT : '#9A9A9A', fontSize: 9, fontWeight: 700 }} />
                   {minSaldo && (
-                    <ReferenceDot x={minSaldo.label} y={minSaldo.saldoAcum} r={4}
-                      fill={minSaldo.saldoAcum < 0 ? CASH_OUT : '#fff'}
-                      stroke={minSaldo.saldoAcum < 0 ? CASH_OUT : CASH_BAL} strokeWidth={2.2}
-                      label={{ value: `${minSaldo.saldoAcum < 0 ? 'negativo' : 'menor'}: ${fmtCurrency(minSaldo.saldoAcum)}`, position: 'top', fill: minSaldo.saldoAcum < 0 ? CASH_OUT : '#6B6B6B', fontSize: 9, fontWeight: 700 }} />
-                  )}
-                  {lastSaldo && (
-                    <ReferenceDot x={lastSaldo.label} y={lastSaldo.saldoAcum} r={4} fill="#fff" stroke={CASH_BAL} strokeWidth={2.2}
-                      label={{ value: `final: ${fmtCurrency(lastSaldo.saldoAcum)}`, position: 'bottom', fill: lastSaldo.saldoAcum < 0 ? CASH_OUT : '#0B0B0B', fontSize: 9, fontWeight: 700 }} />
+                    <ReferenceDot x={minSaldo.label} y={minSaldo.saldo} r={4}
+                      fill={minSaldo.saldo < 0 ? CASH_OUT : '#fff'}
+                      stroke={minSaldo.saldo < 0 ? CASH_OUT : CASH_BAL} strokeWidth={2.2}
+                      label={{ value: `${minSaldo.saldo < 0 ? 'pior dia' : 'menor'}: ${fmtCurrency(minSaldo.saldo)}`, position: 'top', fill: minSaldo.saldo < 0 ? CASH_OUT : '#6B6B6B', fontSize: 9, fontWeight: 700 }} />
                   )}
                 </>
               ) : (
