@@ -47,6 +47,8 @@ const CASH_OUT    = '#BC4A2A'; // terracota — a pagar
 const CASH_BAL    = '#3A4F6B'; // azul-aço — saldo
 const CASH_IN_BG  = '#EAF4EE';
 const CASH_OUT_BG = '#FBEDE8';
+// Teto visual do eixo de saídas: acima disso a coluna é cortada e anotada.
+const CASH_CAP = 6000;
 // Lucro líquido é sempre verde (dinheiro que sobra).
 const PROFIT_COLOR = '#2F7A4F';
 // Paleta usada ao criar uma nova classificação (cicla por índice).
@@ -136,7 +138,9 @@ function buildChartData(type, start, end, records, lancamentos, companiesById) {
       .reduce((s, l) => s + Number(l.valor || 0), 0);
     const saldo = aReceber - aPagar;
     acumulado += saldo;
-    return { ...b, aReceber, aPagar, saldo, saldoAcum: acumulado };
+    // A coluna de saída é desenhada com o valor limitado ao teto para manter o
+    // topo arredondado (igual às demais), sem achatar o eixo dos dias comuns.
+    return { ...b, aReceber, aPagar, aPagarPlot: Math.min(aPagar, CASH_CAP), saldo, saldoAcum: acumulado };
   }).filter(b => b.aReceber > 0 || b.aPagar > 0); // só datas com movimentação
 }
 
@@ -156,27 +160,34 @@ function KpiCard({ label, value, icon: Icon, color, bg, sub }) {
   );
 }
 
-function ChartTip({ active, payload, label }) {
+function ChartTip({ active, payload, label, mode, breakdown }) {
   if (!active || !payload?.length) return null;
-  // Bar + Area/Line da mesma série aparecem no payload; mantém um por série,
-  // dando preferência ao item que tem nome (Bar/Line) sobre a Area.
-  const byKey = new Map();
-  payload.forEach(p => {
-    const key = p.dataKey ?? p.name;
-    const cur = byKey.get(key);
-    if (!cur || (!cur.name && p.name)) byKey.set(key, p);
-  });
-  const items = [...byKey.values()];
+  const bucket = payload[0]?.payload ?? {};
+  const isSaldo = mode === 'saldo';
+  const isIn = mode === 'entrada';
+  const total = isSaldo ? bucket.saldoAcum : isIn ? bucket.aReceber : bucket.aPagar;
+  const totalLabel = isSaldo ? 'Saldo acumulado' : isIn ? 'Total a receber' : 'Total a pagar';
+  const accent = isSaldo ? CASH_BAL : isIn ? CASH_IN : CASH_OUT;
+  const accentBg = isSaldo ? 'rgba(58,79,107,0.32)' : isIn ? 'rgba(47,122,79,0.26)' : 'rgba(188,74,42,0.28)';
+  const items = breakdown?.[bucket.key] ?? [];
   return (
-    <div style={{ background: '#1C1C1C', borderRadius: '10px', padding: '10px 14px', border: '1px solid rgba(255,255,255,0.08)', minWidth: '150px' }}>
-      <p style={{ color: '#A8A8A8', fontSize: '11px', marginBottom: '6px' }}>{label}</p>
-      {items.map((p, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: p.color ?? '#F5F5F5', flexShrink: 0 }} />
-          <span style={{ color: '#F5F5F5', fontSize: '12px', fontWeight: 600 }}>{p.name}:</span>
-          <span style={{ color: '#F5F5F5', fontSize: '12px', fontWeight: 800, marginLeft: 'auto' }}>{fmtCurrency(p.value)}</span>
+    <div style={{ background: '#1C1C1C', borderRadius: '10px', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)', minWidth: '178px', boxShadow: '0 8px 24px rgba(0,0,0,0.22)' }}>
+      <p style={{ color: '#A8A8A8', fontSize: '11px', fontWeight: 600, marginBottom: '7px' }}>{label}</p>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', padding: '6px 8px', borderRadius: '7px', background: accentBg, borderLeft: `3px solid ${accent}` }}>
+        <span style={{ color: '#F5F5F5', fontSize: '11.5px', fontWeight: 700 }}>{totalLabel}</span>
+        <span style={{ color: '#FFFFFF', fontSize: '12.5px', fontWeight: 900 }}>{fmtCurrency(total)}</span>
+      </div>
+      {items.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '7px', paddingLeft: '2px' }}>
+          {items.map((it, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: it.cor ?? '#9A9A9A', flexShrink: 0 }} />
+              <span style={{ color: '#C9C9C9', fontSize: '11.5px', fontWeight: 500 }}>{it.nome}</span>
+              <span style={{ color: '#F5F5F5', fontSize: '11.5px', fontWeight: 700, marginLeft: 'auto' }}>{fmtCurrency(it.valor)}</span>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -658,7 +669,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   );
   const hasChart = chartData.some(b => b.aReceber > 0 || b.aPagar > 0);
   // Dia com pagamento acima do teto do eixo (ex.: folha) — recebe etiqueta.
-  const clippedDay = chartData.find(b => b.aPagar > 6000);
+  const clippedDay = chartData.find(b => b.aPagar > CASH_CAP);
   const CHART_MODES = [
     { key: 'entrada', label: 'Entrada', color: CASH_IN },
     { key: 'saida',   label: 'Saída',   color: CASH_OUT },
@@ -706,6 +717,25 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
 
   const totalRec = recGroups.reduce((s, g) => s + g.valor, 0);
   const totalPag = pagItems.reduce((s, l) => s + l.valor, 0);
+
+  // Itens do dia agrupados por classificação, para o tooltip do gráfico.
+  // Entrada → recebimentos; Saída → contas a pagar; Saldo → sem detalhamento.
+  const breakdownByBucket = useMemo(() => {
+    const map = {};
+    const source = chartMode === 'entrada' ? recGroups : chartMode === 'saida' ? pagItems : [];
+    chartData.forEach(b => {
+      const match = d => (isDaily ? d === b.key : String(d).startsWith(b.key));
+      const groups = {};
+      source.forEach(it => {
+        if (!match(it.date)) return;
+        const nome = it.classificacaoNome || 'Outros';
+        if (!groups[nome]) groups[nome] = { nome, cor: it.classificacaoCor, valor: 0 };
+        groups[nome].valor += it.valor;
+      });
+      map[b.key] = Object.values(groups).sort((a, b2) => b2.valor - a.valor);
+    });
+    return map;
+  }, [chartData, recGroups, pagItems, isDaily, chartMode]);
 
   // A lista abaixo do gráfico segue o seletor: Entrada → só receber,
   // Saída → só pagar, Saldo → os dois.
@@ -792,10 +822,10 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
               <XAxis dataKey="label" tick={{ fill: '#9A9A9A', fontSize: isDaily ? 9.5 : 11 }} axisLine={false} tickLine={false} interval={0}
                 angle={periodType === 'mensal' ? -45 : 0} textAnchor={periodType === 'mensal' ? 'end' : 'middle'}
                 height={periodType === 'mensal' ? 48 : 30} tickMargin={periodType === 'mensal' ? 2 : 0} />
-              <YAxis domain={chartMode === 'saida' ? [0, 6000] : [0, 'auto']} allowDataOverflow={chartMode === 'saida'}
+              <YAxis domain={chartMode === 'saida' ? [0, CASH_CAP] : [0, 'auto']}
                 tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false}
                 tickFormatter={v => v === 0 ? '' : `R$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+              <Tooltip content={<ChartTip mode={chartMode} breakdown={breakdownByBucket} />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
 
               {chartMode === 'saldo' ? (
                 <>
@@ -812,11 +842,11 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                 </>
               ) : (
                 <>
-                  <Area type="monotone" dataKey={chartMode === 'entrada' ? 'aReceber' : 'aPagar'} stroke="none" fill="url(#gradSerie)" tooltipType="none" />
-                  <Bar dataKey={chartMode === 'entrada' ? 'aReceber' : 'aPagar'} name={activeMode.label} fill={activeMode.color} fillOpacity={0.55} radius={[3,3,0,0]} maxBarSize={22} />
-                  <Line type="monotone" dataKey={chartMode === 'entrada' ? 'aReceber' : 'aPagar'} name={activeMode.label} stroke={activeMode.color} strokeWidth={2.6} dot={false} tooltipType="none" />
+                  <Area type="monotone" dataKey={chartMode === 'entrada' ? 'aReceber' : 'aPagarPlot'} stroke="none" fill="url(#gradSerie)" tooltipType="none" />
+                  <Bar dataKey={chartMode === 'entrada' ? 'aReceber' : 'aPagarPlot'} name={activeMode.label} fill={activeMode.color} fillOpacity={0.55} radius={[3,3,0,0]} maxBarSize={22} />
+                  <Line type="monotone" dataKey={chartMode === 'entrada' ? 'aReceber' : 'aPagarPlot'} name={activeMode.label} stroke={activeMode.color} strokeWidth={2.6} dot={false} tooltipType="none" />
                   {chartMode === 'saida' && clippedDay && (
-                    <ReferenceDot x={clippedDay.label} y={6000} r={2} fill={CASH_OUT}
+                    <ReferenceDot x={clippedDay.label} y={CASH_CAP} r={0} fill="none" stroke="none"
                       label={{ value: fmtCurrency(clippedDay.aPagar), position: 'top', fill: CASH_OUT, fontSize: 10, fontWeight: 800 }} />
                   )}
                 </>
