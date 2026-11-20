@@ -92,7 +92,7 @@ export default function AdminConvocacao() {
     <div className="space-y-5">
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
         <div>
-          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A' }}>Convocação</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A' }}>Fila de convocações</p>
           <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
             Fila de convocações que o agente de WhatsApp vai consumir. Enquanto o agente não está ativo,
             use os botões para simular as respostas e testar o fluxo.

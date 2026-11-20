@@ -5,16 +5,15 @@ import {
   LogOut, LayoutDashboard, Building2, ChevronLeft, ChevronRight,
   DollarSign, ClipboardList, Search, Bell, Briefcase, Activity,
   Send, BarChart2, ChevronDown, Users, Heart, Clock, Shield,
-  TrendingUp, CreditCard, Wallet, FileText, UserCheck, MessageCircle,
+  TrendingUp, CreditCard, Wallet, FileText, UserCheck,
 } from 'lucide-react';
 
 const OP_TABS = [
-  { key: 'resumo',       label: 'Resumo do Dia',   icon: Activity },
-  { key: 'demanda',      label: 'Lançar Demanda',  icon: Send },
-  { key: 'convocacao',   label: 'Convocação',      icon: MessageCircle },
-  { key: 'historico',    label: 'Histórico',       icon: ClipboardList },
-  { key: 'relatorios',   label: 'Relatórios',      icon: BarChart2 },
-  { key: 'encarregados', label: 'Encarregados',    icon: UserCheck },
+  { key: 'resumo',       label: 'Resumo do Dia',          icon: Activity },
+  { key: 'demanda',      label: 'Demandas e Convocação',  icon: Send },
+  { key: 'historico',    label: 'Histórico',              icon: ClipboardList },
+  { key: 'relatorios',   label: 'Relatórios',             icon: BarChart2 },
+  { key: 'encarregados', label: 'Encarregados',           icon: UserCheck },
 ];
 
 const RH_TABS = [
@@ -56,7 +55,9 @@ export default function AdminLayout() {
   const isOperacional = location.pathname === '/admin/operacional';
   const isRH          = location.pathname === '/admin/rh';
   const isFinanceiro  = location.pathname === '/admin/financeiro';
-  const activeOpTab   = searchParams.get('tab') || 'resumo';
+  const rawOpTab      = searchParams.get('tab') || 'resumo';
+  // "convocacao" virou uma sub-aba de "demanda": links antigos continuam válidos.
+  const activeOpTab   = rawOpTab === 'convocacao' ? 'demanda' : rawOpTab;
   const activeRHTab   = searchParams.get('tab') || 'funcionarios';
   const activeFinTab  = searchParams.get('tab') || 'visao';
 

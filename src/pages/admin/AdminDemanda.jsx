@@ -4,12 +4,13 @@ import { useAuth } from '../../context/AuthContext';
 import { calculateWorkAndOvertime } from '../../lib/timeUtils';
 import DemandForm from '../../components/admin/DemandForm';
 import AvaliacaoDiariaModal from '../../components/shared/AvaliacaoDiariaModal';
+import AdminConvocacao from './AdminConvocacao';
 import { StarsDisplay } from '../../components/shared/StarRating';
 import { fetchNotasByEscala, fetchNotasResumo } from '../../lib/db';
 import { fmtNota } from '../../lib/notas';
 import {
   Building2, Calendar, Clock, ChevronDown, CheckCircle2,
-  Send, ClipboardList, Search, AlertCircle,
+  Send, ClipboardList, Search, AlertCircle, MessageCircle,
   ChevronRight, Trash2, Edit2, ArrowLeft, Plus, Users, X, Flame, Sparkles, Star,
 } from 'lucide-react';
 
@@ -881,7 +882,7 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onU
 const TODAY_ISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 
 // ── Página principal ───────────────────────────────────────────────────────
-export default function AdminDemanda() {
+export default function AdminDemanda({ initialSubTab = 'nova' }) {
   const {
     employees,
     companies,
@@ -893,7 +894,7 @@ export default function AdminDemanda() {
     removeDemand,
     changeDemand,
   } = useAuth();
-  const [subTab, setSubTab] = useState('nova');
+  const [subTab, setSubTab] = useState(initialSubTab);
   const [notasResumo, setNotasResumo] = useState({});
 
   const reloadNotasResumo = useCallback(() => {
@@ -921,6 +922,7 @@ export default function AdminDemanda() {
   const SUB_TABS = [
     { key: 'nova',        label: 'Nova Demanda',        icon: Plus },
     { key: 'acompanhar',  label: 'Acompanhar Demandas', icon: ClipboardList },
+    { key: 'convocacao',  label: 'Convocação',          icon: MessageCircle },
   ];
 
   return (
@@ -979,6 +981,12 @@ export default function AdminDemanda() {
             notasResumo={notasResumo}
             onRatingsSaved={reloadNotasResumo}
           />
+        </div>
+      )}
+
+      {subTab === 'convocacao' && (
+        <div className="animate-fade-up">
+          <AdminConvocacao />
         </div>
       )}
     </div>
