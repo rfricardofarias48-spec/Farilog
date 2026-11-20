@@ -1525,6 +1525,37 @@ export async function fetchAjudantesSemPontoHoje(today) {
 
 // ── Financeiro ─────────────────────────────────────────────────────────────
 
+// Classificações do financeiro (Benefícios, Folha de Pagamento, Custo Fixo...).
+export async function fetchClassificacoes() {
+  const { data, error } = await supabase
+    .from('financeiro_classificacoes').select('*').order('nome');
+  if (error) { console.error('[db] fetchClassificacoes:', error.message); return []; }
+  return data || [];
+}
+
+export async function createClassificacao({ nome, tipo = 'despesa', cor = '#4A4A4A' }) {
+  const { data, error } = await supabase
+    .from('financeiro_classificacoes')
+    .insert({ nome, tipo, cor })
+    .select().single();
+  if (error) { console.error('[db] createClassificacao:', error.message); return null; }
+  return data;
+}
+
+// Id de uma classificação pelo nome (retorna null se a tabela ainda não existir).
+async function getClassificacaoId(nome) {
+  const { data, error } = await supabase
+    .from('financeiro_classificacoes').select('id').eq('nome', nome).maybeSingle();
+  if (error) { console.error('[db] getClassificacaoId:', error.message); return null; }
+  return data?.id || null;
+}
+
+// origem_id é uuid; gera um UUID determinístico por quinzena (folha-<idx>).
+function folhaOrigemId(quinzenaIdx) {
+  const hex = (Number(quinzenaIdx) >>> 0).toString(16).padStart(12, '0').slice(-12);
+  return `f01a0000-0000-4000-8000-${hex}`;
+}
+
 export async function fetchDividas() {
   const { data, error } = await supabase
     .from('financeiro_dividas').select('*').order('criado_em', { ascending: false });
@@ -1539,13 +1570,14 @@ export async function createDivida({ nome, valorTotal, valorParcela, numParcelas
     .select().single();
   if (error) { console.error('[db] createDivida:', error.message); return null; }
 
+  const classId = await getClassificacaoId('Endividamento');
   const [year, month, day] = dataInicio.split('-').map(Number);
   const lancamentos = Array.from({ length: numParcelas }, (_, i) => {
     let m = month - 1 + i, y = year;
     while (m >= 12) { m -= 12; y++; }
     const last = new Date(y, m + 1, 0).getDate();
     const d    = String(Math.min(day, last)).padStart(2, '0');
-    return {
+    const row = {
       id: crypto.randomUUID(),
       tipo: 'a_pagar',
       descricao: `${nome} — Parcela ${i + 1}/${numParcelas}`,
@@ -1554,8 +1586,13 @@ export async function createDivida({ nome, valorTotal, valorParcela, numParcelas
       origem_tipo: 'divida',
       origem_id: divida.id,
     };
+    if (classId) row.classificacao_id = classId;
+    return row;
   });
-  await supabase.from('financeiro_lancamentos').insert(lancamentos);
+  const { error: lErr } = await supabase.from('financeiro_lancamentos').insert(lancamentos);
+  if (lErr && /classificacao_id/.test(lErr.message)) {
+    await supabase.from('financeiro_lancamentos').insert(lancamentos.map(({ classificacao_id, ...r }) => r));
+  }
   return divida;
 }
 
@@ -1580,6 +1617,7 @@ export async function createCustoFixo({ nome, valor, diaVencimento }) {
     .select().single();
   if (error) { console.error('[db] createCustoFixo:', error.message); return null; }
 
+  const classId = await getClassificacaoId('Custo Fixo');
   // Usa fuso SP para não errar o mês de início
   const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
   const [_ty, _tm, _td] = todayISO.split('-').map(Number);
@@ -1592,7 +1630,7 @@ export async function createCustoFixo({ nome, valor, diaVencimento }) {
     while (m >= 12) { m -= 12; y++; }
     const last = new Date(y, m + 1, 0).getDate();
     const d    = String(Math.min(diaVencimento, last)).padStart(2, '0');
-    return {
+    const row = {
       id: crypto.randomUUID(),
       tipo: 'a_pagar',
       descricao: nome,
@@ -1601,8 +1639,13 @@ export async function createCustoFixo({ nome, valor, diaVencimento }) {
       origem_tipo: 'custo_fixo',
       origem_id: custo.id,
     };
+    if (classId) row.classificacao_id = classId;
+    return row;
   });
-  await supabase.from('financeiro_lancamentos').insert(lancamentos);
+  const { error: lErr } = await supabase.from('financeiro_lancamentos').insert(lancamentos);
+  if (lErr && /classificacao_id/.test(lErr.message)) {
+    await supabase.from('financeiro_lancamentos').insert(lancamentos.map(({ classificacao_id, ...r }) => r));
+  }
   return custo;
 }
 
@@ -1624,12 +1667,64 @@ export async function fetchLancamentos(start, end) {
   return data || [];
 }
 
-export async function createLancamentoManual({ tipo, descricao, valor, dataVencimento }) {
+export async function createLancamentoManual({ tipo, descricao, valor, dataVencimento, classificacaoId }) {
+  const fallback = classificacaoId
+    ? null
+    : await getClassificacaoId(tipo === 'a_receber' ? 'Receitas' : 'Despesas Variáveis');
+  const payload = {
+    id: crypto.randomUUID(), tipo, descricao, valor,
+    data_vencimento: dataVencimento, origem_tipo: 'manual',
+  };
+  if (classificacaoId || fallback) payload.classificacao_id = classificacaoId || fallback;
+
+  let { data, error } = await supabase
+    .from('financeiro_lancamentos').insert(payload).select().single();
+  if (error && /classificacao_id/.test(error.message)) {
+    delete payload.classificacao_id;
+    ({ data, error } = await supabase.from('financeiro_lancamentos').insert(payload).select().single());
+  }
+  if (error) { console.error('[db] createLancamentoManual:', error.message); return null; }
+  return data;
+}
+
+// Lançamento da folha de uma quinzena (criado ao "fechar a folha").
+export async function fetchLancamentoFolha(quinzenaIdx) {
   const { data, error } = await supabase
     .from('financeiro_lancamentos')
-    .insert({ id: crypto.randomUUID(), tipo, descricao, valor, data_vencimento: dataVencimento, origem_tipo: 'manual' })
-    .select().single();
-  if (error) { console.error('[db] createLancamentoManual:', error.message); return null; }
+    .select('*')
+    .eq('origem_id', folhaOrigemId(quinzenaIdx))
+    .maybeSingle();
+  if (error) { console.error('[db] fetchLancamentoFolha:', error.message); return null; }
+  return data || null;
+}
+
+export async function fecharFolha({ quinzenaIdx, total, dataVencimento, label }) {
+  await supabase.from('financeiro_lancamentos').delete().eq('origem_id', folhaOrigemId(quinzenaIdx));
+  if (!(Number(total) > 0)) return null;
+
+  const classId = await getClassificacaoId('Folha de Pagamento');
+  const base = {
+    id: crypto.randomUUID(),
+    tipo: 'a_pagar',
+    descricao: `Folha de Pagamento — ${label}`,
+    valor: total,
+    data_vencimento: dataVencimento,
+    origem_id: folhaOrigemId(quinzenaIdx),
+  };
+  if (classId) base.classificacao_id = classId;
+
+  let payload = { ...base, origem_tipo: 'folha' };
+  let { data, error } = await supabase
+    .from('financeiro_lancamentos').insert(payload).select().single();
+  if (error && /origem_tipo|23514/.test(error.message)) {
+    payload = { ...base, origem_tipo: 'manual' };
+    ({ data, error } = await supabase.from('financeiro_lancamentos').insert(payload).select().single());
+  }
+  if (error && /classificacao_id/.test(error.message)) {
+    delete payload.classificacao_id;
+    ({ data, error } = await supabase.from('financeiro_lancamentos').insert(payload).select().single());
+  }
+  if (error) { console.error('[db] fecharFolha:', error.message); return null; }
   return data;
 }
 
@@ -1677,6 +1772,33 @@ export async function createRecargasLote(items) {
   }));
   const { error } = await supabase.from('beneficios_recargas').insert(rows);
   if (error) { console.error('[db] createRecargasLote:', error.message); return false; }
+
+  // A recarga de benefício entra automaticamente no fluxo de caixa (a pagar),
+  // classificada como "Benefícios".
+  const classId = await getClassificacaoId('Benefícios');
+  if (classId) {
+    const lancamentos = rows.map((r, idx) => {
+      const it  = items[idx];
+      const nome = it.tipo === 'VT' ? 'Vale Transporte (VT)' : 'Vale Refeição (VR)';
+      return {
+        id: crypto.randomUUID(),
+        tipo: 'a_pagar',
+        descricao: `${nome} — ${it.nome || 'Ajudante'} · ${it.quinzena}`,
+        valor: it.total,
+        data_vencimento: it.dataRecarga,
+        origem_tipo: 'beneficio',
+        origem_id: r.id,
+        classificacao_id: classId,
+      };
+    });
+    const { error: lErr } = await supabase.from('financeiro_lancamentos').insert(lancamentos);
+    if (lErr && /origem_tipo|23514/.test(lErr.message)) {
+      // Constraint antiga ainda não aceita 'beneficio' → grava como 'manual'.
+      await supabase.from('financeiro_lancamentos').insert(lancamentos.map((l) => ({ ...l, origem_tipo: 'manual' })));
+    } else if (lErr) {
+      console.error('[db] createRecargasLote lancamentos:', lErr.message);
+    }
+  }
   return true;
 }
 

@@ -99,6 +99,7 @@ function NovaRecarga({ tipo, employees, quinzena }) {
         const valorDia = empValues[e.id] ?? e[field];
         return {
           funcionarioId: e.id,
+          nome:       e.name,
           tipo,
           dias:       Number(dias[e.id]),
           valorDia,

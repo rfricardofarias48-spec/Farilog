@@ -9,6 +9,8 @@ import {
   createLancamentoManual, deleteLancamento,
   fetchAdiantamentosPorQuinzena, createAdiantamento, deleteAdiantamento,
   fetchPagosPorQuinzena, marcarPago, desmarcarPago,
+  fetchClassificacoes, createClassificacao,
+  fetchLancamentoFolha, fecharFolha,
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
 import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
@@ -45,6 +47,10 @@ const CASH_OUT    = '#BC4A2A'; // terracota — a pagar
 const CASH_BAL    = '#3A4F6B'; // azul-aço — saldo
 const CASH_IN_BG  = '#EAF4EE';
 const CASH_OUT_BG = '#FBEDE8';
+// Lucro líquido é sempre verde (dinheiro que sobra).
+const PROFIT_COLOR = '#2F7A4F';
+// Paleta usada ao criar uma nova classificação (cicla por índice).
+const CLASS_PALETTE = ['#BC4A2A', '#3A4F6B', '#7B5EA7', '#96671F', '#8C3B4A', '#2F6F73', '#2F7A4F'];
 const TODAY_ISO   = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 
 // ── Period helpers ─────────────────────────────────────────────────────────
@@ -205,7 +211,7 @@ function PeriodSelector({ type, offset, bounds, onChangeType, onChangeOffset }) 
 }
 
 // ── Tab: Visão Geral ───────────────────────────────────────────────────────
-function TabVisaoGeral({ records, lancamentos, employees, companies }) {
+function TabVisaoGeral({ records, lancamentos, employees, companies, classificacoes }) {
   const active = records.filter(r => r.status !== 'absent');
   const companiesById = Object.fromEntries((companies || []).map(c => [c.id, c]));
 
@@ -238,24 +244,55 @@ function TabVisaoGeral({ records, lancamentos, employees, companies }) {
   const custoFixo    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo').reduce((s, l) => s + Number(l.valor || 0), 0);
   const endivPeriodo = lancamentos.filter(l => l.origem_tipo === 'divida').reduce((s, l) => s + Number(l.valor || 0), 0);
 
-  const totalCustos   = folha + beneficios + custoFixo + endivPeriodo;
+  // Totais por classificação, a partir dos lançamentos a pagar. Folha e
+  // Benefícios entram por competência (registros de ponto), então os lançamentos
+  // dessas duas origens não são somados aqui — evita duplicidade.
+  const totalsPorClasse = {};
+  lancamentos
+    .filter(l => l.tipo === 'a_pagar' && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio')
+    .forEach(l => {
+      const key = l.classificacao_id || '__sem';
+      totalsPorClasse[key] = (totalsPorClasse[key] || 0) + Number(l.valor || 0);
+    });
+
+  const temClassificacoes = (classificacoes || []).length > 0;
+  const classSlices = (classificacoes || [])
+    .filter(c => c.tipo !== 'receita')
+    .map(c => ({
+      name:  c.nome,
+      color: c.cor,
+      value: c.nome === 'Folha de Pagamento' ? folha
+           : c.nome === 'Benefícios'         ? beneficios
+           : (totalsPorClasse[c.id] || 0),
+    }))
+    .filter(s => s.value > 0);
+
+  // Custos totais: usa as classificações quando existem; senão, o modelo antigo.
+  const totalCustos = temClassificacoes
+    ? classSlices.reduce((s, x) => s + x.value, 0)
+    : folha + beneficios + custoFixo + endivPeriodo;
   const lucroLiquido  = fat - totalCustos;
   // Margem de contribuição = faturamento − salários (diárias + HE) − VT − VR.
-  // É a margem bruta do negócio, antes de custos fixos e dívidas.
+  // É a margem bruta do negócio, antes de custos fixos, dívidas e despesas variáveis.
   const margemContribValor = fat - folha - beneficios;
   const margemContrib = fat > 0 ? (margemContribValor / fat) * 100 : 0;
   const margemLucro   = fat > 0 ? (lucroLiquido / fat) * 100 : 0;
 
-  // Fatias do gráfico — devem somar ao faturamento. Item zerado não aparece
-  // (ex.: VT/VR zerado no cadastro dos ajudantes que trabalharam → fatia some).
-  const slices = [
-    { name: 'Lucro Líquido',        value: Math.max(0, lucroLiquido), color: REVENUE_COLORS.lucro },
-    { name: 'Folha de Pagamento',   value: folha,                     color: REVENUE_COLORS.folha },
-    { name: 'Vale Transporte (VT)', value: beneficiosVT,              color: REVENUE_COLORS.vt },
-    { name: 'Vale Refeição (VR)',   value: beneficiosVR,              color: REVENUE_COLORS.vr },
-    { name: 'Custos Fixos',         value: custoFixo,                 color: REVENUE_COLORS.fixos },
-    { name: 'Endividamento',        value: endivPeriodo,              color: REVENUE_COLORS.divida },
-  ].filter(s => s.value > 0);
+  // Fatias do gráfico: Lucro Líquido (verde) + uma fatia por classificação.
+  // Somam ao faturamento. Sem classificações, cai no modelo antigo.
+  const slices = temClassificacoes
+    ? [
+        { name: 'Lucro Líquido', value: Math.max(0, lucroLiquido), color: PROFIT_COLOR },
+        ...classSlices,
+      ]
+    : [
+        { name: 'Lucro Líquido',        value: Math.max(0, lucroLiquido), color: PROFIT_COLOR },
+        { name: 'Folha de Pagamento',   value: folha,                     color: REVENUE_COLORS.folha },
+        { name: 'Vale Transporte (VT)', value: beneficiosVT,              color: REVENUE_COLORS.vt },
+        { name: 'Vale Refeição (VR)',   value: beneficiosVR,              color: REVENUE_COLORS.vr },
+        { name: 'Custos Fixos',         value: custoFixo,                 color: REVENUE_COLORS.fixos },
+        { name: 'Endividamento',        value: endivPeriodo,              color: REVENUE_COLORS.divida },
+      ].filter(s => s.value > 0);
 
   const kpis = [
     { label: 'Faturamento', value: fmtCurrency(fat), icon: DollarSign, color: '#0B0B0B', bg: '#F5F5F5' },
@@ -264,8 +301,8 @@ function TabVisaoGeral({ records, lancamentos, employees, companies }) {
       bg:    margemContribValor >= 0 ? '#FAF4F1' : '#F5F5F5',
       sub:   `${margemContrib.toFixed(1)}% do faturamento` },
     { label: 'Lucro Líquido', value: fmtCurrency(lucroLiquido), icon: TrendingUp,
-      color: lucroLiquido >= 0 ? '#0B0B0B' : '#4A4A4A',
-      bg:    lucroLiquido >= 0 ? '#F5F5F5' : '#F5F5F5',
+      color: lucroLiquido >= 0 ? PROFIT_COLOR : '#8C3B4A',
+      bg:    lucroLiquido >= 0 ? '#EAF4EE' : '#F7EDEF',
       sub:   `${margemLucro.toFixed(1)}% do faturamento` },
   ];
 
@@ -290,7 +327,7 @@ function TabVisaoGeral({ records, lancamentos, employees, companies }) {
                 <Pie data={slices} cx="50%" cy="50%" innerRadius={95} outerRadius={155} paddingAngle={2} dataKey="value" startAngle={90} endAngle={-270}>
                   {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
                 </Pie>
-                <Tooltip formatter={v => fmtCurrency(v)} contentStyle={{ background: '#1C1C1C', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F5F5F5' }} />
+                <Tooltip formatter={v => fmtCurrency(v)} itemStyle={{ color: '#F5F5F5', fontWeight: 600 }} labelStyle={{ color: '#B9B9B9' }} contentStyle={{ background: '#1C1C1C', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F5F5F5' }} />
               </PieChart>
               <p style={{ fontSize: '12px', color: '#9A9A9A', fontWeight: 600, marginTop: '-12px' }}>
                 Faturamento total
@@ -340,9 +377,12 @@ function TabVisaoGeral({ records, lancamentos, employees, companies }) {
 }
 
 // ── Modal adicionar lançamento ─────────────────────────────────────────────
-function AddLancamentoModal({ onSave, onClose }) {
-  const [form,   setForm]   = useState({ tipo: 'a_pagar', descricao: '', valor: '', data: TODAY_ISO });
+function AddLancamentoModal({ onSave, onClose, classificacoes = [], onCreateClassificacao }) {
+  const [form,   setForm]   = useState({ tipo: 'a_pagar', descricao: '', valor: '', data: TODAY_ISO, classificacaoId: '' });
   const [saving, setSaving] = useState(false);
+  const [creating,   setCreating]   = useState(false);
+  const [newName,    setNewName]    = useState('');
+  const [savingNew,  setSavingNew]  = useState(false);
 
   useEffect(() => {
     const h = e => { if (e.key === 'Escape') onClose(); };
@@ -350,14 +390,39 @@ function AddLancamentoModal({ onSave, onClose }) {
     return () => document.removeEventListener('keydown', h);
   }, [onClose]);
 
-  const canSave = form.descricao.trim() && form.valor && form.data && !saving;
   const isPagar = form.tipo === 'a_pagar';
+  const classOptions = (classificacoes || []).filter(c => c.tipo === (isPagar ? 'despesa' : 'receita'));
+
+  // Mantém sempre uma classificação válida para o tipo selecionado.
+  useEffect(() => {
+    if (classOptions.length === 0) {
+      if (form.classificacaoId) setForm(f => ({ ...f, classificacaoId: '' }));
+      return;
+    }
+    if (!classOptions.some(c => c.id === form.classificacaoId)) {
+      setForm(f => ({ ...f, classificacaoId: classOptions[0].id }));
+    }
+  }, [form.tipo, classificacoes]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const canSave = form.descricao.trim() && form.valor && form.data && !saving
+    && (classificacoes.length === 0 || form.classificacaoId);
 
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
-    await onSave({ tipo: form.tipo, descricao: form.descricao.trim(), valor: Number(form.valor), dataVencimento: form.data });
+    await onSave({
+      tipo: form.tipo, descricao: form.descricao.trim(), valor: Number(form.valor),
+      dataVencimento: form.data, classificacaoId: form.classificacaoId || null,
+    });
     setSaving(false);
+  };
+
+  const handleCreate = async () => {
+    if (!newName.trim() || !onCreateClassificacao || savingNew) return;
+    setSavingNew(true);
+    const created = await onCreateClassificacao({ nome: newName.trim(), tipo: isPagar ? 'despesa' : 'receita' });
+    setSavingNew(false);
+    if (created) { setForm(f => ({ ...f, classificacaoId: created.id })); setNewName(''); setCreating(false); }
   };
 
   return createPortal(
@@ -398,6 +463,40 @@ function AddLancamentoModal({ onSave, onClose }) {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Classificação */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B' }}>Classificação</p>
+              {!creating && onCreateClassificacao && (
+                <button onClick={() => setCreating(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'none', border: 'none', cursor: 'pointer', color: '#BC4A2A', fontSize: '11px', fontWeight: 700 }}>
+                  <Plus size={11} /> Nova classificação
+                </button>
+              )}
+            </div>
+            {creating ? (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input className="input-field" placeholder="Nome da nova classificação" value={newName} autoFocus
+                  onChange={e => setNewName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleCreate()} />
+                <button onClick={handleCreate} disabled={!newName.trim() || savingNew}
+                  style={{ padding: '0 14px', borderRadius: '10px', border: 'none', cursor: newName.trim() ? 'pointer' : 'not-allowed', background: newName.trim() ? '#BC4A2A' : '#E4E4E4', color: newName.trim() ? '#fff' : '#9A9A9A', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  {savingNew ? '...' : 'Criar'}
+                </button>
+                <button onClick={() => { setCreating(false); setNewName(''); }} title="Cancelar"
+                  style={{ padding: '0 12px', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.08)', background: '#fff', color: '#6B6B6B', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                  <X size={13} />
+                </button>
+              </div>
+            ) : (
+              <select className="input-field" value={form.classificacaoId}
+                onChange={e => setForm(f => ({...f, classificacaoId: e.target.value}))}>
+                {classOptions.length === 0 && <option value="">Nenhuma classificação cadastrada</option>}
+                {classOptions.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            )}
           </div>
 
           {/* Descrição */}
@@ -473,7 +572,7 @@ function ListModal({ title, items, onDelete, onClose }) {
         </div>
         {/* Cabeçalho tabela */}
         <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px 40px', padding: '9px 24px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
-          <span>Data</span><span>Descrição</span><span>Origem</span><span style={{ textAlign: 'right' }}>Valor</span><span />
+          <span>Data</span><span>Descrição</span><span>Classificação</span><span style={{ textAlign: 'right' }}>Valor</span><span />
         </div>
         {/* Lista */}
         <div style={{ overflowY: 'auto', flex: 1 }}>
@@ -488,8 +587,8 @@ function ListModal({ title, items, onDelete, onClose }) {
                 <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B6B6B' }}>{dd}/{mo}/{yr.slice(2)}</span>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.descricao}</span>
                 <span>
-                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: isRec ? CASH_IN_BG : CASH_OUT_BG, color: isRec ? CASH_IN : CASH_OUT }}>
-                    {item.origem}
+                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: `${item.classificacaoCor || CASH_OUT}1A`, color: item.classificacaoCor || '#6B6B6B', whiteSpace: 'nowrap' }}>
+                    {item.classificacaoNome || '—'}
                   </span>
                 </span>
                 <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: isRec ? CASH_IN : CASH_OUT }}>
@@ -513,7 +612,7 @@ function ListModal({ title, items, onDelete, onClose }) {
 }
 
 // ── Tab: Fluxo de Caixa ────────────────────────────────────────────────────
-function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType, bounds, companies }) {
+function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType, bounds, companies, classificacoes, onCreateClassificacao }) {
   const [view,     setView]     = useState('all');
   const [modal,    setModal]    = useState(null); // 'receber' | 'pagar'
   const [showAdd,  setShowAdd]  = useState(false);
@@ -522,6 +621,23 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     () => Object.fromEntries((companies || []).map(c => [c.id, c])),
     [companies]
   );
+
+  const classById = useMemo(
+    () => Object.fromEntries((classificacoes || []).map(c => [c.id, c])),
+    [classificacoes]
+  );
+  const receitasClass = (classificacoes || []).find(c => c.nome === 'Receitas') || { nome: 'Receitas', cor: CASH_IN };
+  // Classificação de um lançamento. Sem classificação (base antiga), deriva do origem_tipo.
+  const classOf = (l) => {
+    const c = l.classificacao_id ? classById[l.classificacao_id] : null;
+    if (c) return c;
+    const nome = l.origem_tipo === 'custo_fixo' ? 'Custo Fixo'
+               : l.origem_tipo === 'divida'     ? 'Endividamento'
+               : l.origem_tipo === 'beneficio'  ? 'Benefícios'
+               : l.origem_tipo === 'folha'      ? 'Folha de Pagamento'
+               : 'Despesas Variáveis';
+    return (classificacoes || []).find(x => x.nome === nome) || { nome, cor: '#4A4A4A' };
+  };
 
   const chartData = useMemo(
     () => buildChartData(periodType, bounds.start, bounds.end, records, lancamentos, companiesById),
@@ -544,21 +660,25 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     });
     const fromRecs = Object.values(map).map(g => {
       const co = companies?.find(c => c.id === g.companyId);
-      return { date: g.date, descricao: `${co?.name || g.companyId} — ${g.count} ajudante${g.count !== 1 ? 's' : ''}`, origem: 'Serviço', valor: g.valor, tipo: 'a_receber', isManual: false };
+      return { date: g.date, descricao: `${co?.name || g.companyId} — ${g.count} ajudante${g.count !== 1 ? 's' : ''}`, origem: 'Serviço', valor: g.valor, tipo: 'a_receber', isManual: false, classificacaoNome: receitasClass.nome, classificacaoCor: receitasClass.cor };
     });
     const fromManual = lancamentos
       .filter(l => l.tipo === 'a_receber')
-      .map(l => ({ date: l.data_vencimento, descricao: l.descricao, origem: 'Manual', valor: Number(l.valor || 0), tipo: 'a_receber', isManual: true, id: l.id }));
+      .map(l => { const cl = classOf(l); return { date: l.data_vencimento, descricao: l.descricao, origem: 'Manual', valor: Number(l.valor || 0), tipo: 'a_receber', isManual: true, id: l.id, classificacaoNome: cl.nome, classificacaoCor: cl.cor }; });
     return [...fromRecs, ...fromManual].sort((a, b) => a.date.localeCompare(b.date));
-  }, [records, lancamentos, companies]);
+  }, [records, lancamentos, companies, classificacoes]);
 
   const pagItems = useMemo(() =>
-    lancamentos.filter(l => l.tipo === 'a_pagar').map(l => ({
-      date: l.data_vencimento, descricao: l.descricao,
-      origem: l.origem_tipo === 'divida' ? 'Dívida' : l.origem_tipo === 'custo_fixo' ? 'Custo Fixo' : 'Manual',
-      valor: Number(l.valor || 0), tipo: 'a_pagar', isManual: l.origem_tipo === 'manual', id: l.id,
-    })).sort((a, b) => a.date.localeCompare(b.date)),
-    [lancamentos]
+    lancamentos.filter(l => l.tipo === 'a_pagar').map(l => {
+      const cl = classOf(l);
+      return {
+        date: l.data_vencimento, descricao: l.descricao,
+        origem: l.origem_tipo === 'divida' ? 'Dívida' : l.origem_tipo === 'custo_fixo' ? 'Custo Fixo' : l.origem_tipo === 'beneficio' ? 'Benefício' : l.origem_tipo === 'folha' ? 'Folha' : 'Manual',
+        valor: Number(l.valor || 0), tipo: 'a_pagar', isManual: l.origem_tipo === 'manual', id: l.id,
+        classificacaoNome: cl.nome, classificacaoCor: cl.cor,
+      };
+    }).sort((a, b) => a.date.localeCompare(b.date)),
+    [lancamentos, classificacoes]
   );
 
   const totalRec = recGroups.reduce((s, g) => s + g.valor, 0);
@@ -572,8 +692,8 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     return items.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8);
   }, [view, recGroups, pagItems]);
 
-  const handleSave = async ({ tipo, descricao, valor, dataVencimento }) => {
-    const l = await createLancamentoManual({ tipo, descricao, valor, dataVencimento });
+  const handleSave = async ({ tipo, descricao, valor, dataVencimento, classificacaoId }) => {
+    const l = await createLancamentoManual({ tipo, descricao, valor, dataVencimento, classificacaoId });
     if (l) {
       setLancamentos(prev => [...prev, l].sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento)));
       setShowAdd(false);
@@ -693,7 +813,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
       {/* Lista inline (preview — máx 8 itens) */}
       <div className="card overflow-hidden">
         <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px', padding: '9px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
-          <span>Data</span><span>Descrição</span><span>Origem</span><span style={{ textAlign: 'right' }}>Valor</span>
+          <span>Data</span><span>Descrição</span><span>Classificação</span><span style={{ textAlign: 'right' }}>Valor</span>
         </div>
         {inlineItems.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -708,8 +828,8 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                   <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B6B6B' }}>{dd}/{mo}/{yr.slice(2)}</span>
                   <span style={{ fontSize: '13px', fontWeight: 600, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.descricao}</span>
                   <span>
-                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: item.tipo === 'a_receber' ? CASH_IN_BG : CASH_OUT_BG, color: item.tipo === 'a_receber' ? CASH_IN : CASH_OUT }}>
-                      {item.origem}
+                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: `${item.classificacaoCor || '#4A4A4A'}1A`, color: item.classificacaoCor || '#6B6B6B', whiteSpace: 'nowrap' }}>
+                      {item.classificacaoNome || '—'}
                     </span>
                   </span>
                   <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: item.tipo === 'a_receber' ? CASH_IN : CASH_OUT }}>
@@ -746,6 +866,8 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
         <AddLancamentoModal
           onSave={handleSave}
           onClose={() => setShowAdd(false)}
+          classificacoes={classificacoes}
+          onCreateClassificacao={onCreateClassificacao}
         />
       )}
     </div>
@@ -1014,7 +1136,7 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={3} dataKey="value">
                   {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
-                <Tooltip formatter={v => fmtCurrency(v)} contentStyle={{ background: '#1C1C1C', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F5F5F5' }} />
+                <Tooltip formatter={v => fmtCurrency(v)} itemStyle={{ color: '#F5F5F5', fontWeight: 600 }} labelStyle={{ color: '#B9B9B9' }} contentStyle={{ background: '#1C1C1C', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F5F5F5' }} />
               </PieChart>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
@@ -1361,7 +1483,7 @@ function quinzenaBounds(idx) {
   };
 }
 
-function TabFolhaPagamento({ employees }) {
+function TabFolhaPagamento({ employees, onFolhaFechada }) {
   const curIdx = (Number(TODAY_ISO.split('-')[0]) - 2000) * 24
     + (Number(TODAY_ISO.split('-')[1]) - 1) * 2
     + (Number(TODAY_ISO.split('-')[2]) <= 15 ? 0 : 1);
@@ -1372,6 +1494,8 @@ function TabFolhaPagamento({ employees }) {
   const [showLancarModal, setShowLancarModal] = useState(false);
   const [detalheEmp, setDetalheEmp] = useState(null);
   const [pagos, setPagos] = useState([]);
+  const [folhaLanc, setFolhaLanc] = useState(null);
+  const [closing, setClosing] = useState(false);
 
   const q = useMemo(() => quinzenaBounds(qi), [qi]);
 
@@ -1392,6 +1516,8 @@ function TabFolhaPagamento({ employees }) {
     fetchAdiantamentosPorQuinzena(qi).then(setAdiantamentos);
     fetchPagosPorQuinzena(qi).then(setPagos);
   }, [q.start, q.end, qi]);
+
+  useEffect(() => { fetchLancamentoFolha(qi).then(setFolhaLanc); }, [qi]);
 
   const handleSalvarAdiantamento = async (dados) => {
     const criado = await createAdiantamento(dados);
@@ -1451,6 +1577,18 @@ function TabFolhaPagamento({ employees }) {
   const payLabel   = `${q.payDate.split('-')[2]}/${q.payDate.split('-')[1]}/${q.payDate.split('-')[0]}`;
   const isPaid     = q.payDate < TODAY_ISO;
 
+  // Fecha a folha da quinzena: cria (ou atualiza) o lançamento no fluxo de caixa,
+  // classificado como "Folha de Pagamento".
+  const handleFecharFolha = async () => {
+    if (closing || totalAPagar <= 0) return;
+    setClosing(true);
+    const label = `${q.monthLabel} · ${qi % 2 === 0 ? 'Q1' : 'Q2'}`;
+    const l = await fecharFolha({ quinzenaIdx: qi, total: totalAPagar, dataVencimento: q.payDate, label });
+    setFolhaLanc(l);
+    setClosing(false);
+    if (onFolhaFechada) onFolhaFechada();
+  };
+
   const Card = ({ label, value, color, bg, icon: Icon }) => (
     <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(11, 11, 11,0.06)', boxShadow: '0 1px 3px rgba(11, 11, 11,0.05)', display: 'flex', alignItems: 'center', gap: '12px' }}>
       <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1488,6 +1626,19 @@ function TabFolhaPagamento({ employees }) {
               {isPaid ? 'Pago em' : 'Pagamento em'} {payLabel}
             </span>
           </div>
+          {folhaLanc && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 13px', borderRadius: '10px', background: '#EAF4EE', border: '1px solid #CDE5D5' }}>
+              <FileText size={13} style={{ color: PROFIT_COLOR }} />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: PROFIT_COLOR }}>
+                No fluxo: {fmtCurrency(Number(folhaLanc.valor))}
+              </span>
+            </div>
+          )}
+          <button onClick={handleFecharFolha} disabled={closing || totalAPagar <= 0}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: 'none', cursor: (closing || totalAPagar <= 0) ? 'not-allowed' : 'pointer', background: '#BC4A2A', color: '#fff', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(188,74,42,0.3)', opacity: (closing || totalAPagar <= 0) ? 0.5 : 1 }}>
+            <FileText size={14} />
+            {closing ? 'Fechando...' : folhaLanc ? 'Atualizar no fluxo' : 'Fechar folha'}
+          </button>
           <button onClick={() => setShowLancarModal(true)}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#4A4A4A', color: '#fff', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(74, 74, 74,0.3)' }}>
             <HandCoins size={14} />
@@ -1630,11 +1781,22 @@ export default function AdminFinanceiro() {
   const [lancamentos, setLancamentos] = useState([]);
   const [dividas,     setDividas]     = useState([]);
   const [custosFixos, setCustosFixos] = useState([]);
+  const [classificacoes, setClassificacoes] = useState([]);
   const [loading,     setLoading]     = useState(true);
 
   const bounds = useMemo(() => getBounds(periodType, offset), [periodType, offset]);
 
   const handleChangePeriodType = (type) => { setPeriodType(type); setOffset(0); };
+
+  const reloadLancamentos = () => fetchLancamentos(bounds.start, bounds.end).then(l => setLancamentos(l || []));
+
+  // Cria uma nova classificação com uma cor da paleta (cicla por índice).
+  const handleCreateClassificacao = async ({ nome, tipo }) => {
+    const cor = CLASS_PALETTE[classificacoes.length % CLASS_PALETTE.length];
+    const c = await createClassificacao({ nome, tipo, cor });
+    if (c) setClassificacoes(prev => [...prev, c].sort((a, b) => a.nome.localeCompare(b.nome)));
+    return c;
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -1651,6 +1813,7 @@ export default function AdminFinanceiro() {
   useEffect(() => {
     fetchDividas().then(d => setDividas(d || []));
     fetchCustosFixos().then(c => setCustosFixos(c || []));
+    fetchClassificacoes().then(c => setClassificacoes(c || []));
   }, []);
 
   return (
@@ -1677,9 +1840,9 @@ export default function AdminFinanceiro() {
         </div>
       ) : (
         <>
-          {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} />}
-          {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} />}
-          {activeTab === 'folha'   && <TabFolhaPagamento employees={employees} />}
+          {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} classificacoes={classificacoes} />}
+          {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} classificacoes={classificacoes} onCreateClassificacao={handleCreateClassificacao} />}
+          {activeTab === 'folha'   && <TabFolhaPagamento employees={employees} onFolhaFechada={reloadLancamentos} />}
           {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}
           {activeTab === 'dre'     && <TabDRE           records={records} lancamentos={lancamentos} employees={employees} bounds={bounds} companies={companies} />}
