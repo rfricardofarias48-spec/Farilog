@@ -17,6 +17,7 @@ import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
 import {
   ComposedChart, Bar, Line, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceDot,
+  ReferenceLine,
 } from 'recharts';
 import {
   DollarSign, TrendingUp, TrendingDown, Percent,
@@ -160,15 +161,53 @@ function KpiCard({ label, value, icon: Icon, color, bg, sub }) {
   );
 }
 
+// Marca só os dias em que o capital de giro (saldo acumulado) fica negativo.
+function SaldoNegativeDot({ cx, cy, payload }) {
+  if (!payload || payload.saldoAcum >= 0) return null;
+  return <circle cx={cx} cy={cy} r={2.8} fill={CASH_OUT} stroke="#fff" strokeWidth={0.8} />;
+}
+
 function ChartTip({ active, payload, label, mode, breakdown }) {
   if (!active || !payload?.length) return null;
   const bucket = payload[0]?.payload ?? {};
-  const isSaldo = mode === 'saldo';
+
+  if (mode === 'saldo') {
+    const net = Number(bucket.saldo || 0);
+    const acumulado = Number(bucket.saldoAcum || 0);
+    const pos = net >= 0;
+    const accent = pos ? CASH_IN : CASH_OUT;
+    const accentBg = pos ? 'rgba(47,122,79,0.26)' : 'rgba(188,74,42,0.30)';
+    const row = (cor, nome, valor) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+        <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: cor, flexShrink: 0 }} />
+        <span style={{ color: '#C9C9C9', fontSize: '11.5px', fontWeight: 500 }}>{nome}</span>
+        <span style={{ color: '#F5F5F5', fontSize: '11.5px', fontWeight: 700, marginLeft: 'auto' }}>{fmtCurrency(valor)}</span>
+      </div>
+    );
+    return (
+      <div style={{ background: '#1C1C1C', borderRadius: '10px', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)', minWidth: '196px', boxShadow: '0 8px 24px rgba(0,0,0,0.22)' }}>
+        <p style={{ color: '#A8A8A8', fontSize: '11px', fontWeight: 600, marginBottom: '7px' }}>{label}</p>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', padding: '6px 8px', borderRadius: '7px', background: accentBg, borderLeft: `3px solid ${accent}` }}>
+          <span style={{ color: '#F5F5F5', fontSize: '11.5px', fontWeight: 700 }}>Saldo previsto no dia</span>
+          <span style={{ color: '#FFFFFF', fontSize: '12.5px', fontWeight: 900 }}>{fmtCurrency(net)}</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '7px', paddingLeft: '2px' }}>
+          {row(CASH_IN, 'Entrada do dia', bucket.aReceber)}
+          {row(CASH_OUT, 'Saída do dia', bucket.aPagar)}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', marginTop: '7px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.10)' }}>
+          <span style={{ color: '#9C9C9C', fontSize: '10.5px', fontWeight: 600 }}>Saldo acumulado</span>
+          <span style={{ color: acumulado < 0 ? '#F0A08C' : '#F5F5F5', fontSize: '11px', fontWeight: 800 }}>{fmtCurrency(acumulado)}</span>
+        </div>
+      </div>
+    );
+  }
+
   const isIn = mode === 'entrada';
-  const total = isSaldo ? bucket.saldoAcum : isIn ? bucket.aReceber : bucket.aPagar;
-  const totalLabel = isSaldo ? 'Saldo acumulado' : isIn ? 'Total a receber' : 'Total a pagar';
-  const accent = isSaldo ? CASH_BAL : isIn ? CASH_IN : CASH_OUT;
-  const accentBg = isSaldo ? 'rgba(58,79,107,0.32)' : isIn ? 'rgba(47,122,79,0.26)' : 'rgba(188,74,42,0.28)';
+  const total = isIn ? bucket.aReceber : bucket.aPagar;
+  const totalLabel = isIn ? 'Total a receber' : 'Total a pagar';
+  const accent = isIn ? CASH_IN : CASH_OUT;
+  const accentBg = isIn ? 'rgba(47,122,79,0.26)' : 'rgba(188,74,42,0.28)';
   const items = breakdown?.[bucket.key] ?? [];
   return (
     <div style={{ background: '#1C1C1C', borderRadius: '10px', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)', minWidth: '178px', boxShadow: '0 8px 24px rgba(0,0,0,0.22)' }}>
@@ -680,6 +719,12 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const minSaldo = chartData.length
     ? chartData.reduce((a, b) => (b.saldoAcum < a.saldoAcum ? b : a), chartData[0])
     : null;
+  // Capital de giro negativo: precisa de eixo com o zero visível e marcação visual.
+  const hasNegSaldo = chartData.some(b => b.saldoAcum < 0);
+  const saldoFloor = chartData.length ? Math.min(0, ...chartData.map(b => b.saldoAcum)) : 0;
+  const saldoCeil = chartData.length ? Math.max(0, ...chartData.map(b => b.saldoAcum)) : 0;
+  // Posição do zero no eixo (0 = topo, 1 = base) para o gradiente da linha.
+  const saldoZeroFrac = saldoCeil > saldoFloor ? saldoCeil / (saldoCeil - saldoFloor) : 0;
 
   const isDaily = periodType === 'quinzenal' || periodType === 'mensal';
 
@@ -825,32 +870,54 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={periodType === 'mensal' ? 320 : 280}>
-            <ComposedChart data={chartData} margin={{ top: 30, right: 12, bottom: 8, left: -10 }} barCategoryGap="30%">
+            <ComposedChart data={chartData} margin={{ top: 30, right: chartMode === 'saldo' ? 104 : 12, bottom: 8, left: -10 }} barCategoryGap="30%">
               <defs>
                 <linearGradient id="gradSerie" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={activeMode.color} stopOpacity={0.16} />
                   <stop offset="100%" stopColor={activeMode.color} stopOpacity={0.01} />
                 </linearGradient>
+                {chartMode === 'saldo' && hasNegSaldo && (
+                  <>
+                    <linearGradient id="gradSaldoLine" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset={saldoZeroFrac} stopColor={CASH_BAL} />
+                      <stop offset={saldoZeroFrac} stopColor={CASH_OUT} />
+                    </linearGradient>
+                    <linearGradient id="gradSaldoFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset={saldoZeroFrac} stopColor={CASH_BAL} stopOpacity={0.16} />
+                      <stop offset={saldoZeroFrac} stopColor={CASH_OUT} stopOpacity={0.16} />
+                    </linearGradient>
+                  </>
+                )}
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
               <XAxis dataKey="label" tick={{ fill: '#9A9A9A', fontSize: isDaily ? 9.5 : 11 }} axisLine={false} tickLine={false} interval={0}
                 height={30} />
-              <YAxis domain={chartMode === 'saida' ? [0, CASH_CAP] : [0, 'auto']}
+              <YAxis domain={chartMode === 'saida' ? [0, CASH_CAP]
+                  : chartMode === 'saldo' ? (hasNegSaldo ? [saldoFloor, saldoCeil] : [0, 'auto'])
+                  : [0, 'auto']}
                 tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false}
                 tickFormatter={v => v === 0 ? '' : `R$${(v / 1000).toFixed(0)}k`} />
               <Tooltip content={<ChartTip mode={chartMode} breakdown={breakdownByBucket} />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
 
               {chartMode === 'saldo' ? (
                 <>
-                  <Area type="monotone" dataKey="saldoAcum" name="Saldo acumulado" stroke="none" fill="url(#gradSerie)" tooltipType="none" />
-                  <Line type="monotone" dataKey="saldoAcum" name="Saldo acumulado" stroke={CASH_BAL} strokeWidth={2.8} dot={false} />
+                  <Area type="monotone" dataKey="saldoAcum" name="Saldo acumulado" stroke="none"
+                    fill={hasNegSaldo ? 'url(#gradSaldoFill)' : 'url(#gradSerie)'} tooltipType="none" />
+                  <Line type="monotone" dataKey="saldoAcum" name="Saldo acumulado"
+                    stroke={hasNegSaldo ? 'url(#gradSaldoLine)' : CASH_BAL} strokeWidth={2.8} dot={SaldoNegativeDot} />
+                  {hasNegSaldo && (
+                    <ReferenceLine y={0} stroke={CASH_OUT} strokeOpacity={0.7} strokeDasharray="4 4"
+                      label={{ value: 'capital de giro negativo', position: 'insideTopLeft', fill: CASH_OUT, fontSize: 9, fontWeight: 700 }} />
+                  )}
                   {minSaldo && (
-                    <ReferenceDot x={minSaldo.label} y={minSaldo.saldoAcum} r={4} fill="#fff" stroke={CASH_BAL} strokeWidth={2.2}
-                      label={{ value: `menor: ${fmtCurrency(minSaldo.saldoAcum)}`, position: 'top', fill: '#6B6B6B', fontSize: 9, fontWeight: 700 }} />
+                    <ReferenceDot x={minSaldo.label} y={minSaldo.saldoAcum} r={4}
+                      fill={minSaldo.saldoAcum < 0 ? CASH_OUT : '#fff'}
+                      stroke={minSaldo.saldoAcum < 0 ? CASH_OUT : CASH_BAL} strokeWidth={2.2}
+                      label={{ value: `${minSaldo.saldoAcum < 0 ? 'negativo' : 'menor'}: ${fmtCurrency(minSaldo.saldoAcum)}`, position: 'top', fill: minSaldo.saldoAcum < 0 ? CASH_OUT : '#6B6B6B', fontSize: 9, fontWeight: 700 }} />
                   )}
                   {lastSaldo && (
                     <ReferenceDot x={lastSaldo.label} y={lastSaldo.saldoAcum} r={4} fill="#fff" stroke={CASH_BAL} strokeWidth={2.2}
-                      label={{ value: `final: ${fmtCurrency(lastSaldo.saldoAcum)}`, position: 'bottom', fill: '#0B0B0B', fontSize: 9, fontWeight: 700 }} />
+                      label={{ value: `final: ${fmtCurrency(lastSaldo.saldoAcum)}`, position: 'bottom', fill: lastSaldo.saldoAcum < 0 ? CASH_OUT : '#0B0B0B', fontSize: 9, fontWeight: 700 }} />
                   )}
                 </>
               ) : (
