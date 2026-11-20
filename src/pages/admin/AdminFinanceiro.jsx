@@ -718,21 +718,35 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const totalRec = recGroups.reduce((s, g) => s + g.valor, 0);
   const totalPag = pagItems.reduce((s, l) => s + l.valor, 0);
 
-  // Itens do dia agrupados por classificação, para o tooltip do gráfico.
-  // Entrada → recebimentos; Saída → contas a pagar; Saldo → sem detalhamento.
+  // Itens do dia para o tooltip do gráfico: Entrada detalha cada recebimento
+  // (empresa/serviço ou lançamento), Saída agrupa as contas por classificação.
   const breakdownByBucket = useMemo(() => {
     const map = {};
-    const source = chartMode === 'entrada' ? recGroups : chartMode === 'saida' ? pagItems : [];
     chartData.forEach(b => {
       const match = d => (isDaily ? d === b.key : String(d).startsWith(b.key));
-      const groups = {};
-      source.forEach(it => {
-        if (!match(it.date)) return;
-        const nome = it.classificacaoNome || 'Outros';
-        if (!groups[nome]) groups[nome] = { nome, cor: it.classificacaoCor, valor: 0 };
-        groups[nome].valor += it.valor;
-      });
-      map[b.key] = Object.values(groups).sort((a, b2) => b2.valor - a.valor);
+      if (chartMode === 'entrada') {
+        map[b.key] = recGroups
+          .filter(it => match(it.date))
+          .map(it => ({
+            nome: it.origem === 'Serviço' ? String(it.descricao).split(' — ')[0] : (it.descricao || 'Receita'),
+            cor: CASH_IN,
+            valor: it.valor,
+          }))
+          .sort((a, b2) => b2.valor - a.valor);
+        return;
+      }
+      if (chartMode === 'saida') {
+        const groups = {};
+        pagItems.forEach(it => {
+          if (!match(it.date)) return;
+          const nome = it.classificacaoNome || 'Outros';
+          if (!groups[nome]) groups[nome] = { nome, cor: it.classificacaoCor, valor: 0 };
+          groups[nome].valor += it.valor;
+        });
+        map[b.key] = Object.values(groups).sort((a, b2) => b2.valor - a.valor);
+        return;
+      }
+      map[b.key] = [];
     });
     return map;
   }, [chartData, recGroups, pagItems, isDaily, chartMode]);
