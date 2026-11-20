@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Building2, X, Search, CheckCircle2, Users, ArrowRight, ArrowLeft, Shield, Loader2, Info,
+  AlertTriangle, Trash2,
 } from 'lucide-react';
 import {
   fetchEmpresasDoLider, fetchUltimosEscaladosDaEmpresa, fetchCandidatosComDistancia,
-  createEscalaComConvocacoes, computePagamentoEm,
+  createEscalaComConvocacoes, computePagamentoEm, fetchEscalaDoDia, deleteConvocacao,
 } from '../../lib/db';
 import { rotuloDistancia } from '../../lib/geo';
 import { fmtNota, normalizeText } from '../../lib/notas';
@@ -14,6 +15,7 @@ import ModalConfirmarConvocacao from '../../components/shared/ModalConfirmarConv
 const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 const RESERVAS_PADRAO = 2;
 const EMPTY_COMPANIES = [];
+const fmtDiaBR = (iso) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR') : '');
 
 // Assistente de montagem da escala:
 //   1) dados + últimos escalados → 2) busca estilo Uber → 3) lista ranqueada → 4) confirmação.
@@ -39,6 +41,11 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
   const [confirmar, setConfirmar] = useState(false);
   const [saving, setSaving]       = useState(false);
   const [erro, setErro]           = useState('');
+
+  const [conflito, setConflito]             = useState(null);
+  const [checandoConflito, setChecando]     = useState(false);
+  const [excluindoConflito, setExcluindo]   = useState(false);
+  const [refreshConflito, setRefresh]       = useState(0);
 
   // Empresas: admin vê todas as cadastradas; encarregado vê as vinculadas.
   useEffect(() => {
@@ -74,6 +81,23 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
     });
   }, [form.companyId, form.date]);
 
+  // Impede duas convocações para a mesma empresa no mesmo dia.
+  useEffect(() => {
+    let alive = true;
+    if (!form.companyId || !form.date) {
+      setConflito(null);
+      setChecando(false);
+      return undefined;
+    }
+    setChecando(true);
+    fetchEscalaDoDia({ companyId: form.companyId, date: form.date }).then(res => {
+      if (!alive) return;
+      setConflito(res);
+      setChecando(false);
+    });
+    return () => { alive = false; };
+  }, [form.companyId, form.date, refreshConflito]);
+
   const empresa = busca.company || ultimos.company || empresas.find(e => e.id === form.companyId) || null;
   const pagamentoEm = useMemo(
     () => computePagamentoEm(form.date, empresa?.prazoPagamento ?? 5),
@@ -91,6 +115,11 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
   // Passo 1 → 2: busca candidatos e já deixa marcados os que o encarregado manteve.
   const iniciarBusca = async () => {
     if (!form.companyId) { setErro('Selecione a empresa desta escala.'); return; }
+    if (checandoConflito) { setErro('Verificando se já existe convocação para este dia...'); return; }
+    if (conflito) {
+      setErro('Já existe uma escala/convocação para esta empresa neste dia. Exclua a existente para criar outra.');
+      return;
+    }
     setErro('');
     setStep('buscando');
     setLB(true);
@@ -113,9 +142,22 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
   const titulares = candidatos.filter(c => selecionados.includes(c.id));
   const reservas  = candidatos.filter(c => !selecionados.includes(c.id)).slice(0, RESERVAS_PADRAO);
   const vagasRestantes = Math.max(0, Number(vagas || 0) - titulares.length);
+  const buscaBloqueada = !form.companyId || !!conflito || checandoConflito;
 
   const confirmarConvocacao = async () => {
     setSaving(true);
+
+    // Confere de novo na hora de gravar: o dia pode ter sido convocado
+    // enquanto o usuário escolhia os ajudantes.
+    const existenteAgora = await fetchEscalaDoDia({ companyId: form.companyId, date: form.date });
+    if (existenteAgora) {
+      setConflito(existenteAgora);
+      setConfirmar(false);
+      setSaving(false);
+      setErro('Já existe uma escala/convocação para esta empresa neste dia. Exclua a existente para criar outra.');
+      return;
+    }
+
     const saved = await createEscalaComConvocacoes({
       liderId: admin ? null : user?.id, companyId: form.companyId, date: form.date,
       time: form.time, service: form.service, tipoServico: form.tipoServico,
@@ -126,8 +168,40 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
       responsavelDia: resp, contatoDia: contato,
     });
     setSaving(false);
+
+    if (saved?.erro === 'convocacao_duplicada') {
+      setConflito({ escalaId: saved.escalaId });
+      setConfirmar(false);
+      setErro('Já existe uma escala/convocação para esta empresa neste dia. Exclua a existente para criar outra.');
+      return;
+    }
+    if (saved?.convocacoesOk === false) {
+      setConflito({ escalaId: saved.id || null });
+      setConfirmar(false);
+      setErro('A escala foi criada, mas as convocações não foram gravadas. Exclua a escala existente e tente novamente.');
+      return;
+    }
     if (saved) { setConfirmar(false); onSaved(saved); }
     else { setErro('Não foi possível criar a escala. Tente novamente.'); setConfirmar(false); }
+  };
+
+  const excluirExistente = async () => {
+    if (!conflito?.escalaId || excluindoConflito) return;
+    const confirmarExclusao = window.confirm(
+      'Excluir a escala/convocação existente deste dia? As respostas, reservas e registros vinculados também serão removidos.'
+    );
+    if (!confirmarExclusao) return;
+
+    setExcluindo(true);
+    const ok = await deleteConvocacao(conflito.escalaId);
+    setExcluindo(false);
+    if (ok) {
+      setConflito(null);
+      setErro('');
+      setRefresh(n => n + 1);
+    } else {
+      setErro('Não foi possível excluir a escala existente. Tente novamente.');
+    }
   };
 
   return (
@@ -161,6 +235,28 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '9px 12px', borderRadius: '10px', background: '#FEF2F2', border: '1px solid #FECACA' }}>
           <Info size={13} style={{ color: '#B91C1C' }} />
           <span style={{ fontSize: '12px', color: '#B91C1C', fontWeight: 600 }}>{erro}</span>
+        </div>
+      )}
+
+      {conflito && (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px 14px', borderRadius: '12px', background: '#FAF4F1', border: '1px solid #E4C9BF' }}>
+          <AlertTriangle size={16} style={{ color: '#9E3D22', flexShrink: 0, marginTop: '1px' }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: '13px', fontWeight: 800, color: '#8A3520' }}>Já existe uma escala para este dia</p>
+            <p style={{ fontSize: '11.5px', color: '#8A3520', marginTop: '3px', lineHeight: 1.5 }}>
+              {empresa?.name || 'Esta empresa'} já tem uma escala/convocação em {fmtDiaBR(form.date)}.
+              Para criar outra, exclua a existente.
+            </p>
+            <button type="button" onClick={excluirExistente} disabled={excluindoConflito}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '8px',
+                padding: '7px 11px', borderRadius: '8px', border: '1px solid #E4C9BF',
+                background: '#fff', color: '#9E3D22', fontSize: '11px', fontWeight: 700,
+                cursor: excluindoConflito ? 'wait' : 'pointer', opacity: excluindoConflito ? 0.6 : 1,
+              }}>
+              <Trash2 size={12} /> {excluindoConflito ? 'Excluindo...' : 'Excluir escala existente'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -276,9 +372,14 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
                 Cancelar
               </button>
             )}
-            <button type="button" onClick={iniciarBusca} disabled={!form.companyId}
-              style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '11px', borderRadius: '10px', border: 'none', cursor: form.companyId ? 'pointer' : 'not-allowed', fontSize: '13px', fontWeight: 700, background: form.companyId ? '#BC4A2A' : '#E2E8F0', color: form.companyId ? 'white' : '#94A3B8' }}>
-              {mantidos.length > 0 ? `Manter ${mantidos.length} e buscar próximos` : 'Buscar ajudantes próximos'} <ArrowRight size={14} />
+            <button type="button" onClick={iniciarBusca} disabled={buscaBloqueada}
+              style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '11px', borderRadius: '10px', border: 'none', cursor: buscaBloqueada ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: buscaBloqueada ? '#E2E8F0' : '#BC4A2A', color: buscaBloqueada ? '#94A3B8' : 'white' }}>
+              {checandoConflito
+                ? 'Verificando convocações...'
+                : conflito
+                  ? 'Dia já convocado'
+                  : (mantidos.length > 0 ? `Manter ${mantidos.length} e buscar próximos` : 'Buscar ajudantes próximos')}
+              {' '}<ArrowRight size={14} />
             </button>
           </div>
         </>

@@ -667,6 +667,11 @@ export async function deleteDemand(id) {
   return true;
 }
 
+// Exclui a escala/convocação; as convocações e respostas caem por cascade.
+export async function deleteConvocacao(escalaId) {
+  return deleteDemand(escalaId);
+}
+
 // Arquiva: marca como concluído preservando a escala e os registros no histórico
 export async function archiveDemand(id) {
   const { error } = await supabase.from('escalas').update({ status: 'completed' }).eq('id', id);
@@ -2393,6 +2398,22 @@ export async function fetchCandidatosComDistancia({ companyId, date, incluirEsca
   };
 }
 
+// Verifica se já existe escala/convocação para a empresa no dia.
+// O índice único no banco é a garantia final; esta consulta permite avisar
+// antes de gravar e oferecer a exclusão da escala existente.
+export async function fetchEscalaDoDia({ companyId, date }) {
+  if (!companyId || !date) return null;
+  const { data, error } = await supabase
+    .from('escalas')
+    .select('id, empresa_id, data')
+    .eq('empresa_id', companyId)
+    .eq('data', date)
+    .limit(1)
+    .maybeSingle();
+  if (error) { console.error('[db] fetchEscalaDoDia:', error.message); return null; }
+  return data ? { escalaId: data.id, empresaId: data.empresa_id, date: data.data } : null;
+}
+
 // Cria a escala com os titulares (registros) e as convocações (titulares +
 // reservas) com status 'pendente' — a fila que o agente vai consumir.
 export async function createEscalaComConvocacoes({
@@ -2403,6 +2424,12 @@ export async function createEscalaComConvocacoes({
   const escalaId    = crypto.randomUUID();
   const pagamentoEm = computePagamentoEm(date, company?.prazoPagamento ?? 5);
   const nVagas      = Number.isFinite(Number(vagas)) ? Number(vagas) : employees.length;
+
+  // Não permite duas convocações para a mesma empresa no mesmo dia.
+  const duplicada = await fetchEscalaDoDia({ companyId, date });
+  if (duplicada) {
+    return { erro: 'convocacao_duplicada', escalaId: duplicada.escalaId, convocacoesOk: false };
+  }
 
   const payload = {
     id: escalaId, empresa_id: companyId, data: date, horario: time || null,
@@ -2416,6 +2443,10 @@ export async function createEscalaComConvocacoes({
     console.warn('[db] createEscalaComConvocacoes: colunas de convocação ausentes — rode supabase/convocacoes.sql.');
     const { vagas: _v, total_reservas: _t, pagamento_em: _p, ...legacy } = payload;
     ({ data: escala, error: escErr } = await supabase.from('escalas').insert(legacy).select().single());
+  }
+  if (escErr && escErr.code === '23505') {
+    const existente = await fetchEscalaDoDia({ companyId, date });
+    return { erro: 'convocacao_duplicada', escalaId: existente?.escalaId || null, convocacoesOk: false };
   }
   if (escErr) { console.error('[db] createEscalaComConvocacoes escala:', escErr.message); return null; }
 

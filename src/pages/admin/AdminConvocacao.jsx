@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Loader2, CheckCircle2, XCircle, Clock, MapPin, Star, Shield, RefreshCw, Info, Send,
+  Loader2, CheckCircle2, XCircle, Clock, MapPin, Star, Shield, RefreshCw, Info, Send, Trash2,
 } from 'lucide-react';
 import {
   fetchConvocacoesAgente, subscribeConvocacoes,
-  aceitarConvocacao, recusarConvocacao, marcarSemResposta,
+  aceitarConvocacao, recusarConvocacao, marcarSemResposta, deleteConvocacao,
 } from '../../lib/db';
 import { ConvocacaoBadge } from '../../components/shared/ConvocacaoStatus';
 import { fmtDistancia } from '../../lib/geo';
@@ -65,6 +65,7 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
   const [convs, setConvs]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [agindo, setAgindo]   = useState(null);
+  const [excluindo, setExcluindo] = useState(null);
 
   const statuses = FILTROS.find(f => f.id === filtro)?.statuses ?? null;
 
@@ -117,6 +118,19 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
     if (tipo === 'silencio') await marcarSemResposta(conv);
     setAgindo(null);
     load();
+  };
+
+  const excluirGrupo = async (g) => {
+    if (!g.escalaId) return;
+    const ok = window.confirm(
+      `Excluir a convocação de ${g.empresa || 'empresa'} em ${fmtDia(g.data)}? As respostas, reservas e registros vinculados também serão removidos.`
+    );
+    if (!ok) return;
+    setExcluindo(g.escalaId);
+    const sucesso = await deleteConvocacao(g.escalaId);
+    setExcluindo(null);
+    if (sucesso) load();
+    else alert('Não foi possível excluir a convocação. Tente novamente.');
   };
 
   return (
@@ -217,6 +231,16 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: g.confirmados >= g.vagas ? '#047857' : '#B45309', background: g.confirmados >= g.vagas ? '#D1FAE5' : '#FEF3C7', padding: '3px 9px', borderRadius: '7px' }}>
                   {g.confirmados}/{g.vagas} confirmados
                 </span>
+                <button type="button" onClick={() => excluirGrupo(g)} disabled={excluindo === g.escalaId}
+                  title="Excluir convocação"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 9px', borderRadius: '8px',
+                    border: '1px solid #FECACA', background: '#FEF2F2', color: '#B91C1C',
+                    fontSize: '10px', fontWeight: 700, cursor: excluindo === g.escalaId ? 'wait' : 'pointer',
+                    opacity: excluindo === g.escalaId ? 0.6 : 1,
+                  }}>
+                  <Trash2 size={11} /> {excluindo === g.escalaId ? 'Excluindo...' : 'Excluir'}
+                </button>
               </div>
 
               {g.list.map(c => {

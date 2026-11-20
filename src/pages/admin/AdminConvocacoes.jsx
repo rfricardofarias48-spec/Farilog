@@ -20,6 +20,7 @@ export default function AdminConvocacoes() {
   const { companies } = useAuth();
   const [sub, setSub] = useState('nova');
   const [periodo, setPeriodo] = useState(null);
+  const [resetKey, setResetKey] = useState(0);
 
   const aoSalvar = (saved) => {
     const data = saved?.date || null;
@@ -49,8 +50,14 @@ export default function AdminConvocacoes() {
       </div>
 
       {sub === 'nova' && (
-        <div className="animate-fade-up" style={{ maxWidth: '1020px' }}>
-          <MontarEscala admin companies={companies} onSaved={aoSalvar} />
+        <div className="animate-fade-up" style={{ maxWidth: '1120px' }}>
+          <MontarEscala
+            key={resetKey}
+            admin
+            companies={companies}
+            onSaved={aoSalvar}
+            onCancel={() => setResetKey(k => k + 1)}
+          />
         </div>
       )}
 
