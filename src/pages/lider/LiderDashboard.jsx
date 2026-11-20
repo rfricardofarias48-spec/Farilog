@@ -401,7 +401,7 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
       {/* KPIs — layout diferente por tipo */}
       {isCargaDescarga ? (
         /* Carga/Descarga: Escalados | Início | Final | Status */
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.2fr', gap: '10px' }}>
+        <div className="grid-kpi-cd">
           <div className="card" style={{ padding: '14px 12px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.08)' }}>
             <p style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Escalados</p>
             <p style={{ fontSize: '26px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{total}</p>
@@ -421,7 +421,7 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
         </div>
       ) : (
         /* Entrega: Escalados, Presentes, Ausentes, Presença */
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+        <div className="grid-kpi">
           {[
             { label: 'Escalados', value: total,       color: '#0F172A' },
             { label: 'Presentes', value: confirmados, color: '#059669' },
@@ -438,15 +438,15 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
 
       {/* ── Equipe — idêntico à tela da empresa ── */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="flex items-center justify-between mb-3" style={{ flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
             <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
               {isCargaDescarga ? 'Equipe em Serviço Agora' : 'Ajudantes em Serviço Agora'}
             </h3>
             {todayEscala && <TipoBadge tipo={todayEscala.tipoServico || 'entrega'} />}
           </div>
           {todayEscala && (
-            <div style={{ display: 'flex', gap: '6px' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               <button onClick={() => setModalHor(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#BC4A2A', color: 'white', border: 'none', cursor: 'pointer' }}>
                 <Clock size={11} /> Lançar horários
@@ -531,11 +531,11 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
                       { label: 'Saída',     val: saida         },
                     ];
                     return (
-                      <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px' }}>
+                      <div key={employeeId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px', background: isAbsent ? 'rgba(244,63,94,0.05)' : '#EEF2F7', marginBottom: '3px', flexWrap: 'wrap' }}>
                         <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: isAbsent ? '#D1D9E0' : (emp?.color || '#94A3B8'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: isAbsent ? '#64748B' : 'white', flexShrink: 0 }}>
                           {emp?.initials}
                         </div>
-                        <div style={{ minWidth: '110px', flexShrink: 0 }}>
+                        <div style={{ minWidth: '110px', flex: 1 }}>
                           <p style={{ fontSize: '12px', fontWeight: 700, color: isAbsent ? '#94A3B8' : '#0F172A', lineHeight: 1.2 }}>{emp?.name || '—'}</p>
                           <input
                             value={notes[employeeId] || ''}
@@ -544,13 +544,12 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
                             style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '10px', color: '#64748B', outline: 'none', padding: 0, fontFamily: 'inherit', marginTop: '1px' }}
                           />
                         </div>
-                        <div style={{ flex: 1 }} />
                         {isAbsent ? (
                           <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFE4E6', color: '#E11D48' }}>Falta</span>
                         ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, marginLeft: 'auto' }}>
                             {TIMES.map(t => (
-                              <div key={t.label} style={{ textAlign: 'center', minWidth: '40px' }}>
+                              <div key={t.label} style={{ textAlign: 'center', minWidth: '34px' }}>
                                 <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 600, marginBottom: '2px' }}>{t.label}</p>
                                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: t.val ? '#0F172A' : '#CBD5E1' }}>
                                   <Clock size={9} />
@@ -1422,7 +1421,7 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
   return (
     <div className="space-y-5">
       {/* Sub-abas + botão nova escala */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: '4px', padding: '4px', borderRadius: '12px', background: '#F1F5F9' }}>
           {SUB_TABS.map(t => (
             <button key={t.id} onClick={() => { setSub(t.id); setShowForm(false); }}
@@ -1762,14 +1761,13 @@ function TabAjudantes({ user }) {
   return (
     <div className="space-y-4">
       {/* Barra de busca + botão solicitar */}
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <div style={{ position: 'relative', flex: 1 }}>
+      <div className="toolbar-split">
+        <div className="toolbar-search">
           <Search size={13} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
           <input className="input-field" style={{ paddingLeft: '34px' }} placeholder="Buscar por nome ou cidade..."
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <button onClick={() => setModalSolic(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '0 18px', borderRadius: '12px', background: '#BC4A2A', color: 'white', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <button className="toolbar-cta" onClick={() => setModalSolic(true)}>
           <Plus size={15} /> Pedir + Ajudantes ao RH
         </button>
       </div>
@@ -2061,8 +2059,8 @@ function TabNotas({ user, escalas, employees, onRefresh }) {
             const avaliadas = resumo[escala.id] || 0;
             const completa  = total > 0 && avaliadas >= total;
             return (
-              <div key={escala.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
+              <div key={escala.id} className="nota-row" style={{ padding: '13px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                <div className="person-main">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
                     <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{escala.companyName || '—'}</p>
                     <TipoBadge tipo={escala.tipoServico || 'entrega'} />

@@ -313,3 +313,57 @@ select.input-field option { background: #fff; color: #0B0B0B; }
   70%  { transform: scale(2.4); opacity: 0; }
   100% { transform: scale(2.4); opacity: 0; }
 }
+
+/* ============ Grades responsivas (app do encarregado) ============ */
+/* KPIs: 2 colunas no mobile, 4 no desktop (evita overflow em telas pequenas). */
+.grid-kpi { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.grid-kpi-cd { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+/* Formulário de escala: 2 colunas no mobile, 4 no desktop. */
+.grid-form-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+@media (min-width: 640px) {
+  .grid-kpi    { grid-template-columns: repeat(4, 1fr); }
+  .grid-kpi-cd { grid-template-columns: 1fr 1fr 1fr 1.2fr; }
+  .grid-form-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+}
+
+/* KPIs do modal de confirmação: 2x2 no mobile, 4 em linha no desktop. */
+.kpi-2x2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (min-width: 640px) { .kpi-2x2 { grid-template-columns: repeat(4, 1fr); } }
+
+/* Linha de pessoa (candidato / equipe): o bloco central fica com o nome em
+   destaque e as infos secundárias embaixo; à direita, distância/nota empilhadas
+   para não espremer o nome em telas estreitas. */
+.person-main { flex: 1; min-width: 0; }
+.person-side { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; text-align: right; }
+/* Posição no ranking: no desktop ajuda a ler a ordem; no mobile é redundante
+   (a lista já vem ordenada) e só aperta o nome, então sai de cena. */
+.conv-ordem { font-size: 10px; font-weight: 800; color: #94A3B8; width: 16px; text-align: center; flex-shrink: 0; }
+@media (max-width: 639px) { .conv-ordem { display: none; } }
+
+/* Rodapé do formulário de escala: botões de tipo à esquerda, aviso de pagamento
+   à direita (no desktop) e em linha própria (no mobile). */
+.tipo-pag { margin-left: auto; align-self: center; font-size: 11px; color: #64748B; }
+@media (max-width: 639px) {
+  .tipo-pag { margin-left: 0; align-self: flex-start; flex-basis: 100%; }
+}
+
+/* Linha de diária (aba Notas): título/meta em linha própria no mobile. */
+.nota-row { display: flex; align-items: center; gap: 12px; }
+@media (max-width: 639px) {
+  .nota-row { flex-wrap: wrap; }
+  .nota-row > .person-main { flex-basis: 100%; }
+}
+
+/* Barra com busca + botão: empilha no mobile. */
+.toolbar-split { display: flex; gap: 10px; }
+.toolbar-search { position: relative; flex: 1; }
+.toolbar-cta {
+  display: flex; align-items: center; gap: 7px; padding: 0 18px; border-radius: 12px;
+  background: #BC4A2A; color: #fff; border: none; cursor: pointer;
+  font-size: 13px; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+}
+@media (max-width: 639px) {
+  .toolbar-split { flex-direction: column; }
+  .toolbar-search { flex: none; }
+  .toolbar-cta { justify-content: center; padding: 11px 18px; }
+}

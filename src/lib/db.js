@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { calculateWorkAndOvertime, overtimeMinutesToTimeString, recordRevenue } from './timeUtils';
-import { getCompanyCity, rankCandidatos, avatarTone } from './notas';
+import { getCompanyCity, rankCandidatos, avatarTone, compararProximidade } from './notas';
 import { coordsFuncionario, coordsEmpresa, distanciaKm, jitterCoords } from './geo';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -2003,6 +2003,7 @@ export async function fetchUltimosEscaladosDaEmpresa(companyId, excludeDate) {
         totalAvaliacoes: m.total ?? 0,
         distanciaKm: distanciaKm(ponto, company.coords),
         distanciaExata: !!ponto?.exata,
+        proximidadeLabel: compararProximidade(e.cidade, company.city).label,
         color:     avatarTone(e.id || e.nome),
       };
     })

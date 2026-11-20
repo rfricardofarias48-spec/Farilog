@@ -28,14 +28,14 @@ export default function ModalConfirmarConvocacao({
           <button onClick={onCancel} disabled={saving} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+        <div className="kpi-2x2" style={{ marginBottom: '14px' }}>
           {[
             { label: 'Vagas',    value: vagas },
             { label: 'Titulares', value: titulares.length },
             { label: 'Reservas', value: reservas.length },
             { label: 'Diária',   value: empresa?.dailyRate ? `R$ ${empresa.dailyRate}` : '—' },
           ].map(k => (
-            <div key={k.label} style={{ flex: 1, minWidth: '70px', padding: '8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)', textAlign: 'center' }}>
+            <div key={k.label} style={{ padding: '8px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.07)', textAlign: 'center' }}>
               <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>{k.label}</p>
               <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>{k.value}</p>
             </div>
@@ -57,10 +57,12 @@ export default function ModalConfirmarConvocacao({
             <p style={{ fontSize: '12px', color: '#94A3B8' }}>Nenhum titular selecionado.</p>
           ) : titulares.map(t => (
             <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', borderRadius: '9px', background: '#EEF2F7' }}>
-              <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: t.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white' }}>{t.initials}</div>
-              <span style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>{t.name}</span>
-              <span style={{ fontSize: '10px', color: '#64748B' }}>{fmtDistancia(t.distanciaKm)}</span>
-              <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>pendente</span>
+              <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: t.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>{t.initials}</div>
+              <div className="person-main">
+                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>{t.name}</p>
+                <p style={{ fontSize: '10px', color: '#64748B' }}>{fmtDistancia(t.distanciaKm)}</p>
+              </div>
+              <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700, flexShrink: 0 }}>pendente</span>
             </div>
           ))}
         </div>
@@ -72,9 +74,12 @@ export default function ModalConfirmarConvocacao({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
           {reservas.map(r => (
             <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', borderRadius: '9px', background: '#FAFAFA' }}>
-              <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: r.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white' }}>{r.initials}</div>
-              <span style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>{r.name}</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '9px', fontWeight: 700, color: '#6B7280' }}><Shield size={9} /> reserva</span>
+              <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: r.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: 'white', flexShrink: 0 }}>{r.initials}</div>
+              <div className="person-main">
+                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>{r.name}</p>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#64748B' }}>{fmtDistancia(r.distanciaKm)}</span>
+              </div>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '9px', fontWeight: 700, color: '#6B7280', flexShrink: 0 }}><Shield size={9} /> reserva</span>
             </div>
           ))}
         </div>
@@ -92,7 +97,7 @@ export default function ModalConfirmarConvocacao({
             Cancelar
           </button>
           <button type="button" onClick={onConfirm} disabled={saving}
-            style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '12px', borderRadius: '10px', border: 'none', cursor: saving ? 'wait' : 'pointer', fontSize: '13px', fontWeight: 800, background: saving ? '#E2E8F0' : '#BC4A2A', color: saving ? '#94A3B8' : 'white' }}>
+            style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '12px', borderRadius: '10px', border: 'none', cursor: saving ? 'wait' : 'pointer', fontSize: '13px', fontWeight: 800, whiteSpace: 'nowrap', background: saving ? '#E2E8F0' : '#BC4A2A', color: saving ? '#94A3B8' : 'white' }}>
             <Send size={14} /> {saving ? 'Convocando…' : 'Confirmar e convocar'}
           </button>
         </div>

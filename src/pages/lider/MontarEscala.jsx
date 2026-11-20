@@ -169,7 +169,7 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
+          <div className="grid-form-4">
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Data *</label>
               <input type="date" className="input-field" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
@@ -188,7 +188,7 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {[
               { val: 'entrega', label: 'Entrega', icon: '🚚' },
               { val: 'carga_descarga', label: 'Carga e Descarga', icon: '📦' },
@@ -202,7 +202,7 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
                 </button>
               );
             })}
-            {pagamentoEm && <span style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: '11px', color: '#64748B' }}>
+            {pagamentoEm && <span className="tipo-pag">
               💰 Pagamento previsto: <b style={{ color: '#0F172A' }}>{new Date(`${pagamentoEm}T12:00:00`).toLocaleDateString('pt-BR')}</b>
             </span>}
           </div>
@@ -233,12 +233,14 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
                           {sel && <CheckCircle2 size={13} color="#fff" />}
                         </div>
                         <div style={{ width: '30px', height: '30px', borderRadius: '9px', background: c.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>{c.initials}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="person-main">
                           <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#0F172A' }}>{c.name}</p>
                           <p style={{ fontSize: '10px', color: '#94A3B8' }}>{c.cidade || 'cidade não informada'}</p>
                         </div>
-                        <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600, flexShrink: 0 }}>{rotuloDistancia(c.distanciaKm, c.distanciaExata, c.proximidadeLabel)}</span>
-                        <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700, flexShrink: 0, minWidth: '42px', textAlign: 'right' }}>{c.media == null ? 'sem nota' : `★ ${fmtNota(c.media)}`}</span>
+                        <div className="person-side">
+                          <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600, whiteSpace: 'nowrap' }}>{rotuloDistancia(c.distanciaKm, c.distanciaExata, c.proximidadeLabel)}</span>
+                          <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>{c.media == null ? 'sem nota' : `★ ${fmtNota(c.media)}`}</span>
+                        </div>
                       </button>
                     );
                   })}
@@ -308,17 +310,19 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
                   <div style={{ width: '18px', height: '18px', borderRadius: '5px', flexShrink: 0, border: sel ? 'none' : '1.5px solid #C8C8C8', background: sel ? '#BC4A2A' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {sel && <CheckCircle2 size={13} color="#fff" />}
                   </div>
-                  <span style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', width: '20px', textAlign: 'center', flexShrink: 0 }}>{c.ordem}º</span>
+                  <span className="conv-ordem">{c.ordem}º</span>
                   <div style={{ width: '30px', height: '30px', borderRadius: '9px', background: c.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>{c.initials}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                      <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#0F172A' }}>{c.name}</p>
+                  <div className="person-main">
+                    <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#0F172A' }}>{c.name}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '1px' }}>
+                      <p style={{ fontSize: '10px', color: '#94A3B8' }}>{c.cidade || 'cidade não informada'} · {c.cargo || 'Ajudante'}</p>
                       {isReserva && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '9px', fontWeight: 700, color: '#6B7280', background: '#F1F5F9', padding: '1px 5px', borderRadius: '4px' }}><Shield size={8} /> reserva</span>}
                     </div>
-                    <p style={{ fontSize: '10px', color: '#94A3B8' }}>{c.cidade || 'cidade não informada'} · {c.cargo || 'Ajudante'}</p>
                   </div>
-                  <span style={{ fontSize: '11px', color: '#0F172A', fontWeight: 700, flexShrink: 0 }}>{rotuloDistancia(c.distanciaKm, c.distanciaExata, c.proximidadeLabel)}</span>
-                  <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700, flexShrink: 0, minWidth: '44px', textAlign: 'right' }}>{c.media == null ? 'sem nota' : `★ ${fmtNota(c.media)}`}</span>
+                  <div className="person-side">
+                    <span style={{ fontSize: '11px', color: '#0F172A', fontWeight: 700, whiteSpace: 'nowrap' }}>{rotuloDistancia(c.distanciaKm, c.distanciaExata, c.proximidadeLabel)}</span>
+                    <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>{c.media == null ? 'sem nota' : `★ ${fmtNota(c.media)}`}</span>
+                  </div>
                 </button>
               );
             })}
