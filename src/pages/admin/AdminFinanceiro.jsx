@@ -719,12 +719,21 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const minSaldo = chartData.length
     ? chartData.reduce((a, b) => (b.saldoAcum < a.saldoAcum ? b : a), chartData[0])
     : null;
-  // Capital de giro negativo: precisa de eixo com o zero visível e marcação visual.
-  const hasNegSaldo = chartData.some(b => b.saldoAcum < 0);
-  const saldoFloor = chartData.length ? Math.min(0, ...chartData.map(b => b.saldoAcum)) : 0;
-  const saldoCeil = chartData.length ? Math.max(0, ...chartData.map(b => b.saldoAcum)) : 0;
-  // Posição do zero no eixo (0 = topo, 1 = base) para o gradiente da linha.
-  const saldoZeroFrac = saldoCeil > saldoFloor ? saldoCeil / (saldoCeil - saldoFloor) : 0;
+  // Capital de giro negativo: o zero fica sempre no meio do gráfico, separando
+  // a área negativa (abaixo) da positiva (acima).
+  const saldoVals = chartData.map(b => b.saldoAcum);
+  const saldoDataMax = chartData.length ? Math.max(...saldoVals) : 0;
+  const saldoDataMin = chartData.length ? Math.min(...saldoVals) : 0;
+  const hasNegSaldo = saldoDataMin < 0;
+  const saldoAbs = Math.max(Math.abs(saldoDataMax), Math.abs(saldoDataMin), 1);
+  const saldoFloor = -saldoAbs;
+  const saldoCeil = saldoAbs;
+  // Posição do zero dentro do traço e da área, para o gradiente azul/vermelho.
+  const clamp01 = x => Math.min(1, Math.max(0, x));
+  const saldoZeroFracLine = saldoDataMax > saldoDataMin
+    ? clamp01(saldoDataMax / (saldoDataMax - saldoDataMin)) : 0;
+  const saldoZeroFracFill = saldoDataMax + saldoAbs > 0
+    ? clamp01(saldoDataMax / (saldoDataMax + saldoAbs)) : 0;
 
   const isDaily = periodType === 'quinzenal' || periodType === 'mensal';
 
@@ -879,12 +888,12 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                 {chartMode === 'saldo' && hasNegSaldo && (
                   <>
                     <linearGradient id="gradSaldoLine" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset={saldoZeroFrac} stopColor={CASH_BAL} />
-                      <stop offset={saldoZeroFrac} stopColor={CASH_OUT} />
+                      <stop offset={saldoZeroFracLine} stopColor={CASH_BAL} />
+                      <stop offset={saldoZeroFracLine} stopColor={CASH_OUT} />
                     </linearGradient>
                     <linearGradient id="gradSaldoFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset={saldoZeroFrac} stopColor={CASH_BAL} stopOpacity={0.16} />
-                      <stop offset={saldoZeroFrac} stopColor={CASH_OUT} stopOpacity={0.16} />
+                      <stop offset={saldoZeroFracFill} stopColor={CASH_BAL} stopOpacity={0.16} />
+                      <stop offset={saldoZeroFracFill} stopColor={CASH_OUT} stopOpacity={0.16} />
                     </linearGradient>
                   </>
                 )}
@@ -893,10 +902,11 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
               <XAxis dataKey="label" tick={{ fill: '#9A9A9A', fontSize: isDaily ? 9.5 : 11 }} axisLine={false} tickLine={false} interval={0}
                 height={30} />
               <YAxis domain={chartMode === 'saida' ? [0, CASH_CAP]
-                  : chartMode === 'saldo' ? (hasNegSaldo ? [saldoFloor, saldoCeil] : [0, 'auto'])
+                  : chartMode === 'saldo' ? [saldoFloor, saldoCeil]
                   : [0, 'auto']}
+                ticks={chartMode === 'saldo' ? [saldoFloor, 0, saldoCeil] : undefined}
                 tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false}
-                tickFormatter={v => v === 0 ? '' : `R$${(v / 1000).toFixed(0)}k`} />
+                tickFormatter={v => v === 0 ? 'R$0' : `${v < 0 ? '-' : ''}R$${(Math.abs(v) / 1000).toFixed(0)}k`} />
               <Tooltip content={<ChartTip mode={chartMode} breakdown={breakdownByBucket} />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
 
               {chartMode === 'saldo' ? (
@@ -905,10 +915,8 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                     fill={hasNegSaldo ? 'url(#gradSaldoFill)' : 'url(#gradSerie)'} tooltipType="none" />
                   <Line type="monotone" dataKey="saldoAcum" name="Saldo acumulado"
                     stroke={hasNegSaldo ? 'url(#gradSaldoLine)' : CASH_BAL} strokeWidth={2.8} dot={SaldoNegativeDot} />
-                  {hasNegSaldo && (
-                    <ReferenceLine y={0} stroke={CASH_OUT} strokeOpacity={0.7} strokeDasharray="4 4"
-                      label={{ value: 'capital de giro negativo', position: 'insideTopLeft', fill: CASH_OUT, fontSize: 9, fontWeight: 700 }} />
-                  )}
+                  <ReferenceLine y={0} stroke={hasNegSaldo ? CASH_OUT : '#9A9A9A'} strokeOpacity={hasNegSaldo ? 0.7 : 0.45} strokeDasharray="4 4"
+                    label={{ value: hasNegSaldo ? 'capital de giro negativo' : 'zero', position: 'insideTopLeft', fill: hasNegSaldo ? CASH_OUT : '#9A9A9A', fontSize: 9, fontWeight: 700 }} />
                   {minSaldo && (
                     <ReferenceDot x={minSaldo.label} y={minSaldo.saldoAcum} r={4}
                       fill={minSaldo.saldoAcum < 0 ? CASH_OUT : '#fff'}
