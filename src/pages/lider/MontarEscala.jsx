@@ -123,11 +123,24 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
     setErro('');
     setStep('buscando');
     setLB(true);
-    const res = await fetchCandidatosComDistancia({ companyId: form.companyId, date: form.date });
-    setBusca(res);
-    const ids = new Set((res.candidates || []).map(c => c.id));
-    setSelecionados(mantidos.filter(id => ids.has(id)));
-    setLB(false);
+    try {
+      const res = await Promise.race([
+        fetchCandidatosComDistancia({ companyId: form.companyId, date: form.date }),
+        new Promise((_, reject) => setTimeout(
+          () => reject(new Error('A busca demorou mais que o esperado. Verifique a conexão e tente novamente.')),
+          20000
+        )),
+      ]);
+      setBusca(res);
+      const ids = new Set((res.candidates || []).map(c => c.id));
+      setSelecionados(mantidos.filter(id => ids.has(id)));
+    } catch (e) {
+      console.error('[MontarEscala] busca:', e);
+      setErro(e?.message || 'Não foi possível buscar os ajudantes. Tente novamente.');
+      setStep('montar');
+    } finally {
+      setLB(false);
+    }
   };
 
   const toggleSel = (id) => setSelecionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -385,16 +398,14 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
         </>
       )}
 
-      {/* ─────────── PASSO 2: busca estilo Uber ─────────── */}
+{/* ─────────── PASSO 2: busca estilo Uber ─────────── */}
       {step === 'buscando' && (
-        loadingBusca ? (
-          <div style={{ padding: '60px 0', textAlign: 'center' }}>
-            <Loader2 size={26} className="animate-spin" style={{ color: '#BC4A2A', margin: '0 auto 12px' }} />
-            <p style={{ fontSize: '13px', color: '#94A3B8' }}>Preparando a busca…</p>
-          </div>
-        ) : (
-          <BuscaAjudantes empresa={empresa} candidatos={candidatos} onConcluir={() => setStep('lista')} />
-        )
+        <BuscaAjudantes
+          empresa={empresa}
+          candidatos={candidatos}
+          onConcluir={() => setStep('lista')}
+          carregando={loadingBusca}
+        />
       )}
 
       {/* ─────────── PASSO 3: lista ranqueada ─────────── */}

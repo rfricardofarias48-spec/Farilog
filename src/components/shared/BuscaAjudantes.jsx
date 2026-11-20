@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, MapPin, ArrowRight, Users } from 'lucide-react';
+import { CheckCircle2, MapPin, ArrowRight, Users, Loader2 } from 'lucide-react';
 import MapaAjudantes from './MapaAjudantes';
 import { fmtDistancia, rotuloDistancia } from '../../lib/geo';
 import { fmtNota } from '../../lib/notas';
 
 // Tela "estilo Uber": mapa da região + animação de busca (~10s) montando a
 // lista de candidatos em tempo real, do mais próximo para o mais distante.
-export default function BuscaAjudantes({ empresa, candidatos = [], durante = 10000, onConcluir }) {
-  // Ordem de revelação = distância crescente (mesma 1ª prioridade do ranking).
+// `carregando` mantém o mapa na tela enquanto a busca ainda está no banco.
+export default function BuscaAjudantes({ empresa, candidatos = [], durante = 10000, onConcluir, carregando = false }) {
+  // Ordem de revelação = distância crescente (mesma 1a prioridade do ranking).
   const ordenados = useMemo(
     () => [...candidatos].sort((a, b) => (a.distanciaKm ?? Infinity) - (b.distanciaKm ?? Infinity)),
     [candidatos]
@@ -19,11 +20,12 @@ export default function BuscaAjudantes({ empresa, candidatos = [], durante = 100
   const [revelados, setRevelados] = useState(0);
   const [feito, setFeito]         = useState(false);
   const timer = useRef(null);
+  const pronto = !carregando && feito;
 
   useEffect(() => {
     setRevelados(0);
-    setFeito(total === 0);
-    if (!total) return undefined;
+    setFeito(!carregando && total === 0);
+    if (carregando || !total) return undefined;
     timer.current = setInterval(() => {
       setRevelados(prev => {
         if (prev + 1 >= total) { clearInterval(timer.current); setFeito(true); return total; }
@@ -31,7 +33,7 @@ export default function BuscaAjudantes({ empresa, candidatos = [], durante = 100
       });
     }, intervalo);
     return () => clearInterval(timer.current);
-  }, [total, intervalo]);
+  }, [total, intervalo, carregando]);
 
   const visiveis  = ordenados.slice(0, revelados);
   const pontos    = visiveis.map(c => ({ ...c, coords: c.coords }));
@@ -40,7 +42,7 @@ export default function BuscaAjudantes({ empresa, candidatos = [], durante = 100
     (min, v) => (v.distanciaKm != null && (min == null || v.distanciaKm < min) ? v.distanciaKm : min),
     null
   );
-  const progresso = total ? Math.round((revelados / total) * 100) : 100;
+  const progresso = carregando ? 0 : (total ? Math.round((revelados / total) * 100) : 100);
 
   return (
     <div className="animate-fade-up" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -48,7 +50,7 @@ export default function BuscaAjudantes({ empresa, candidatos = [], durante = 100
       <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
         <span className="animate-pulse-slow" style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#BC4A2A', boxShadow: '0 0 0 4px rgba(188,74,42,0.15)', flexShrink: 0 }} />
         <p style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>
-          {feito ? 'Busca concluída' : 'Buscando ajudantes próximos e ativos…'}
+          {carregando ? 'Buscando ajudantes próximos e ativos...' : feito ? 'Busca concluída' : 'Buscando ajudantes próximos e ativos...'}
         </p>
       </div>
 
@@ -78,7 +80,12 @@ export default function BuscaAjudantes({ empresa, candidatos = [], durante = 100
 
       {/* Feed da busca */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '42px' }}>
-        {total === 0 ? (
+        {carregando ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px 0', fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>
+            <Loader2 size={14} className="animate-spin" style={{ color: '#BC4A2A' }} />
+            Preparando a busca e calculando as distâncias...
+          </div>
+        ) : total === 0 ? (
           <p style={{ fontSize: '12px', color: '#94A3B8', textAlign: 'center', padding: '8px 0' }}>
             Nenhum ajudante ativo disponível nesta data.
           </p>
@@ -109,9 +116,9 @@ export default function BuscaAjudantes({ empresa, candidatos = [], durante = 100
         )}
       </div>
 
-      <button type="button" onClick={() => onConcluir?.()} disabled={!feito}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '12px', borderRadius: '11px', border: 'none', fontSize: '13px', fontWeight: 800, cursor: feito ? 'pointer' : 'not-allowed', background: feito ? '#BC4A2A' : '#E2E8F0', color: feito ? 'white' : '#94A3B8', marginTop: '2px' }}>
-        <Users size={15} /> {feito ? 'Ver lista de possíveis convocados' : 'Analisando…'} {feito && <ArrowRight size={14} />}
+      <button type="button" onClick={() => onConcluir?.()} disabled={!pronto}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '12px', borderRadius: '11px', border: 'none', fontSize: '13px', fontWeight: 800, cursor: pronto ? 'pointer' : 'not-allowed', background: pronto ? '#BC4A2A' : '#E2E8F0', color: pronto ? 'white' : '#94A3B8', marginTop: '2px' }}>
+        <Users size={15} /> {carregando ? 'Preparando a busca...' : pronto ? 'Ver lista de possíveis convocados' : 'Analisando...'} {pronto && <ArrowRight size={14} />}
       </button>
     </div>
   );
