@@ -224,7 +224,10 @@ function TabVisaoGeral({ records, lancamentos, employees, companies }) {
 
   const totalCustos   = folha + beneficios + custoFixo + endivPeriodo;
   const lucroLiquido  = fat - totalCustos;
-  const margemContrib = fat > 0 ? ((fat - folha - beneficios) / fat) * 100 : 0;
+  // Margem de contribuição = faturamento − salários (diárias + HE) − VT − VR.
+  // É a margem bruta do negócio, antes de custos fixos e dívidas.
+  const margemContribValor = fat - folha - beneficios;
+  const margemContrib = fat > 0 ? (margemContribValor / fat) * 100 : 0;
   const margemLucro   = fat > 0 ? (lucroLiquido / fat) * 100 : 0;
 
   // Fatias do gráfico — devem somar ao faturamento. Item zerado não aparece
@@ -239,19 +242,21 @@ function TabVisaoGeral({ records, lancamentos, employees, companies }) {
   ].filter(s => s.value > 0);
 
   const kpis = [
-    { label: 'Faturamento',   value: fmtCurrency(fat),          icon: DollarSign, color: '#0B0B0B', bg: '#F5F5F5' },
+    { label: 'Faturamento', value: fmtCurrency(fat), icon: DollarSign, color: '#0B0B0B', bg: '#F5F5F5' },
+    { label: 'Margem de Contribuição', value: fmtCurrency(margemContribValor), icon: Percent,
+      color: margemContribValor >= 0 ? '#BC4A2A' : '#4A4A4A',
+      bg:    margemContribValor >= 0 ? '#FAF4F1' : '#F5F5F5',
+      sub:   `${margemContrib.toFixed(1)}% do faturamento` },
     { label: 'Lucro Líquido', value: fmtCurrency(lucroLiquido), icon: TrendingUp,
       color: lucroLiquido >= 0 ? '#0B0B0B' : '#4A4A4A',
-      bg:    lucroLiquido >= 0 ? '#F5F5F5' : '#F5F5F5' },
-    { label: 'Margem de Lucro', value: `${margemLucro.toFixed(1)}%`, icon: BarChart2,
-      color: margemLucro >= 0 ? '#0B0B0B' : '#4A4A4A',
-      bg:    margemLucro >= 0 ? '#F5F5F5' : '#F5F5F5' },
+      bg:    lucroLiquido >= 0 ? '#F5F5F5' : '#F5F5F5',
+      sub:   `${margemLucro.toFixed(1)}% do faturamento` },
   ];
 
   return (
     <div className="space-y-5">
       {/* 3 KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
         {kpis.map(k => <KpiCard key={k.label} {...k} />)}
       </div>
 
