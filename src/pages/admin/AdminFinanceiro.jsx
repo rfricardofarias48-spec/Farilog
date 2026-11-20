@@ -28,7 +28,7 @@ const T  = { color: '#0B0B0B' };
 const TM = { color: '#9A9A9A' };
 const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-const PIE_COLORS  = ['#FF4D0C','#4A4A4A','#0B0B0B','#4A4A4A','#6B6B6B','#4A4A4A','#4A4A4A','#9A9A9A'];
+const PIE_COLORS  = ['#BC4A2A','#4A4A4A','#0B0B0B','#4A4A4A','#6B6B6B','#4A4A4A','#4A4A4A','#9A9A9A'];
 const TODAY_ISO   = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 
 // ── Period helpers ─────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ function PeriodSelector({ type, offset, bounds, onChangeType, onChangeOffset }) 
           <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 200, background: '#fff', borderRadius: '12px', padding: '6px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.07)', minWidth: '150px' }}>
             {[['quinzenal','Quinzenal'],['mensal','Mensal'],['semestral','Semestral'],['anual','Anual']].map(([val, lbl]) => (
               <button key={val} onClick={() => { onChangeType(val); setOpen(false); }}
-                style={{ width: '100%', display: 'block', padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', fontWeight: 600, background: type === val ? '#FFF7F4' : 'transparent', color: type === val ? '#FF4D0C' : '#333333' }}
+                style={{ width: '100%', display: 'block', padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', fontWeight: 600, background: type === val ? '#FAF4F1' : 'transparent', color: type === val ? '#BC4A2A' : '#333333' }}
                 onMouseEnter={e => { if (type !== val) e.currentTarget.style.background = '#F7F7F7'; }}
                 onMouseLeave={e => { if (type !== val) e.currentTarget.style.background = 'transparent'; }}>
                 {lbl}
@@ -661,7 +661,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
 
         {/* Adicionar */}
         <button onClick={() => setShowAdd(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#FF4D0C', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(255,77,12,0.3)' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#BC4A2A', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(188,74,42,0.3)' }}>
           <Plus size={12} /> Adicionar
         </button>
       </div>
@@ -698,7 +698,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
             {(view !== 'pagar' ? recGroups : []).length + (view !== 'receber' ? pagItems : []).length > 8 && (
               <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'center' }}>
                 <button onClick={() => setModal(view === 'all' ? 'receber' : view)}
-                  style={{ fontSize: '12px', fontWeight: 600, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  style={{ fontSize: '12px', fontWeight: 600, color: '#BC4A2A', background: 'none', border: 'none', cursor: 'pointer' }}>
                   Ver lista completa →
                 </button>
               </div>
@@ -792,7 +792,7 @@ function NovaDividaModal({ onSave, onClose }) {
           <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
             <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
             <button onClick={handleSave} disabled={!canSave}
-              style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#FF4D0C' : '#E4E4E4', color: canSave ? 'white' : '#9A9A9A', fontSize: '13px', fontWeight: 700, boxShadow: canSave ? '0 2px 10px rgba(255,77,12,0.3)' : 'none' }}>
+              style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#BC4A2A' : '#E4E4E4', color: canSave ? 'white' : '#9A9A9A', fontSize: '13px', fontWeight: 700, boxShadow: canSave ? '0 2px 10px rgba(188,74,42,0.3)' : 'none' }}>
               {saving ? 'Salvando...' : 'Lançar Dívida'}
             </button>
           </div>
@@ -829,7 +829,7 @@ function TabEndividamento({ dividas, setDividas }) {
           <p style={{ fontSize: '26px', fontWeight: 900, ...T, lineHeight: 1.1 }}>{fmtCurrency(totalDiv)}</p>
         </div>
         <button onClick={() => setShowModal(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#FF4D0C', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(255,77,12,0.3)' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#BC4A2A', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(188,74,42,0.3)' }}>
           <Plus size={13} /> Nova Dívida
         </button>
       </div>
@@ -935,7 +935,7 @@ function NovoCustoModal({ onSave, onClose }) {
           <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
             <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
             <button onClick={handleSave} disabled={!canSave}
-              style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#FF4D0C' : '#E4E4E4', color: canSave ? 'white' : '#9A9A9A', fontSize: '13px', fontWeight: 700, boxShadow: canSave ? '0 2px 10px rgba(255,77,12,0.3)' : 'none' }}>
+              style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#BC4A2A' : '#E4E4E4', color: canSave ? 'white' : '#9A9A9A', fontSize: '13px', fontWeight: 700, boxShadow: canSave ? '0 2px 10px rgba(188,74,42,0.3)' : 'none' }}>
               {saving ? 'Salvando...' : 'Lançar Custo Fixo'}
             </button>
           </div>
@@ -973,7 +973,7 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
           <p style={{ fontSize: '26px', fontWeight: 900, ...T, lineHeight: 1.1 }}>{fmtCurrency(total)}</p>
         </div>
         <button onClick={() => setShowModal(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#FF4D0C', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(255,77,12,0.3)' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#BC4A2A', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(188,74,42,0.3)' }}>
           <Plus size={13} /> Novo Custo
         </button>
       </div>
@@ -1458,7 +1458,7 @@ function TabFolhaPagamento({ employees }) {
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 13px', borderRadius: '10px', background: isPaid ? '#F5F5F5' : '#F7F7F7', border: `1px solid ${isPaid ? '#E6E6E6' : '#FFD9CC'}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 13px', borderRadius: '10px', background: isPaid ? '#F5F5F5' : '#F7F7F7', border: `1px solid ${isPaid ? '#E6E6E6' : '#E4C9BF'}` }}>
             <CalendarDays size={14} style={{ color: isPaid ? '#0B0B0B' : '#6B6B6B' }} />
             <span style={{ fontSize: '12px', fontWeight: 700, color: isPaid ? '#0B0B0B' : '#6B6B6B' }}>
               {isPaid ? 'Pago em' : 'Pagamento em'} {payLabel}
@@ -1484,7 +1484,7 @@ function TabFolhaPagamento({ employees }) {
             <Card label="Diárias" value={fmtCurrency(totalDiar)} color="#4A4A4A" bg="#F5F5F5" icon={DollarSign} />
             <Card label="Horas Extras" value={fmtCurrency(totalHE)} color="#6B6B6B" bg="#F7F7F7" icon={Clock} />
             <Card label="Adiantamentos" value={fmtCurrency(totalAdiant)} color="#4A4A4A" bg="#F5F5F5" icon={HandCoins} />
-            <Card label="Ajudantes na Quinzena" value={String(linhas.length)} color="#FF4D0C" bg="#FFF7F4" icon={Users} />
+            <Card label="Ajudantes na Quinzena" value={String(linhas.length)} color="#BC4A2A" bg="#FAF4F1" icon={Users} />
           </div>
 
           {/* Lista de ajudantes */}

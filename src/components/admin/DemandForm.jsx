@@ -85,7 +85,7 @@ function EmployeeSelectModal({
         }}>
           <div>
             <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0B0B0B', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Users size={16} style={{ color: '#FF4D0C' }} />
+              <Users size={16} style={{ color: '#BC4A2A' }} />
               Selecionar Ajudantes para a Demanda
             </h3>
             <p style={{ fontSize: '11px', color: '#6B6B6B', marginTop: '2px' }}>
@@ -168,8 +168,8 @@ function EmployeeSelectModal({
                   style={{
                     display: 'flex', alignItems: 'center', gap: '12px',
                     padding: '10px 14px', borderRadius: '12px', cursor: 'pointer',
-                    background: isChecked ? '#FFF7F4' : '#FFFFFF',
-                    border: isChecked ? '1.5px solid #FF4D0C' : '1px solid #E4E4E4',
+                    background: isChecked ? '#FAF4F1' : '#FFFFFF',
+                    border: isChecked ? '1.5px solid #BC4A2A' : '1px solid #E4E4E4',
                     transition: 'all 0.12s ease',
                   }}
                   onMouseEnter={e => { if (!isChecked) e.currentTarget.style.background = '#F7F7F7'; }}
@@ -197,7 +197,7 @@ function EmployeeSelectModal({
 
                   {/* Info: Nome e Cargo */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: isChecked ? '#FF4D0C' : '#0B0B0B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: isChecked ? '#BC4A2A' : '#0B0B0B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {emp.name}
                     </p>
                     <p style={{ fontSize: '11px', color: '#6B6B6B' }}>
@@ -243,8 +243,8 @@ function EmployeeSelectModal({
               onClick={handleConfirm}
               style={{
                 padding: '9px 22px', borderRadius: '10px', border: 'none',
-                background: '#FF4D0C', color: '#FFFFFF', fontSize: '12px', fontWeight: 800, cursor: 'pointer',
-                boxShadow: '0 2px 10px rgba(255,77,12,0.3)',
+                background: '#BC4A2A', color: '#FFFFFF', fontSize: '12px', fontWeight: 800, cursor: 'pointer',
+                boxShadow: '0 2px 10px rgba(188,74,42,0.3)',
               }}
             >
               Confirmar Seleção ({tempSelected.length})
@@ -505,14 +505,14 @@ export default function DemandForm({
         <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-neutral-100">
           <div>
             <h2 className="text-base font-extrabold flex items-center gap-2" style={T}>
-              <Send size={16} style={{ color: '#FF4D0C' }} />
+              <Send size={16} style={{ color: '#BC4A2A' }} />
               {submitLabel === 'Lançar Demanda' ? 'Lançamento de Demanda' : 'Editar Demanda'}
             </h2>
             <p style={{ fontSize: '12px', color: '#6B6B6B', marginTop: '2px' }}>
               Defina os dados da escala, selecione os colaboradores e acompanhe os horários e horas extras em formato lista.
             </p>
           </div>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C', background: '#FFF7F4', padding: '4px 10px', borderRadius: '8px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#BC4A2A', background: '#FAF4F1', padding: '4px 10px', borderRadius: '8px' }}>
             Escala & Horas Extras
           </span>
         </div>
@@ -568,7 +568,7 @@ export default function DemandForm({
                     style={{
                       padding: '8px 6px', borderRadius: '10px', border: '1.5px solid',
                       borderColor: sel ? '#0B0B0B' : '#E4E4E4',
-                      background: sel ? '#FFF7F4' : '#FFFFFF',
+                      background: sel ? '#FAF4F1' : '#FFFFFF',
                       fontSize: '11px', fontWeight: 700,
                       color: sel ? '#0B0B0B' : '#4A4A4A',
                       cursor: 'pointer', textAlign: 'center', transition: 'all 0.12s',
@@ -603,7 +603,7 @@ export default function DemandForm({
           }}>
             <div>
               <div className="flex items-center gap-2">
-                <Users size={16} style={{ color: '#FF4D0C' }} />
+                <Users size={16} style={{ color: '#BC4A2A' }} />
                 <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#0B0B0B' }}>
                   Equipe Escalada ({form.selectedEmployees.length})
                 </h3>
@@ -625,12 +625,12 @@ export default function DemandForm({
               {form.selectedEmployees.length > 0 && (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '6px',
-                  background: totalOvertimeMinutes > 0 ? '#FFF7F4' : '#FFFFFF',
+                  background: totalOvertimeMinutes > 0 ? '#FAF4F1' : '#FFFFFF',
                   padding: '5px 12px', borderRadius: '8px',
-                  border: totalOvertimeMinutes > 0 ? '1.5px solid rgba(255,77,12,0.3)' : '1px solid #E4E4E4',
+                  border: totalOvertimeMinutes > 0 ? '1.5px solid rgba(188,74,42,0.3)' : '1px solid #E4E4E4',
                 }}>
                   <span style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B' }}>Total Horas Extras:</span>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: totalOvertimeMinutes > 0 ? '#FF4D0C' : '#0B0B0B', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: totalOvertimeMinutes > 0 ? '#BC4A2A' : '#0B0B0B', display: 'flex', alignItems: 'center', gap: '3px' }}>
                     {totalOvertimeMinutes > 0 && <Flame size={12} />}
                     {totalOvertimeFormatted}
                   </span>
@@ -646,9 +646,9 @@ export default function DemandForm({
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   padding: '8px 14px', borderRadius: '10px',
-                  border: canSuggest ? '1.5px solid #FF4D0C' : '1px solid #E4E4E4',
-                  background: canSuggest ? '#FFF7F4' : '#F7F7F7',
-                  color: canSuggest ? '#FF4D0C' : '#9A9A9A',
+                  border: canSuggest ? '1.5px solid #BC4A2A' : '1px solid #E4E4E4',
+                  background: canSuggest ? '#FAF4F1' : '#F7F7F7',
+                  color: canSuggest ? '#BC4A2A' : '#9A9A9A',
                   fontSize: '12px', fontWeight: 800,
                   cursor: canSuggest ? 'pointer' : 'not-allowed',
                   transition: 'all 0.15s ease',
@@ -665,9 +665,9 @@ export default function DemandForm({
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   padding: '8px 16px', borderRadius: '10px', border: 'none',
-                  background: form.selectedEmployees.length > 0 ? '#0B0B0B' : '#FF4D0C',
+                  background: form.selectedEmployees.length > 0 ? '#0B0B0B' : '#BC4A2A',
                   color: '#FFFFFF', fontSize: '12px', fontWeight: 800, cursor: 'pointer',
-                  boxShadow: form.selectedEmployees.length > 0 ? '0 2px 8px rgba(11, 11, 11,0.2)' : '0 3px 12px rgba(255,77,12,0.35)',
+                  boxShadow: form.selectedEmployees.length > 0 ? '0 2px 8px rgba(11, 11, 11,0.2)' : '0 3px 12px rgba(188,74,42,0.35)',
                   transition: 'all 0.15s ease',
                 }}
               >
@@ -682,7 +682,7 @@ export default function DemandForm({
             <div style={{ padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
               <div style={{
                 width: '48px', height: '48px', borderRadius: '14px',
-                background: '#FFF7F4', color: '#FF4D0C',
+                background: '#FAF4F1', color: '#BC4A2A',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 12px',
               }}>
@@ -700,8 +700,8 @@ export default function DemandForm({
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   padding: '10px 22px', borderRadius: '10px', border: 'none',
-                  background: '#FF4D0C', color: '#FFFFFF', fontSize: '13px', fontWeight: 800, cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(255,77,12,0.3)',
+                  background: '#BC4A2A', color: '#FFFFFF', fontSize: '13px', fontWeight: 800, cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(188,74,42,0.3)',
                 }}
               >
                 <Plus size={15} /> Selecionar Ajudantes
@@ -714,9 +714,9 @@ export default function DemandForm({
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   padding: '10px 20px', borderRadius: '10px',
-                  border: canSuggest ? '1.5px solid #FF4D0C' : '1px solid #E4E4E4',
-                  background: canSuggest ? '#FFF7F4' : '#F7F7F7',
-                  color: canSuggest ? '#FF4D0C' : '#9A9A9A',
+                  border: canSuggest ? '1.5px solid #BC4A2A' : '1px solid #E4E4E4',
+                  background: canSuggest ? '#FAF4F1' : '#F7F7F7',
+                  color: canSuggest ? '#BC4A2A' : '#9A9A9A',
                   fontSize: '13px', fontWeight: 800,
                   cursor: canSuggest ? 'pointer' : 'not-allowed',
                 }}
@@ -983,9 +983,9 @@ export default function DemandForm({
                                 {calc.hasOvertime ? (
                                   <span style={{
                                     display: 'inline-flex', alignItems: 'center', gap: '3px',
-                                    fontSize: '11px', fontWeight: 800, color: '#FF4D0C',
-                                    background: '#FFF7F4', padding: '2px 7px', borderRadius: '5px',
-                                    width: 'fit-content', border: '1px solid rgba(255,77,12,0.25)',
+                                    fontSize: '11px', fontWeight: 800, color: '#BC4A2A',
+                                    background: '#FAF4F1', padding: '2px 7px', borderRadius: '5px',
+                                    width: 'fit-content', border: '1px solid rgba(188,74,42,0.25)',
                                   }}>
                                     <Flame size={11} /> +{calc.overtimeFormatted} HE
                                   </span>
@@ -1073,9 +1073,9 @@ export default function DemandForm({
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 gap: '8px', padding: '13px', borderRadius: '12px', border: 'none',
                 fontSize: '14px', fontWeight: 800, cursor: canSubmit ? 'pointer' : 'not-allowed',
-                background: canSubmit ? '#FF4D0C' : '#E4E4E4',
+                background: canSubmit ? '#BC4A2A' : '#E4E4E4',
                 color: canSubmit ? 'white' : '#9A9A9A',
-                boxShadow: canSubmit ? '0 4px 14px rgba(255,77,12,0.3)' : 'none',
+                boxShadow: canSubmit ? '0 4px 14px rgba(188,74,42,0.3)' : 'none',
                 transition: 'all 0.2s',
               }}
             >

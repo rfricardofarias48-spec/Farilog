@@ -151,7 +151,7 @@ function TrucksPanel({ escalaKey, escalaId, readOnly = false }) {
         </p>
         {!readOnly && (
           <button onClick={add}
-            style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            style={{ fontSize: '11px', fontWeight: 700, color: '#BC4A2A', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             + Nova
           </button>
         )}
@@ -357,7 +357,7 @@ const QuinzenaTooltip = ({ active, payload, label }) => {
       <p style={{ color: '#F5F5F5', fontSize: '15px', fontWeight: 700, marginBottom: '2px' }}>
         {d?.count} <span style={{ fontSize: '11px', fontWeight: 500, color: '#6B6B6B' }}>ajudante{d?.count !== 1 ? 's' : ''}</span>
       </p>
-      <p style={{ color: '#FF4D0C', fontSize: '12px', fontWeight: 600 }}>
+      <p style={{ color: '#BC4A2A', fontSize: '12px', fontWeight: 600 }}>
         {fmtCurrency(d?.value || 0)}
       </p>
       {d?.heMin > 0 && (
@@ -392,8 +392,8 @@ function AjudantesModal({ records, escala, faltas, atrasos, date, tipoServico: t
               {dateLabel ? `${dateLabel}` : 'Ajudantes Escalados'}
             </h2>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '6px', background: '#FFF7F4', color: '#E03A00' }}>
-                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#FF4D0C', flexShrink: 0, display: 'inline-block' }} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '6px', background: '#FAF4F1', color: '#9E3D22' }}>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#BC4A2A', flexShrink: 0, display: 'inline-block' }} />
                 {records.length} escalado{records.length !== 1 ? 's' : ''}
               </span>
               {faltas > 0 && (
@@ -892,7 +892,7 @@ function Panel({ companyId, setTab, companyName }) {
             <p style={{ fontSize: '13px', fontWeight: 700, color: '#0B0B0B' }}>Últimos Serviços Realizados</p>
             <button
               onClick={() => setTab('escalas')}
-              style={{ fontSize: '12px', fontWeight: 600, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              style={{ fontSize: '12px', fontWeight: 600, color: '#BC4A2A', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               Ver todas as escalas <ChevronRight size={13} />
             </button>
@@ -959,7 +959,7 @@ function DiaModal({ date, records, onClose }) {
               {dow}, {d}/{m}/{y} {isToday && <span className="badge badge-active" style={{ fontSize:'10px', verticalAlign:'middle', marginLeft:'6px' }}>Hoje</span>}
             </h2>
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {pill('#FFF7F4','#FF4D0C','#E03A00', `${escala} escalado${escala !== 1 ? 's' : ''}`)}
+              {pill('#FAF4F1','#BC4A2A','#9E3D22', `${escala} escalado${escala !== 1 ? 's' : ''}`)}
               {faltas  > 0 && pill('#F5F5F5','#4A4A4A','#4A4A4A', `${faltas} falta${faltas !== 1 ? 's' : ''}`)}
               {atrasos > 0 && pill('#F7F7F7','#6B6B6B','#6B6B6B', `${atrasos} atraso${atrasos !== 1 ? 's' : ''}`)}
             </div>
@@ -1066,12 +1066,12 @@ function CalendarPicker({ period, offset, onSelect, onClose }) {
                 <button onClick={() => { onSelect(offsetVal); onClose(); }}
                   style={{
                     width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
-                    padding:'9px 14px 9px 20px', border:'none', background: active ? '#FFF7F4' : 'transparent',
+                    padding:'9px 14px 9px 20px', border:'none', background: active ? '#FAF4F1' : 'transparent',
                     cursor:'pointer', textAlign:'left', transition:'background 0.15s',
                   }}
                   onMouseEnter={e => { if (!active) e.currentTarget.style.background='#F7F7F7'; }}
                   onMouseLeave={e => { if (!active) e.currentTarget.style.background='transparent'; }}>
-                  <span style={{ fontSize:'13px', fontWeight: active ? 700 : 500, color: active ? '#FF4D0C' : '#333333' }}>
+                  <span style={{ fontSize:'13px', fontWeight: active ? 700 : 500, color: active ? '#BC4A2A' : '#333333' }}>
                     {month} - {n}
                   </span>
                   {isCur && <span style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A' }}>atual</span>}
@@ -1103,12 +1103,12 @@ function CalendarPicker({ period, offset, onSelect, onClose }) {
               <button key={offsetVal} onClick={() => { onSelect(offsetVal); onClose(); }}
                 style={{
                   width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
-                  padding:'10px 14px', border:'none', background: active ? '#FFF7F4' : 'transparent',
+                  padding:'10px 14px', border:'none', background: active ? '#FAF4F1' : 'transparent',
                   cursor:'pointer', textAlign:'left', transition:'background 0.15s',
                 }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background='#F7F7F7'; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background='transparent'; }}>
-                <span style={{ fontSize:'13px', fontWeight: active ? 700 : 500, color: active ? '#FF4D0C' : '#333333' }}>{label}</span>
+                <span style={{ fontSize:'13px', fontWeight: active ? 700 : 500, color: active ? '#BC4A2A' : '#333333' }}>{label}</span>
                 {isCur && <span style={{ fontSize:'10px', fontWeight:600, color:'#9A9A9A' }}>atual</span>}
               </button>
             );
@@ -1154,8 +1154,8 @@ function CalendarPicker({ period, offset, onSelect, onClose }) {
           return (
             <button key={day} onClick={()=>{ if(future) return; const diff=Math.round((new Date(vYear,vMonth,day)-TODAY_DATE)/86400000); onSelect(diff); onClose(); }}
               style={{ padding:'6px 2px', border:'none', cursor:future?'not-allowed':'pointer', fontSize:'12px', fontWeight:today?700:500,
-                background: sel?'#FF4D0C': today?'#FFF7F4':'transparent',
-                color: sel?'white': future?'#C8C8C8': today?'#FF4D0C':'#333333',
+                background: sel?'#BC4A2A': today?'#FAF4F1':'transparent',
+                color: sel?'white': future?'#C8C8C8': today?'#BC4A2A':'#333333',
                 borderRadius:'8px', outline:'none' }}>
               {day}
             </button>
@@ -1241,7 +1241,7 @@ function HistoryTab({ companyId }) {
 
   const exportPDF = () => {
     const doc = new jsPDF();
-    const orange = [255, 77, 12];
+    const orange = [188, 74, 42];
     const grey   = [100, 116, 139];
 
     // ── Cabeçalho ──
@@ -1354,9 +1354,9 @@ function HistoryTab({ companyId }) {
         <h2 className="text-xl font-bold" style={T}>Histórico</h2>
         <button onClick={exportPDF}
           className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-          style={{ background:'#FF4D0C', color:'white', border:'none', cursor:'pointer', boxShadow:'0 2px 8px rgba(255,77,12,0.3)' }}
-          onMouseEnter={e => e.currentTarget.style.background='#E03A00'}
-          onMouseLeave={e => e.currentTarget.style.background='#FF4D0C'}>
+          style={{ background:'#BC4A2A', color:'white', border:'none', cursor:'pointer', boxShadow:'0 2px 8px rgba(188,74,42,0.3)' }}
+          onMouseEnter={e => e.currentTarget.style.background='#9E3D22'}
+          onMouseLeave={e => e.currentTarget.style.background='#BC4A2A'}>
           <FileDown size={13} />
           Exportar PDF
         </button>
@@ -1380,7 +1380,7 @@ function HistoryTab({ companyId }) {
           <button onClick={() => setShowCal(v => !v)}
             className="flex items-center gap-2"
             style={{ background:'none', border:'none', cursor:'pointer', fontSize:'13px', fontWeight:700, color:'#0B0B0B' }}>
-            <Calendar size={14} style={{ color:'#FF4D0C' }} />
+            <Calendar size={14} style={{ color:'#BC4A2A' }} />
             {label}
           </button>
           {navBtn(<ChevronRight size={15}/>, () => setOffset(o => Math.min(o + 1, 0)))}
@@ -1398,7 +1398,7 @@ function HistoryTab({ companyId }) {
       {/* Resumo do período */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label:'Escalados', value: totalEscala,    color:'#FF4D0C' },
+          { label:'Escalados', value: totalEscala,    color:'#BC4A2A' },
           { label:'Presentes', value: totalPresentes,  color:'#0B0B0B' },
           { label:'Faltas',    value: totalFaltas,     color: totalFaltas > 0 ? '#4A4A4A' : '#9A9A9A' },
         ].map((s,i) => (
@@ -1434,7 +1434,7 @@ function HistoryTab({ companyId }) {
               <div style={{ display:'grid', gridTemplateColumns:'52px 1px 1fr', columnGap:'14px', alignItems:'center', flex:1 }}>
                 <div style={{ textAlign:'center' }}>
                   <p className="text-xs uppercase font-semibold" style={{ color:'#9A9A9A', letterSpacing:'0.05em' }}>{dow}</p>
-                  <p className="text-lg font-black leading-tight" style={{ color: isToday ? '#FF4D0C' : '#0B0B0B' }}>{d}/{m}</p>
+                  <p className="text-lg font-black leading-tight" style={{ color: isToday ? '#BC4A2A' : '#0B0B0B' }}>{d}/{m}</p>
                 </div>
                 <div style={{ width:'1px', height:'28px', background:'rgba(0,0,0,0.08)', justifySelf:'center' }} />
                 <p style={{ fontSize:'13px', fontWeight:600, color:'#4A4A4A' }}>
@@ -1719,7 +1719,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
           {/* Resumo */}
           <div className="grid grid-cols-4 gap-3 mb-4">
             {[
-              { label:'Diárias',  value: totalEscala,    color:'#FF4D0C' },
+              { label:'Diárias',  value: totalEscala,    color:'#BC4A2A' },
               { label:'Presentes', value: totalPresentes, color:'#0B0B0B' },
               { label:'H. Extras', value: minutesToOvertimeString(heMin), color:'#6B6B6B' },
               { label:'Faltas',   value: totalFaltas,    color: totalFaltas > 0 ? '#4A4A4A' : '#9A9A9A' },
@@ -1760,14 +1760,14 @@ function FinPeriodModal({ payment, companyId, onClose }) {
                   <div style={{ display:'grid', gridTemplateColumns:'52px 1px 1fr', columnGap:'14px', alignItems:'center', flex:1 }}>
                     <div style={{ textAlign:'center' }}>
                       <p className="text-xs uppercase font-semibold" style={{ color:'#9A9A9A', letterSpacing:'0.05em' }}>{dow}</p>
-                      <p className="text-base font-black leading-tight" style={{ color: isToday ? '#FF4D0C' : '#0B0B0B' }}>{d}/{m}</p>
+                      <p className="text-base font-black leading-tight" style={{ color: isToday ? '#BC4A2A' : '#0B0B0B' }}>{d}/{m}</p>
                     </div>
                     <div style={{ width:'1px', height:'26px', background:'rgba(0,0,0,0.08)', justifySelf:'center' }} />
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs" style={{ color:'#4A4A4A' }}>{escala} ajudante{escala !== 1 ? 's' : ''}</span>
                       {faltas  > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#F5F5F5', color:'#4A4A4A' }}>{faltas} falta{faltas !== 1 ? 's' : ''}</span>}
                       {atrasos > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#F7F7F7', color:'#6B6B6B' }}>{atrasos} atraso{atrasos !== 1 ? 's' : ''}</span>}
-                      {heMin > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#F7F7F7', color:'#C2410C' }}>{minutesToOvertimeString(heMin)} de h. extra</span>}
+                      {heMin > 0 && <span style={{ fontSize:'10px', fontWeight:600, padding:'1px 7px', borderRadius:'4px', background:'#F7F7F7', color:'#9E3D22' }}>{minutesToOvertimeString(heMin)} de h. extra</span>}
                     </div>
                   </div>
 
@@ -1853,7 +1853,7 @@ function Financial({ companyId }) {
           </button>
           {qOffset < 0 && (
             <button onClick={() => setQOffset(0)}
-              style={{ padding: '7px 14px', borderRadius: '10px', background: 'linear-gradient(180deg,#FF4D0C,#FF4D0C)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(255,77,12,0.5)', transition: 'all 0.15s' }}>
+              style={{ padding: '7px 14px', borderRadius: '10px', background: 'linear-gradient(180deg,#BC4A2A,#BC4A2A)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(188,74,42,0.5)', transition: 'all 0.15s' }}>
               Período Atual
             </button>
           )}
@@ -1886,7 +1886,7 @@ function Financial({ companyId }) {
           <div className="card p-5">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <span style={{ fontSize:'12px', fontWeight:700, padding:'3px 12px', borderRadius:'20px', background:'#F7F7F7', color:'#FF4D0C' }}>
+                <span style={{ fontSize:'12px', fontWeight:700, padding:'3px 12px', borderRadius:'20px', background:'#F7F7F7', color:'#BC4A2A' }}>
                   {quinzenaInfo.badgeLabel} <span style={{ color: '#0B0B0B', fontWeight: 500 }}>({quinzenaInfo.rangeLabel})</span>
                 </span>
               </div>
@@ -1909,8 +1909,8 @@ function Financial({ companyId }) {
                     <stop offset="100%" stopColor="#0B0B0B" stopOpacity={0.65} />
                   </linearGradient>
                   <linearGradient id="finToday" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#FF4D0C" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#FF4D0C" stopOpacity={0.7} />
+                    <stop offset="0%"   stopColor="#BC4A2A" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#BC4A2A" stopOpacity={0.7} />
                   </linearGradient>
                   <linearGradient id="finEmpty" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%"   stopColor="#E4E4E4" stopOpacity={0.9} />
@@ -2761,7 +2761,7 @@ function EscalasTab({ companyId }) {
           <button key={s.key} onClick={() => setSub(s.key)}
             className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
             style={sub === s.key
-              ? { background: '#fff', color: '#FF4D0C', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }
+              ? { background: '#fff', color: '#BC4A2A', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }
               : { color: '#6B6B6B' }}>
             {s.label}
           </button>
@@ -3279,9 +3279,9 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
         <button
           onClick={exportPDF}
           className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
-          style={{ background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(255,77,12,0.3)' }}
-          onMouseEnter={e => e.currentTarget.style.background = '#E03A00'}
-          onMouseLeave={e => e.currentTarget.style.background = '#FF4D0C'}
+          style={{ background: '#BC4A2A', color: 'white', border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(188,74,42,0.3)' }}
+          onMouseEnter={e => e.currentTarget.style.background = '#9E3D22'}
+          onMouseLeave={e => e.currentTarget.style.background = '#BC4A2A'}
         >
           <FileDown size={13} /> Exportar PDF
         </button>

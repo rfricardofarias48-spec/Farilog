@@ -79,8 +79,8 @@ export default function ModalConfirmarConvocacao({
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', marginTop: '14px', padding: '10px 12px', borderRadius: '10px', background: '#FFF7F4', border: '1px solid #FFD9CC' }}>
-          <p style={{ fontSize: '11px', color: '#9A3412', lineHeight: 1.5 }}>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '14px', padding: '10px 12px', borderRadius: '10px', background: '#FAF4F1', border: '1px solid #E4C9BF' }}>
+          <p style={{ fontSize: '11px', color: '#8A3520', lineHeight: 1.5 }}>
             Ao confirmar, o agente de WhatsApp envia o convite para os titulares. Se a lista lotar,
             quem aceitar depois entra como <b>reserva</b>. O agente também buscará as reservas automaticamente.
           </p>
@@ -92,7 +92,7 @@ export default function ModalConfirmarConvocacao({
             Cancelar
           </button>
           <button type="button" onClick={onConfirm} disabled={saving}
-            style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '12px', borderRadius: '10px', border: 'none', cursor: saving ? 'wait' : 'pointer', fontSize: '13px', fontWeight: 800, background: saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white' }}>
+            style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '12px', borderRadius: '10px', border: 'none', cursor: saving ? 'wait' : 'pointer', fontSize: '13px', fontWeight: 800, background: saving ? '#E2E8F0' : '#BC4A2A', color: saving ? '#94A3B8' : 'white' }}>
             <Send size={14} /> {saving ? 'Convocando…' : 'Confirmar e convocar'}
           </button>
         </div>

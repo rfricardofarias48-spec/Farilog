@@ -16,7 +16,7 @@ const EMPRESA_ICON = L.divIcon({
 
 // Pino do ajudante (iniciais). Laranja quando é o foco.
 function pontoIcon(initials, { destaque = false } = {}) {
-  const bg = destaque ? '#FF4D0C' : '#1C1C1C';
+  const bg = destaque ? '#BC4A2A' : '#1C1C1C';
   return L.divIcon({
     className: 'farilog-pin',
     html: `<div style="width:28px;height:28px;border-radius:8px;background:${bg};border:2px solid #fff;`

@@ -115,8 +115,8 @@ export default function AjudantePerfilModal({ employee, onClose }) {
               <div style={{ padding: '18px 22px', display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '10px' }}>
                 <div style={{
                   borderRadius: '14px', padding: '14px',
-                  background: media == null ? '#FAFAFA' : '#FFF7F4',
-                  border: `1px solid ${media == null ? '#E6E6E6' : '#FFD9CC'}`,
+                  background: media == null ? '#FAFAFA' : '#FAF4F1',
+                  border: `1px solid ${media == null ? '#E6E6E6' : '#E4C9BF'}`,
                 }}>
                   <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Média geral</p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px', marginTop: '3px' }}>
@@ -166,7 +166,7 @@ export default function AjudantePerfilModal({ employee, onClose }) {
                         <div style={{ flex: 1, height: '7px', borderRadius: '99px', background: '#F4F4F5', overflow: 'hidden' }}>
                           <div style={{
                             width: `${(dist[n] / maiorBarra) * 100}%`, height: '100%',
-                            background: n === 5 ? '#FF4D0C' : n === 4 ? '#0B0B0B' : n === 3 ? '#6B6B6B' : n === 2 ? '#9A9A9A' : n === 1 ? '#D1D1D1' : '#E6E6E6',
+                            background: n === 5 ? '#BC4A2A' : n === 4 ? '#0B0B0B' : n === 3 ? '#6B6B6B' : n === 2 ? '#9A9A9A' : n === 1 ? '#D1D1D1' : '#E6E6E6',
                             borderRadius: '99px', transition: 'width .25s',
                           }} />
                         </div>

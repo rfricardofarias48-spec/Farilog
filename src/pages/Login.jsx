@@ -44,8 +44,8 @@ export default function Login() {
   const inputStyle = (name) => ({
     width: '100%', padding: '13px 16px 13px 44px',
     background: focus === name ? '#FFFFFF' : '#F7F7F7',
-    border: `1.5px solid ${focus === name ? '#FF4D0C' : 'rgba(11, 11, 11,0.10)'}`,
-    boxShadow: focus === name ? '0 0 0 3.5px rgba(255,77,12,0.10)' : 'none',
+    border: `1.5px solid ${focus === name ? '#BC4A2A' : 'rgba(11, 11, 11,0.10)'}`,
+    boxShadow: focus === name ? '0 0 0 3.5px rgba(188,74,42,0.10)' : 'none',
     borderRadius: '14px', color: '#0B0B0B', fontSize: '14px',
     fontFamily: 'Inter, sans-serif', outline: 'none', boxSizing: 'border-box',
     transition: 'border-color 0.18s, box-shadow 0.18s, background 0.18s',
@@ -58,7 +58,7 @@ export default function Login() {
       <div className="hidden lg:flex" style={{
         flex: 1.1,
         position: 'relative',
-        background: 'radial-gradient(1200px 800px at -10% -20%, rgba(255,77,12,0.16) 0%, transparent 55%), radial-gradient(900px 700px at 110% 120%, rgba(255,77,12,0.10) 0%, transparent 50%), linear-gradient(160deg, #0B0B0B 0%, #0B0B0B 60%, #0B0B0B 100%)',
+        background: 'radial-gradient(1200px 800px at -10% -20%, rgba(188,74,42,0.16) 0%, transparent 55%), radial-gradient(900px 700px at 110% 120%, rgba(188,74,42,0.10) 0%, transparent 50%), linear-gradient(160deg, #0B0B0B 0%, #0B0B0B 60%, #0B0B0B 100%)',
         flexDirection: 'column', justifyContent: 'space-between',
         padding: '56px 64px',
         overflow: 'hidden',
@@ -74,7 +74,7 @@ export default function Login() {
         {/* glow orb */}
         <div style={{
           position: 'absolute', top: '-120px', right: '-80px', width: '420px', height: '420px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255,77,12,0.22) 0%, transparent 65%)',
+          background: 'radial-gradient(circle, rgba(188,74,42,0.22) 0%, transparent 65%)',
           filter: 'blur(10px)',
         }} />
 
@@ -97,11 +97,11 @@ export default function Login() {
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '8px',
             padding: '7px 14px', borderRadius: '999px',
-            background: 'rgba(255,77,12,0.12)', border: '1px solid rgba(255,77,12,0.3)',
+            background: 'rgba(188,74,42,0.12)', border: '1px solid rgba(188,74,42,0.3)',
             marginBottom: '24px',
           }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FF4D0C', boxShadow: '0 0 8px rgba(255,77,12,0.9)' }} />
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#FFD9CC', letterSpacing: '0.02em' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#BC4A2A', boxShadow: '0 0 8px rgba(188,74,42,0.9)' }} />
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#E4C9BF', letterSpacing: '0.02em' }}>
               Painel da empresa
             </span>
           </div>
@@ -109,7 +109,7 @@ export default function Login() {
             Sua operação,
             <br />
             <span style={{
-              background: 'linear-gradient(90deg, #FF4D0C, #FFD9CC)',
+              background: 'linear-gradient(90deg, #BC4A2A, #E4C9BF)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -127,7 +127,7 @@ export default function Login() {
                 padding: '10px 16px', borderRadius: '12px',
                 background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)',
               }}>
-                <Icon size={16} style={{ color: '#FF4D0C', flexShrink: 0 }} />
+                <Icon size={16} style={{ color: '#BC4A2A', flexShrink: 0 }} />
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#E4E4E4' }}>{label}</span>
               </div>
             ))}
@@ -170,7 +170,7 @@ export default function Login() {
               <div style={{ position: 'relative' }}>
                 <Mail size={17} style={{
                   position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)',
-                  color: focus === 'email' ? '#FF4D0C' : '#9A9A9A', transition: 'color 0.18s', pointerEvents: 'none',
+                  color: focus === 'email' ? '#BC4A2A' : '#9A9A9A', transition: 'color 0.18s', pointerEvents: 'none',
                 }} />
                 <input
                   type="text"
@@ -191,14 +191,14 @@ export default function Login() {
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#333333' }}>
                   Senha
                 </label>
-                <button type="button" style={{ fontSize: '12.5px', color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+                <button type="button" style={{ fontSize: '12.5px', color: '#BC4A2A', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
                   Esqueci minha senha
                 </button>
               </div>
               <div style={{ position: 'relative' }}>
                 <Lock size={17} style={{
                   position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)',
-                  color: focus === 'password' ? '#FF4D0C' : '#9A9A9A', transition: 'color 0.18s', pointerEvents: 'none',
+                  color: focus === 'password' ? '#BC4A2A' : '#9A9A9A', transition: 'color 0.18s', pointerEvents: 'none',
                 }} />
                 <input
                   type={showPwd ? 'text' : 'password'}
@@ -228,13 +228,13 @@ export default function Login() {
             {/* Submit */}
             <button type="submit" disabled={loading} style={{
               width: '100%', padding: '14px',
-              background: loading ? 'rgba(255,77,12,0.55)' : 'linear-gradient(180deg, #FF4D0C 0%, #FF4D0C 100%)',
+              background: loading ? 'rgba(188,74,42,0.55)' : 'linear-gradient(180deg, #BC4A2A 0%, #BC4A2A 100%)',
               border: 'none', borderRadius: '14px', color: 'white',
               fontSize: '15px', fontWeight: 600, fontFamily: 'Inter, sans-serif',
               cursor: loading ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               letterSpacing: '-0.01em',
-              boxShadow: loading ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 24px -6px rgba(255,77,12,0.5)',
+              boxShadow: loading ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 24px -6px rgba(188,74,42,0.5)',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             }}>
               {loading ? (

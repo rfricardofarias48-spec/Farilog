@@ -8,7 +8,7 @@ function clamp(v) {
 }
 
 // Estrelas com preenchimento parcial — ideal para médias (ex.: 4,3).
-export function StarsDisplay({ value = 0, size = 12, gap = 1, color = '#FF4D0C', emptyColor = '#E6E6E6' }) {
+export function StarsDisplay({ value = 0, size = 12, gap = 1, color = '#BC4A2A', emptyColor = '#E6E6E6' }) {
   const v = clamp(value);
   const pct = (v / 5) * 100;
   const starStyle = { flexShrink: 0 };
@@ -77,8 +77,8 @@ export default function StarRating({
             size={size}
             strokeWidth={1.8}
             style={{
-              color: hasValue && n <= v ? '#FF4D0C' : '#D1D1D1',
-              fill: hasValue && n <= v ? '#FF4D0C' : 'transparent',
+              color: hasValue && n <= v ? '#BC4A2A' : '#D1D1D1',
+              fill: hasValue && n <= v ? '#BC4A2A' : 'transparent',
               transition: 'all .1s',
             }}
           />

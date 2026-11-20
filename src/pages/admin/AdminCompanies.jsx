@@ -79,9 +79,9 @@ function Modal({ company, onSave, onClose }) {
             {field('location', 'Link de localização (Google Maps)', { col: 2, placeholder: 'https://maps.google.com/...' })}
             {/* Linha 6: HE calculadas (full) */}
             <div className="col-span-2 flex gap-3">
-              <div className="flex-1 rounded-xl px-4 py-2.5" style={{ background: '#FFF7F4', border: '1px solid rgba(255,77,12,0.15)' }}>
+              <div className="flex-1 rounded-xl px-4 py-2.5" style={{ background: '#FAF4F1', border: '1px solid rgba(188,74,42,0.15)' }}>
                 <p className="text-xs font-semibold" style={{ color: '#9A9A9A', marginBottom: '2px' }}>Hora extra 50%</p>
-                <p className="text-sm font-bold" style={{ color: '#FF4D0C' }}>R$ {he50}/h</p>
+                <p className="text-sm font-bold" style={{ color: '#BC4A2A' }}>R$ {he50}/h</p>
               </div>
               <div className="flex-1 rounded-xl px-4 py-2.5" style={{ background: '#F5F5F5', border: '1px solid rgba(74, 74, 74,0.15)' }}>
                 <p className="text-xs font-semibold" style={{ color: '#9A9A9A', marginBottom: '2px' }}>Hora extra 100%</p>
@@ -172,7 +172,7 @@ export default function AdminCompanies() {
                     </div>
                   </div>
                 </div>
-                <span className="text-xs font-semibold" style={{ color: '#FF4D0C' }}>R$ {c.dailyRate ?? 150}</span>
+                <span className="text-xs font-semibold" style={{ color: '#BC4A2A' }}>R$ {c.dailyRate ?? 150}</span>
                 <span className="text-xs font-semibold" style={{ color: '#0B0B0B' }}>R$ {Number(c.valorDescarga ?? 0).toFixed(2)}</span>
                 <span className="text-xs font-semibold" style={{ color: '#4A4A4A' }}>
                   R$ {((Number(c.dailyRate ?? 150) / 8) * 1.5).toFixed(2)}/h

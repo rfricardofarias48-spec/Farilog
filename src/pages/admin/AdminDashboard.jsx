@@ -12,7 +12,7 @@ import { TrendingUp, Users, Building2, DollarSign, ChevronLeft, ChevronRight } f
 // ── Constantes ─────────────────────────────────────────────────────────────
 const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 const TODAY_DATE = new Date(TODAY + 'T12:00:00Z'); // UTC noon no dia SP — getUTC* sempre correto
-const PIE_COLORS = ['#FF4D0C', '#4A4A4A', '#0B0B0B', '#4A4A4A', '#6B6B6B'];
+const PIE_COLORS = ['#BC4A2A', '#4A4A4A', '#0B0B0B', '#4A4A4A', '#6B6B6B'];
 const BASE_YEAR  = 2000;
 
 const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -211,8 +211,8 @@ export default function AdminDashboard() {
             ].map((k, i) => (
               <div key={i} className="stat-card">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFF7F4, #FFE6D9)', border: '1px solid rgba(255,77,12,0.12)' }}>
-                    <k.icon size={17} style={{ color: '#FF4D0C' }} />
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FAF4F1, #F0DFD8)', border: '1px solid rgba(188,74,42,0.12)' }}>
+                    <k.icon size={17} style={{ color: '#BC4A2A' }} />
                   </div>
                 </div>
                 <p className={`font-bold leading-none ${k.small ? 'text-base' : 'text-2xl'}`} style={{ color: '#0B0B0B' }}>
@@ -247,8 +247,8 @@ export default function AdminDashboard() {
                 <AreaChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
                   <defs>
                     <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#FF4D0C" stopOpacity={0.18} />
-                      <stop offset="95%" stopColor="#FF4D0C" stopOpacity={0} />
+                      <stop offset="5%"  stopColor="#BC4A2A" stopOpacity={0.18} />
+                      <stop offset="95%" stopColor="#BC4A2A" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
@@ -256,8 +256,8 @@ export default function AdminDashboard() {
                   <YAxis tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false}
                     tickFormatter={v => v === 0 ? '0' : `R$${(v/1000).toFixed(0)}k`} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Area type="monotone" dataKey="receita" name="Receita" stroke="#FF4D0C" strokeWidth={2.5}
-                    fill="url(#revenueGrad)" dot={{ fill: '#FF4D0C', strokeWidth: 0, r: 3 }} />
+                  <Area type="monotone" dataKey="receita" name="Receita" stroke="#BC4A2A" strokeWidth={2.5}
+                    fill="url(#revenueGrad)" dot={{ fill: '#BC4A2A', strokeWidth: 0, r: 3 }} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -314,7 +314,7 @@ export default function AdminDashboard() {
                 <XAxis dataKey={xKey} tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="ajudantes" name="Ajudantes" fill="#FF4D0C" radius={[5,5,0,0]} maxBarSize={32} />
+                <Bar dataKey="ajudantes" name="Ajudantes" fill="#BC4A2A" radius={[5,5,0,0]} maxBarSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </div>

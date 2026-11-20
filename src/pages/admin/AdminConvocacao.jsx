@@ -115,7 +115,7 @@ export default function AdminConvocacao() {
 
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center' }}>
-          <Loader2 size={24} className="animate-spin" style={{ color: '#FF4D0C', margin: '0 auto 10px' }} />
+          <Loader2 size={24} className="animate-spin" style={{ color: '#BC4A2A', margin: '0 auto 10px' }} />
           <p style={{ fontSize: '13px', color: '#94A3B8' }}>Carregando convocações…</p>
         </div>
       ) : grupos.length === 0 ? (

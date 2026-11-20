@@ -200,13 +200,13 @@ export default function AdminLayout() {
                 <input type="text" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)}
                   className="pl-8 pr-4 py-2 rounded-xl outline-none"
                   style={{ background: '#FFFFFF', border: '1px solid rgba(11, 11, 11,0.09)', color: '#0B0B0B', fontSize: '13px', width: '220px', boxShadow: '0 1px 2px rgba(11, 11, 11,0.04)', transition: 'border-color 0.18s, box-shadow 0.18s' }}
-                  onFocus={e => { e.target.style.borderColor = '#FF4D0C'; e.target.style.boxShadow = '0 0 0 3.5px rgba(255,77,12,0.10)'; }}
+                  onFocus={e => { e.target.style.borderColor = '#BC4A2A'; e.target.style.boxShadow = '0 0 0 3.5px rgba(188,74,42,0.10)'; }}
                   onBlur={e => { e.target.style.borderColor = 'rgba(11, 11, 11,0.09)'; e.target.style.boxShadow = '0 1px 2px rgba(11, 11, 11,0.04)'; }}
                 />
               </div>
               <button className="p-2 rounded-xl relative" style={{ background: '#FFFFFF', border: '1px solid rgba(11, 11, 11,0.09)', color: '#6B6B6B', boxShadow: '0 1px 2px rgba(11, 11, 11,0.04)', transition: 'all 0.18s' }}>
                 <Bell size={15} />
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: '#FF4D0C', boxShadow: '0 0 6px rgba(255,77,12,0.8)' }} />
+                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: '#BC4A2A', boxShadow: '0 0 6px rgba(188,74,42,0.8)' }} />
               </button>
               <div className="avatar flex items-center justify-center" style={{ background: '#0B0B0B', width: '32px', height: '32px', borderRadius: '50%', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12)' }}>
                 {user?.initials}

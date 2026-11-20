@@ -75,7 +75,7 @@ function Modal({ employee, onSave, onClose }) {
               {form.documentoUrl && (
                 <a href={form.documentoUrl} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold"
-                  style={{ background: '#FFF7F4', color: '#FF4D0C', borderTop: '1px solid rgba(255,77,12,0.12)' }}>
+                  style={{ background: '#FAF4F1', color: '#BC4A2A', borderTop: '1px solid rgba(188,74,42,0.12)' }}>
                   <FileText size={13} /> Ver documento atual
                 </a>
               )}
@@ -266,7 +266,7 @@ export default function AdminEmployees() {
                     <span style={{ fontSize: '10px', color: '#C8C8C8' }}>—</span>
                   )}
                 </div>
-                <span className="text-xs font-semibold" style={{ color: '#FF4D0C' }}>R$ {emp.dailyRate}</span>
+                <span className="text-xs font-semibold" style={{ color: '#BC4A2A' }}>R$ {emp.dailyRate}</span>
                 <div className="text-xs" style={T2}>
                   {lw ? (
                     <><p>{fmtDate(lw.date)}</p><p style={{ ...TM, fontSize: '10px' }}>{lw.company?.split(' ')[0]}</p></>

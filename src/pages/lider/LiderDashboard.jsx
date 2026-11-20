@@ -105,7 +105,7 @@ function TrucksPanel({ escalaId }) {
         <p style={{ fontSize: '10px', fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
           Descargas do Dia
         </p>
-        <button onClick={add} style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+        <button onClick={add} style={{ fontSize: '11px', fontWeight: 700, color: '#BC4A2A', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
           + Nova
         </button>
       </div>
@@ -141,7 +141,7 @@ function TrucksPanel({ escalaId }) {
 const STATUS_CFG = {
   aguardando: { label: 'Aguardando', color: '#D97706', bg: '#FEF3C7' },
   confirmado: { label: 'Confirmado', color: '#059669', bg: '#DCFCE7' },
-  atrasado:   { label: 'Atrasado',   color: '#EA580C', bg: '#FFEDD5' },
+  atrasado:   { label: 'Atrasado',   color: '#B4552A', bg: '#FFEDD5' },
   falta:      { label: 'Falta',      color: '#E11D48', bg: '#FFE4E6' },
   finalizado: { label: 'Finalizado', color: '#64748B', bg: '#F1F5F9' },
 };
@@ -215,7 +215,7 @@ function ModalSubstituto({ escala, onClose, onRefresh }) {
               </div>
               <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{emp.name}</p>
               <button onClick={() => handleAdd(emp)} disabled={!!adding}
-                style={{ padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: adding ? 'wait' : 'pointer', fontSize: '12px', fontWeight: 700, background: '#FF4D0C', color: 'white', opacity: adding ? 0.6 : 1 }}>
+                style={{ padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: adding ? 'wait' : 'pointer', fontSize: '12px', fontWeight: 700, background: '#BC4A2A', color: 'white', opacity: adding ? 0.6 : 1 }}>
                 {adding === emp.id ? '...' : 'Escalar'}
               </button>
             </div>
@@ -341,7 +341,7 @@ function ModalFinalizarDia({ user, presentes, ausentes, onClose, onSaved }) {
             Cancelar
           </button>
           <button onClick={handleSubmit} disabled={saving || saved}
-            style={{ flex: 2, padding: '12px', borderRadius: '10px', border: 'none', cursor: saving || saved ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: saved ? '#059669' : saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'background 0.3s' }}>
+            style={{ flex: 2, padding: '12px', borderRadius: '10px', border: 'none', cursor: saving || saved ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: saved ? '#059669' : saving ? '#E2E8F0' : '#BC4A2A', color: saving ? '#94A3B8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'background 0.3s' }}>
             {saved ? <><CheckCircle2 size={15} /> Relatório enviado!</> : saving ? 'Enviando...' : <><FileText size={15} /> Finalizar e enviar ao cliente</>}
           </button>
         </div>
@@ -448,7 +448,7 @@ function TabHoje({ user, escalas, employees, onRefresh, onStatsChange }) {
           {todayEscala && (
             <div style={{ display: 'flex', gap: '6px' }}>
               <button onClick={() => setModalHor(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#BC4A2A', color: 'white', border: 'none', cursor: 'pointer' }}>
                 <Clock size={11} /> Lançar horários
               </button>
               <button onClick={() => setShowNotas(true)}
@@ -667,7 +667,7 @@ function ModalLancarHorarios({ escala, employees, onClose, onSaved }) {
             <span style={{ fontSize: '11px', color: '#94A3B8' }}>{progresso}%</span>
           </div>
           <div style={{ height: '6px', borderRadius: '99px', background: '#E2E8F0', overflow: 'hidden' }}>
-            <div style={{ width: `${progresso}%`, height: '100%', background: '#FF4D0C', borderRadius: '99px', transition: 'width .25s' }} />
+            <div style={{ width: `${progresso}%`, height: '100%', background: '#BC4A2A', borderRadius: '99px', transition: 'width .25s' }} />
           </div>
         </div>
 
@@ -714,7 +714,7 @@ function ModalLancarHorarios({ escala, employees, onClose, onSaved }) {
 
         <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
           <button onClick={handleSave} disabled={saving || done > 0}
-            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '12px', borderRadius: '11px', background: done > 0 ? '#059669' : '#FF4D0C', color: 'white', border: 'none', cursor: saving ? 'wait' : 'pointer', fontSize: '13px', fontWeight: 800 }}>
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '12px', borderRadius: '11px', background: done > 0 ? '#059669' : '#BC4A2A', color: 'white', border: 'none', cursor: saving ? 'wait' : 'pointer', fontSize: '13px', fontWeight: 800 }}>
             {saving ? <Loader2 size={14} className="animate-spin" /> : done > 0 ? <CheckCircle2 size={14} /> : <Save size={14} />}
             {saving ? 'Salvando...' : done > 0 ? `Salvo (${done})` : 'Salvar horários'}
           </button>
@@ -971,9 +971,9 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
                   setResp(emp.responsavel || '');
                   setContato(emp.telefone || '');
                 }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '8px 14px', borderRadius: '10px', border: `2px solid ${sel ? '#FF4D0C' : 'rgba(0,0,0,0.1)'}`, background: sel ? '#FFF5F2' : 'white', cursor: 'pointer' }}>
-                  <Building2 size={13} style={{ color: sel ? '#FF4D0C' : '#94A3B8' }} />
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: sel ? '#FF4D0C' : '#0F172A' }}>{emp.name}</span>
+                  style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '8px 14px', borderRadius: '10px', border: `2px solid ${sel ? '#BC4A2A' : 'rgba(0,0,0,0.1)'}`, background: sel ? '#FAF4F1' : 'white', cursor: 'pointer' }}>
+                  <Building2 size={13} style={{ color: sel ? '#BC4A2A' : '#94A3B8' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: sel ? '#BC4A2A' : '#0F172A' }}>{emp.name}</span>
                 </button>
               );
             })}
@@ -1010,10 +1010,10 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
             const sel = form.tipoServico === opt.val;
             return (
               <button key={opt.val} type="button" onClick={() => setForm(f => ({ ...f, tipoServico: opt.val }))}
-                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px', padding: '10px 14px', borderRadius: '12px', border: `1.5px solid ${sel ? '#FF4D0C' : 'rgba(0,0,0,0.1)'}`, background: sel ? '#FFF5F2' : '#F8FAFC', cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s' }}>
+                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px', padding: '10px 14px', borderRadius: '12px', border: `1.5px solid ${sel ? '#BC4A2A' : 'rgba(0,0,0,0.1)'}`, background: sel ? '#FAF4F1' : '#F8FAFC', cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s' }}>
                 <span style={{ fontSize: '16px' }}>{opt.icon}</span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: sel ? '#FF4D0C' : '#0F172A' }}>{opt.label}</span>
-                <span style={{ fontSize: '10px', color: sel ? '#FF7043' : '#94A3B8' }}>{opt.desc}</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: sel ? '#BC4A2A' : '#0F172A' }}>{opt.label}</span>
+                <span style={{ fontSize: '10px', color: sel ? '#C97A63' : '#94A3B8' }}>{opt.desc}</span>
               </button>
             );
           })}
@@ -1047,7 +1047,7 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
               Ajudantes disponíveis em {new Date(`${form.date}T12:00:00`).toLocaleDateString('pt-BR')}
             </p>
             {selected.length > 0 && (
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#BC4A2A' }}>
                 {selected.length} selecionado{selected.length !== 1 ? 's' : ''}
               </span>
             )}
@@ -1070,16 +1070,16 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
                 const sel = !!selected.find(x => x.id === emp.id);
                 return (
                   <button key={emp.id} type="button" onClick={() => toggle(emp)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '10px', border: `2px solid ${sel ? '#FF4D0C' : 'rgba(0,0,0,0.08)'}`, background: sel ? '#FFF5F2' : 'white', cursor: 'pointer', textAlign: 'left' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '10px', border: `2px solid ${sel ? '#BC4A2A' : 'rgba(0,0,0,0.08)'}`, background: sel ? '#FAF4F1' : 'white', cursor: 'pointer', textAlign: 'left' }}>
                     <div style={{ width: '30px', height: '30px', borderRadius: '9px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                       {emp.initials}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '12px', fontWeight: 600, color: sel ? '#FF4D0C' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {emp.name}{emp.cidade ? <span style={{ fontWeight: 400, color: sel ? '#FF7A45' : '#94A3B8' }}> ({emp.cidade})</span> : ''}
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: sel ? '#BC4A2A' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {emp.name}{emp.cidade ? <span style={{ fontWeight: 400, color: sel ? '#C97A63' : '#94A3B8' }}> ({emp.cidade})</span> : ''}
                       </p>
                     </div>
-                    {sel && <CheckCircle2 size={13} style={{ color: '#FF4D0C', flexShrink: 0 }} />}
+                    {sel && <CheckCircle2 size={13} style={{ color: '#BC4A2A', flexShrink: 0 }} />}
                   </button>
                 );
               })}
@@ -1122,12 +1122,12 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
         {etapa === 'selecionar' ? (
           <button type="button" disabled={selected.length === 0}
             onClick={() => setEtapa('observacoes')}
-            style={{ flex: 2, padding: '11px', borderRadius: '10px', border: 'none', cursor: selected.length === 0 ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: selected.length === 0 ? '#E2E8F0' : '#FF4D0C', color: selected.length === 0 ? '#94A3B8' : 'white' }}>
+            style={{ flex: 2, padding: '11px', borderRadius: '10px', border: 'none', cursor: selected.length === 0 ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: selected.length === 0 ? '#E2E8F0' : '#BC4A2A', color: selected.length === 0 ? '#94A3B8' : 'white' }}>
             Próximo — {selected.length} ajudante{selected.length !== 1 ? 's' : ''} selecionado{selected.length !== 1 ? 's' : ''}
           </button>
         ) : (
           <button type="submit" disabled={saving}
-            style={{ flex: 2, padding: '11px', borderRadius: '10px', background: saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700 }}>
+            style={{ flex: 2, padding: '11px', borderRadius: '10px', background: saving ? '#E2E8F0' : '#BC4A2A', color: saving ? '#94A3B8' : 'white', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700 }}>
             {saving ? 'Criando...' : 'Criar escala e enviar confirmação'}
           </button>
         )}
@@ -1333,7 +1333,7 @@ function ModalEditarEscala({ escala, employees, onClose, onSaved }) {
             <div>
               <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '8px' }}>
                 Adicionar ajudantes disponíveis
-                {novosSel.length > 0 && <span style={{ color: '#FF4D0C', marginLeft: '6px' }}>+{novosSel.length}</span>}
+                {novosSel.length > 0 && <span style={{ color: '#BC4A2A', marginLeft: '6px' }}>+{novosSel.length}</span>}
               </p>
               <div style={{ position: 'relative', marginBottom: '8px' }}>
                 <Search size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
@@ -1345,16 +1345,16 @@ function ModalEditarEscala({ escala, employees, onClose, onSaved }) {
                   const sel = !!novosSel.find(x => x.id === emp.id);
                   return (
                     <button key={emp.id} type="button" onClick={() => toggleNovo(emp)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 10px', borderRadius: '9px', border: `2px solid ${sel ? '#FF4D0C' : 'rgba(0,0,0,0.08)'}`, background: sel ? '#FFF5F2' : 'white', cursor: 'pointer', textAlign: 'left' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 10px', borderRadius: '9px', border: `2px solid ${sel ? '#BC4A2A' : 'rgba(0,0,0,0.08)'}`, background: sel ? '#FAF4F1' : 'white', cursor: 'pointer', textAlign: 'left' }}>
                       <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: emp.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                         {emp.initials}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: '12px', fontWeight: 600, color: sel ? '#FF4D0C' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {emp.name}{emp.cidade ? <span style={{ fontWeight: 400, color: sel ? '#FF7A45' : '#94A3B8' }}> ({emp.cidade})</span> : ''}
+                        <p style={{ fontSize: '12px', fontWeight: 600, color: sel ? '#BC4A2A' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {emp.name}{emp.cidade ? <span style={{ fontWeight: 400, color: sel ? '#C97A63' : '#94A3B8' }}> ({emp.cidade})</span> : ''}
                         </p>
                       </div>
-                      {sel && <CheckCircle2 size={12} style={{ color: '#FF4D0C', flexShrink: 0 }} />}
+                      {sel && <CheckCircle2 size={12} style={{ color: '#BC4A2A', flexShrink: 0 }} />}
                     </button>
                   );
                 })}
@@ -1387,7 +1387,7 @@ function ModalEditarEscala({ escala, employees, onClose, onSaved }) {
               Cancelar
             </button>
             <button onClick={handleSave} disabled={saving}
-              style={{ flex: 2, padding: '11px', borderRadius: '10px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              style={{ flex: 2, padding: '11px', borderRadius: '10px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: saving ? '#E2E8F0' : '#BC4A2A', color: saving ? '#94A3B8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               {saving ? 'Salvando...' : <><CheckCircle2 size={14} /> Salvar alterações</>}
             </button>
           </div>
@@ -1432,7 +1432,7 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
           ))}
         </div>
         <button onClick={() => setShowForm(s => !s)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, background: '#BC4A2A', color: 'white', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
           <Plus size={14} /> Nova escala
         </button>
       </div>
@@ -1721,7 +1721,7 @@ function ModalSolicitarAjudantes({ user, onClose }) {
                 Cancelar
               </button>
               <button type="submit" disabled={saving}
-                style={{ flex: 2, padding: '11px', borderRadius: '10px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: saving ? '#E2E8F0' : '#FF4D0C', color: saving ? '#94A3B8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                style={{ flex: 2, padding: '11px', borderRadius: '10px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, background: saving ? '#E2E8F0' : '#BC4A2A', color: saving ? '#94A3B8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                 {saving ? 'Enviando...' : <><Send size={14} /> Enviar ao RH</>}
               </button>
             </div>
@@ -1769,7 +1769,7 @@ function TabAjudantes({ user }) {
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <button onClick={() => setModalSolic(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '0 18px', borderRadius: '12px', background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '0 18px', borderRadius: '12px', background: '#BC4A2A', color: 'white', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
           <Plus size={15} /> Pedir + Ajudantes ao RH
         </button>
       </div>
@@ -2008,7 +2008,7 @@ function TabRelatorio({ user, escalas, employees }) {
         <button onClick={handleFinalizar} disabled={saving || saved} style={{
           width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
           fontSize: '14px', fontWeight: 700, cursor: saving || saved ? 'not-allowed' : 'pointer',
-          background: saved ? '#059669' : saving ? '#E2E8F0' : '#FF4D0C',
+          background: saved ? '#059669' : saving ? '#E2E8F0' : '#BC4A2A',
           color: saving ? '#94A3B8' : 'white',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
           transition: 'background 0.3s',
@@ -2079,7 +2079,7 @@ function TabNotas({ user, escalas, employees, onRefresh }) {
                   {avaliadas}/{total} avaliados
                 </span>
                 <button onClick={() => setAvaliando(escala)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 13px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 800, background: completa ? '#F1F5F9' : '#FF4D0C', color: completa ? '#64748B' : 'white', flexShrink: 0 }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 13px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 800, background: completa ? '#F1F5F9' : '#BC4A2A', color: completa ? '#64748B' : 'white', flexShrink: 0 }}>
                   <Star size={11} /> {completa ? 'Revisar' : 'Lançar notas'}
                 </button>
               </div>
@@ -2142,7 +2142,7 @@ export default function LiderDashboard() {
         </div>
         {tab === 'hoje' && (
           <button onClick={() => setModalFinalizar(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 2px 10px rgba(255,77,12,0.30)' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', background: '#BC4A2A', color: 'white', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 2px 10px rgba(188,74,42,0.30)' }}>
             <FileText size={15} /> Finalizar dia
           </button>
         )}

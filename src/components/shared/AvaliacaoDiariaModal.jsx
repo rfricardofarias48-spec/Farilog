@@ -170,7 +170,7 @@ export default function AvaliacaoDiariaModal({
             <div style={{ height: '7px', borderRadius: '99px', background: '#E6E6E6', overflow: 'hidden' }}>
               <div style={{
                 width: `${progresso}%`, height: '100%', borderRadius: '99px',
-                background: '#FF4D0C',
+                background: '#BC4A2A',
                 transition: 'width .25s',
               }} />
             </div>
@@ -272,11 +272,11 @@ export default function AvaliacaoDiariaModal({
           {error && (
             <div style={{
               display: 'flex', alignItems: 'flex-start', gap: '7px',
-              padding: '8px 10px', borderRadius: '8px', background: '#FFF7F4',
-              border: '1px solid #FFD9CC', marginBottom: '9px',
+              padding: '8px 10px', borderRadius: '8px', background: '#FAF4F1',
+              border: '1px solid #E4C9BF', marginBottom: '9px',
             }}>
-              <AlertTriangle size={13} style={{ color: '#C2410C', flexShrink: 0, marginTop: '1px' }} />
-              <p style={{ fontSize: '11px', color: '#C2410C', lineHeight: 1.4 }}>{error}</p>
+              <AlertTriangle size={13} style={{ color: '#9E3D22', flexShrink: 0, marginTop: '1px' }} />
+              <p style={{ fontSize: '11px', color: '#9E3D22', lineHeight: 1.4 }}>{error}</p>
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
@@ -303,10 +303,10 @@ export default function AvaliacaoDiariaModal({
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   padding: '9px 20px', borderRadius: '10px', border: 'none',
-                  background: saving || rows.length === 0 ? '#C8C8C8' : '#FF4D0C',
+                  background: saving || rows.length === 0 ? '#C8C8C8' : '#BC4A2A',
                   color: '#fff', fontSize: '12px', fontWeight: 800,
                   cursor: saving || rows.length === 0 ? 'not-allowed' : 'pointer',
-                  boxShadow: saving || rows.length === 0 ? 'none' : '0 3px 12px rgba(255,77,12,0.3)',
+                  boxShadow: saving || rows.length === 0 ? 'none' : '0 3px 12px rgba(188,74,42,0.3)',
                 }}
               >
                 {saving ? <Loader2 size={13} className="animate-spin" /> : <Star size={13} />}

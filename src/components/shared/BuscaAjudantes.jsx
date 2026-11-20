@@ -35,14 +35,18 @@ export default function BuscaAjudantes({ empresa, candidatos = [], durante = 100
 
   const visiveis  = ordenados.slice(0, revelados);
   const pontos    = visiveis.map(c => ({ ...c, coords: c.coords }));
-  const maisPerto = visiveis.length ? Math.min(...visiveis.map(v => v.distanciaKm ?? Infinity)) : null;
+  // Só considera quem tem distância calculada (senão não há "mais próximo" a exibir).
+  const maisPerto = visiveis.reduce(
+    (min, v) => (v.distanciaKm != null && (min == null || v.distanciaKm < min) ? v.distanciaKm : min),
+    null
+  );
   const progresso = total ? Math.round((revelados / total) * 100) : 100;
 
   return (
     <div className="animate-fade-up" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {/* Cabeçalho da busca */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-        <span className="animate-pulse-slow" style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FF4D0C', boxShadow: '0 0 0 4px rgba(255,77,12,0.15)', flexShrink: 0 }} />
+        <span className="animate-pulse-slow" style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#BC4A2A', boxShadow: '0 0 0 4px rgba(188,74,42,0.15)', flexShrink: 0 }} />
         <p style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>
           {feito ? 'Busca concluída' : 'Buscando ajudantes próximos e ativos…'}
         </p>
@@ -69,7 +73,7 @@ export default function BuscaAjudantes({ empresa, candidatos = [], durante = 100
       </div>
 
       <div style={{ height: '7px', borderRadius: '99px', background: '#E2E8F0', overflow: 'hidden' }}>
-        <div style={{ width: `${progresso}%`, height: '100%', background: '#FF4D0C', borderRadius: '99px', transition: 'width .25s linear' }} />
+        <div style={{ width: `${progresso}%`, height: '100%', background: '#BC4A2A', borderRadius: '99px', transition: 'width .25s linear' }} />
       </div>
 
       {/* Feed da busca */}
@@ -79,10 +83,16 @@ export default function BuscaAjudantes({ empresa, candidatos = [], durante = 100
             Nenhum ajudante ativo disponível nesta data.
           </p>
         ) : feito ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '9px 12px', borderRadius: '10px', background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
-            <CheckCircle2 size={14} style={{ color: '#047857' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#047857' }}>
-              {total} ajudante{total !== 1 ? 's' : ''} encontrado{total !== 1 ? 's' : ''} · mais próximo a {fmtDistancia(maisPerto)}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px',
+            background: '#FAFAFA', border: '1px solid rgba(0,0,0,0.07)', borderLeft: '3px solid #BC4A2A',
+          }}>
+            <CheckCircle2 size={15} style={{ color: '#0F172A', flexShrink: 0 }} />
+            <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#0F172A' }}>
+              {total} ajudante{total !== 1 ? 's' : ''} encontrado{total !== 1 ? 's' : ''}
+            </span>
+            <span style={{ marginLeft: 'auto', fontSize: '11px', fontWeight: 600, color: '#64748B' }}>
+              {maisPerto != null ? `mais próximo a ${fmtDistancia(maisPerto)}` : 'distância não informada'}
             </span>
           </div>
         ) : (
@@ -100,7 +110,7 @@ export default function BuscaAjudantes({ empresa, candidatos = [], durante = 100
       </div>
 
       <button type="button" onClick={() => onConcluir?.()} disabled={!feito}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '12px', borderRadius: '11px', border: 'none', fontSize: '13px', fontWeight: 800, cursor: feito ? 'pointer' : 'not-allowed', background: feito ? '#FF4D0C' : '#E2E8F0', color: feito ? 'white' : '#94A3B8', marginTop: '2px' }}>
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '12px', borderRadius: '11px', border: 'none', fontSize: '13px', fontWeight: 800, cursor: feito ? 'pointer' : 'not-allowed', background: feito ? '#BC4A2A' : '#E2E8F0', color: feito ? 'white' : '#94A3B8', marginTop: '2px' }}>
         <Users size={15} /> {feito ? 'Ver lista de possíveis convocados' : 'Analisando…'} {feito && <ArrowRight size={14} />}
       </button>
     </div>

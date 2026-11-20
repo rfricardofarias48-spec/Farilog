@@ -10,7 +10,7 @@ const PROX_STYLE = {
   0: { bg: '#0B0B0B', color: '#FFFFFF', border: '1px solid #0B0B0B', label: 'Mesma cidade' },
   1: { bg: '#F4F4F5', color: '#4A4A4A', border: '1px solid #F4F4F5', label: 'Mesma UF' },
   2: { bg: '#FFFFFF', color: '#6B6B6B', border: '1px solid #E6E6E6', label: 'Outra cidade' },
-  3: { bg: '#FFF7F4', color: '#C2410C', border: '1px solid #FFD9CC', label: 'Cidade não informada' },
+  3: { bg: '#FAF4F1', color: '#9E3D22', border: '1px solid #E4C9BF', label: 'Cidade não informada' },
 };
 
 export default function SugestaoAjudantesModal({
@@ -178,9 +178,9 @@ export default function SugestaoAjudantesModal({
                 style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
                   padding: '11px 22px', cursor: 'pointer',
-                  background: isSel ? '#FFF7F4' : '#fff',
+                  background: isSel ? '#FAF4F1' : '#fff',
                   borderBottom: '1px solid rgba(0,0,0,0.05)',
-                  borderLeft: isSel ? '3px solid #FF4D0C' : '3px solid transparent',
+                  borderLeft: isSel ? '3px solid #BC4A2A' : '3px solid transparent',
                   transition: 'background .12s',
                 }}
                 onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = '#F7F7F7'; }}
@@ -305,10 +305,10 @@ export default function SugestaoAjudantesModal({
               disabled={selected.length === 0}
               style={{
                 padding: '9px 20px', borderRadius: '10px', border: 'none',
-                background: selected.length === 0 ? '#C8C8C8' : '#FF4D0C',
+                background: selected.length === 0 ? '#C8C8C8' : '#BC4A2A',
                 color: '#fff', fontSize: '12px', fontWeight: 800,
                 cursor: selected.length === 0 ? 'not-allowed' : 'pointer',
-                boxShadow: selected.length === 0 ? 'none' : '0 3px 12px rgba(255,77,12,0.3)',
+                boxShadow: selected.length === 0 ? 'none' : '0 3px 12px rgba(188,74,42,0.3)',
               }}
             >
               Adicionar {selected.length > 0 ? selected.length : ''} à equipe

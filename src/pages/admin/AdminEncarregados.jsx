@@ -15,7 +15,7 @@ import {
 const T  = { color: '#0B0B0B' };
 const T2 = { color: '#4A4A4A' };
 const TM = { color: '#9A9A9A' };
-const ACCENT = '#FF4D0C';
+const ACCENT = '#BC4A2A';
 const COLORS = ['#0B0B0B', '#1C1C1C', '#2A2A2A', '#333333', '#3D3D3D', '#4A4A4A', '#5A5A5A'];
 
 const iniciaisDe = nome => (nome || '?').split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();

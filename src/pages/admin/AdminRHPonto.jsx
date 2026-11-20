@@ -90,7 +90,7 @@ export default function AdminRHPonto() {
           {selectedDate !== TODAY && (
             <button
               onClick={() => setSelectedDate(TODAY)}
-              style={{ fontSize: '11px', fontWeight: 700, color: '#FF4D0C', background: '#FFF7F4', border: 'none', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}
+              style={{ fontSize: '11px', fontWeight: 700, color: '#BC4A2A', background: '#FAF4F1', border: 'none', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}
             >
               Hoje
             </button>
@@ -108,14 +108,14 @@ export default function AdminRHPonto() {
           {
             label: 'Total Horas Extras',
             value: totalDiaHEFormatted,
-            color: totalDiaOvertimeMins > 0 ? '#FF4D0C' : '#6B6B6B',
-            bg: totalDiaOvertimeMins > 0 ? '#FFF7F4' : '#F7F7F7',
+            color: totalDiaOvertimeMins > 0 ? '#BC4A2A' : '#6B6B6B',
+            bg: totalDiaOvertimeMins > 0 ? '#FAF4F1' : '#F7F7F7',
             highlight: totalDiaOvertimeMins > 0
           },
         ].map((k, i) => (
-          <div key={i} className="card" style={{ padding: '16px', textAlign: 'center', background: k.bg, border: k.highlight ? '1.5px solid rgba(255,77,12,0.3)' : '1px solid rgba(0,0,0,0.06)' }}>
+          <div key={i} className="card" style={{ padding: '16px', textAlign: 'center', background: k.bg, border: k.highlight ? '1.5px solid rgba(188,74,42,0.3)' : '1px solid rgba(0,0,0,0.06)' }}>
             <p style={{ fontSize: '10px', color: '#6B6B6B', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-              {k.highlight && <Flame size={12} color="#FF4D0C" />}
+              {k.highlight && <Flame size={12} color="#BC4A2A" />}
               {k.label}
             </p>
             <p style={{ fontSize: '24px', fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</p>
@@ -244,8 +244,8 @@ export default function AdminRHPonto() {
                             {timeCalc.overtimeMinutes > 0 ? (
                               <span style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '3px',
-                                fontSize: '11px', fontWeight: 800, color: '#FF4D0C',
-                                background: '#FFF7F4', padding: '2px 6px', borderRadius: '5px',
+                                fontSize: '11px', fontWeight: 800, color: '#BC4A2A',
+                                background: '#FAF4F1', padding: '2px 6px', borderRadius: '5px',
                                 width: 'fit-content',
                               }}>
                                 <Flame size={12} /> +{timeCalc.overtimeFormatted} HE

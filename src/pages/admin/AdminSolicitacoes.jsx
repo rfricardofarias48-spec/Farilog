@@ -115,7 +115,7 @@ export default function AdminSolicitacoes() {
                       <p style={{ fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Icon size={10} /> {label}
                       </p>
-                      <p style={{ fontSize: big ? '24px' : '14px', fontWeight: 700, color: big ? '#FF4D0C' : '#0B0B0B', lineHeight: 1 }}>{value}</p>
+                      <p style={{ fontSize: big ? '24px' : '14px', fontWeight: 700, color: big ? '#BC4A2A' : '#0B0B0B', lineHeight: 1 }}>{value}</p>
                     </div>
                   ))}
                 </div>

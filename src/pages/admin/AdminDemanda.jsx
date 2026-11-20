@@ -27,7 +27,7 @@ function formatDate(iso) {
 export const STATUS_CONFIG = {
   aguardando: { label: 'Aguardando', color: '#6B6B6B', bg: '#F7F7F7' },
   confirmado: { label: 'Confirmado', color: '#0B0B0B', bg: '#F5F5F5' },
-  atrasado:   { label: 'Atrasado',   color: '#E03A00', bg: '#FFF7F4' },
+  atrasado:   { label: 'Atrasado',   color: '#9E3D22', bg: '#FAF4F1' },
   falta:      { label: 'Falta',      color: '#4A4A4A', bg: '#F5F5F5' },
   finalizado: { label: 'Finalizado', color: '#6B6B6B', bg: '#F5F5F5' },
 };
@@ -76,7 +76,7 @@ function OvertimeBadge({ entrada, saida, saidaAlmoco, retornoAlmoco, isCargaDesc
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: '3px',
           fontSize: '10px', fontWeight: 800, padding: '2px 7px', borderRadius: '6px',
-          background: '#FFF7F4', color: '#FF4D0C', border: '1px solid rgba(255,77,12,0.25)',
+          background: '#FAF4F1', color: '#BC4A2A', border: '1px solid rgba(188,74,42,0.25)',
         }} title={calc.hasLunch ? 'Calculado com base de 8h + 1h intervalo' : 'Calculado com base de 8h (sem intervalo)'}>
           <Flame size={11} /> +{calc.overtimeFormatted} HE
         </span>
@@ -277,8 +277,8 @@ function DemandModal({ demand, employees, onChangeStatus, onUpdateTimes, onUpdat
           {/* Três métricas em linha */}
           <div style={{ display: 'flex', gap: '10px' }}>
             {/* Horário entrada */}
-            <div style={{ flex: 1, background: '#FFF7F4', borderRadius: '12px', padding: '9px 12px', border: '1px solid rgba(255,77,12,0.12)' }}>
-              <p style={{ fontSize: '9px', fontWeight: 600, color: '#FF4D0C', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Entrada Padrão</p>
+            <div style={{ flex: 1, background: '#FAF4F1', borderRadius: '12px', padding: '9px 12px', border: '1px solid rgba(188,74,42,0.12)' }}>
+              <p style={{ fontSize: '9px', fontWeight: 600, color: '#BC4A2A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Entrada Padrão</p>
               <p style={{ fontSize: '18px', fontWeight: 800, color: '#0B0B0B', lineHeight: 1 }}>{demand.time || '—'}</p>
             </div>
             {/* Ajudantes */}
@@ -297,11 +297,11 @@ function DemandModal({ demand, employees, onChangeStatus, onUpdateTimes, onUpdat
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
             marginTop: '12px', padding: '9px 11px', borderRadius: '10px',
-            background: todasAvaliadas ? '#FAFAFA' : '#FFF7F4',
-            border: todasAvaliadas ? '1px solid #E6E6E6' : '1px solid #FFD9CC',
+            background: todasAvaliadas ? '#FAFAFA' : '#FAF4F1',
+            border: todasAvaliadas ? '1px solid #E6E6E6' : '1px solid #E4C9BF',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
-              <Star size={14} style={{ color: todasAvaliadas ? '#0B0B0B' : '#FF4D0C', flexShrink: 0 }} />
+              <Star size={14} style={{ color: todasAvaliadas ? '#0B0B0B' : '#BC4A2A', flexShrink: 0 }} />
               <div>
                 <p style={{ fontSize: '11px', fontWeight: 800, color: '#0B0B0B' }}>Notas dos ajudantes</p>
                 <p style={{ fontSize: '10px', color: '#6B6B6B' }}>
@@ -375,7 +375,7 @@ function DemandModal({ demand, employees, onChangeStatus, onUpdateTimes, onUpdat
                 onClick={() => handleApplyBatchEntrada(batchEntrada)}
                 style={{
                   fontSize: '11px', fontWeight: 700, padding: '5px 9px', borderRadius: '7px',
-                  background: '#FF4D0C', color: 'white', border: 'none', cursor: 'pointer',
+                  background: '#BC4A2A', color: 'white', border: 'none', cursor: 'pointer',
                 }}
               >
                 Aplicar Entrada
@@ -793,7 +793,7 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onU
                   padding: '14px 18px', border: 'none', background: 'white',
                   cursor: 'pointer', textAlign: 'left', gap: '14px',
                   transition: 'box-shadow 0.15s, background 0.12s',
-                  borderLeft: isToday ? '4px solid #FF4D0C' : isPast ? '4px solid #9A9A9A' : '4px solid #4A4A4A',
+                  borderLeft: isToday ? '4px solid #BC4A2A' : isPast ? '4px solid #9A9A9A' : '4px solid #4A4A4A',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#FAFAFA'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.boxShadow = ''; }}
@@ -825,7 +825,7 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onU
                       {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
                     </span>
                     {isToday && (
-                      <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFF7F4', color: '#FF4D0C' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FAF4F1', color: '#BC4A2A' }}>
                         Hoje
                       </span>
                     )}
@@ -844,7 +844,7 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onU
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', fontSize: '12px', fontWeight: 700, color: '#0B0B0B' }}>
-                      <Users size={13} style={{ color: '#FF4D0C' }} />
+                      <Users size={13} style={{ color: '#BC4A2A' }} />
                       {total} ajudante{total !== 1 ? 's' : ''}
                     </div>
                     {faltas > 0 ? (
@@ -944,7 +944,7 @@ export default function AdminDemanda() {
             {key === 'acompanhar' && demands.length > 0 && (
               <span style={{
                 fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px',
-                background: subTab === key ? '#FFF7F4' : '#E4E4E4',
+                background: subTab === key ? '#FAF4F1' : '#E4E4E4',
                 color:      subTab === key ? '#0B0B0B' : '#6B6B6B',
               }}>
                 {demands.length}

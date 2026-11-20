@@ -92,7 +92,7 @@ function ResumoDia() {
 
   const kpis = [
     { label: 'Empresas',      value: companiesWorking.length,                           icon: Building2,    color: '#4A4A4A', bg: '#F5F5F5', bar: '#4A4A4A' },
-    { label: 'Ajudantes',     value: helpersWorking.length,                             icon: Users,        color: '#E03A00', bg: '#F7F7F7', bar: '#E03A00' },
+    { label: 'Ajudantes',     value: helpersWorking.length,                             icon: Users,        color: '#9E3D22', bg: '#F7F7F7', bar: '#9E3D22' },
     { label: 'Concluídas',    value: doneRecs.length,                                   icon: CheckCircle2, color: '#0B0B0B', bg: '#F5F5F5', bar: '#0B0B0B' },
     { label: 'Em andamento',  value: activeRecs.length,                                 icon: Activity,     color: '#4A4A4A', bg: '#F5F5F5', bar: '#4A4A4A' },
     { label: 'Assertividade', value: assertividade !== null ? `${assertividade}%` : '—', icon: TrendingUp,   color: '#4A4A4A', bg: '#F7F7F7', bar: '#4A4A4A' },
@@ -105,8 +105,8 @@ function ResumoDia() {
       <div className="rounded-2xl p-5 flex items-center justify-between animate-fade-up"
         style={{ background: '#fff', border: '1px solid rgba(11, 11, 11,0.06)', boxShadow: '0 1px 3px rgba(11, 11, 11,0.04)' }}>
         <div className="flex items-center gap-3">
-          <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg,#FFF7F4,#FFE6D9)', border: '1px solid rgba(255,77,12,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CalendarDays size={20} style={{ color: '#FF4D0C' }} />
+          <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg,#FAF4F1,#F0DFD8)', border: '1px solid rgba(188,74,42,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CalendarDays size={20} style={{ color: '#BC4A2A' }} />
           </div>
           <div>
             <p style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#0B0B0B' }}>{dateLabel}</p>
@@ -115,7 +115,7 @@ function ResumoDia() {
         </div>
         <div style={{ textAlign: 'right' }}>
           <p style={{ fontSize: '11px', color: '#9A9A9A', marginBottom: '4px' }}>Faturamento do dia</p>
-          <p style={{ fontSize: '28px', fontWeight: 900, color: '#FF4D0C', lineHeight: 1 }}>{fmtCurrency(faturamentoDia)}</p>
+          <p style={{ fontSize: '28px', fontWeight: 900, color: '#BC4A2A', lineHeight: 1 }}>{fmtCurrency(faturamentoDia)}</p>
         </div>
       </div>
 
@@ -139,7 +139,7 @@ function ResumoDia() {
       <div className="card overflow-hidden">
         <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
           <div className="flex items-center gap-2">
-            <ClipboardList size={14} style={{ color: '#FF4D0C' }} />
+            <ClipboardList size={14} style={{ color: '#BC4A2A' }} />
             <p className="text-sm font-bold" style={T}>Demandas de Hoje</p>
           </div>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F5F5F5', color: '#6B6B6B' }}>
@@ -325,7 +325,7 @@ function Historico() {
               <button key={val} onClick={() => handleViewBy(val)}
                 className="flex items-center gap-2 flex-1 justify-center py-2.5 rounded-xl text-xs font-semibold border transition-all"
                 style={{
-                  background:  viewBy === val ? (val === 'empresa' ? '#FFF7F4' : '#F7F7F7') : '#F7F7F7',
+                  background:  viewBy === val ? (val === 'empresa' ? '#FAF4F1' : '#F7F7F7') : '#F7F7F7',
                   borderColor: viewBy === val ? '#0B0B0B' : 'rgba(0,0,0,0.08)',
                   color:       viewBy === val ? '#0B0B0B' : '#9A9A9A',
                   cursor: 'pointer',
@@ -747,7 +747,7 @@ function Relatorios() {
         </div>
         <button onClick={exportPDF} disabled={!selected}
           className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
-          style={{ background: selected ? '#FF4D0C' : '#E4E4E4', color: selected ? 'white' : '#9A9A9A', border: 'none', cursor: selected ? 'pointer' : 'not-allowed', boxShadow: selected ? '0 2px 8px rgba(255,77,12,0.3)' : 'none' }}>
+          style={{ background: selected ? '#BC4A2A' : '#E4E4E4', color: selected ? 'white' : '#9A9A9A', border: 'none', cursor: selected ? 'pointer' : 'not-allowed', boxShadow: selected ? '0 2px 8px rgba(188,74,42,0.3)' : 'none' }}>
           <FileDown size={13} /> Exportar PDF
         </button>
       </div>
@@ -763,7 +763,7 @@ function Relatorios() {
               <button key={val} onClick={() => handleViewBy(val)}
                 className="flex items-center gap-2 flex-1 justify-center py-2.5 rounded-xl text-xs font-semibold border transition-all"
                 style={{
-                  background:  viewBy === val ? (val === 'empresa' ? '#FFF7F4' : '#F7F7F7') : '#F7F7F7',
+                  background:  viewBy === val ? (val === 'empresa' ? '#FAF4F1' : '#F7F7F7') : '#F7F7F7',
                   borderColor: viewBy === val ? '#0B0B0B' : 'rgba(0,0,0,0.08)',
                   color:       viewBy === val ? '#0B0B0B' : '#9A9A9A',
                   cursor: 'pointer',
