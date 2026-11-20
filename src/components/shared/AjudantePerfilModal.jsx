@@ -85,6 +85,11 @@ export default function AjudantePerfilModal({ employee, onClose }) {
                 </span>
               )}
             </div>
+            {employee?.address && (
+              <p style={{ fontSize: '11px', color: '#6B6B6B', marginTop: '4px', lineHeight: 1.4 }}>
+                {[employee.address, employee.neighborhood, employee.zip, employee.city].filter(Boolean).join(' · ')}
+              </p>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {employee?.phone && (

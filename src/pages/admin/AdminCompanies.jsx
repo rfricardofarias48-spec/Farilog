@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fmtCurrency } from '../../data/mockData';
 import { createCompany, updateCompany, deleteCompany } from '../../lib/db';
-import { Plus, Edit2, Trash2, X, Building2, Search, Phone, Mail } from 'lucide-react';
-const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', dailyRate: 150, valorDescarga: 0, prazoPagamento: 5 };
+import { parseEmpresaLocalizacao } from '../../lib/cidades';
+import SeletorLocalizacao from '../../components/shared/SeletorLocalizacao';
+import { Plus, Edit2, Trash2, X, Building2, Search, Phone, Mail, MapPin } from 'lucide-react';
+const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', latitude: null, longitude: null, dailyRate: 150, valorDescarga: 0, prazoPagamento: 5 };
 const T  = { color: '#0B0B0B' };
 const T2 = { color: '#4A4A4A' };
 const TM = { color: '#9A9A9A' };
@@ -14,6 +16,7 @@ function Modal({ company, onSave, onClose }) {
   const rate    = Number(form.dailyRate) || 0;
   const he50    = (rate / 8 * 1.5).toFixed(2);
   const he100   = (rate / 8 * 2).toFixed(2);
+  const local   = parseEmpresaLocalizacao({ endereco: form.address, localizacao: form.location });
 
   const field = (key, label, opts = {}) => (
     <div key={key} className={opts.col === 2 ? 'col-span-2' : ''}>
@@ -75,8 +78,32 @@ function Modal({ company, onSave, onClose }) {
               <p className="text-xs mt-1" style={{ color: '#9A9A9A' }}>Valor cobrado por carreta descarregada. Usado no cálculo de serviços de carga e descarga.</p>
             </div>
             {/* Linha 5: Endereço (full) */}
-            {field('address',  'Endereço completo', { col: 2 })}
+            {field('address',  'Endereço completo (inclua a cidade)', { col: 2, placeholder: 'Rua, nº - Bairro, Cidade - UF, CEP' })}
             {field('location', 'Link de localização (Google Maps)', { col: 2, placeholder: 'https://maps.google.com/...' })}
+            <div className="col-span-2" style={{ marginTop: '-3px' }}>
+              {local.city ? (
+                <p style={{ fontSize: '11px', lineHeight: 1.5, fontWeight: 600, color: '#0B0B0B' }}>
+                  📍 Cidade detectada: <b>{local.city}{local.uf ? `/${local.uf}` : ''}</b>
+                  {' '}— usada nas buscas por proximidade e nas escalas.
+                </p>
+              ) : (
+                <p style={{ fontSize: '11px', lineHeight: 1.5, fontWeight: 600, color: '#9E3D22' }}>
+                  ⚠️ Não consegui identificar a cidade. Inclua “Cidade - UF” no endereço
+                  (ex.: Cachoeirinha - RS). Links curtos do Google Maps não informam a cidade.
+                </p>
+              )}
+            </div>
+            <div className="col-span-2">
+              <SeletorLocalizacao
+                latitude={form.latitude}
+                longitude={form.longitude}
+                cidade={local.city}
+                endereco={form.address}
+                bairro=""
+                cep=""
+                onChange={(lat, lng) => setForm(f => ({ ...f, latitude: lat, longitude: lng }))}
+              />
+            </div>
             {/* Linha 6: HE calculadas (full) */}
             <div className="col-span-2 flex gap-3">
               <div className="flex-1 rounded-xl px-4 py-2.5" style={{ background: '#FAF4F1', border: '1px solid rgba(188,74,42,0.15)' }}>
@@ -108,7 +135,9 @@ export default function AdminCompanies() {
   const filtered = companies.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     (c.cnpj || '').includes(search) ||
-    (c.contact || '').toLowerCase().includes(search.toLowerCase())
+    (c.contact || '').toLowerCase().includes(search.toLowerCase()) ||
+    (c.city || '').toLowerCase().includes(search.toLowerCase()) ||
+    (c.address || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const handleSave = async (form) => {
@@ -166,7 +195,8 @@ export default function AdminCompanies() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold truncate" style={T}>{c.name}</p>
-                    <div className="flex gap-3 mt-0.5">
+                    <div className="flex gap-3 mt-0.5 flex-wrap">
+                      {c.city && <span className="flex items-center gap-1 text-xs" style={TM}><MapPin size={9}/>{c.city}</span>}
                       <span className="flex items-center gap-1 text-xs" style={TM}><Phone size={9}/>{c.phone}</span>
                       <span className="flex items-center gap-1 text-xs" style={TM}><Mail size={9}/>{c.email}</span>
                     </div>

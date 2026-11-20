@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { calculateWorkAndOvertime, overtimeMinutesToTimeString, recordRevenue } from './timeUtils';
 import { getCompanyCity, rankCandidatos, avatarTone, compararProximidade } from './notas';
 import { coordsFuncionario, coordsEmpresa, distanciaKm, jitterCoords } from './geo';
+import { parseCidade, parseEmpresaLocalizacao, normalizarCidade, cidadeMaisProxima, coordsDeLink } from './cidades.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -11,6 +12,12 @@ function fmtHHMM(t) {
   const parts = String(t).split(':');
   return `${parts[0].padStart(2,'0')}:${(parts[1] ?? '00').padStart(2,'0')}`;
 }
+
+// Colunas base do funcionário e extensão opcional com o endereço residencial.
+const EMPLOYEE_BASE_COLUMNS =
+  'id, nome, iniciais, cor, cargo, telefone, cidade, latitude, longitude, diaria, status';
+const EMPLOYEE_ADDRESS_COLUMNS =
+  `${EMPLOYEE_BASE_COLUMNS}, endereco, bairro, cep, localizacao`;
 
 // ── Mappers ────────────────────────────────────────────────────────────────
 
@@ -52,7 +59,13 @@ function mapEmployee(r) {
     overtimeRate:    Number(r.hora_extra ?? 50),
     vtDiario:        Number(r.vt_diario ?? 0),
     vrDiario:        Number(r.vr_diario ?? 0),
-    cidade:          r.cidade || '',
+    cidade:          normalizarCidade(r.cidade),
+    address:         r.endereco || '',
+    neighborhood:    r.bairro || '',
+    zip:             r.cep || '',
+    location:        r.localizacao || '',
+    latitude:        r.latitude == null ? null : Number(r.latitude),
+    longitude:       r.longitude == null ? null : Number(r.longitude),
     dataContratacao: r.data_contratacao || null,
     documentoUrl:    r.documento_url || null,
   };
@@ -60,6 +73,7 @@ function mapEmployee(r) {
 
 function mapCompany(r) {
   if (!r) return null;
+  const local = parseEmpresaLocalizacao({ endereco: r.endereco, localizacao: r.localizacao });
   return {
     id:        r.id,
     name:      r.nome,
@@ -70,6 +84,10 @@ function mapCompany(r) {
     contact:   r.responsavel,
     address:   r.endereco,
     location:  r.localizacao,
+    city:      local.display || '',
+    cityUf:    local.uf || null,
+    latitude:  r.latitude == null ? null : Number(r.latitude),
+    longitude: r.longitude == null ? null : Number(r.longitude),
     dailyRate:      Number(r.diaria ?? 150),
     valorDescarga:  Number(r.valor_descarga ?? 0),
     prazoPagamento: Number(r.prazo_pagamento ?? 5),
@@ -196,28 +214,89 @@ export async function fetchEmployees() {
   return data.map(mapEmployee);
 }
 
+// Colunas de endereço são opcionais no banco: se a migração ainda não rodou,
+// o salvamento continua funcionando sem elas (a busca cai para a cidade).
+function missingColumnName(error) {
+  const msg = String(error?.message || '');
+  if (!isMissingColumn(error)) return null;
+  const m = msg.match(/column "([^"]+)" of relation/i)
+    || msg.match(/column (?:[a-z_]+\.)?([a-z_]+) does not exist/i)
+    || msg.match(/the '([^']+)' column/i);
+  return m ? (m[1] || m[2] || m[3]) : null;
+}
+
+function coordsDoCadastro(emp) {
+  const latRaw = emp?.latitude;
+  const lngRaw = emp?.longitude;
+  if (latRaw !== null && latRaw !== undefined && latRaw !== '' &&
+      lngRaw !== null && lngRaw !== undefined && lngRaw !== '') {
+    const lat = Number(latRaw);
+    const lng = Number(lngRaw);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)) {
+      return { lat, lng };
+    }
+  }
+  return coordsDeLink(emp?.location || emp?.localizacao);
+}
+
+async function insertEmployeeRow(payload) {
+  let atual = { ...payload };
+  for (let tentativa = 0; tentativa < 8; tentativa++) {
+    const { data, error } = await supabase.from('funcionarios').insert(atual).select().single();
+    if (!error) return { data, error: null };
+    const col = missingColumnName(error);
+    if (!col || !(col in atual)) return { data: null, error };
+    console.warn(`[db] createEmployee: coluna ${col} ausente — rode supabase/funcionario-endereco.sql. Salvando sem ela.`);
+    delete atual[col];
+  }
+  return { data: null, error: new Error('Não foi possível salvar o funcionário.') };
+}
+
+async function updateEmployeeRow(id, patch) {
+  let atual = { ...patch };
+  for (let tentativa = 0; tentativa < 8; tentativa++) {
+    const { data, error } = await supabase
+      .from('funcionarios')
+      .update(atual)
+      .eq('id', id)
+      .select()
+      .single();
+    if (!error) return { data, error: null };
+    const col = missingColumnName(error);
+    if (!col || !(col in atual)) return { data: null, error };
+    console.warn(`[db] updateEmployee: coluna ${col} ausente — rode supabase/funcionario-endereco.sql. Salvando sem ela.`);
+    delete atual[col];
+  }
+  return { data: null, error: new Error('Não foi possível salvar o funcionário.') };
+}
+
 export async function createEmployee(emp) {
-  const { data, error } = await supabase
-    .from('funcionarios')
-    .insert({
-      id:       emp.id,
-      nome:     emp.name,
-      cargo:    emp.cargo || 'Ajudante de Logística',
-      cpf:      emp.cpf || null,
-      telefone: emp.phone || null,
-      email:    emp.email || null,
-      senha:    emp.password,
-      iniciais: emp.initials,
-      cor:      emp.color,
-      status:   emp.status || 'active',
-      diaria:   emp.dailyRate,
-      hora_extra: emp.overtimeRate ?? 50,
-      data_contratacao: emp.dataContratacao || null,
-      cidade: emp.cidade || null,
-      documento_url: emp.documentoUrl || null,
-    })
-    .select()
-    .single();
+  const coords = coordsDoCadastro(emp);
+  const payload = {
+    id:       emp.id,
+    nome:     emp.name,
+    cargo:    emp.cargo || 'Ajudante de Logística',
+    cpf:      emp.cpf || null,
+    telefone: emp.phone || null,
+    email:    emp.email || null,
+    senha:    emp.password,
+    iniciais: emp.initials,
+    cor:      emp.color,
+    status:   emp.status || 'active',
+    diaria:   emp.dailyRate,
+    hora_extra: emp.overtimeRate ?? 50,
+    data_contratacao: emp.dataContratacao || null,
+    cidade:   normalizarCidade(emp.cidade) || null,
+    documento_url: emp.documentoUrl || null,
+    latitude:  coords?.lat ?? null,
+    longitude: coords?.lng ?? null,
+  };
+  if (emp.address)      payload.endereco    = emp.address;
+  if (emp.neighborhood) payload.bairro      = emp.neighborhood;
+  if (emp.zip)          payload.cep         = emp.zip;
+  if (emp.location)     payload.localizacao = emp.location;
+
+  const { data, error } = await insertEmployeeRow(payload);
   if (error) { console.error('[db] createEmployee:', error.message); return null; }
   return mapEmployee(data);
 }
@@ -236,15 +315,36 @@ export async function updateEmployee(id, emp) {
   if (emp.overtimeRate !== undefined) patch.hora_extra = emp.overtimeRate;
   if (emp.vtDiario     !== undefined) patch.vt_diario  = emp.vtDiario;
   if (emp.vrDiario     !== undefined) patch.vr_diario  = emp.vrDiario;
-  if (emp.cidade       !== undefined) patch.cidade     = emp.cidade;
+  if (emp.cidade       !== undefined) patch.cidade     = normalizarCidade(emp.cidade);
   if (emp.documentoUrl !== undefined) patch.documento_url = emp.documentoUrl;
 
-  const { data, error } = await supabase
-    .from('funcionarios')
-    .update(patch)
-    .eq('id', id)
-    .select()
-    .single();
+  if (emp.address      !== undefined) patch.endereco    = emp.address || null;
+  if (emp.neighborhood !== undefined) patch.bairro      = emp.neighborhood || null;
+  if (emp.zip          !== undefined) patch.cep         = emp.zip || null;
+  if (emp.location     !== undefined) patch.localizacao = emp.location || null;
+
+  const latInformada = emp.latitude;
+  const lngInformada = emp.longitude;
+  const linkCoords   = coordsDeLink(emp.location || emp.localizacao);
+  if (latInformada !== undefined || lngInformada !== undefined) {
+    const lat = Number(latInformada);
+    const lng = Number(lngInformada);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)) {
+      patch.latitude  = lat;
+      patch.longitude = lng;
+    } else if (linkCoords) {
+      patch.latitude  = linkCoords.lat;
+      patch.longitude = linkCoords.lng;
+    } else {
+      patch.latitude  = null;
+      patch.longitude = null;
+    }
+  } else if (linkCoords) {
+    patch.latitude  = linkCoords.lat;
+    patch.longitude = linkCoords.lng;
+  }
+
+  const { data, error } = await updateEmployeeRow(id, patch);
   if (error) { console.error('[db] updateEmployee:', error.message); return null; }
   return mapEmployee(data);
 }
@@ -296,6 +396,7 @@ function missingPrazoColumn(error) {
 }
 
 export async function createCompany(co) {
+  const coords = coordsDoCadastro(co);
   const payload = {
     id:          co.id,
     nome:        co.name,
@@ -306,6 +407,8 @@ export async function createCompany(co) {
     responsavel: co.contact || null,
     endereco:    co.address || null,
     localizacao: co.location || null,
+    latitude:    coords?.lat ?? null,
+    longitude:   coords?.lng ?? null,
     diaria:          co.dailyRate ?? 150,
     valor_descarga:  co.valorDescarga ?? 0,
     prazo_pagamento: co.prazoPagamento ?? 5,
@@ -333,6 +436,27 @@ export async function updateCompany(id, co) {
   if (co.dailyRate      !== undefined) patch.diaria          = co.dailyRate;
   if (co.valorDescarga  !== undefined) patch.valor_descarga  = co.valorDescarga;
   if (co.prazoPagamento !== undefined) patch.prazo_pagamento = co.prazoPagamento;
+
+  const latInformada = co.latitude;
+  const lngInformada = co.longitude;
+  const linkCoords   = coordsDeLink(co.location || co.localizacao);
+  if (latInformada !== undefined || lngInformada !== undefined) {
+    const lat = Number(latInformada);
+    const lng = Number(lngInformada);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)) {
+      patch.latitude  = lat;
+      patch.longitude = lng;
+    } else if (linkCoords) {
+      patch.latitude  = linkCoords.lat;
+      patch.longitude = linkCoords.lng;
+    } else {
+      patch.latitude  = null;
+      patch.longitude = null;
+    }
+  } else if (linkCoords) {
+    patch.latitude  = linkCoords.lat;
+    patch.longitude = linkCoords.lng;
+  }
 
   let { data, error } = await supabase
     .from('empresas')
@@ -794,7 +918,7 @@ export async function deleteLider(id) {
 export async function fetchEmpresasDoLider(liderId) {
   const { data, error } = await supabase
     .from('lider_empresas')
-    .select('empresa_id, empresas(id, nome, telefone, responsavel)')
+    .select('empresa_id, empresas(id, nome, telefone, responsavel, endereco, localizacao, latitude, longitude)')
     .eq('lider_id', liderId);
   if (error) { console.error('[db] fetchEmpresasDoLider:', error.message); return []; }
   return (data || []).map(r => ({
@@ -802,6 +926,11 @@ export async function fetchEmpresasDoLider(liderId) {
     name:        r.empresas?.nome        || '—',
     telefone:    r.empresas?.telefone    || null,
     responsavel: r.empresas?.responsavel || null,
+    address:     r.empresas?.endereco    || '',
+    location:    r.empresas?.localizacao || '',
+    city:        getCompanyCity({ address: r.empresas?.endereco, location: r.empresas?.localizacao }),
+    latitude:    r.empresas?.latitude == null ? null : Number(r.empresas.latitude),
+    longitude:   r.empresas?.longitude == null ? null : Number(r.empresas.longitude),
   }));
 }
 
@@ -1253,23 +1382,37 @@ export async function fetchAjudantesDisponiveis(data) {
 
   const { data: rows, error } = await q.order('nome');
   if (error) { console.error('[db] fetchAjudantesDisponiveis rows:', error.message); return []; }
-  return rows.map(r => ({ ...r, name: r.nome, initials: r.iniciais, color: avatarTone(r.id || r.nome), dailyRate: Number(r.diaria), cidade: r.cidade || '' }));
+  return rows.map(r => ({ ...r, name: r.nome, initials: r.iniciais, color: avatarTone(r.id || r.nome), dailyRate: Number(r.diaria), cidade: normalizarCidade(r.cidade) }));
 }
 
 export async function fetchTodosAjudantes() {
-  const { data, error } = await supabase
+  const base = 'id, nome, iniciais, cor, status, cargo, cidade, latitude, longitude, data_contratacao';
+  let res = await supabase
     .from('funcionarios')
-    .select('id, nome, iniciais, cor, status, cargo, cidade, data_contratacao')
+    .select(`${base}, endereco, bairro, cep, localizacao`)
     .eq('status', 'active')
     .order('nome');
-  if (error) { console.error('[db] fetchTodosAjudantes:', error.message); return []; }
-  return (data || []).map(r => ({
+  if (res.error && isMissingColumn(res.error)) {
+    res = await supabase
+      .from('funcionarios')
+      .select(base)
+      .eq('status', 'active')
+      .order('nome');
+  }
+  if (res.error) { console.error('[db] fetchTodosAjudantes:', res.error.message); return []; }
+  return (res.data || []).map(r => ({
     id:              r.id,
     name:            r.nome,
     initials:        r.iniciais,
     color:           avatarTone(r.id || r.nome),
     cargo:           r.cargo || '—',
-    cidade:          r.cidade || '—',
+    cidade:          normalizarCidade(r.cidade) || '—',
+    address:         r.endereco || '',
+    neighborhood:    r.bairro || '',
+    zip:             r.cep || '',
+    location:        r.localizacao || '',
+    latitude:        r.latitude == null ? null : Number(r.latitude),
+    longitude:       r.longitude == null ? null : Number(r.longitude),
     dataContratacao: r.data_contratacao || null,
   }));
 }
@@ -1511,7 +1654,7 @@ export async function fetchRecargas(tipo) {
     nome:          r.funcionarios?.nome || '—',
     iniciais:      r.funcionarios?.iniciais || '?',
     cor:           avatarTone(r.funcionarios?.id || r.funcionarios?.nome),
-    cidade:        r.funcionarios?.cidade || '',
+    cidade:        normalizarCidade(r.funcionarios?.cidade),
     tipo:          r.tipo,
     dias:          r.dias,
     valorDia:      Number(r.valor_dia),
@@ -1805,14 +1948,29 @@ export async function fetchCandidatosEscala({ companyId, date, incluirEscalados 
   const [companyRes, empsRes, medias, regsRes] = await Promise.all([
     supabase
       .from('empresas')
-      .select('id, nome, endereco, localizacao, diaria')
+      .select('id, nome, endereco, localizacao, diaria, latitude, longitude')
       .eq('id', companyId)
       .maybeSingle(),
     supabase
-      .from('funcionarios')
-      .select('id, nome, iniciais, cor, cargo, telefone, cidade, diaria, status')
-      .eq('status', 'active')
-      .order('nome'),
+      .from('empresas')
+      .select('id, nome, endereco, localizacao, diaria, latitude, longitude')
+      .eq('id', companyId)
+      .maybeSingle(),
+    (async () => {
+      let res = await supabase
+        .from('funcionarios')
+        .select(EMPLOYEE_ADDRESS_COLUMNS)
+        .eq('status', 'active')
+        .order('nome');
+      if (res.error && isMissingColumn(res.error)) {
+        res = await supabase
+          .from('funcionarios')
+          .select(EMPLOYEE_BASE_COLUMNS)
+          .eq('status', 'active')
+          .order('nome');
+      }
+      return res;
+    })(),
     fetchMediasNotas(),
     supabase
       .from('registros')
@@ -1826,15 +1984,38 @@ export async function fetchCandidatosEscala({ companyId, date, incluirEscalados 
 
   const companyRow = companyRes.data;
   const escalados  = new Set((regsRes.data || []).map(r => r.funcionario_id));
-  const empresaCidade = getCompanyCity({
-    address:  companyRow?.endereco,
-    location: companyRow?.localizacao,
+  const empresaLocal = parseEmpresaLocalizacao({
+    endereco:    companyRow?.endereco,
+    localizacao: companyRow?.localizacao,
   });
+  let empresaCidade = empresaLocal.display || empresaLocal.city || '';
+  let empresaUf     = empresaLocal.uf || null;
+  let empresaKey    = empresaLocal.key || '';
+  let empresaSource = empresaLocal.source || null;
+
+  // Endereço sem cidade, mas com coordenada (link completo do Maps): usa a
+  // cidade conhecida mais próxima para não perder o ranking por proximidade.
+  if (!empresaCidade) {
+    const coords = coordsEmpresa({
+      endereco: companyRow?.endereco,
+      localizacao: companyRow?.localizacao,
+      latitude: companyRow?.latitude,
+      longitude: companyRow?.longitude,
+    });
+    const near = cidadeMaisProxima(coords, 30);
+    if (near) {
+      empresaCidade = near.name;
+      empresaUf = near.uf;
+      empresaKey = near.key;
+      empresaSource = 'coordenadas';
+    }
+  }
 
   const candidates = (empsRes.data || [])
     .filter(e => incluirEscalados || !escalados.has(e.id))
     .map(e => {
       const m = medias[e.id] || {};
+      const local = parseCidade(e.cidade);
       return {
         id:              e.id,
         name:            e.nome,
@@ -1842,7 +2023,15 @@ export async function fetchCandidatosEscala({ companyId, date, incluirEscalados 
         color:           avatarTone(e.id || e.nome),
         cargo:           e.cargo,
         phone:           e.telefone,
-        cidade:          e.cidade || '',
+        cidade:          local.display || normalizarCidade(e.cidade) || '',
+        cidadeUf:        local.uf || null,
+        cidadeKey:       local.key || '',
+        address:         e.endereco || '',
+        neighborhood:    e.bairro || '',
+        zip:             e.cep || '',
+        location:        e.localizacao || '',
+        latitude:        e.latitude ?? null,
+        longitude:       e.longitude ?? null,
         dailyRate:       Number(e.diaria ?? 0),
         media:           m.media ?? null,
         totalAvaliacoes: m.total ?? 0,
@@ -1856,6 +2045,9 @@ export async function fetchCandidatosEscala({ companyId, date, incluirEscalados 
       id:         companyRow.id,
       name:       companyRow.nome,
       city:       empresaCidade,
+      cityUf:     empresaUf,
+      cityKey:    empresaKey,
+      citySource: empresaSource,
       dailyRate:  Number(companyRow.diaria ?? 0),
     } : null,
     candidates: rankCandidatos(candidates, empresaCidade),
@@ -1943,12 +2135,33 @@ export async function fetchEmpresaResumo(companyId) {
   if (error) { console.error('[db] fetchEmpresaResumo:', error.message); return null; }
   if (!data) return null;
   const coords = coordsEmpresa(data);
+  const local = parseEmpresaLocalizacao({ endereco: data.endereco, localizacao: data.localizacao });
+  let city      = local.display || local.city || '';
+  let cityUf    = local.uf || null;
+  let cityKey   = local.key || '';
+  let citySource = local.source || null;
+
+  // Sem cidade no endereço, mas com coordenada (link completo do Maps ou
+  // cadastro): usa a cidade conhecida mais próxima como rótulo.
+  if (!city && coords) {
+    const near = cidadeMaisProxima(coords, 30);
+    if (near) {
+      city = near.name;
+      cityUf = near.uf;
+      cityKey = near.key;
+      citySource = 'coordenadas';
+    }
+  }
+
   return {
     id:        data.id,
     name:      data.nome,
     address:   data.endereco || '',
     location:  data.localizacao || '',
-    city:      getCompanyCity({ address: data.endereco, location: data.localizacao }),
+    city,
+    cityUf,
+    cityKey,
+    citySource,
     dailyRate: Number(data.diaria ?? 0),
     prazoPagamento: Number(data.prazo_pagamento ?? 5),
     raioKm:    Number(data.raio_km ?? 40),
@@ -1981,9 +2194,13 @@ export async function fetchUltimosEscaladosDaEmpresa(companyId, excludeDate) {
   if (!ids.length) return { company, list: [], lastDate: lastEscala.data };
 
   const [empsRes, medias] = await Promise.all([
-    supabase.from('funcionarios')
-      .select('id, nome, iniciais, telefone, cidade, diaria, latitude, longitude, status')
-      .in('id', ids),
+    (async () => {
+      let res = await supabase.from('funcionarios').select(EMPLOYEE_ADDRESS_COLUMNS).in('id', ids);
+      if (res.error && isMissingColumn(res.error)) {
+        res = await supabase.from('funcionarios').select(EMPLOYEE_BASE_COLUMNS).in('id', ids);
+      }
+      return res;
+    })(),
     fetchMediasNotas(),
   ]);
 
@@ -1992,18 +2209,27 @@ export async function fetchUltimosEscaladosDaEmpresa(companyId, excludeDate) {
     .map(e => {
       const m = medias[e.id] || {};
       const ponto = coordsFuncionario(e);
+      const local = parseCidade(e.cidade);
+      const cidade = local.display || normalizarCidade(e.cidade) || '';
       return {
         id:        e.id,
         name:      e.nome,
         initials:  e.iniciais,
         phone:     e.telefone,
-        cidade:    e.cidade || '',
+        cidade,
+        cidadeUf:  local.uf || null,
+        address:       e.endereco || '',
+        neighborhood:  e.bairro || '',
+        zip:           e.cep || '',
+        location:      e.localizacao || '',
+        latitude:      e.latitude ?? null,
+        longitude:     e.longitude ?? null,
         dailyRate: Number(e.diaria ?? 0),
         media:     m.media ?? null,
         totalAvaliacoes: m.total ?? 0,
         distanciaKm: distanciaKm(ponto, company.coords),
         distanciaExata: !!ponto?.exata,
-        proximidadeLabel: compararProximidade(e.cidade, company.city).label,
+        proximidadeLabel: compararProximidade(cidade, company.city).label,
         color:     avatarTone(e.id || e.nome),
       };
     })
@@ -2022,7 +2248,13 @@ export async function fetchCandidatosComDistancia({ companyId, date, incluirEsca
   // segue estritamente distância → nota. Só o ponto desenhado no mapa recebe um
   // pequeno deslocamento quando não há coordenada exata, para não empilhar.
   const candidatos = (base.candidates || []).map(c => {
-    const ponto = coordsFuncionario({ cidade: c.cidade });
+    const ponto = coordsFuncionario({
+      cidade: c.cidade,
+      endereco: c.address,
+      localizacao: c.location,
+      latitude: c.latitude,
+      longitude: c.longitude,
+    });
     const exata = !!ponto?.exata;
     return {
       ...c,

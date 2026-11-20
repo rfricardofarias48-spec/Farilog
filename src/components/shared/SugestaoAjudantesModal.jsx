@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Search, Sparkles, MapPin, CheckCircle2, Loader2, Users } from 'lucide-react';
-import { fetchCandidatosEscala } from '../../lib/db';
-import { fmtDataCurta, fmtNota, notaCor } from '../../lib/notas';
+import { fetchCandidatosComDistancia } from '../../lib/db';
+import { fmtDataCurta, fmtNota, notaCor, normalizeText } from '../../lib/notas';
+import { fmtDistancia } from '../../lib/geo';
 import { NotaBadge, StarsDisplay } from './StarRating';
 import WhatsAppButton from './WhatsAppButton';
 
@@ -29,7 +30,7 @@ export default function SugestaoAjudantesModal({
     let alive = true;
     if (!companyId || !date) { setLoading(false); return undefined; }
     setLoading(true);
-    fetchCandidatosEscala({ companyId, date }).then(res => {
+    fetchCandidatosComDistancia({ companyId, date }).then(res => {
       if (!alive) return;
       setData(res);
       setLoading(false);
@@ -44,12 +45,12 @@ export default function SugestaoAjudantesModal({
   }, [onClose]);
 
   const candidatos = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = normalizeText(search);
     if (!q) return data.candidates;
     return data.candidates.filter(c =>
-      String(c.name || '').toLowerCase().includes(q) ||
-      String(c.cidade || '').toLowerCase().includes(q) ||
-      String(c.cargo || '').toLowerCase().includes(q)
+      normalizeText(c.name).includes(q) ||
+      normalizeText(c.cidade).includes(q) ||
+      normalizeText(c.cargo).includes(q)
     );
   }, [data.candidates, search]);
 
@@ -101,8 +102,10 @@ export default function SugestaoAjudantesModal({
                 Ajudantes sugeridos para {empresa?.name || 'a empresa'}
               </p>
               <p style={{ fontSize: '11px', color: '#6B6B6B', marginTop: '2px', lineHeight: 1.5 }}>
-                Ordem: <b>proximidade da empresa</b> → <b>nota média</b>. Quem já está escalado neste dia não aparece.
-                {empresa?.city ? ` Cidade da empresa: ${empresa.city}.` : ''}
+                Ordem: <b>distância real até a empresa</b> → <b>nota média</b>. Quem já está escalado neste dia não aparece.
+                {empresa?.city
+                  ? ` Cidade da empresa: ${empresa.city}.`
+                  : ' Cidade da empresa não identificada — complete o endereço no cadastro da empresa.'}
               </p>
             </div>
             <button
@@ -225,6 +228,7 @@ export default function SugestaoAjudantesModal({
                       background: prox.bg, color: prox.color, border: prox.border,
                     }}>
                       {c.proximidadeLabel || prox.label}
+                      {c.distanciaExata && c.distanciaKm != null ? ` · ${fmtDistancia(c.distanciaKm)}` : ''}
                     </span>
                     {jaNaEquipe.has(c.id) && (
                       <span style={{

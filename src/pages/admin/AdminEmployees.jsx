@@ -2,12 +2,19 @@ import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fmtDate } from '../../data/mockData';
 import { createEmployee, updateEmployee, deleteEmployee, uploadDocumentoFuncionario, fetchMediasNotas } from '../../lib/db';
-import { fmtNota, notaCor } from '../../lib/notas';
+import { fmtNota, notaCor, normalizeText, normalizarCidade } from '../../lib/notas';
+import { CIDADES_CONHECIDAS, parseCidade } from '../../lib/cidades';
+import { coordenadasDoLink } from '../../lib/geocoding';
 import { StarsDisplay } from '../../components/shared/StarRating';
 import AjudantePerfilModal from '../../components/shared/AjudantePerfilModal';
-import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, FileText, Upload, Loader2, Eye } from 'lucide-react';
+import SeletorLocalizacao from '../../components/shared/SeletorLocalizacao';
+import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, FileText, Upload, Loader2, Eye, MapPin } from 'lucide-react';
 
-const EMPTY = { name: '', phone: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0, status: 'active', cidade: '' };
+const EMPTY = {
+  name: '', phone: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0,
+  status: 'active', cidade: '', endereco: '', bairro: '', cep: '', localizacao: '',
+  latitude: null, longitude: null,
+};
 const T  = { color: '#0B0B0B' };
 const T2 = { color: '#4A4A4A' };
 const TM = { color: '#9A9A9A' };
@@ -15,8 +22,23 @@ const TM = { color: '#9A9A9A' };
 function Modal({ employee, onSave, onClose }) {
   const [form, setForm]           = useState(employee ? { ...employee } : { ...EMPTY, id: crypto.randomUUID() });
   const [uploading, setUploading] = useState(false);
+  const [linkMsg, setLinkMsg]     = useState('');
 
   const isNew = !employee;
+  const cidadeNoEndereco = parseCidade(form.endereco);
+  const cidadeAtual = normalizarCidade(form.cidade);
+  const cidadeDiverge = !!cidadeNoEndereco.city && !!cidadeAtual &&
+    normalizeText(cidadeNoEndereco.city) !== normalizeText(cidadeAtual);
+
+  const extrairDoLink = () => {
+    const coords = coordenadasDoLink(form.localizacao);
+    if (coords) {
+      setForm(f => ({ ...f, latitude: coords.lat, longitude: coords.lng }));
+      setLinkMsg('Coordenadas extraídas do link. Confira o pino no mapa.');
+    } else {
+      setLinkMsg('Não encontrei coordenadas. Abra o link no navegador e copie a URL completa (com "@lat,lng"), ou use o mapa.');
+    }
+  };
 
   const handleDocumentoChange = async (e) => {
     const file = e.target.files?.[0];
@@ -32,7 +54,7 @@ function Modal({ employee, onSave, onClose }) {
   const fieldAjudante = [
     { key: 'name',        label: 'Nome completo',           required: true, col: 2 },
     { key: 'phone',       label: 'Telefone',                required: true, placeholder: '(00) 00000-0000' },
-    { key: 'cidade',      label: 'Cidade/UF',               placeholder: 'Ex: Gravataí/RS' },
+    { key: 'cidade',      label: 'Cidade/UF',               required: isNew, placeholder: 'Ex: Cachoeirinha/RS' },
     { key: 'dailyRate',   label: 'Valor da diária (R$)',     type: 'number', required: true },
     { key: 'overtimeRate',label: 'Hora extra (R$)',          type: 'number', required: true },
     { key: 'vtDiario',    label: 'Vale Transporte/dia (R$)', type: 'number', placeholder: '0,00' },
@@ -41,7 +63,7 @@ function Modal({ employee, onSave, onClose }) {
 
   return (
     <div className="modal-overlay">
-      <div className="modal-box animate-fade-up">
+      <div className="modal-box animate-fade-up" style={{ maxWidth: '680px' }}>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-bold" style={T}>{isNew ? 'Novo Cadastro' : 'Editar Cadastro'}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#9A9A9A', background: '#F5F5F5' }}>
@@ -55,11 +77,87 @@ function Modal({ employee, onSave, onClose }) {
               <div key={key} className={col === 2 ? 'col-span-2' : ''}>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>{label}</label>
                 <input type={type || 'text'} placeholder={placeholder} required={required}
-                  autoComplete="off" value={form[key] ?? ''}
+                  autoComplete="off" list={key === 'cidade' ? 'cidades-farilog' : undefined}
+                  value={form[key] ?? ''}
                   onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-field" />
               </div>
             ))}
           </div>
+          <p className="text-xs" style={{ color: '#9A9A9A', marginTop: '-2px' }}>
+            A cidade/UF é usada para calcular a proximidade nas buscas e nas escalas.
+          </p>
+
+          {/* Endereço residencial + localização exata */}
+          <div className="rounded-xl" style={{ border: '1px solid rgba(0,0,0,0.07)', background: '#FAFAFA', padding: '12px' }}>
+            <p style={{ fontSize: '11px', fontWeight: 800, color: '#0B0B0B' }}>Endereço residencial (dados do contrato)</p>
+            <p style={{ fontSize: '10px', color: '#6B6B6B', marginTop: '2px', marginBottom: '10px', lineHeight: 1.45 }}>
+              Usado para calcular a distância real até a empresa. Quanto mais exato o pino, melhor o ranking das buscas.
+              Cidade e rua/número são obrigatórios em novos cadastros. A busca por coordenadas usa OpenStreetMap (Photon); confirme sempre o pino.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Rua e número</label>
+                <input className="input-field" autoComplete="off"
+                  placeholder="Ex: Rua Aparício Soares da Cunha, 142"
+                  required={isNew}
+                  value={form.endereco ?? ''}
+                  onChange={e => setForm({ ...form, endereco: e.target.value })}
+                  onBlur={() => {
+                    if (!String(form.cidade ?? '').trim() && cidadeNoEndereco.city) {
+                      setForm(f => ({ ...f, cidade: cidadeNoEndereco.city }));
+                    }
+                  }} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Bairro</label>
+                <input className="input-field" autoComplete="off" placeholder="Ex: Jardim Vitória"
+                  value={form.bairro ?? ''}
+                  onChange={e => setForm({ ...form, bairro: e.target.value })} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>CEP</label>
+                <input className="input-field" autoComplete="off" inputMode="numeric" placeholder="00000-000"
+                  value={form.cep ?? ''}
+                  onChange={e => setForm({ ...form, cep: e.target.value })} />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Link completo do Google Maps (opcional)</label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input className="input-field" style={{ flex: 1 }} autoComplete="off"
+                    placeholder="https://www.google.com/maps/place/... (não use maps.app.goo.gl)"
+                    value={form.localizacao ?? ''}
+                    onChange={e => { setForm({ ...form, localizacao: e.target.value }); setLinkMsg(''); }} />
+                  <button type="button" onClick={extrairDoLink}
+                    style={{ flexShrink: 0, padding: '0 12px', borderRadius: '10px', border: '1px solid #E4E4E4', background: '#fff', color: '#0B0B0B', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>
+                    Extrair
+                  </button>
+                </div>
+                {linkMsg && (
+                  <p style={{ fontSize: '10.5px', color: '#9E3D22', fontWeight: 600, marginTop: '5px', lineHeight: 1.45 }}>{linkMsg}</p>
+                )}
+              </div>
+            </div>
+
+            {cidadeNoEndereco.city && (
+              <p style={{ fontSize: '10.5px', lineHeight: 1.45, marginTop: '8px', fontWeight: 600, color: cidadeDiverge ? '#9E3D22' : '#0B0B0B' }}>
+                {cidadeDiverge
+                  ? `Atenção: o endereço parece ser de ${cidadeNoEndereco.city}${cidadeNoEndereco.uf ? `/${cidadeNoEndereco.uf}` : ''}, mas a cidade do cadastro é ${cidadeAtual}.`
+                  : `Cidade lida do endereço: ${cidadeNoEndereco.city}${cidadeNoEndereco.uf ? `/${cidadeNoEndereco.uf}` : ''}.`}
+              </p>
+            )}
+
+            <SeletorLocalizacao
+              latitude={form.latitude}
+              longitude={form.longitude}
+              cidade={form.cidade}
+              endereco={form.endereco}
+              bairro={form.bairro}
+              cep={form.cep}
+              onChange={(lat, lng) => setForm(f => ({ ...f, latitude: lat, longitude: lng }))}
+            />
+          </div>
+
           <div>
             <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Documento (PDF)</label>
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)' }}>
@@ -102,6 +200,9 @@ function Modal({ employee, onSave, onClose }) {
             <button type="button" onClick={onClose} className="btn-ghost px-5">Cancelar</button>
           </div>
         </form>
+        <datalist id="cidades-farilog">
+          {CIDADES_CONHECIDAS.map(city => <option key={city} value={city} />)}
+        </datalist>
       </div>
     </div>
   );
@@ -113,6 +214,7 @@ export default function AdminEmployees() {
   const [search, setSearch]         = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCity,   setFilterCity]   = useState('');
+  const [filterEndereco, setFilterEndereco] = useState('all');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [medias, setMedias]         = useState({});
   const [profileEmp, setProfileEmp] = useState(null);
@@ -127,17 +229,27 @@ export default function AdminEmployees() {
   );
 
   const filtered = employees.filter(e => {
-    const q = search.toLowerCase();
-    const matchSearch = e.name.toLowerCase().includes(q) ||
+    const q = normalizeText(search);
+    const matchSearch = normalizeText(e.name).includes(q) ||
       (e.phone || '').includes(search) ||
-      (e.cidade || '').toLowerCase().includes(q);
+      normalizeText(e.cidade).includes(q);
     const matchStatus = filterStatus === 'all' || e.status === filterStatus;
-    const matchCity   = !filterCity || e.cidade === filterCity;
-    return matchSearch && matchStatus && matchCity;
+    const matchCity   = !filterCity || normalizarCidade(e.cidade) === filterCity;
+    const temPino     = e.latitude != null && e.longitude != null;
+    const matchEndereco =
+      filterEndereco === 'all' ? true :
+      filterEndereco === 'sem' ? !e.address :
+      temPino;
+    return matchSearch && matchStatus && matchCity && matchEndereco;
   });
 
   const handleSave = async (form) => {
     const colors = ['#0B0B0B','#1C1C1C','#2A2A2A','#333333','#3D3D3D','#4A4A4A','#5A5A5A'];
+    const avisoEndereco = (saved) => {
+      if (saved && String(form.endereco ?? '').trim() && !saved.address) {
+        alert('O endereço não foi salvo porque as colunas de endereço ainda não existem no Supabase. Rode o arquivo supabase/funcionario-endereco.sql no SQL Editor.');
+      }
+    };
 
     if (modal === 'new') {
       // ── Criar Ajudante ──
@@ -153,11 +265,13 @@ export default function AdminEmployees() {
         status:       'active',
       });
       if (saved) setEmployees(prev => [...prev, saved]);
+      avisoEndereco(saved);
     } else {
       // ── Editar Ajudante ──
       const patch = { ...form, dailyRate: Number(form.dailyRate), overtimeRate: Number(form.overtimeRate), vtDiario: Number(form.vtDiario ?? 0), vrDiario: Number(form.vrDiario ?? 0) };
       const saved = await updateEmployee(modal.id, patch);
       if (saved) setEmployees(prev => prev.map(e => e.id === modal.id ? saved : e));
+      avisoEndereco(saved);
     }
     setModal(null);
   };
@@ -170,7 +284,7 @@ export default function AdminEmployees() {
         <div>
           <h1 className="text-xl font-bold" style={T}>Funcionários</h1>
           <p className="text-xs mt-0.5" style={TM}>
-            {`${employees.filter(e => e.status === 'active').length} ativos de ${employees.length} cadastrados`}
+            {`${employees.filter(e => e.status === 'active').length} ativos de ${employees.length} cadastrados · ${employees.filter(e => e.latitude != null && e.longitude != null).length} com localização exata`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -198,6 +312,26 @@ export default function AdminEmployees() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Cobertura de endereço */}
+      <div className="flex items-center gap-2 flex-wrap animate-fade-up delay-1">
+        <span style={{ fontSize: '11px', fontWeight: 600, color: '#9A9A9A' }}>Endereço:</span>
+        {[
+          ['all',  `Todos (${employees.length})`],
+          ['sem',  `Sem endereço (${employees.filter(e => !e.address).length})`],
+          ['pino', `Com pino (${employees.filter(e => e.latitude != null && e.longitude != null).length})`],
+        ].map(([val, lbl]) => (
+          <button key={val} type="button" onClick={() => setFilterEndereco(val)}
+            style={{
+              padding: '4px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer',
+              fontSize: '11px', fontWeight: 600, transition: 'all 0.12s',
+              background: filterEndereco === val ? '#0B0B0B' : '#F5F5F5',
+              color: filterEndereco === val ? 'white' : '#6B6B6B',
+            }}>
+            {lbl}
+          </button>
+        ))}
       </div>
 
       {/* Filtro por cidade */}
@@ -249,6 +383,11 @@ export default function AdminEmployees() {
                       {emp.name}
                       {emp.cidade && (
                         <span style={{ color: '#9A9A9A', fontWeight: 400 }}> ({emp.cidade})</span>
+                      )}
+                      {emp.latitude != null && emp.longitude != null && (
+                        <span title="Localização exata cadastrada" style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '3px', color: '#BC4A2A', verticalAlign: 'middle' }}>
+                          <MapPin size={9} />
+                        </span>
                       )}
                     </p>
                     <p className="text-xs truncate" style={TM}>{emp.phone}</p>

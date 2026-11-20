@@ -7,7 +7,7 @@ import {
   createEscalaComConvocacoes, computePagamentoEm,
 } from '../../lib/db';
 import { rotuloDistancia } from '../../lib/geo';
-import { fmtNota } from '../../lib/notas';
+import { fmtNota, normalizeText } from '../../lib/notas';
 import BuscaAjudantes from '../../components/shared/BuscaAjudantes';
 import ModalConfirmarConvocacao from '../../components/shared/ModalConfirmarConvocacao';
 
@@ -91,9 +91,9 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
 
   const candidatos = busca.candidates || [];
   const filtrados  = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = normalizeText(search);
     if (!q) return candidatos;
-    return candidatos.filter(c => `${c.name} ${c.cidade} ${c.cargo || ''}`.toLowerCase().includes(q));
+    return candidatos.filter(c => normalizeText(`${c.name} ${c.cidade} ${c.cargo || ''}`).includes(q));
   }, [candidatos, search]);
 
   const titulares = candidatos.filter(c => selecionados.includes(c.id));

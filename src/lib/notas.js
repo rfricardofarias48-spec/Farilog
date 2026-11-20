@@ -1,62 +1,71 @@
 // Utilitários de notas, proximidade e contato — compartilhados entre admin e encarregado.
 
-export function normalizeText(value) {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
+import {
+  normalizeText,
+  parseCidade,
+  getCompanyCity,
+  normalizarCidade,
+  distanciaEntreCidades,
+} from './cidades.js';
 
-function splitCidadeUF(value) {
-  const raw = String(value ?? '').trim();
-  if (!raw) return { city: '', uf: null };
-  const m = raw.match(/^(.+?)\s*[\/-]\s*([A-Za-z]{2})$/);
-  if (m) return { city: m[1].trim(), uf: m[2].toUpperCase() };
-  return { city: raw, uf: null };
-}
+export { normalizeText, parseCidade, getCompanyCity, normalizarCidade };
 
-// A empresa guarda endereço livre e "localização" (às vezes um link do Google Maps).
-// Extrai a cidade do endereço: "(Pelotas)", "Gravataí/RS" ou o último trecho do endereço.
-export function getCompanyCity(company) {
-  const loc = String(company?.location ?? '').trim();
-  const isUrl = /^https?:\/\//i.test(loc) || /maps\./i.test(loc) || /google\.[a-z.]+\/maps/i.test(loc);
-  if (loc && !isUrl && loc.length <= 80) return loc;
-
-  const addr = String(company?.address ?? '').trim();
-  if (!addr) return '';
-
-  const paren = addr.match(/\(([^)]+)\)/);
-  if (paren) return paren[1].trim();
-
-  const uf = addr.match(/([^,\-–]+?)\s*[\/-]\s*[A-Za-z]{2}\s*$/);
-  if (uf) return uf[1].trim();
-
-  const parts = addr.split(',').map(s => s.trim()).filter(Boolean);
-  if (parts.length) {
-    const last = parts[parts.length - 1];
-    if (/^\d+$/.test(last)) return '';
-    return last;
+function lerCidade(value) {
+  if (value && typeof value === 'object' && ('city' in value || 'display' in value)) {
+    const city = value.city || value.display || '';
+    return {
+      ...value,
+      city,
+      display: value.display || city,
+      key: value.key || normalizeText(city),
+    };
   }
-  return '';
+  return parseCidade(value);
 }
 
+// Compara a cidade do ajudante com a cidade da empresa usando a leitura
+// canônica (CEP, UF, bairro e link de mapa já resolvidos). Quando as duas
+// cidades são conhecidas, a distância entre os centroides separa "vizinha"
+// de "mesma UF" — sem transformar quem está na mesma cidade em "outra cidade".
 export function compararProximidade(cidadeAjudante, cidadeEmpresa) {
-  const a = splitCidadeUF(cidadeAjudante);
-  const b = splitCidadeUF(cidadeEmpresa);
-  const na = normalizeText(a.city);
-  const nb = normalizeText(b.city);
+  const a = lerCidade(cidadeAjudante);
+  const b = lerCidade(cidadeEmpresa);
+  const ka = a.key || normalizeText(a.city);
+  const kb = b.key || normalizeText(b.city);
 
-  if (!na || !nb) {
-    return { level: 3, label: 'Cidade não informada', detail: 'Sem cidade cadastrada' };
+  if (!ka || !kb) {
+    return {
+      level: 3,
+      label: 'Cidade não informada',
+      detail: 'Complete a cidade no cadastro',
+    };
   }
-  if (na === nb || na.includes(nb) || nb.includes(na)) {
-    return { level: 0, label: 'Mesma cidade', detail: a.city };
+
+  if (ka === kb) {
+    return { level: 0, label: 'Mesma cidade', detail: b.display || b.city };
   }
+
+  const km = distanciaEntreCidades(ka, kb);
+  const vizinha = km != null && km <= 25;
+  const detalheA = a.uf ? `${a.display || a.city}/${a.uf}` : (a.display || a.city);
+
   if (a.uf && b.uf && a.uf === b.uf) {
-    return { level: 1, label: 'Mesma UF', detail: `${a.city}/${a.uf}` };
+    return {
+      level: 1,
+      label: vizinha ? `Cidade vizinha · ${Math.round(km)} km` : 'Mesma UF',
+      detail: detalheA,
+    };
   }
-  return { level: 2, label: 'Outra cidade', detail: a.city };
+
+  if (vizinha) {
+    return {
+      level: 1,
+      label: `Cidade vizinha · ${Math.round(km)} km`,
+      detail: detalheA,
+    };
+  }
+
+  return { level: 2, label: 'Outra cidade', detail: detalheA };
 }
 
 // Ordena: primeiro os mais próximos; dentro do grupo, maior nota média.
@@ -65,7 +74,7 @@ export function rankCandidatos(candidatos, cidadeEmpresa) {
     .map(c => {
       const prox = compararProximidade(c.cidade, cidadeEmpresa);
       const media = c.media == null ? null : Number(c.media);
-      const bonusProximidade = prox.level === 0 ? 30 : prox.level === 1 ? 18 : prox.level === 2 ? 6 : 10;
+      const bonusProximidade = prox.level === 0 ? 30 : prox.level === 1 ? 18 : prox.level === 2 ? 6 : 2;
       const score = Math.round((media == null ? 0 : (media / 5) * 70) + bonusProximidade);
       return {
         ...c,

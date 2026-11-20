@@ -13,6 +13,7 @@ import {
   fetchNotasResumo,
 } from '../../lib/db';
 import AvaliacaoDiariaModal from '../../components/shared/AvaliacaoDiariaModal';
+import { normalizeText } from '../../lib/notas';
 import ConvocacaoStatus from '../../components/shared/ConvocacaoStatus';
 import MontarEscala from './MontarEscala';
 import {
@@ -1753,10 +1754,10 @@ function TabAjudantes({ user }) {
     return rest === 0 ? `${anos} ano${anos !== 1 ? 's' : ''}` : `${anos} ano${anos !== 1 ? 's' : ''} e ${rest} mês${rest !== 1 ? 'es' : ''}`;
   }
 
-  const filtrados = ajudantes.filter(a =>
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    (a.cidade || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtrados = ajudantes.filter(a => {
+    const q = normalizeText(search);
+    return normalizeText(a.name).includes(q) || normalizeText(a.cidade).includes(q);
+  });
 
   return (
     <div className="space-y-4">
