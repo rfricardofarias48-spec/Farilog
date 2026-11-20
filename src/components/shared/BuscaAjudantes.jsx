@@ -52,7 +52,7 @@ export default function BuscaAjudantes({ empresa, candidatos = [], durante = 100
         empresa={empresa}
         pontos={pontos}
         raioKm={empresa?.raioKm || null}
-        altura={280}
+        altura={440}
         interativo={false}
         assinatura={revelados}
       />

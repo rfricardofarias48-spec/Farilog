@@ -295,7 +295,7 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
             <input className="input-field" style={{ paddingLeft: '30px' }} placeholder="Buscar por nome ou cidade…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '340px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '480px', overflowY: 'auto' }}>
             {filtrados.length === 0 ? (
               <p style={{ fontSize: '12px', color: '#94A3B8', textAlign: 'center', padding: '20px 0' }}>Nenhum ajudante encontrado.</p>
             ) : filtrados.map(c => {

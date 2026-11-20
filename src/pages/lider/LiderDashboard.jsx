@@ -1439,8 +1439,8 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
 
       {showForm && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowForm(false)}
-          style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '40px' }}>
-          <div style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', margin: '0 16px' }}>
+          style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '32px 16px' }}>
+          <div style={{ width: '100%', maxWidth: '1120px', maxHeight: 'calc(100vh - 64px)', overflowY: 'auto' }}>
             <MontarEscala user={user} onSaved={() => { setShowForm(false); onRefresh(); }} onCancel={() => setShowForm(false)} />
           </div>
         </div>
