@@ -2078,11 +2078,6 @@ export async function fetchCandidatosEscala({ companyId, date, incluirEscalados 
       .select('id, nome, endereco, localizacao, diaria, latitude, longitude')
       .eq('id', companyId)
       .maybeSingle(),
-    supabase
-      .from('empresas')
-      .select('id, nome, endereco, localizacao, diaria, latitude, longitude')
-      .eq('id', companyId)
-      .maybeSingle(),
     (async () => {
       let res = await supabase
         .from('funcionarios')
