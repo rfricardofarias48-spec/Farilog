@@ -6,6 +6,7 @@ import { fmtCurrency, fmtDate } from '../../data/mockData';
 import { overtimeToMinutes, sumOvertimeMinutes, minutesToOvertimeString, recordRevenue } from '../../lib/timeUtils';
 import AdminDemanda from './AdminDemanda';
 import AdminEncarregados from './AdminEncarregados';
+import AdminConvocacao from './AdminConvocacao';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
@@ -937,6 +938,7 @@ export default function AdminOperacional() {
       {tab === 'historico'   && <Historico />}
       {tab === 'relatorios'  && <Relatorios />}
       {tab === 'encarregados' && <AdminEncarregados />}
+      {tab === 'convocacao'  && <AdminConvocacao />}
     </div>
   );
 }

@@ -13,6 +13,8 @@ import {
   fetchNotasResumo,
 } from '../../lib/db';
 import AvaliacaoDiariaModal from '../../components/shared/AvaliacaoDiariaModal';
+import ConvocacaoStatus from '../../components/shared/ConvocacaoStatus';
+import MontarEscala from './MontarEscala';
 import {
   Users, Calendar, CheckCircle2, AlertCircle, AlertTriangle,
   Plus, ChevronRight, X, Building2, FileText, RefreshCw,
@@ -1202,6 +1204,14 @@ function EscalaDetalhe({ escala, employees, flat = false }) {
           </div>
         );
       })}
+
+      {/* Convocação — status ao vivo (pendente / confirmado / reserva) */}
+      <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', padding: '12px 16px' }}>
+        <p style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
+          Convocação
+        </p>
+        <ConvocacaoStatus escalaId={escala.id} vagas={escala.vagas} compact />
+      </div>
     </div>
   );
 }
@@ -1431,7 +1441,7 @@ function TabEscala({ user, escalas, employees, onRefresh }) {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowForm(false)}
           style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '40px' }}>
           <div style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', margin: '0 16px' }}>
-            <NovaEscalaForm user={user} onSaved={() => { setShowForm(false); onRefresh(); }} onCancel={() => setShowForm(false)} />
+            <MontarEscala user={user} onSaved={() => { setShowForm(false); onRefresh(); }} onCancel={() => setShowForm(false)} />
           </div>
         </div>
       )}

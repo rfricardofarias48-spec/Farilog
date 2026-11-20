@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { calculateWorkAndOvertime, overtimeMinutesToTimeString, recordRevenue } from './timeUtils';
 import { getCompanyCity, rankCandidatos, avatarTone } from './notas';
+import { coordsFuncionario, coordsEmpresa, distanciaKm, jitterCoords } from './geo';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -85,6 +86,9 @@ function mapDemand(escala) {
     time:            fmtHHMM(escala.horario),
     service:         escala.servico,
     tipoServico:     escala.tipo_servico || 'entrega',
+    vagas:           escala.vagas ?? null,
+    totalReservas:   escala.total_reservas ?? 2,
+    pagamentoEm:     escala.pagamento_em || null,
     responsavelDia:  escala.responsavel_dia || '',
     contatoDia:      escala.contato_dia     || '',
     liderId:         escala.lider_id        || null,
@@ -1857,4 +1861,382 @@ export async function fetchCandidatosEscala({ companyId, date, incluirEscalados 
     candidates: rankCandidatos(candidates, empresaCidade),
     escaladosNoDia: escalados.size,
   };
+}
+
+// ── Convocação de escala (encarregado → agente de WhatsApp) ────────────────
+// O app grava a intenção (linhas em public.convocacoes com status 'pendente') e
+// mostra o status ao vivo; o agente externo envia as mensagens e atualiza.
+// Ver supabase/convocacoes.sql e supabase/agente-whatsapp.md.
+
+function isMissingConvocacoes(error) {
+  const msg = String(error?.message || '');
+  return error?.code === '42P01' || error?.code === 'PGRST205' || /convocac|schema cache/i.test(msg);
+}
+
+function isMissingColumn(error) {
+  const msg = String(error?.message || '');
+  return error?.code === '42703' || error?.code === 'PGRST204' ||
+    /column .* does not exist|could not find the .* column/i.test(msg);
+}
+
+// Data prevista de pagamento: prazo da empresa em dias após o fechamento da
+// quinzena (1ª fecha dia 15; 2ª fecha no último dia do mês).
+export function computePagamentoEm(dateIso, prazoDias = 5) {
+  if (!dateIso) return null;
+  const [y, m, d] = String(dateIso).split('-').map(Number);
+  if (!y || !m || !d) return null;
+  const prazo = Number.isFinite(Number(prazoDias)) ? Number(prazoDias) : 5;
+  const base = d <= 15 ? new Date(Date.UTC(y, m - 1, 15)) : new Date(Date.UTC(y, m, 0));
+  base.setUTCDate(base.getUTCDate() + prazo);
+  return base.toISOString().slice(0, 10);
+}
+
+function mapConvocacao(r) {
+  if (!r) return null;
+  const f  = r.funcionarios || {};
+  const es = r.escalas || {};
+  const em = r.empresas || {};
+  return {
+    id:            r.id,
+    escalaId:      r.escala_id,
+    funcionarioId: r.funcionario_id,
+    empresaId:     r.empresa_id,
+    liderId:       r.lider_id,
+    papel:         r.papel || 'titular',
+    ordem:         r.ordem ?? null,
+    status:        r.status || 'pendente',
+    distanciaKm:   r.distancia_km == null ? null : Number(r.distancia_km),
+    notaSnapshot:  r.nota_snapshot == null ? null : Number(r.nota_snapshot),
+    conviteEnviadoEm:  r.convite_enviado_em  || null,
+    followupEnviadoEm: r.followup_enviado_em || null,
+    respondidoEm:      r.respondido_em       || null,
+    name:     f.nome || r.funcionario_nome || r.ajudante || '—',
+    initials: f.iniciais || r.iniciais || '?',
+    phone:    f.telefone || r.telefone || null,
+    color:    avatarTone(r.funcionario_id || f.nome || r.ajudante),
+    data:        es.data || r.data_servico || null,
+    horario:     fmtHHMM(es.horario) || r.horario || null,
+    empresaNome: em.nome || r.empresa || null,
+    endereco:    em.endereco || r.endereco || null,
+    valorDiaria: (em.diaria ?? r.valor_diaria) == null ? null : Number(em.diaria ?? r.valor_diaria),
+    vagas:       es.vagas ?? r.vagas ?? null,
+    pagamentoEm: es.pagamento_em || r.pagamento_em || null,
+  };
+}
+
+// Ordena: distância (1ª prioridade) → nota média (2ª) → nome.
+function cmpDistanciaNota(a, b) {
+  const da = a.distanciaKm == null ? Infinity : a.distanciaKm;
+  const db_ = b.distanciaKm == null ? Infinity : b.distanciaKm;
+  if (da !== db_) return da - db_;
+  return (b.media ?? -1) - (a.media ?? -1) || String(a.name).localeCompare(String(b.name), 'pt-BR');
+}
+
+// Resumo da empresa com coordenadas resolvidas (mapa + pagamento).
+export async function fetchEmpresaResumo(companyId) {
+  if (!companyId) return null;
+  const { data, error } = await supabase
+    .from('empresas')
+    .select('id, nome, endereco, localizacao, diaria, prazo_pagamento, latitude, longitude, raio_km')
+    .eq('id', companyId)
+    .maybeSingle();
+  if (error) { console.error('[db] fetchEmpresaResumo:', error.message); return null; }
+  if (!data) return null;
+  const coords = coordsEmpresa(data);
+  return {
+    id:        data.id,
+    name:      data.nome,
+    address:   data.endereco || '',
+    location:  data.localizacao || '',
+    city:      getCompanyCity({ address: data.endereco, location: data.localizacao }),
+    dailyRate: Number(data.diaria ?? 0),
+    prazoPagamento: Number(data.prazo_pagamento ?? 5),
+    raioKm:    Number(data.raio_km ?? 40),
+    coords,
+    temCoords: !!coords?.exata,
+  };
+}
+
+// Últimos ajudantes escalados nesta empresa antes de `excludeDate` — alimenta a
+// pergunta "quer manter algum deles na escala?".
+export async function fetchUltimosEscaladosDaEmpresa(companyId, excludeDate) {
+  const company = await fetchEmpresaResumo(companyId);
+  if (!company) return { company: null, list: [], lastDate: null };
+
+  const { data: escalas, error } = await supabase
+    .from('escalas')
+    .select('id, data')
+    .eq('empresa_id', companyId)
+    .lt('data', excludeDate)
+    .order('data', { ascending: false })
+    .limit(1);
+  if (error || !escalas?.length) return { company, list: [], lastDate: null };
+
+  const lastEscala = escalas[0];
+  const { data: regs } = await supabase
+    .from('registros')
+    .select('funcionario_id')
+    .eq('escala_id', lastEscala.id);
+  const ids = [...new Set((regs || []).map(r => r.funcionario_id))];
+  if (!ids.length) return { company, list: [], lastDate: lastEscala.data };
+
+  const [empsRes, medias] = await Promise.all([
+    supabase.from('funcionarios')
+      .select('id, nome, iniciais, telefone, cidade, diaria, latitude, longitude, status')
+      .in('id', ids),
+    fetchMediasNotas(),
+  ]);
+
+  const list = (empsRes.data || [])
+    .filter(e => e.status !== 'inactive' && e.status !== 'inativo')
+    .map(e => {
+      const m = medias[e.id] || {};
+      const ponto = coordsFuncionario(e);
+      return {
+        id:        e.id,
+        name:      e.nome,
+        initials:  e.iniciais,
+        phone:     e.telefone,
+        cidade:    e.cidade || '',
+        dailyRate: Number(e.diaria ?? 0),
+        media:     m.media ?? null,
+        totalAvaliacoes: m.total ?? 0,
+        distanciaKm: distanciaKm(ponto, company.coords),
+        distanciaExata: !!ponto?.exata,
+        color:     avatarTone(e.id || e.nome),
+      };
+    })
+    .sort((a, b) => (b.media ?? -1) - (a.media ?? -1));
+
+  return { company, list, lastDate: lastEscala.data };
+}
+
+// Candidatos com distância calculada, ranqueados por distância → nota.
+export async function fetchCandidatosComDistancia({ companyId, date, incluirEscalados = false }) {
+  const base = await fetchCandidatosEscala({ companyId, date, incluirEscalados });
+  const company = await fetchEmpresaResumo(companyId);
+  const empCoords = company?.coords || null;
+
+  // Distância real (do centroide da cidade ou da coordenada exata). O ranking
+  // segue estritamente distância → nota. Só o ponto desenhado no mapa recebe um
+  // pequeno deslocamento quando não há coordenada exata, para não empilhar.
+  const candidatos = (base.candidates || []).map(c => {
+    const ponto = coordsFuncionario({ cidade: c.cidade });
+    const exata = !!ponto?.exata;
+    return {
+      ...c,
+      coords: exata ? ponto : jitterCoords(ponto, c.id),
+      distanciaKm: distanciaKm(ponto, empCoords),
+      distanciaExata: exata,
+    };
+  }).sort(cmpDistanciaNota);
+
+  return {
+    ...base,
+    company: company ? { ...(base.company || {}), ...company } : base.company,
+    candidates: candidatos.map((c, i) => ({ ...c, ordem: i + 1 })),
+  };
+}
+
+// Cria a escala com os titulares (registros) e as convocações (titulares +
+// reservas) com status 'pendente' — a fila que o agente vai consumir.
+export async function createEscalaComConvocacoes({
+  liderId, companyId, date, time, service, employees = [], reservas = [],
+  vagas, totalReservas = 2, responsavelDia, contatoDia, tipoServico,
+}) {
+  const [diaria, company] = await Promise.all([getCompanyDiaria(companyId), fetchEmpresaResumo(companyId)]);
+  const escalaId    = crypto.randomUUID();
+  const pagamentoEm = computePagamentoEm(date, company?.prazoPagamento ?? 5);
+  const nVagas      = Number.isFinite(Number(vagas)) ? Number(vagas) : employees.length;
+
+  const payload = {
+    id: escalaId, empresa_id: companyId, data: date, horario: time || null,
+    servico: service || null, tipo_servico: tipoServico || 'entrega', status: 'scheduled',
+    lider_id: liderId, responsavel_dia: responsavelDia || null, contato_dia: contatoDia || null,
+    vagas: nVagas, total_reservas: Number(totalReservas) || 2, pagamento_em: pagamentoEm,
+  };
+
+  let { data: escala, error: escErr } = await supabase.from('escalas').insert(payload).select().single();
+  if (escErr && isMissingColumn(escErr)) {
+    console.warn('[db] createEscalaComConvocacoes: colunas de convocação ausentes — rode supabase/convocacoes.sql.');
+    const { vagas: _v, total_reservas: _t, pagamento_em: _p, ...legacy } = payload;
+    ({ data: escala, error: escErr } = await supabase.from('escalas').insert(legacy).select().single());
+  }
+  if (escErr) { console.error('[db] createEscalaComConvocacoes escala:', escErr.message); return null; }
+
+  const registros = employees.map(({ id: empId, observacoes }) => ({
+    id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: empId, empresa_id: companyId,
+    data: date, servico: service || null, status: 'scheduled', confirmacao: 'aguardando',
+    valor: diaria, observacoes: observacoes || null,
+  }));
+  if (registros.length) {
+    const { error } = await supabase.from('registros').insert(registros);
+    if (error) console.error('[db] createEscalaComConvocacoes registros:', error.message);
+  }
+
+  // Convocação: titulares (com ordem) + reservas (sem ordem). Deduplica.
+  const vistos = new Set();
+  const convRows = [
+    ...employees.map((e, i) => ({
+      papel: 'titular', ordem: i + 1, id: e.id,
+      distanciaKm: e.distanciaKm ?? null, media: e.media ?? null,
+    })),
+    ...reservas.map(r => ({
+      papel: 'reserva', ordem: null, id: r.id,
+      distanciaKm: r.distanciaKm ?? null, media: r.media ?? null,
+    })),
+  ].filter(c => c.id && !vistos.has(c.id) && vistos.add(c.id))
+   .map(c => ({
+     id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: c.id, empresa_id: companyId,
+     lider_id: liderId, papel: c.papel, ordem: c.ordem, status: 'pendente',
+     distancia_km: c.distanciaKm, nota_snapshot: c.media,
+   }));
+
+  let convocacoesOk = true;
+  if (convRows.length) {
+    const { error } = await supabase.from('convocacoes').insert(convRows);
+    if (error) {
+      convocacoesOk = false;
+      console.error('[db] createEscalaComConvocacoes convocações:', error.message);
+      if (isMissingConvocacoes(error)) {
+        console.warn('[db] tabela public.convocacoes ausente — rode supabase/convocacoes.sql.');
+      }
+    }
+  }
+
+  return { ...mapDemand({ ...escala, registros }), pagamentoEm, convocacoesOk };
+}
+
+export async function fetchConvocacoesByEscala(escalaId) {
+  if (!escalaId) return [];
+  const { data, error } = await supabase
+    .from('convocacoes')
+    .select('*, funcionarios(nome, iniciais, telefone), escalas(data, horario, vagas, pagamento_em)')
+    .eq('escala_id', escalaId);
+  if (error) {
+    if (!isMissingConvocacoes(error)) console.error('[db] fetchConvocacoesByEscala:', error.message);
+    return [];
+  }
+  return (data || []).map(mapConvocacao).sort((a, b) => {
+    if (a.papel !== b.papel) return a.papel === 'titular' ? -1 : 1;
+    return (a.ordem ?? 999) - (b.ordem ?? 999);
+  });
+}
+
+// Escalas do encarregado de uma data (para marcar convocação nos detalhes).
+export async function fetchConvocacoesByEscalas(escalaIds = []) {
+  if (!escalaIds.length) return {};
+  const { data, error } = await supabase
+    .from('convocacoes')
+    .select('*, funcionarios(nome, iniciais, telefone), escalas(data, horario, vagas, pagamento_em)')
+    .in('escala_id', escalaIds);
+  if (error) {
+    if (!isMissingConvocacoes(error)) console.error('[db] fetchConvocacoesByEscalas:', error.message);
+    return {};
+  }
+  return (data || []).map(mapConvocacao).reduce((acc, c) => {
+    (acc[c.escalaId] ||= []).push(c);
+    return acc;
+  }, {});
+}
+
+// Fila/prateleira do agente (direto da view com o payload pronto).
+export async function fetchConvocacoesAgente({ statuses, limit = 300 } = {}) {
+  let q = supabase.from('vw_convocacoes_agente')
+    .select('*')
+    .order('data_servico', { ascending: true })
+    .limit(limit);
+  if (statuses?.length) q = q.in('status', statuses);
+  const { data, error } = await q;
+  if (error) {
+    if (!isMissingConvocacoes(error)) console.error('[db] fetchConvocacoesAgente:', error.message);
+    return [];
+  }
+  return (data || []).map(r => ({
+    ...mapConvocacao({ ...r, id: r.convocacao_id }),
+    convocacaoId: r.convocacao_id,
+    confirmados:  Number(r.confirmados || 0),
+    liderId:      r.lider_id || null,
+  }));
+}
+
+export function subscribeConvocacoes(escalaId, onChange) {
+  const channel = supabase
+    .channel(`conv_${escalaId || 'all'}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'convocacoes',
+        ...(escalaId ? { filter: `escala_id=eq.${escalaId}` } : {}) },
+      (payload) => onChange?.(payload)
+    )
+    .subscribe();
+  return () => supabase.removeChannel(channel);
+}
+
+export async function updateConvocacaoStatus(id, status, { respondido = false } = {}) {
+  const patch = { status };
+  if (respondido) patch.respondido_em = new Date().toISOString();
+  const { error } = await supabase.from('convocacoes').update(patch).eq('id', id);
+  if (error) { console.error('[db] updateConvocacaoStatus:', error.message); return false; }
+  return true;
+}
+
+export async function insertConvocacaoEvento(convocacaoId, direcao, tipo, conteudo) {
+  const { error } = await supabase.from('convocacao_eventos').insert({
+    id: crypto.randomUUID(), convocacao_id: convocacaoId, direcao, tipo, conteudo: conteudo || null,
+  });
+  if (error && !isMissingConvocacoes(error)) console.error('[db] insertConvocacaoEvento:', error.message);
+}
+
+// Espelha o status da convocação em registros (para a pessoa aparecer na escala).
+async function espelharRegistro(conv, confirmacao) {
+  const statusMap = { confirmado: 'active', falta: 'absent' };
+  const { data: existing } = await supabase.from('registros')
+    .select('id').eq('escala_id', conv.escalaId).eq('funcionario_id', conv.funcionarioId).maybeSingle();
+  if (existing) {
+    await supabase.from('registros')
+      .update({ confirmacao, status: statusMap[confirmacao] || 'scheduled' })
+      .eq('id', existing.id);
+    return;
+  }
+  const diaria = await getCompanyDiaria(conv.empresaId);
+  await supabase.from('registros').insert({
+    id: crypto.randomUUID(), escala_id: conv.escalaId, funcionario_id: conv.funcionarioId,
+    empresa_id: conv.empresaId, data: conv.data, status: statusMap[confirmacao] || 'scheduled',
+    confirmacao, valor: diaria,
+  });
+}
+
+// Aceite com regra de vagas: se a lista lotou, o excedente vira reserva.
+// Devolve o status final gravado ('confirmado' ou 'reserva').
+export async function aceitarConvocacao(conv) {
+  const [{ count }, escalaRes] = await Promise.all([
+    supabase.from('convocacoes').select('id', { count: 'exact', head: true })
+      .eq('escala_id', conv.escalaId).eq('status', 'confirmado'),
+    supabase.from('escalas').select('vagas').eq('id', conv.escalaId).maybeSingle(),
+  ]);
+  const vagas = escalaRes?.data?.vagas ?? conv.vagas ?? null;
+  const jaConfirmados = count ?? 0;
+  const lotado = vagas != null && jaConfirmados >= vagas;
+
+  const final = lotado ? 'reserva' : 'confirmado';
+  await updateConvocacaoStatus(conv.id, final, { respondido: true });
+  if (final === 'confirmado') {
+    await espelharRegistro(conv, 'confirmado');
+    await insertConvocacaoEvento(conv.id, 'in', 'resposta', 'Aceitou a convocação.');
+  } else {
+    await insertConvocacaoEvento(conv.id, 'sistema', 'reserva',
+      'Lista cheia no aceite — registrado como reserva.');
+  }
+  return final;
+}
+
+export async function recusarConvocacao(conv) {
+  await updateConvocacaoStatus(conv.id, 'recusado', { respondido: true });
+  await insertConvocacaoEvento(conv.id, 'in', 'resposta', 'Recusou a convocação.');
+}
+
+export async function marcarSemResposta(conv) {
+  await updateConvocacaoStatus(conv.id, 'sem_resposta');
+  await insertConvocacaoEvento(conv.id, 'sistema', 'resposta', 'Sem resposta do ajudante.');
 }
