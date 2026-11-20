@@ -2,7 +2,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useState, useRef, useEffect, createContext, useContext, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
-import { STATUS_CONFIG } from '../admin/AdminDemanda';
+import { STATUS_CONFIG } from '../../lib/statusConfig';
 import { fetchCompanyRecords, subscribeToCompanyRecords, fetchEscalaHojeByEmpresa, fetchRelatoriosByEmpresa, fetchEscalasComLiderByEmpresa, fetchCarretasByEscala, fetchCarretasByEscalas, fetchCompanyById } from '../../lib/db';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';

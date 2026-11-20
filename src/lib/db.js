@@ -2496,12 +2496,15 @@ export async function fetchConvocacoesByEscalas(escalaIds = []) {
 }
 
 // Fila/prateleira do agente (direto da view com o payload pronto).
-export async function fetchConvocacoesAgente({ statuses, limit = 300 } = {}) {
+// `from`/`to` filtram o dia do serviço (datas ISO YYYY-MM-DD).
+export async function fetchConvocacoesAgente({ statuses, from, to, limit = 300 } = {}) {
   let q = supabase.from('vw_convocacoes_agente')
     .select('*')
     .order('data_servico', { ascending: true })
     .limit(limit);
   if (statuses?.length) q = q.in('status', statuses);
+  if (from) q = q.gte('data_servico', from);
+  if (to) q = q.lte('data_servico', to);
   const { data, error } = await q;
   if (error) {
     if (!isMissingConvocacoes(error)) console.error('[db] fetchConvocacoesAgente:', error.message);

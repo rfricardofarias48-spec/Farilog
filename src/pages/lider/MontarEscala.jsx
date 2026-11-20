@@ -13,10 +13,13 @@ import ModalConfirmarConvocacao from '../../components/shared/ModalConfirmarConv
 
 const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 const RESERVAS_PADRAO = 2;
+const EMPTY_COMPANIES = [];
 
 // Assistente de montagem da escala:
 //   1) dados + últimos escalados → 2) busca estilo Uber → 3) lista ranqueada → 4) confirmação.
-export default function MontarEscala({ user, onSaved, onCancel }) {
+// No modo admin (admin=true), usa todas as empresas cadastradas e não vincula
+// a escala a um encarregado.
+export default function MontarEscala({ user, admin = false, companies = EMPTY_COMPANIES, onSaved, onCancel }) {
   const [step, setStep]       = useState('montar');   // montar | buscando | lista
   const [form, setForm]       = useState({ companyId: '', date: TODAY, time: '07:00', service: '', tipoServico: 'entrega' });
   const [resp, setResp]       = useState('');
@@ -37,17 +40,28 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
   const [saving, setSaving]       = useState(false);
   const [erro, setErro]           = useState('');
 
-  // Empresas do encarregado
+  // Empresas: admin vê todas as cadastradas; encarregado vê as vinculadas.
   useEffect(() => {
+    if (admin) {
+      const list = companies || [];
+      setEmpresas(list);
+      if (list.length === 1) {
+        setForm(f => ({ ...f, companyId: list[0].id }));
+        setResp(list[0].responsavel || list[0].contact || '');
+        setContato(list[0].telefone || list[0].phone || '');
+      }
+      return;
+    }
+    if (!user?.id) return;
     fetchEmpresasDoLider(user.id).then(list => {
       setEmpresas(list);
       if (list.length === 1) {
         setForm(f => ({ ...f, companyId: list[0].id }));
-        setResp(list[0].responsavel || '');
-        setContato(list[0].telefone || '');
+        setResp(list[0].responsavel || list[0].contact || '');
+        setContato(list[0].telefone || list[0].phone || '');
       }
     });
-  }, [user.id]);
+  }, [admin, companies, user?.id]);
 
   // Últimos escalados nesta empresa
   useEffect(() => {
@@ -70,8 +84,8 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
 
   const selecionarEmpresa = (emp) => {
     setForm(f => ({ ...f, companyId: emp.id }));
-    setResp(emp.responsavel || '');
-    setContato(emp.telefone || '');
+    setResp(emp.responsavel || emp.contact || '');
+    setContato(emp.telefone || emp.phone || '');
   };
 
   // Passo 1 → 2: busca candidatos e já deixa marcados os que o encarregado manteve.
@@ -103,7 +117,7 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
   const confirmarConvocacao = async () => {
     setSaving(true);
     const saved = await createEscalaComConvocacoes({
-      liderId: user.id, companyId: form.companyId, date: form.date,
+      liderId: admin ? null : user?.id, companyId: form.companyId, date: form.date,
       time: form.time, service: form.service, tipoServico: form.tipoServico,
       vagas: Number(vagas) || titulares.length,
       totalReservas: reservas.length || RESERVAS_PADRAO,
@@ -121,10 +135,12 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
       {/* Cabeçalho */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <p style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Montar escala</p>
+<p style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>
+            {admin ? 'Montar convocação' : 'Montar escala'}
+          </p>
           <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
-            {step === 'montar' ? 'Dados da escala e últimos escalados'
-              : step === 'buscando' ? 'Buscando ajudantes próximos…'
+            {step === 'montar' ? (admin ? 'Dados da convocação e últimos escalados' : 'Dados da escala e últimos escalados')
+              : step === 'buscando' ? 'Buscando ajudantes próximos...'
               : 'Escolha quem convocar'}
           </p>
         </div>
@@ -135,7 +151,9 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
               <span key={s} style={{ width: i === 0 ? '18px' : '8px', height: '4px', borderRadius: '99px', background: ['montar', 'buscando', 'lista'].indexOf(step) >= i ? '#BC4A2A' : '#E2E8F0', transition: 'all .2s' }} />
             ))}
           </div>
-          <button type="button" onClick={onCancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
+          {onCancel && (
+            <button type="button" onClick={onCancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
+          )}
         </div>
       </div>
 
@@ -152,7 +170,9 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '8px' }}>Para qual empresa? *</label>
             {empresas.length === 0 ? (
-              <p style={{ fontSize: '12px', color: '#94A3B8' }}>Nenhuma empresa vinculada. Fale com o administrador.</p>
+              <p style={{ fontSize: '12px', color: '#94A3B8' }}>
+                {admin ? 'Nenhuma empresa cadastrada. Cadastre uma empresa primeiro.' : 'Nenhuma empresa vinculada. Fale com o administrador.'}
+              </p>
             ) : (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {empresas.map(emp => {
@@ -218,7 +238,7 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
             ) : (
               <>
                 <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
-                  Esses são os seus últimos escalados nesta empresa. Você quer manter algum deles na escala?
+                  Esses são os {admin ? 'últimos escalados nesta empresa' : 'seus últimos escalados nesta empresa'}. Você quer manter algum deles na escala?
                 </p>
                 <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px', marginBottom: '10px' }}>
                   Última escala: {new Date(`${ultimos.lastDate}T12:00:00`).toLocaleDateString('pt-BR')}
@@ -250,10 +270,12 @@ export default function MontarEscala({ user, onSaved, onCancel }) {
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button type="button" onClick={onCancel}
-              style={{ flex: 1, padding: '11px', borderRadius: '10px', background: '#F1F5F9', color: '#64748B', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-              Cancelar
-            </button>
+            {onCancel && (
+              <button type="button" onClick={onCancel}
+                style={{ flex: 1, padding: '11px', borderRadius: '10px', background: '#F1F5F9', color: '#64748B', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                Cancelar
+              </button>
+            )}
             <button type="button" onClick={iniciarBusca} disabled={!form.companyId}
               style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '11px', borderRadius: '10px', border: 'none', cursor: form.companyId ? 'pointer' : 'not-allowed', fontSize: '13px', fontWeight: 700, background: form.companyId ? '#BC4A2A' : '#E2E8F0', color: form.companyId ? 'white' : '#94A3B8' }}>
               {mantidos.length > 0 ? `Manter ${mantidos.length} e buscar próximos` : 'Buscar ajudantes próximos'} <ArrowRight size={14} />

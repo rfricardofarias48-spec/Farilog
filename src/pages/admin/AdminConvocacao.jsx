@@ -25,6 +25,23 @@ const fmtDia = (iso) => {
   return `${dow}, ${d}/${m}/${y}`;
 };
 
+const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+const MES_ATUAL = TODAY.slice(0, 7);
+const QUINZENA_ATUAL = Number(TODAY.slice(8, 10)) <= 15 ? 1 : 2;
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+function limitesDoMes(mes) {
+  const [ano, m] = String(mes || MES_ATUAL).split('-').map(Number);
+  const ultimo = new Date(Date.UTC(ano, m, 0)).getUTCDate();
+  const mm = String(m).padStart(2, '0');
+  return {
+    ano,
+    mesNum: m,
+    primeiro: `${ano}-${mm}-01`,
+    ultimoDia: `${ano}-${mm}-${String(ultimo).padStart(2, '0')}`,
+  };
+}
+
 // Texto do convite (mesmo formato documentado em supabase/agente-whatsapp.md).
 function textoConvite(c) {
   const primeiro = String(c.name || '').split(' ')[0];
@@ -40,18 +57,28 @@ function textoConvite(c) {
   ].filter(Boolean).join('\n');
 }
 
-export default function AdminConvocacao() {
-  const [filtro, setFiltro] = useState('fila');
+export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
+  const [filtro, setFiltro] = useState('todas');
+  const [modo, setModo]     = useState('quinzena');
+  const [mes, setMes]       = useState(initialMes || MES_ATUAL);
+  const [quinzena, setQuinzena] = useState(initialQuinzena || QUINZENA_ATUAL);
   const [convs, setConvs]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [agindo, setAgindo]   = useState(null);
 
   const statuses = FILTROS.find(f => f.id === filtro)?.statuses ?? null;
 
+  const mesEfetivo = mes || MES_ATUAL;
+  const limite = limitesDoMes(mesEfetivo);
+  const de  = modo === 'mes' ? limite.primeiro : (quinzena === 1 ? limite.primeiro : `${mesEfetivo}-16`);
+  const ate = modo === 'mes' ? limite.ultimoDia : (quinzena === 1 ? `${mesEfetivo}-15` : limite.ultimoDia);
+  const labelMes = `${MESES[limite.mesNum - 1]}/${limite.ano}`;
+  const labelPeriodo = modo === 'mes' ? labelMes : `${quinzena}ª quinzena · ${labelMes}`;
+
   const load = useCallback(() => {
     setLoading(true);
-    fetchConvocacoesAgente({ statuses }).then(list => { setConvs(list); setLoading(false); });
-  }, [filtro]);   // eslint-disable-line react-hooks/exhaustive-deps
+    fetchConvocacoesAgente({ statuses, from: de, to: ate }).then(list => { setConvs(list); setLoading(false); });
+  }, [filtro, de, ate]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
@@ -76,8 +103,12 @@ export default function AdminConvocacao() {
         endereco: list[0]?.endereco,
         confirmados: list[0]?.confirmados ?? 0,
       }))
-      .sort((a, b) => String(a.data).localeCompare(String(b.data)));
-  }, [convs]);
+      .sort((a, b) => (
+        filtro === 'fila'
+          ? String(a.data).localeCompare(String(b.data))
+          : String(b.data).localeCompare(String(a.data))
+      ));
+  }, [convs, filtro]);
 
   const agir = async (tipo, conv) => {
     setAgindo(conv.id);
@@ -92,15 +123,61 @@ export default function AdminConvocacao() {
     <div className="space-y-5">
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
         <div>
-          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A' }}>Fila de convocações</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A' }}>Histórico de convocações</p>
           <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-            Fila de convocações que o agente de WhatsApp vai consumir. Enquanto o agente não está ativo,
-            use os botões para simular as respostas e testar o fluxo.
+            Convocações do período selecionado. Use os filtros de status para acompanhar a fila do agente.
           </p>
         </div>
         <button onClick={load} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', background: '#F1F5F9', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>
           <RefreshCw size={13} /> Atualizar
         </button>
+      </div>
+
+      {/* Período: mensal ou quinzenal */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B' }}>Período:</span>
+
+        <div style={{ display: 'flex', gap: '4px', padding: '4px', borderRadius: '12px', background: '#F1F5F9' }}>
+          {[['quinzena', 'Quinzenal'], ['mes', 'Mensal']].map(([valor, label]) => (
+            <button key={valor} onClick={() => setModo(valor)}
+              style={{
+                padding: '6px 14px', borderRadius: '9px', border: 'none', cursor: 'pointer',
+                fontSize: '12px', fontWeight: 700,
+                background: modo === valor ? 'white' : 'transparent',
+                color: modo === valor ? '#0F172A' : '#94A3B8',
+                boxShadow: modo === valor ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <input
+          type="month"
+          className="input-field"
+          value={mesEfetivo}
+          onChange={e => setMes(e.target.value)}
+          style={{ width: '165px', height: '36px', padding: '0 10px', fontSize: '12px' }}
+        />
+
+        {modo === 'quinzena' && (
+          <div style={{ display: 'flex', gap: '4px', padding: '4px', borderRadius: '12px', background: '#F1F5F9' }}>
+            {[1, 2].map(q => (
+              <button key={q} onClick={() => setQuinzena(q)}
+                style={{
+                  padding: '6px 14px', borderRadius: '9px', border: 'none', cursor: 'pointer',
+                  fontSize: '12px', fontWeight: 700,
+                  background: quinzena === q ? 'white' : 'transparent',
+                  color: quinzena === q ? '#0F172A' : '#94A3B8',
+                  boxShadow: quinzena === q ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
+                }}>
+                {q}ª quinzena
+              </button>
+            ))}
+          </div>
+        )}
+
+        <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B' }}>{labelPeriodo}</span>
       </div>
 
       {/* Filtros */}
@@ -121,9 +198,9 @@ export default function AdminConvocacao() {
       ) : grupos.length === 0 ? (
         <div className="card" style={{ padding: '56px 20px', textAlign: 'center' }}>
           <Send size={28} style={{ color: '#CBD5E1', margin: '0 auto 10px' }} />
-          <p style={{ fontSize: '14px', color: '#94A3B8' }}>Nenhuma convocação neste filtro.</p>
+          <p style={{ fontSize: '14px', color: '#94A3B8' }}>Nenhuma convocação neste período.</p>
           <p style={{ fontSize: '11px', color: '#CBD5E1', marginTop: '4px' }}>
-            Monte uma escala pelo app do encarregado para gerar convocações.
+            Monte uma convocação na sub-aba Convocação para gerar a fila do período.
           </p>
         </div>
       ) : (

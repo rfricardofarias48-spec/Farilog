@@ -4,13 +4,13 @@ import { useAuth } from '../context/AuthContext';
 import {
   LogOut, LayoutDashboard, Building2, ChevronLeft, ChevronRight,
   DollarSign, ClipboardList, Search, Bell, Briefcase, Activity,
-  Send, BarChart2, ChevronDown, Users, Heart, Clock, Shield,
-  TrendingUp, CreditCard, Wallet, FileText, UserCheck,
+  BarChart2, ChevronDown, Users, Heart, Clock, Shield,
+  TrendingUp, CreditCard, Wallet, FileText, UserCheck, MessageCircle,
 } from 'lucide-react';
 
 const OP_TABS = [
   { key: 'resumo',       label: 'Resumo do Dia',          icon: Activity },
-  { key: 'demanda',      label: 'Demandas e Convocação',  icon: Send },
+  { key: 'convocacao',   label: 'Convocação',             icon: MessageCircle },
   { key: 'historico',    label: 'Histórico',              icon: ClipboardList },
   { key: 'relatorios',   label: 'Relatórios',             icon: BarChart2 },
   { key: 'encarregados', label: 'Encarregados',           icon: UserCheck },
@@ -56,8 +56,8 @@ export default function AdminLayout() {
   const isRH          = location.pathname === '/admin/rh';
   const isFinanceiro  = location.pathname === '/admin/financeiro';
   const rawOpTab      = searchParams.get('tab') || 'resumo';
-  // "convocacao" virou uma sub-aba de "demanda": links antigos continuam válidos.
-  const activeOpTab   = rawOpTab === 'convocacao' ? 'demanda' : rawOpTab;
+  // "demanda" foi unificada em "convocação": links antigos continuam válidos.
+  const activeOpTab   = rawOpTab === 'demanda' ? 'convocacao' : rawOpTab;
   const activeRHTab   = searchParams.get('tab') || 'funcionarios';
   const activeFinTab  = searchParams.get('tab') || 'visao';
 

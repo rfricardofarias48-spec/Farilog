@@ -9,7 +9,6 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminCompanies from './pages/admin/AdminCompanies';
 import AdminEmployees from './pages/admin/AdminEmployees';
 import AdminFinanceiro from './pages/admin/AdminFinanceiro';
-import AdminDemanda from './pages/admin/AdminDemanda';
 import AdminOperacional from './pages/admin/AdminOperacional';
 import AdminRH from './pages/admin/AdminRH';
 import AdminSolicitacoes from './pages/admin/AdminSolicitacoes';
@@ -38,7 +37,7 @@ function AppRoutes() {
         <Route path="companies"    element={<AdminCompanies />} />
         <Route path="employees"    element={<AdminEmployees />} />
         <Route path="financeiro"   element={<AdminFinanceiro />} />
-        <Route path="demanda"      element={<AdminDemanda />} />
+        <Route path="demanda"      element={<Navigate to="/admin/operacional?tab=convocacao" replace />} />
         <Route path="operacional"  element={<AdminOperacional />} />
         <Route path="rh"           element={<AdminRH />} />
         <Route path="solicitacoes" element={<AdminSolicitacoes />} />

@@ -7,6 +7,7 @@ import AvaliacaoDiariaModal from '../../components/shared/AvaliacaoDiariaModal';
 import AdminConvocacao from './AdminConvocacao';
 import { StarsDisplay } from '../../components/shared/StarRating';
 import { fetchNotasByEscala, fetchNotasResumo } from '../../lib/db';
+import { STATUS_CONFIG } from '../../lib/statusConfig';
 import { fmtNota } from '../../lib/notas';
 import {
   Building2, Calendar, Clock, ChevronDown, CheckCircle2,
@@ -24,14 +25,6 @@ function formatDate(iso) {
   const dow = DOW[new Date(`${iso}T12:00:00`).getDay()];
   return `${dow}, ${d}/${m}/${y}`;
 }
-
-export const STATUS_CONFIG = {
-  aguardando: { label: 'Aguardando', color: '#6B6B6B', bg: '#F7F7F7' },
-  confirmado: { label: 'Confirmado', color: '#0B0B0B', bg: '#F5F5F5' },
-  atrasado:   { label: 'Atrasado',   color: '#9E3D22', bg: '#FAF4F1' },
-  falta:      { label: 'Falta',      color: '#4A4A4A', bg: '#F5F5F5' },
-  finalizado: { label: 'Finalizado', color: '#6B6B6B', bg: '#F5F5F5' },
-};
 
 const ADMIN_STATUS_OPTIONS = ['aguardando','confirmado','atrasado','falta','finalizado'];
 

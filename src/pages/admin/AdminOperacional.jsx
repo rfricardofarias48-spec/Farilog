@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { fetchTodayAllRecords, fetchWorkRecordsByPeriod } from '../../lib/db';
 import { fmtCurrency, fmtDate } from '../../data/mockData';
 import { overtimeToMinutes, sumOvertimeMinutes, minutesToOvertimeString, recordRevenue } from '../../lib/timeUtils';
-import AdminDemanda from './AdminDemanda';
+import AdminConvocacoes from './AdminConvocacoes';
 import AdminEncarregados from './AdminEncarregados';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -933,9 +933,7 @@ export default function AdminOperacional() {
   return (
     <div className="space-y-5">
       {tab === 'resumo'      && <ResumoDia />}
-      {(tab === 'demanda' || tab === 'convocacao') && (
-        <AdminDemanda key={tab} initialSubTab={tab === 'convocacao' ? 'convocacao' : 'nova'} />
-      )}
+      {(tab === 'convocacao' || tab === 'demanda') && <AdminConvocacoes key={tab} />}
       {tab === 'historico'   && <Historico />}
       {tab === 'relatorios'  && <Relatorios />}
       {tab === 'encarregados' && <AdminEncarregados />}
