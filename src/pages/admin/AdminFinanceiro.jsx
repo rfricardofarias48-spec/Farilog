@@ -15,8 +15,8 @@ import {
 import { fmtCurrency } from '../../data/mockData';
 import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell,
+  ComposedChart, Bar, Line, Area, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceDot,
 } from 'recharts';
 import {
   DollarSign, TrendingUp, TrendingDown, Percent,
@@ -124,6 +124,7 @@ function buildChartData(type, start, end, records, lancamentos, companiesById) {
     }
   }
 
+  let acumulado = 0;
   return buckets.map(b => {
     const match = (date) => isDay ? date === b.key : date.startsWith(b.key);
     const aReceber =
@@ -133,8 +134,10 @@ function buildChartData(type, start, end, records, lancamentos, companiesById) {
         .reduce((s, l) => s + Number(l.valor || 0), 0);
     const aPagar = lancamentos.filter(l => l.tipo === 'a_pagar' && match(l.data_vencimento))
       .reduce((s, l) => s + Number(l.valor || 0), 0);
-    return { ...b, aReceber, aPagar, saldo: aReceber - aPagar };
-  });
+    const saldo = aReceber - aPagar;
+    acumulado += saldo;
+    return { ...b, aReceber, aPagar, saldo, saldoAcum: acumulado };
+  }).filter(b => b.aReceber > 0 || b.aPagar > 0); // só datas com movimentação
 }
 
 // ── Shared components ──────────────────────────────────────────────────────
@@ -554,8 +557,6 @@ function ListModal({ title, items, onDelete, onClose }) {
     return () => document.removeEventListener('keydown', h);
   }, [onClose]);
 
-  const isRec = title === 'A Receber';
-
   return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()}
       style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(11, 11, 11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
@@ -582,8 +583,9 @@ function ListModal({ title, items, onDelete, onClose }) {
             </div>
           ) : items.map((item, idx) => {
             const [yr, mo, dd] = item.date.split('-');
+            const rec = item.tipo === 'a_receber';
             return (
-              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px 40px', padding: '12px 24px', borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px', boxShadow: `inset 3px 0 0 ${isRec ? CASH_IN : CASH_OUT}` }}>
+              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 100px 40px', padding: '12px 24px', borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px', boxShadow: `inset 3px 0 0 ${rec ? CASH_IN : CASH_OUT}` }}>
                 <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B6B6B' }}>{dd}/{mo}/{yr.slice(2)}</span>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.descricao}</span>
                 <span>
@@ -591,8 +593,8 @@ function ListModal({ title, items, onDelete, onClose }) {
                     {item.classificacaoNome || '—'}
                   </span>
                 </span>
-                <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: isRec ? CASH_IN : CASH_OUT }}>
-                  {isRec ? '+' : '−'}{fmtCurrency(item.valor)}
+                <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: rec ? CASH_IN : CASH_OUT }}>
+                  {rec ? '+' : '−'}{fmtCurrency(item.valor)}
                 </span>
                 <span style={{ display: 'flex', justifyContent: 'center' }}>
                   {item.isManual && onDelete ? (
@@ -613,9 +615,9 @@ function ListModal({ title, items, onDelete, onClose }) {
 
 // ── Tab: Fluxo de Caixa ────────────────────────────────────────────────────
 function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType, bounds, companies, classificacoes, onCreateClassificacao }) {
-  const [view,     setView]     = useState('all');
-  const [modal,    setModal]    = useState(null); // 'receber' | 'pagar'
+  const [modal,    setModal]    = useState(null); // 'receber' | 'pagar' | 'all'
   const [showAdd,  setShowAdd]  = useState(false);
+  const [chartMode, setChartMode] = useState('entrada'); // entrada | saida | saldo
 
   const companiesById = useMemo(
     () => Object.fromEntries((companies || []).map(c => [c.id, c])),
@@ -644,9 +646,19 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     [periodType, bounds.start, bounds.end, records, lancamentos, companiesById]
   );
   const hasChart = chartData.some(b => b.aReceber > 0 || b.aPagar > 0);
+  // Dia com pagamento acima do teto do eixo (ex.: folha) — recebe etiqueta.
+  const clippedDay = chartData.find(b => b.aPagar > 6000);
+  const CHART_MODES = [
+    { key: 'entrada', label: 'Entrada', color: CASH_IN },
+    { key: 'saida',   label: 'Saída',   color: CASH_OUT },
+    { key: 'saldo',   label: 'Saldo',   color: CASH_BAL },
+  ];
+  const activeMode = CHART_MODES.find(m => m.key === chartMode) || CHART_MODES[0];
+  const lastSaldo = chartData.length ? chartData[chartData.length - 1] : null;
+  const minSaldo = chartData.length
+    ? chartData.reduce((a, b) => (b.saldoAcum < a.saldoAcum ? b : a), chartData[0])
+    : null;
 
-  // Barras: mais grossas conforme período
-  const barSize = { quinzenal: 20, mensal: 12, semestral: 40, anual: 24 }[periodType] ?? 16;
   const isDaily = periodType === 'quinzenal' || periodType === 'mensal';
 
   // a_receber: registros agrupados + manuais
@@ -684,13 +696,17 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const totalRec = recGroups.reduce((s, g) => s + g.valor, 0);
   const totalPag = pagItems.reduce((s, l) => s + l.valor, 0);
 
+  // A lista abaixo do gráfico segue o seletor: Entrada → só receber,
+  // Saída → só pagar, Saldo → os dois.
+  const inlineMode = chartMode === 'entrada' ? 'receber' : chartMode === 'saida' ? 'pagar' : 'all';
+
   // Lista exibida inline (limitada a 8 itens)
   const inlineItems = useMemo(() => {
     const items = [];
-    if (view !== 'pagar')   items.push(...recGroups);
-    if (view !== 'receber') items.push(...pagItems);
+    if (inlineMode !== 'pagar')   items.push(...recGroups);
+    if (inlineMode !== 'receber') items.push(...pagItems);
     return items.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8);
-  }, [view, recGroups, pagItems]);
+  }, [inlineMode, recGroups, pagItems]);
 
   const handleSave = async ({ tipo, descricao, valor, dataVencimento, classificacaoId }) => {
     const l = await createLancamentoManual({ tipo, descricao, valor, dataVencimento, classificacaoId });
@@ -705,7 +721,9 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     setLancamentos(prev => prev.filter(l => l.id !== id));
   };
 
-  const modalItems = modal === 'receber' ? recGroups : pagItems;
+  const modalItems = modal === 'receber' ? recGroups
+    : modal === 'pagar' ? pagItems
+    : [...recGroups, ...pagItems].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <div className="space-y-5">
@@ -720,17 +738,29 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
 
       {/* Gráfico */}
       <div className="card p-5">
-        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <p style={{ fontSize: '13px', fontWeight: 700, ...T }}>Fluxo de Caixa — {bounds.label}</p>
             <p style={{ fontSize: '11px', ...TM, marginTop: '2px' }}>Entradas vs. Saídas por período</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '8px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: activeMode.color }} />
+              <span style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 500 }}>
+                {chartMode === 'saldo' ? 'Saldo acumulado' : activeMode.label}
+              </span>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-            {[[CASH_IN,'A Receber'],[CASH_OUT,'A Pagar'],[CASH_BAL,'Saldo']].map(([c, l]) => (
-              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: c }} />
-                <span style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 500 }}>{l}</span>
-              </div>
+          {/* Seletor discreto das 4 apresentações */}
+          <div style={{ display: 'flex', gap: '2px', background: '#F3F3F3', border: '1px solid #E8E8E8', borderRadius: '9px', padding: '3px' }}>
+            {CHART_MODES.map(m => (
+              <button key={m.key} onClick={() => setChartMode(m.key)}
+                style={{
+                  padding: '5px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                  fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap', transition: 'all 0.15s',
+                  background: chartMode === m.key ? m.color : 'transparent',
+                  color: chartMode === m.key ? '#fff' : '#7A7A7A',
+                }}>
+                {m.label}
+              </button>
             ))}
           </div>
         </div>
@@ -740,29 +770,46 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={periodType === 'mensal' ? 300 : 260}>
-            <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: -10 }} barCategoryGap="34%" barGap={2}>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: -10 }} barCategoryGap="30%">
+              <defs>
+                <linearGradient id="gradSerie" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={activeMode.color} stopOpacity={0.16} />
+                  <stop offset="100%" stopColor={activeMode.color} stopOpacity={0.01} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
-              <XAxis
-                dataKey="label"
-                tick={{ fill: '#9A9A9A', fontSize: isDaily ? 9.5 : 11 }}
-                axisLine={false}
-                tickLine={false}
-                interval={0}
-                angle={periodType === 'mensal' ? -45 : 0}
-                textAnchor={periodType === 'mensal' ? 'end' : 'middle'}
-                height={periodType === 'mensal' ? 48 : 30}
-                tickMargin={periodType === 'mensal' ? 2 : 0}
-              />
-              <YAxis
-                tick={{ fill: '#9A9A9A', fontSize: 10 }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={v => v === 0 ? '' : `R$${(v / 1000).toFixed(0)}k`}
-              />
+              <XAxis dataKey="label" tick={{ fill: '#9A9A9A', fontSize: isDaily ? 9.5 : 11 }} axisLine={false} tickLine={false} interval={0}
+                angle={periodType === 'mensal' ? -45 : 0} textAnchor={periodType === 'mensal' ? 'end' : 'middle'}
+                height={periodType === 'mensal' ? 48 : 30} tickMargin={periodType === 'mensal' ? 2 : 0} />
+              <YAxis domain={chartMode === 'saida' ? [0, 6000] : [0, 'auto']} allowDataOverflow={chartMode === 'saida'}
+                tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false}
+                tickFormatter={v => v === 0 ? '' : `R$${(v / 1000).toFixed(0)}k`} />
               <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
-              <Bar dataKey="aReceber" name="A Receber" fill={CASH_IN} radius={[5,5,0,0]} maxBarSize={barSize} />
-              <Bar dataKey="aPagar"   name="A Pagar"   fill={CASH_OUT} radius={[5,5,0,0]} maxBarSize={barSize} />
-              <Line dataKey="saldo" name="Saldo" stroke={CASH_BAL} strokeWidth={2.5} dot={false} />
+
+              {chartMode === 'saldo' ? (
+                <>
+                  <Area type="monotone" dataKey="saldoAcum" name="Saldo acumulado" stroke="none" fill="url(#gradSerie)" tooltipType="none" />
+                  <Line type="monotone" dataKey="saldoAcum" name="Saldo acumulado" stroke={CASH_BAL} strokeWidth={2.8} dot={false} />
+                  {minSaldo && (
+                    <ReferenceDot x={minSaldo.label} y={minSaldo.saldoAcum} r={4} fill="#fff" stroke={CASH_BAL} strokeWidth={2.2}
+                      label={{ value: `menor: ${fmtCurrency(minSaldo.saldoAcum)}`, position: 'top', fill: '#6B6B6B', fontSize: 9, fontWeight: 700 }} />
+                  )}
+                  {lastSaldo && (
+                    <ReferenceDot x={lastSaldo.label} y={lastSaldo.saldoAcum} r={4} fill="#fff" stroke={CASH_BAL} strokeWidth={2.2}
+                      label={{ value: `final: ${fmtCurrency(lastSaldo.saldoAcum)}`, position: 'bottom', fill: '#0B0B0B', fontSize: 9, fontWeight: 700 }} />
+                  )}
+                </>
+              ) : (
+                <>
+                  <Area type="monotone" dataKey={chartMode === 'entrada' ? 'aReceber' : 'aPagar'} stroke="none" fill="url(#gradSerie)" tooltipType="none" />
+                  <Bar dataKey={chartMode === 'entrada' ? 'aReceber' : 'aPagar'} name={activeMode.label} fill={activeMode.color} fillOpacity={0.55} radius={[3,3,0,0]} maxBarSize={22} />
+                  <Line type="monotone" dataKey={chartMode === 'entrada' ? 'aReceber' : 'aPagar'} name={activeMode.label} stroke={activeMode.color} strokeWidth={2.6} dot={false} tooltipType="none" />
+                  {chartMode === 'saida' && clippedDay && (
+                    <ReferenceDot x={clippedDay.label} y={6000} r={2} fill={CASH_OUT}
+                      label={{ value: fmtCurrency(clippedDay.aPagar), position: 'insideTop', fill: CASH_OUT, fontSize: 9, fontWeight: 700 }} />
+                  )}
+                </>
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         )}
@@ -770,38 +817,11 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
 
       {/* Barra de ações */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-        {/* Filtros + Ver mais */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {/* Todos */}
-          <button onClick={() => setView('all')}
-            style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid', borderColor: view === 'all' ? 'rgba(11, 11, 11,0.15)' : 'rgba(11, 11, 11,0.08)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'all' ? '#0B0B0B' : '#fff', color: view === 'all' ? 'white' : '#6B6B6B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
-            Todos
-          </button>
-
-          {/* A Receber + Ver mais */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-            <button onClick={() => setView('receber')}
-              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: `1px solid ${view === 'receber' ? 'rgba(47,122,79,0.35)' : 'rgba(11, 11, 11,0.08)'}`, cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'receber' ? CASH_IN_BG : '#fff', color: view === 'receber' ? CASH_IN : '#6B6B6B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
-              A Receber
-            </button>
-            <button onClick={() => setModal('receber')} title="Ver lista completa"
-              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: '1px solid rgba(11, 11, 11,0.08)', borderLeft: 'none', cursor: 'pointer', background: view === 'receber' ? CASH_IN_BG : '#fff', color: view === 'receber' ? CASH_IN : '#9A9A9A', display: 'flex', alignItems: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
-              <Maximize2 size={11} />
-            </button>
-          </div>
-
-          {/* A Pagar + Ver mais */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-            <button onClick={() => setView('pagar')}
-              style={{ padding: '7px 12px', borderRadius: '8px 0 0 8px', border: `1px solid ${view === 'pagar' ? 'rgba(188,74,42,0.35)' : 'rgba(11, 11, 11,0.08)'}`, cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: view === 'pagar' ? CASH_OUT_BG : '#fff', color: view === 'pagar' ? CASH_OUT : '#6B6B6B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
-              A Pagar
-            </button>
-            <button onClick={() => setModal('pagar')} title="Ver lista completa"
-              style={{ padding: '7px 9px', borderRadius: '0 8px 8px 0', border: '1px solid rgba(11, 11, 11,0.08)', borderLeft: 'none', cursor: 'pointer', background: view === 'pagar' ? CASH_OUT_BG : '#fff', color: view === 'pagar' ? CASH_OUT : '#9A9A9A', display: 'flex', alignItems: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
-              <Maximize2 size={11} />
-            </button>
-          </div>
-        </div>
+        {/* Ver lista completa (segue o seletor do gráfico) */}
+        <button onClick={() => setModal(inlineMode)} title="Ver lista completa"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', borderRadius: '8px', border: '1px solid rgba(11, 11, 11,0.08)', background: '#fff', color: '#6B6B6B', fontSize: '12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
+          <Maximize2 size={11} /> Ver lista completa
+        </button>
 
         {/* Adicionar */}
         <button onClick={() => setShowAdd(true)}
@@ -839,9 +859,9 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
               );
             })}
             {/* Rodapé com total de itens ocultos */}
-            {(view !== 'pagar' ? recGroups : []).length + (view !== 'receber' ? pagItems : []).length > 8 && (
+            {(inlineMode !== 'pagar' ? recGroups : []).length + (inlineMode !== 'receber' ? pagItems : []).length > 8 && (
               <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'center' }}>
-                <button onClick={() => setModal(view === 'all' ? 'receber' : view)}
+                <button onClick={() => setModal(inlineMode)}
                   style={{ fontSize: '12px', fontWeight: 600, color: '#BC4A2A', background: 'none', border: 'none', cursor: 'pointer' }}>
                   Ver lista completa →
                 </button>
@@ -854,7 +874,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
       {/* Modal Ver mais */}
       {modal && (
         <ListModal
-          title={modal === 'receber' ? 'A Receber' : 'A Pagar'}
+          title={modal === 'receber' ? 'A Receber' : modal === 'pagar' ? 'A Pagar' : 'Todos os lançamentos'}
           items={modalItems}
           onDelete={handleDelete}
           onClose={() => setModal(null)}
