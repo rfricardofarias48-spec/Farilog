@@ -1095,6 +1095,11 @@ function NovaDividaModal({ onSave, onClose }) {
     data_inicio: form.dataInicio,
   });
 
+  // Juros só existem quando o valor financiado (à vista) é informado.
+  // O % é a fatia dos juros no total a pagar (mesma regra da coluna "Juros %").
+  const pvTemJuros = preview.temPrincipal && preview.principal > 0;
+  const pvJurosPct = pvTemJuros && preview.total > 0 ? (preview.juros / preview.total) * 100 : null;
+
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
@@ -1154,7 +1159,8 @@ function NovaDividaModal({ onSave, onClose }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' }}>
                 {[
                   ['Total a pagar', fmtCurrency(preview.total)],
-                  ['Juros', preview.temPrincipal === false ? '—' : fmtCurrency(preview.juros)],
+                  ['Valor dos juros', pvTemJuros ? fmtCurrency(preview.juros) : '—'],
+                  ['% de juros', pvJurosPct == null ? '—' : `${pvJurosPct.toFixed(1).replace('.', ',')}%`],
                   ['Taxa mensal', preview.taxa == null ? '—' : `${(preview.taxa * 100).toFixed(2).replace('.', ',')}% a.m.`],
                   ['Tempo para quitar', `${preview.n} ${preview.n === 1 ? 'mês' : 'meses'}`],
                   ['Última parcela', fmtDateIso(preview.ultima)],
@@ -1191,7 +1197,7 @@ const DIV_MIN  = 1100;
 const DIV_HEADERS = [
   ['Dívida',          'left'],
   ['Vencimento',      'center'],
-  ['Financiado',      'center'],
+  ['Valor total',     'center'],
   ['Parcela',         'center'],
   ['Juros',           'center'],
   ['Juros %',         'center'],
@@ -1201,8 +1207,7 @@ const DIV_HEADERS = [
   ['Ação',            'center'],
 ];
 
-function TabEndividamento({ dividas, setDividas }) {
-  const [showModal,  setShowModal]  = useState(false);
+function TabEndividamento({ dividas, setDividas, showModal, setShowModal }) {
   const [confirmDel, setConfirmDel] = useState(null);
 
   const handleSave = async (data) => {
@@ -1227,17 +1232,6 @@ function TabEndividamento({ dividas, setDividas }) {
 
   return (
     <div className="space-y-5">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <p style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 600 }}>Total a pagar</p>
-          <p style={{ fontSize: '26px', fontWeight: 900, ...T, lineHeight: 1.1 }}>{fmtCurrency(totalPagar)}</p>
-        </div>
-        <button onClick={() => setShowModal(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#BC4A2A', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(188,74,42,0.3)' }}>
-          <Plus size={13} /> Nova Dívida
-        </button>
-      </div>
-
       {rows.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
           <KpiCard label="Valor total (dívida)" value={fmtCurrency(totalFinanc)} icon={Wallet} color="#3A4F6B" bg="#EDF1F6"
@@ -2109,6 +2103,8 @@ export default function AdminFinanceiro() {
   const [custosFixos, setCustosFixos] = useState([]);
   const [classificacoes, setClassificacoes] = useState([]);
   const [loading,     setLoading]     = useState(true);
+  // Modal "Nova Dívida": o botão fica no header (ao lado do filtro de período).
+  const [showNovaDivida, setShowNovaDivida] = useState(false);
 
   const bounds = useMemo(() => getBounds(periodType, offset), [periodType, offset]);
 
@@ -2142,6 +2138,9 @@ export default function AdminFinanceiro() {
     fetchClassificacoes().then(c => setClassificacoes(c || []));
   }, []);
 
+  // Ao sair da sub-aba de endividamento, fecha o modal de nova dívida.
+  useEffect(() => { if (activeTab !== 'dividas') setShowNovaDivida(false); }, [activeTab]);
+
   return (
     <div className="space-y-5">
       {/* Header — o título da sub-aba é exibido pela topbar do AdminLayout */}
@@ -2153,6 +2152,12 @@ export default function AdminFinanceiro() {
           onChangeType={handleChangePeriodType}
           onChangeOffset={setOffset}
         />
+        {activeTab === 'dividas' && (
+          <button onClick={() => setShowNovaDivida(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#BC4A2A', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(188,74,42,0.3)' }}>
+            <Plus size={13} /> Nova Dívida
+          </button>
+        )}
       </div>
 
       {/* Content */}
@@ -2165,7 +2170,7 @@ export default function AdminFinanceiro() {
           {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} classificacoes={classificacoes} />}
           {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} classificacoes={classificacoes} onCreateClassificacao={handleCreateClassificacao} />}
           {activeTab === 'folha'   && <TabFolhaPagamento employees={employees} onFolhaFechada={reloadLancamentos} />}
-          {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} />}
+          {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} showModal={showNovaDivida} setShowModal={setShowNovaDivida} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}
           {activeTab === 'dre'     && <TabDRE           records={records} lancamentos={lancamentos} employees={employees} bounds={bounds} companies={companies} />}
         </>
