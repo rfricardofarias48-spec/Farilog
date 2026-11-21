@@ -7,7 +7,7 @@ import {
   fetchDividas, createDivida, deleteDivida,
   fetchCustosFixos, createCustoFixo, updateCustoFixo, deleteCustoFixo,
   gerarVencimentosCustoFixo, CUSTO_FIXO_HORIZONTE, statusPorVencimento,
-  createLancamentoManual, deleteLancamento, updateLancamentoStatus, updateLancamentoData,
+  createLancamentoManual, deleteLancamento, updateLancamentoStatus, updateLancamentoData, updateLancamento,
   fetchAdiantamentosPorQuinzena, createAdiantamento, deleteAdiantamento,
   fetchPagosPorQuinzena, marcarPago, desmarcarPago,
   fetchClassificacoes, createClassificacao,
@@ -68,9 +68,8 @@ const statusOf = (l) => {
 };
 const isVencido = (l) => statusOf(l) === 'pendente' && !!l?.data_vencimento && l.data_vencimento < TODAY_ISO;
 
-// Grade do Fluxo de Caixa: Descrição · Classificação · Valor · Data de pagamento · Status.
-const FLUXO_COLS      = 'minmax(0, 2.1fr) minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1.05fr) minmax(180px, 1.6fr)';
-const FLUXO_COLS_LIST = FLUXO_COLS + ' 34px';
+// Grade do Fluxo de Caixa: Descrição · Classificação · Valor · Data de pagamento · Status · Ações.
+const FLUXO_COLS = 'minmax(0, 2fr) minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.05fr) minmax(180px, 1.5fr) 60px';
 
 // ── Period helpers ─────────────────────────────────────────────────────────
 function getBounds(type, offset) {
@@ -772,7 +771,122 @@ function DateCell({ item, stored, onChange }) {
   );
 }
 
-function ListModal({ title, items, onDelete, onStatus, onDate, onClose }) {
+// Modal de edição de um lançamento do Fluxo de Caixa. Salva SOMENTE este item:
+// mudar a data aqui não altera os demais lançamentos da série.
+function EditarLancamentoModal({ item, classificacoes = [], onSave, onClose }) {
+  const rec = item.tipo === 'a_receber';
+  const classOptions = (classificacoes || []).filter(c => c.tipo === (rec ? 'receita' : 'despesa'));
+  const [form, setForm] = useState({
+    descricao:       item.descricao || '',
+    valor:           item.valor != null ? String(item.valor) : '',
+    data:            item.date || TODAY_ISO,
+    classificacaoId: item.classificacaoId || '',
+    status:          item.status === 'pago' || item.status === 'recebido' ? item.status : 'pendente',
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  const canSave = form.descricao.trim() && form.valor !== '' && form.data && !saving;
+
+  const statusOpts = rec
+    ? [['pendente', 'A receber'], ['recebido', 'Recebido']]
+    : [['pendente', 'A pagar'], ['pago', 'Pago']];
+
+  const handleSave = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    await onSave(item.id, {
+      descricao:        form.descricao.trim(),
+      valor:            Number(form.valor),
+      data_vencimento:  form.data,
+      classificacao_id: form.classificacaoId || null,
+      status:           form.status,
+    });
+    setSaving(false);
+  };
+
+  return createPortal(
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(11, 11, 11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '460px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 32px 80px rgba(0,0,0,0.22)' }}>
+        <div style={{ padding: '22px 24px 18px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <button onClick={onClose} style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={15} />
+          </button>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Editar lançamento</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0B0B0B' }}>{rec ? 'Conta a Receber' : 'Conta a Pagar'}</p>
+        </div>
+
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Descrição</label>
+            <input className="input-field" value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} />
+          </div>
+
+          {classOptions.length > 0 && (
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Classificação</label>
+              <select className="input-field" value={form.classificacaoId} onChange={e => setForm(f => ({ ...f, classificacaoId: e.target.value }))}>
+                <option value="">Sem classificação</option>
+                {classOptions.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Valor (R$)</label>
+              <input className="input-field" type="number" min="0" step="0.01" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: e.target.value }))} />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Data de vencimento</label>
+              <input className="input-field" type="date" value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Status</label>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {statusOpts.map(([key, lbl]) => {
+                const active = form.status === key;
+                return (
+                  <button key={key} type="button" onClick={() => setForm(f => ({ ...f, status: key }))}
+                    style={{ flex: 1, padding: '10px', borderRadius: '10px', cursor: 'pointer', fontSize: '12px', fontWeight: 600,
+                      border: `1px solid ${active ? '#0B0B0B' : 'rgba(11,11,11,0.10)'}`,
+                      background: active ? '#0B0B0B' : '#fff', color: active ? '#fff' : '#6B6B6B' }}>
+                    {lbl}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '-4px' }}>
+            A alteração vale só para este lançamento — os próximos da série (custo fixo/dívida) mantêm suas datas.
+          </p>
+
+          <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
+            <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
+            <button onClick={handleSave} disabled={!canSave}
+              style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed',
+                background: canSave ? '#BC4A2A' : '#E4E4E4', color: canSave ? 'white' : '#9A9A9A', fontSize: '13px', fontWeight: 700,
+                boxShadow: canSave ? '0 2px 10px rgba(188,74,42,0.3)' : 'none' }}>
+              {saving ? 'Salvando...' : 'Salvar Alterações'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function ListModal({ title, items, onDelete, onStatus, onDate, onEdit, onClose }) {
   useEffect(() => {
     const h = e => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', h);
@@ -799,13 +913,13 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onClose }) {
           </button>
         </div>
         {/* Cabeçalho tabela */}
-        <div style={{ display: 'grid', gridTemplateColumns: FLUXO_COLS_LIST, padding: '9px 24px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: FLUXO_COLS, padding: '9px 24px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '10px', alignItems: 'center' }}>
           <span style={{ textAlign: 'center' }}>Descrição</span>
           <span style={{ textAlign: 'center' }}>Classificação</span>
           <span style={{ textAlign: 'center' }}>Valor</span>
           <span style={{ textAlign: 'center' }}>Data de pagamento</span>
           <span style={{ textAlign: 'center' }}>Status</span>
-          <span />
+          <span style={{ textAlign: 'center' }}>Ações</span>
         </div>
         {/* Lista */}
         <div style={{ overflowY: 'auto', flex: 1 }}>
@@ -817,7 +931,7 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onClose }) {
             const rec = item.tipo === 'a_receber';
             const pend = (item.status || 'pendente') === 'pendente';
             return (
-              <div key={idx} style={{ display: 'grid', gridTemplateColumns: FLUXO_COLS_LIST, padding: '12px 24px', borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '10px', boxShadow: `inset 3px 0 0 ${rec ? CASH_IN : CASH_OUT}`, background: item.vencido ? 'rgba(188,74,42,0.045)' : undefined }}>
+              <div key={idx} style={{ display: 'grid', gridTemplateColumns: FLUXO_COLS, padding: '12px 24px', borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '10px', boxShadow: `inset 3px 0 0 ${rec ? CASH_IN : CASH_OUT}`, background: item.vencido ? 'rgba(188,74,42,0.045)' : undefined }}>
                 <span style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.descricao}>{item.descricao}</span>
                 <span style={{ textAlign: 'center' }}>
                   <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: `${item.classificacaoCor || CASH_OUT}1A`, color: item.classificacaoCor || '#6B6B6B', whiteSpace: 'nowrap' }}>
@@ -833,9 +947,14 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onClose }) {
                 <span style={{ display: 'flex', justifyContent: 'center' }}>
                   <StatusCell item={item} rec={rec} stored={!!item.id} status={item.status || 'pendente'} vencido={!!item.vencido} onStatus={onStatus} />
                 </span>
-                <span style={{ display: 'flex', justifyContent: 'center' }}>
+                <span style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+                  {item.id && onEdit ? (
+                    <button onClick={() => onEdit(item)} title="Editar lançamento" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
+                      <Pencil size={13} />
+                    </button>
+                  ) : null}
                   {item.isManual && onDelete ? (
-                    <button onClick={() => onDelete(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
+                    <button onClick={() => onDelete(item.id)} title="Excluir" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
                       <Trash2 size={13} />
                     </button>
                   ) : null}
@@ -855,6 +974,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const [modal,    setModal]    = useState(null); // 'receber' | 'pagar' | 'all'
   const [showAdd,  setShowAdd]  = useState(false);
   const [chartMode, setChartMode] = useState('entrada'); // entrada | saida | saldo
+  const [editItem, setEditItem]   = useState(null); // lançamento em edição
 
   const companiesById = useMemo(
     () => Object.fromEntries((companies || []).map(c => [c.id, c])),
@@ -936,7 +1056,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     });
     const fromManual = lancamentos
       .filter(l => l.tipo === 'a_receber')
-      .map(l => { const cl = classOf(l); return { date: l.data_vencimento, descricao: l.descricao, origem: 'Manual', valor: Number(l.valor || 0), tipo: 'a_receber', isManual: true, id: l.id, status: statusOf(l), vencido: isVencido(l), classificacaoNome: cl.nome, classificacaoCor: cl.cor }; });
+      .map(l => { const cl = classOf(l); return { date: l.data_vencimento, descricao: l.descricao, origem: 'Manual', valor: Number(l.valor || 0), tipo: 'a_receber', isManual: true, id: l.id, status: statusOf(l), vencido: isVencido(l), classificacaoId: l.classificacao_id || '', classificacaoNome: cl.nome, classificacaoCor: cl.cor }; });
     return [...fromRecs, ...fromManual].sort((a, b) => a.date.localeCompare(b.date));
   }, [records, lancamentos, companies, classificacoes]);
 
@@ -947,7 +1067,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
         date: l.data_vencimento, descricao: l.descricao,
         origem: l.origem_tipo === 'divida' ? 'Dívida' : l.origem_tipo === 'custo_fixo' ? 'Custo Fixo' : l.origem_tipo === 'beneficio' ? 'Benefício' : l.origem_tipo === 'folha' ? 'Folha' : 'Manual',
         valor: Number(l.valor || 0), tipo: 'a_pagar', isManual: l.origem_tipo === 'manual', id: l.id,
-        status: statusOf(l), vencido: isVencido(l),
+        status: statusOf(l), vencido: isVencido(l), classificacaoId: l.classificacao_id || '',
         classificacaoNome: cl.nome, classificacaoCor: cl.cor,
       };
     }).sort((a, b) => a.date.localeCompare(b.date)),
@@ -1036,6 +1156,18 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const handleDate = async (id, novaData) => {
     await updateLancamentoData(id, novaData);
     setLancamentos(prev => prev.map(l => l.id === id ? { ...l, data_vencimento: novaData } : l));
+  };
+
+  // Salva a edição de um lançamento específico. NÃO propaga para os demais
+  // lançamentos da série (custo fixo/dívida): só esta linha muda.
+  const handleEditSave = async (id, patch) => {
+    const ok = await updateLancamento(id, patch);
+    if (ok) {
+      setLancamentos(prev => prev
+        .map(l => l.id === id ? { ...l, ...patch } : l)
+        .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento)));
+      setEditItem(null);
+    }
   };
 
   const modalItems = modal === 'receber' ? recGroups
@@ -1208,6 +1340,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           <span style={{ textAlign: 'center' }}>Valor</span>
           <span style={{ textAlign: 'center' }}>Data de pagamento</span>
           <span style={{ textAlign: 'center' }}>Status</span>
+          <span style={{ textAlign: 'center' }}>Ações</span>
         </div>
         {inlineItems.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -1235,6 +1368,14 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                   <span style={{ display: 'flex', justifyContent: 'center' }}>
                     <StatusCell item={item} rec={rec} stored={!!item.id} status={item.status || 'pendente'} vencido={!!item.vencido} onStatus={handleStatus} />
                   </span>
+                  <span style={{ display: 'flex', justifyContent: 'center' }}>
+                    {item.id ? (
+                      <button onClick={() => setEditItem(item)} title="Editar lançamento"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
+                        <Pencil size={13} />
+                      </button>
+                    ) : null}
+                  </span>
                 </div>
               );
             })}
@@ -1259,7 +1400,18 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           onDelete={handleDelete}
           onStatus={handleStatus}
           onDate={handleDate}
+          onEdit={setEditItem}
           onClose={() => setModal(null)}
+        />
+      )}
+
+      {/* Modal Editar lançamento */}
+      {editItem && (
+        <EditarLancamentoModal
+          item={editItem}
+          classificacoes={classificacoes}
+          onSave={handleEditSave}
+          onClose={() => setEditItem(null)}
         />
       )}
 

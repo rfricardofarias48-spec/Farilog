@@ -1838,6 +1838,25 @@ export async function deleteLancamento(id) {
   return true;
 }
 
+// Edita um lançamento específico. Importante: altera SOMENTE esta linha —
+// não propaga data/valor para os demais lançamentos da série (custo fixo/dívida).
+export async function updateLancamento(id, patch) {
+  let payload = { ...patch };
+  let { data, error } = await supabase
+    .from('financeiro_lancamentos').update(payload).eq('id', id).select().single();
+  if (error && /status/.test(error.message) && 'status' in payload) {
+    const { status, ...rest } = payload;
+    payload = rest;
+    ({ data, error } = await supabase.from('financeiro_lancamentos').update(payload).eq('id', id).select().single());
+  }
+  if (error && /classificacao_id/.test(error.message) && 'classificacao_id' in payload) {
+    const { classificacao_id, ...rest } = payload;
+    ({ data, error } = await supabase.from('financeiro_lancamentos').update(rest).eq('id', id).select().single());
+  }
+  if (error) { console.error('[db] updateLancamento:', error.message); return null; }
+  return data;
+}
+
 // Status de um lançamento: 'pendente' | 'pago' | 'recebido' (null = pendente).
 export async function updateLancamentoStatus(id, status) {
   const { data, error } = await supabase
