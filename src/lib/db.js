@@ -1568,11 +1568,27 @@ export async function fetchDividas() {
   return data || [];
 }
 
-export async function createDivida({ nome, valorTotal, valorParcela, numParcelas, dataInicio }) {
-  const { data: divida, error } = await supabase
+export async function createDivida({ nome, valorPrincipal, valorParcela, numParcelas, dataInicio }) {
+  // valor_total é o total a pagar (parcela x quantidade); valor_principal é o
+  // valor financiado, base para juros e taxa mensal.
+  const payload = {
+    nome,
+    valor_total: Number(valorParcela) * Number(numParcelas),
+    valor_parcela: valorParcela,
+    num_parcelas: numParcelas,
+    data_inicio: dataInicio,
+  };
+  if (valorPrincipal != null && valorPrincipal !== '') payload.valor_principal = Number(valorPrincipal);
+
+  let { data: divida, error } = await supabase
     .from('financeiro_dividas')
-    .insert({ nome, valor_total: valorTotal, valor_parcela: valorParcela, num_parcelas: numParcelas, data_inicio: dataInicio })
+    .insert(payload)
     .select().single();
+  if (error && isMissingColumn(error) && 'valor_principal' in payload) {
+    console.warn('[db] createDivida: coluna valor_principal ausente — rode supabase/dividas-detalhes.sql. Salvando sem ela.');
+    delete payload.valor_principal;
+    ({ data: divida, error } = await supabase.from('financeiro_dividas').insert(payload).select().single());
+  }
   if (error) { console.error('[db] createDivida:', error.message); return null; }
 
   const classId = await getClassificacaoId('Endividamento');
@@ -1650,6 +1666,35 @@ export async function createCustoFixo({ nome, valor, diaVencimento }) {
   const { error: lErr } = await supabase.from('financeiro_lancamentos').insert(lancamentos);
   if (lErr && /classificacao_id/.test(lErr.message)) {
     await supabase.from('financeiro_lancamentos').insert(lancamentos.map(({ classificacao_id, ...r }) => r));
+  }
+  return custo;
+}
+
+export async function updateCustoFixo(id, { nome, valor, diaVencimento }) {
+  const { data: custo, error } = await supabase
+    .from('financeiro_custos_fixos')
+    .update({ nome, valor, dia_vencimento: diaVencimento })
+    .eq('id', id).select().single();
+  if (error) { console.error('[db] updateCustoFixo:', error.message); return null; }
+
+  // Sincroniza os lançamentos futuros (a partir de hoje) com o novo nome, valor
+  // e dia de vencimento. O histórico já lançado (meses passados) é preservado.
+  const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  const { data: lancs } = await supabase
+    .from('financeiro_lancamentos')
+    .select('id, data_vencimento')
+    .eq('origem_id', id).eq('origem_tipo', 'custo_fixo')
+    .gte('data_vencimento', todayISO);
+
+  if (lancs && lancs.length) {
+    await Promise.all(lancs.map(l => {
+      const [y, m] = l.data_vencimento.split('-').map(Number); // m 1-indexado
+      const last = new Date(y, m, 0).getDate();                // último dia do mês
+      const d = String(Math.min(diaVencimento, last)).padStart(2, '0');
+      return supabase.from('financeiro_lancamentos')
+        .update({ descricao: nome, valor, data_vencimento: `${y}-${String(m).padStart(2, '0')}-${d}` })
+        .eq('id', l.id);
+    }));
   }
   return custo;
 }

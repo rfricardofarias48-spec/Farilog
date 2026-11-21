@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   fetchWorkRecordsByPeriod, fetchLancamentos,
   fetchDividas, createDivida, deleteDivida,
-  fetchCustosFixos, createCustoFixo, deleteCustoFixo,
+  fetchCustosFixos, createCustoFixo, updateCustoFixo, deleteCustoFixo,
   createLancamentoManual, deleteLancamento,
   fetchAdiantamentosPorQuinzena, createAdiantamento, deleteAdiantamento,
   fetchPagosPorQuinzena, marcarPago, desmarcarPago,
@@ -22,7 +22,7 @@ import {
 import {
   DollarSign, TrendingUp, TrendingDown, Percent,
   ChevronLeft, ChevronRight, ChevronDown,
-  Plus, Trash2, BarChart2, CreditCard, FileText, Wallet, Building2, X,
+  Plus, Trash2, BarChart2, CreditCard, FileText, Wallet, Building2, X, Pencil,
   Maximize2, Users, Clock, CalendarDays, HandCoins, Check,
 } from 'lucide-react';
 
@@ -1008,9 +1008,72 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   );
 }
 
+// ── Endividamento: cálculo das parcelas ────────────────────────────────────
+
+// Soma meses a uma data ISO mantendo o dia (ajusta para o último dia do mês).
+function addMonthsIso(iso, months) {
+  if (!iso) return null;
+  const [y, m, d] = iso.split('-').map(Number);
+  let mm = m - 1 + months, yy = y;
+  yy += Math.floor(mm / 12); mm = ((mm % 12) + 12) % 12;
+  const last = new Date(yy, mm + 1, 0).getDate();
+  const dd = String(Math.min(d, last)).padStart(2, '0');
+  return `${yy}-${String(mm + 1).padStart(2, '0')}-${dd}`;
+}
+
+function fmtDateIso(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// Taxa mensal implícita (juros compostos) de um financiamento:
+// PV = PMT * (1 - (1+i)^-n) / i, resolvida por bisseção.
+function taxaJurosMensal(pv, pmt, n) {
+  if (!(pv > 0) || !(pmt > 0) || !(n > 0)) return null;
+  const f = i => i === 0 ? pmt * n - pv : pmt * (1 - Math.pow(1 + i, -n)) / i - pv;
+  if (f(1e-9) <= 0) return 0;      // principal maior/igual ao total → sem juros
+  let lo = 1e-9, hi = 10;          // busca até 1000% a.m.
+  if (f(hi) > 0) return null;
+  for (let k = 0; k < 60; k++) {
+    const mid = (lo + hi) / 2;
+    if (f(mid) > 0) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+// Datas e valores derivados de uma dívida (he compatível com dados antigos).
+function dividaMetrics(d) {
+  const n        = Math.max(0, Number(d.num_parcelas) || 0);
+  const parcela  = Number(d.valor_parcela) || 0;
+  const temPrinc = d.valor_principal != null && d.valor_principal !== '';
+  const principal = temPrinc ? Number(d.valor_principal) || 0 : Number(d.valor_total) || 0;
+  const total    = parcela * n || Number(d.valor_total) || 0;
+  const juros    = Math.max(0, total - principal);
+  const taxa     = taxaJurosMensal(principal, parcela, n);
+  const inicio   = d.data_inicio || null;
+  const ultima   = inicio && n > 0 ? addMonthsIso(inicio, n - 1) : null;
+
+  // Próximo vencimento a partir de hoje; se todas as parcelas passaram, a última.
+  let proximo = inicio;
+  let restantes = 0;
+  if (inicio && n > 0) {
+    for (let i = 0; i < n; i++) {
+      const dt = addMonthsIso(inicio, i);
+      if (dt >= TODAY_ISO) {
+        restantes++;
+        if (!proximo || proximo < TODAY_ISO) proximo = dt;
+      }
+    }
+    if (restantes === 0) proximo = addMonthsIso(inicio, n - 1);
+  }
+  const vencido = !!proximo && proximo < TODAY_ISO;
+  return { n, parcela, principal, temPrincipal: temPrinc, total, juros, taxa, inicio, ultima, proximo, restantes, vencido };
+}
+
 // ── Modal: Nova Dívida ─────────────────────────────────────────────────────
 function NovaDividaModal({ onSave, onClose }) {
-  const [form,   setForm]   = useState({ nome: '', valorTotal: '', valorParcela: '', numParcelas: '', dataInicio: TODAY_ISO });
+  const [form,   setForm]   = useState({ nome: '', valorPrincipal: '', valorParcela: '', numParcelas: '', dataInicio: TODAY_ISO });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -1019,15 +1082,30 @@ function NovaDividaModal({ onSave, onClose }) {
     return () => document.removeEventListener('keydown', h);
   }, [onClose]);
 
-  const numAuto = (form.valorTotal && form.valorParcela)
-    ? Math.ceil(Number(form.valorTotal) / Number(form.valorParcela)) : '';
-  const canSave = form.nome.trim() && form.valorTotal && form.valorParcela && form.dataInicio && !saving;
+  const numAuto = (form.valorPrincipal && form.valorParcela)
+    ? Math.ceil(Number(form.valorPrincipal) / Number(form.valorParcela)) : '';
+  const canSave = form.nome.trim() && form.valorParcela && form.dataInicio && !saving;
+
+  // Prévia dos cálculos enquanto digita (mesma regra da lista).
+  const preview = dividaMetrics({
+    nome: form.nome,
+    valor_principal: form.valorPrincipal,
+    valor_parcela: form.valorParcela,
+    num_parcelas: Number(form.numParcelas) || numAuto || 0,
+    data_inicio: form.dataInicio,
+  });
 
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
     const num = Number(form.numParcelas) || numAuto || 1;
-    await onSave({ nome: form.nome.trim(), valorTotal: Number(form.valorTotal), valorParcela: Number(form.valorParcela), numParcelas: num, dataInicio: form.dataInicio });
+    await onSave({
+      nome: form.nome.trim(),
+      valorPrincipal: form.valorPrincipal === '' ? null : Number(form.valorPrincipal),
+      valorParcela: Number(form.valorParcela),
+      numParcelas: num,
+      dataInicio: form.dataInicio,
+    });
     setSaving(false);
   };
 
@@ -1049,8 +1127,8 @@ function NovaDividaModal({ onSave, onClose }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Valor total (R$)</label>
-              <input className="input-field" type="number" min="0" step="0.01" placeholder="0,00" value={form.valorTotal} onChange={e => setForm(f => ({...f, valorTotal: e.target.value}))} />
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Valor financiado (R$)</label>
+              <input className="input-field" type="number" min="0" step="0.01" placeholder="Valor à vista" value={form.valorPrincipal} onChange={e => setForm(f => ({...f, valorPrincipal: e.target.value}))} />
             </div>
             <div>
               <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Valor da parcela (R$)</label>
@@ -1065,10 +1143,31 @@ function NovaDividaModal({ onSave, onClose }) {
               <input className="input-field" type="number" min="1" placeholder={numAuto || '24'} value={form.numParcelas} onChange={e => setForm(f => ({...f, numParcelas: e.target.value}))} />
             </div>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Data da 1ª parcela</label>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Vencimento da 1ª parcela</label>
               <input className="input-field" type="date" value={form.dataInicio} onChange={e => setForm(f => ({...f, dataInicio: e.target.value}))} />
             </div>
           </div>
+
+          {/* Prévia calculada das parcelas */}
+          {(preview.n > 0 && preview.parcela > 0) && (
+            <div style={{ background: '#FAF4F1', border: '1px solid rgba(188,74,42,0.16)', borderRadius: '14px', padding: '14px 16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' }}>
+                {[
+                  ['Total a pagar', fmtCurrency(preview.total)],
+                  ['Juros', preview.temPrincipal === false ? '—' : fmtCurrency(preview.juros)],
+                  ['Taxa mensal', preview.taxa == null ? '—' : `${(preview.taxa * 100).toFixed(2).replace('.', ',')}% a.m.`],
+                  ['Tempo para quitar', `${preview.n} ${preview.n === 1 ? 'mês' : 'meses'}`],
+                  ['Última parcela', fmtDateIso(preview.ultima)],
+                  ['Vencimento', `dia ${Number((preview.inicio || '').slice(8, 10)) || '—'}`],
+                ].map(([rotulo, valor]) => (
+                  <div key={rotulo} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', color: '#8A6A5E', fontWeight: 600 }}>{rotulo}</span>
+                    <span style={{ fontSize: '12px', color: '#0B0B0B', fontWeight: 800 }}>{valor}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
             <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
             <button onClick={handleSave} disabled={!canSave}
@@ -1084,6 +1183,24 @@ function NovaDividaModal({ onSave, onClose }) {
 }
 
 // ── Tab: Endividamento ─────────────────────────────────────────────────────
+// Larguras fixas por coluna: cada título fica centralizado sobre os valores e
+// a grade nunca "espreme" as colunas (a lista rola na horizontal se faltar espaço).
+const DIV_GRID = 'minmax(150px, 1.7fr) 92px 108px 100px 98px 74px 80px 104px 112px 64px';
+const DIV_MIN  = 1100;
+
+const DIV_HEADERS = [
+  ['Dívida',          'left'],
+  ['Vencimento',      'center'],
+  ['Financiado',      'center'],
+  ['Parcela',         'center'],
+  ['Juros',           'center'],
+  ['Juros %',         'center'],
+  ['Taxa a.m.',       'center'],
+  ['Última parcela',  'center'],
+  ['Total a pagar',   'center'],
+  ['Ação',            'center'],
+];
+
 function TabEndividamento({ dividas, setDividas }) {
   const [showModal,  setShowModal]  = useState(false);
   const [confirmDel, setConfirmDel] = useState(null);
@@ -1099,20 +1216,57 @@ function TabEndividamento({ dividas, setDividas }) {
     setConfirmDel(null);
   };
 
-  const totalDiv = dividas.reduce((s, d) => s + Number(d.valor_total || 0), 0);
+  const rows = useMemo(() => dividas.map(d => ({ d, m: dividaMetrics(d) })), [dividas]);
+  const totalPagar    = rows.reduce((s, r) => s + r.m.total, 0);
+  const totalFinanc   = rows.reduce((s, r) => s + r.m.principal, 0);
+  const totalJuros    = rows.reduce((s, r) => s + (r.m.temPrincipal ? r.m.juros : 0), 0);
+  const custoMensal   = rows.reduce((s, r) => s + r.m.parcela, 0);
+  const totalParcelas = rows.reduce((s, r) => s + r.m.n, 0);
+  const restantes     = rows.reduce((s, r) => s + r.m.restantes, 0);
+  const pctJuros      = totalFinanc > 0 ? (totalJuros / totalFinanc) * 100 : 0;
+
+  // Data prevista da última parcela entre todas as dívidas (quitação total).
+  const quitacao = rows.reduce((mx, r) => (r.m.ultima && r.m.ultima > mx ? r.m.ultima : mx), '');
+
+  // Taxa mensal média, ponderada pelo valor financiado de cada dívida.
+  const taxaMedia = useMemo(() => {
+    const base = rows.filter(r => r.m.temPrincipal && r.m.principal > 0 && r.m.taxa != null);
+    const soma = base.reduce((s, r) => s + r.m.principal, 0);
+    if (!soma) return null;
+    return base.reduce((s, r) => s + r.m.principal * r.m.taxa, 0) / soma;
+  }, [rows]);
+
+  const pct = v => `${(v * 100).toFixed(2).replace('.', ',')}%`;
 
   return (
     <div className="space-y-5">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <p style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 600 }}>Total em dívidas</p>
-          <p style={{ fontSize: '26px', fontWeight: 900, ...T, lineHeight: 1.1 }}>{fmtCurrency(totalDiv)}</p>
+          <p style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 600 }}>Total a pagar</p>
+          <p style={{ fontSize: '26px', fontWeight: 900, ...T, lineHeight: 1.1 }}>{fmtCurrency(totalPagar)}</p>
         </div>
         <button onClick={() => setShowModal(true)}
           style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#BC4A2A', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(188,74,42,0.3)' }}>
           <Plus size={13} /> Nova Dívida
         </button>
       </div>
+
+      {rows.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+          <KpiCard label="Valor financiado" value={fmtCurrency(totalFinanc)} icon={Wallet} color="#3A4F6B" bg="#EDF1F6"
+            sub={`${rows.length} ${rows.length === 1 ? 'dívida' : 'dívidas'} ativas`} />
+          <KpiCard label="Juros totais" value={fmtCurrency(totalJuros)} icon={Percent} color="#8C3B4A" bg="#F7EDEF"
+            sub={totalFinanc > 0 ? `${pctJuros.toFixed(1).replace('.', ',')}% sobre o financiado` : 'Sem valor financiado'} />
+          <KpiCard label="Custo mensal" value={fmtCurrency(custoMensal)} icon={CalendarDays} color="#4A4A4A" bg="#F5F5F5"
+            sub="Soma das parcelas" />
+          <KpiCard label="Total a pagar" value={fmtCurrency(totalPagar)} icon={FileText} color="#0B0B0B" bg="#F0F0F0"
+            sub="Financiado + juros" />
+          <KpiCard label="Taxa média" value={taxaMedia == null ? '—' : `${pct(taxaMedia)} a.m.`} icon={TrendingUp} color="#8C3B4A" bg="#F7EFEF"
+            sub="Média ponderada pelo financiado" />
+          <KpiCard label="Quitação prevista" value={fmtDateIso(quitacao)} icon={Clock} color="#3A4F6B" bg="#EDF1F6"
+            sub={totalParcelas > 0 ? `${restantes} de ${totalParcelas} parcelas restantes` : 'Sem parcelas'} />
+        </div>
+      )}
 
       {showModal && <NovaDividaModal onSave={handleSave} onClose={() => setShowModal(false)} />}
 
@@ -1123,49 +1277,77 @@ function TabEndividamento({ dividas, setDividas }) {
           <p style={{ fontSize: '12px', color: '#C8C8C8', marginTop: '4px' }}>Lançamentos de dívidas aparecem automaticamente no Fluxo de Caixa</p>
         </div>
       ) : (
-        <div className="card overflow-hidden">
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px', padding: '9px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
-            <span>Dívida</span>
-            <span style={{ textAlign: 'right' }}>Valor Total</span>
-            <span style={{ textAlign: 'right' }}>Parcela</span>
-            <span style={{ textAlign: 'right' }}>Parcelas</span>
-            <span style={{ textAlign: 'center' }}>Ação</span>
-          </div>
-          {dividas.map((d, idx) => {
-            const [yr, mo, day] = (d.data_inicio || '').split('-');
-            return (
-              <div key={d.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px', padding: '14px 16px', borderBottom: idx < dividas.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px' }}>
-                <div>
-                  <p style={{ fontSize: '13px', fontWeight: 700, ...T }}>{d.nome}</p>
-                  <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '2px' }}>Início: {day}/{mo}/{yr} · {d.num_parcelas}x</p>
-                </div>
-                <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, ...T }}>{fmtCurrency(d.valor_total)}</p>
-                <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: '#4A4A4A' }}>{fmtCurrency(d.valor_parcela)}<span style={{ fontSize: '10px', color: '#9A9A9A', fontWeight: 400 }}>/mês</span></p>
-                <p style={{ textAlign: 'right', fontSize: '13px', color: '#6B6B6B' }}>{d.num_parcelas}x</p>
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  {confirmDel === d.id ? (
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => handleDelete(d.id)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#4A4A4A', color: 'white', fontSize: '10px', fontWeight: 700 }}>Sim</button>
-                      <button onClick={() => setConfirmDel(null)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '10px' }}>Não</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setConfirmDel(d.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex' }}>
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </div>
+        <div className="card" style={{ overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{ minWidth: DIV_MIN }}>
+              <div style={{ display: 'grid', gridTemplateColumns: DIV_GRID, padding: '10px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px', alignItems: 'center' }}>
+                {DIV_HEADERS.map(([label, align]) => (
+                  <span key={label} style={{ textAlign: align }}>{label}</span>
+                ))}
               </div>
-            );
-          })}
+              {rows.map(({ d, m }, idx) => {
+                const dia = Number(String(m.inicio || '').slice(8, 10));
+                const jurosPct = m.total > 0 ? (m.juros / m.total) * 100 : 0;
+                return (
+                  <div key={d.id} style={{ display: 'grid', gridTemplateColumns: DIV_GRID, padding: '12px 16px', borderBottom: idx < rows.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: '12.5px', fontWeight: 700, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.nome}</p>
+                      <p style={{ fontSize: '10.5px', color: '#9A9A9A', marginTop: '2px' }}>{m.n} parcelas · início {fmtDateIso(m.inicio)}</p>
+                    </div>
+                    <div style={{ minWidth: 0, textAlign: 'center' }}>
+                      <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#4A4A4A' }}>{dia ? `dia ${dia}` : '—'}</p>
+                      <p style={{ fontSize: '10.5px', marginTop: '2px', color: m.restantes === 0 ? '#9A9A9A' : '#6B6B6B' }}>
+                        {m.restantes === 0 ? 'encerrada' : `próx. ${fmtDateIso(m.proximo)}`}
+                      </p>
+                    </div>
+                    <p style={{ textAlign: 'center', fontSize: '12.5px', fontWeight: 600, ...T, whiteSpace: 'nowrap' }}>
+                      {m.temPrincipal ? fmtCurrency(m.principal) : '—'}
+                    </p>
+                    <p style={{ textAlign: 'center', fontSize: '12.5px', fontWeight: 700, color: '#4A4A4A', whiteSpace: 'nowrap' }}>
+                      {fmtCurrency(m.parcela)}<span style={{ fontSize: '10px', color: '#9A9A9A', fontWeight: 400 }}>/mês</span>
+                    </p>
+                    <p style={{ textAlign: 'center', fontSize: '12.5px', fontWeight: 700, whiteSpace: 'nowrap', color: m.temPrincipal && m.juros > 0 ? '#BC4A2A' : '#9A9A9A' }}>
+                      {m.temPrincipal ? fmtCurrency(m.juros) : '—'}
+                    </p>
+                    <p style={{ textAlign: 'center', fontSize: '12.5px', fontWeight: 700, whiteSpace: 'nowrap', color: m.temPrincipal && m.juros > 0 ? '#BC4A2A' : '#9A9A9A' }}>
+                      {m.temPrincipal ? `${jurosPct.toFixed(1).replace('.', ',')}%` : '—'}
+                    </p>
+                    <p style={{ textAlign: 'center', fontSize: '12.5px', fontWeight: 700, whiteSpace: 'nowrap', color: m.taxa != null && m.taxa > 0 ? '#BC4A2A' : '#9A9A9A' }}>
+                      {m.taxa == null ? '—' : pct(m.taxa)}
+                    </p>
+                    <p style={{ textAlign: 'center', fontSize: '12.5px', color: '#6B6B6B', whiteSpace: 'nowrap' }}>{fmtDateIso(m.ultima)}</p>
+                    <p style={{ textAlign: 'center', fontSize: '13px', fontWeight: 800, ...T, whiteSpace: 'nowrap' }}>{fmtCurrency(m.total)}</p>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      {confirmDel === d.id ? (
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button onClick={() => handleDelete(d.id)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#4A4A4A', color: 'white', fontSize: '10px', fontWeight: 700 }}>Sim</button>
+                          <button onClick={() => setConfirmDel(null)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '10px' }}>Não</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmDel(d.id)} title="Excluir" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-// ── Modal: Novo Custo Fixo ─────────────────────────────────────────────────
-function NovoCustoModal({ onSave, onClose }) {
-  const [form,   setForm]   = useState({ nome: '', valor: '', diaVencimento: '10' });
+// ── Modal: Novo / Editar Custo Fixo ────────────────────────────────────────
+function NovoCustoModal({ custo, onSave, onClose }) {
+  const edit = !!custo;
+  const [form,   setForm]   = useState({
+    nome:          custo?.nome || '',
+    valor:         custo?.valor != null ? String(custo.valor) : '',
+    diaVencimento: String(custo?.dia_vencimento ?? 10),
+  });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -1192,7 +1374,7 @@ function NovoCustoModal({ onSave, onClose }) {
             <X size={15} />
           </button>
           <p style={{ fontSize: '11px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Custos Fixos</p>
-          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0B0B0B' }}>Novo Custo Fixo</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: '#0B0B0B' }}>{edit ? 'Editar Custo Fixo' : 'Novo Custo Fixo'}</p>
         </div>
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
@@ -1210,13 +1392,15 @@ function NovoCustoModal({ onSave, onClose }) {
             </div>
           </div>
           <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '-4px' }}>
-            O custo será lançado automaticamente no Fluxo de Caixa pelos próximos 24 meses.
+            {edit
+              ? 'As alterações valem para os lançamentos a partir de hoje no Fluxo de Caixa; meses já lançados não mudam.'
+              : 'O custo será lançado automaticamente no Fluxo de Caixa pelos próximos 24 meses.'}
           </p>
           <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
             <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
             <button onClick={handleSave} disabled={!canSave}
               style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#BC4A2A' : '#E4E4E4', color: canSave ? 'white' : '#9A9A9A', fontSize: '13px', fontWeight: 700, boxShadow: canSave ? '0 2px 10px rgba(188,74,42,0.3)' : 'none' }}>
-              {saving ? 'Salvando...' : 'Lançar Custo Fixo'}
+              {saving ? 'Salvando...' : (edit ? 'Salvar Alterações' : 'Lançar Custo Fixo')}
             </button>
           </div>
         </div>
@@ -1227,16 +1411,24 @@ function NovoCustoModal({ onSave, onClose }) {
 }
 
 // ── Tab: Custos Fixos ──────────────────────────────────────────────────────
+const CUSTO_COLS = 'minmax(0, 1.7fr) 108px 66px 72px 76px';
+
 function TabCustosFixos({ custosFixos, setCustosFixos }) {
   const [showModal,  setShowModal]  = useState(false);
+  const [editing,    setEditing]    = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
 
   const total   = custosFixos.reduce((s, c) => s + Number(c.valor || 0), 0);
   const pieData = custosFixos.filter(c => Number(c.valor) > 0).map(c => ({ name: c.nome, value: Number(c.valor) }));
 
-  const handleSave = async (data) => {
+  const handleCreate = async (data) => {
     const c = await createCustoFixo(data);
     if (c) { setCustosFixos(prev => [c, ...prev]); setShowModal(false); }
+  };
+
+  const handleUpdate = async (data) => {
+    const c = await updateCustoFixo(editing.id, data);
+    if (c) { setCustosFixos(prev => prev.map(x => x.id === editing.id ? { ...x, ...c } : x)); setEditing(null); }
   };
 
   const handleDelete = async (id) => {
@@ -1258,27 +1450,28 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
         </button>
       </div>
 
-      {showModal && <NovoCustoModal onSave={handleSave} onClose={() => setShowModal(false)} />}
+      {showModal && <NovoCustoModal onSave={handleCreate} onClose={() => setShowModal(false)} />}
+      {editing   && <NovoCustoModal custo={editing} onSave={handleUpdate} onClose={() => setEditing(null)} />}
 
-      <div style={{ display: 'grid', gridTemplateColumns: pieData.length > 0 ? '260px 1fr' : '1fr', gap: '16px', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: pieData.length > 0 ? 'minmax(300px, 1.35fr) minmax(0, 1fr)' : '1fr', gap: '16px', alignItems: 'start' }}>
         {/* Gráfico pizza */}
         {pieData.length > 0 && (
-          <div className="card p-4">
-            <p style={{ fontSize: '12px', fontWeight: 700, ...T, marginBottom: '12px' }}>Distribuição</p>
+          <div className="card p-5">
+            <p style={{ fontSize: '12px', fontWeight: 700, ...T, marginBottom: '12px' }}>Distribuição dos custos fixos</p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <PieChart width={200} height={200}>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={3} dataKey="value">
+              <PieChart width={300} height={300}>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={72} outerRadius={126} paddingAngle={3} dataKey="value">
                   {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
                 <Tooltip formatter={v => fmtCurrency(v)} itemStyle={{ color: '#F5F5F5', fontWeight: 600 }} labelStyle={{ color: '#B9B9B9' }} contentStyle={{ background: '#1C1C1C', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F5F5F5' }} />
               </PieChart>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginTop: '14px' }}>
               {pieData.map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
-                  <p style={{ fontSize: '11px', color: '#6B6B6B', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
-                  <p style={{ fontSize: '11px', fontWeight: 700, ...T, flexShrink: 0 }}>{total > 0 ? `${((item.value / total) * 100).toFixed(0)}%` : '—'}</p>
+                  <p style={{ fontSize: '12px', color: '#6B6B6B', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
+                  <p style={{ fontSize: '12px', fontWeight: 700, ...T, flexShrink: 0 }}>{total > 0 ? `${((item.value / total) * 100).toFixed(0)}%` : '—'}</p>
                 </div>
               ))}
             </div>
@@ -1294,34 +1487,50 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
           </div>
         ) : (
           <div className="card overflow-hidden">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px', padding: '9px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '14px 16px 10px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, ...T }}>Itens cadastrados</p>
+              <p style={{ fontSize: '11px', color: '#9A9A9A', fontWeight: 600 }}>{custosFixos.length} {custosFixos.length === 1 ? 'item' : 'itens'}</p>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: CUSTO_COLS, padding: '9px 16px', background: '#F7F7F7', borderTop: '1px solid rgba(0,0,0,0.06)', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '10px' }}>
               <span>Nome</span>
               <span style={{ textAlign: 'right' }}>Valor/mês</span>
+              <span style={{ textAlign: 'right' }} title="Participação no total de custos fixos">% total</span>
               <span style={{ textAlign: 'center' }}>Venc.</span>
-              <span style={{ textAlign: 'center' }}>Ação</span>
+              <span style={{ textAlign: 'center' }}>Ações</span>
             </div>
-            {custosFixos.map((c, idx) => (
-              <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px', padding: '13px 16px', borderBottom: idx < custosFixos.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: PIE_COLORS[idx % PIE_COLORS.length], flexShrink: 0 }} />
-                  <p style={{ fontSize: '13px', fontWeight: 600, ...T }}>{c.nome}</p>
+            {custosFixos.map((c, idx) => {
+              const pct = total > 0 ? (Number(c.valor || 0) / total) * 100 : 0;
+              return (
+                <div key={c.id} style={{ display: 'grid', gridTemplateColumns: CUSTO_COLS, padding: '12px 16px', borderBottom: idx < custosFixos.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: PIE_COLORS[idx % PIE_COLORS.length], flexShrink: 0 }} />
+                    <p style={{ fontSize: '13px', fontWeight: 600, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nome}</p>
+                  </div>
+                  <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: '#4A4A4A' }}>{fmtCurrency(c.valor)}</p>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#BC4A2A' }}>{total > 0 ? `${pct.toFixed(1).replace('.', ',')}%` : '—'}</span>
+                  </div>
+                  <p style={{ textAlign: 'center', fontSize: '12px', color: '#6B6B6B' }}>Dia {c.dia_vencimento}</p>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+                    {confirmDel === c.id ? (
+                      <>
+                        <button onClick={() => handleDelete(c.id)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#4A4A4A', color: 'white', fontSize: '10px', fontWeight: 700 }}>Sim</button>
+                        <button onClick={() => setConfirmDel(null)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '10px' }}>Não</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => setEditing(c)} title="Editar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => setConfirmDel(c.id)} title="Excluir" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: '#4A4A4A' }}>{fmtCurrency(c.valor)}</p>
-                <p style={{ textAlign: 'center', fontSize: '12px', color: '#6B6B6B' }}>Dia {c.dia_vencimento}</p>
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  {confirmDel === c.id ? (
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => handleDelete(c.id)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#4A4A4A', color: 'white', fontSize: '10px', fontWeight: 700 }}>Sim</button>
-                      <button onClick={() => setConfirmDel(null)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '10px' }}>Não</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setConfirmDel(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex' }}>
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
