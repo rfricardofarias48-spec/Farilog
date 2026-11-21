@@ -1221,20 +1221,7 @@ function TabEndividamento({ dividas, setDividas }) {
   const totalFinanc   = rows.reduce((s, r) => s + r.m.principal, 0);
   const totalJuros    = rows.reduce((s, r) => s + (r.m.temPrincipal ? r.m.juros : 0), 0);
   const custoMensal   = rows.reduce((s, r) => s + r.m.parcela, 0);
-  const totalParcelas = rows.reduce((s, r) => s + r.m.n, 0);
-  const restantes     = rows.reduce((s, r) => s + r.m.restantes, 0);
   const pctJuros      = totalFinanc > 0 ? (totalJuros / totalFinanc) * 100 : 0;
-
-  // Data prevista da última parcela entre todas as dívidas (quitação total).
-  const quitacao = rows.reduce((mx, r) => (r.m.ultima && r.m.ultima > mx ? r.m.ultima : mx), '');
-
-  // Taxa mensal média, ponderada pelo valor financiado de cada dívida.
-  const taxaMedia = useMemo(() => {
-    const base = rows.filter(r => r.m.temPrincipal && r.m.principal > 0 && r.m.taxa != null);
-    const soma = base.reduce((s, r) => s + r.m.principal, 0);
-    if (!soma) return null;
-    return base.reduce((s, r) => s + r.m.principal * r.m.taxa, 0) / soma;
-  }, [rows]);
 
   const pct = v => `${(v * 100).toFixed(2).replace('.', ',')}%`;
 
@@ -1252,8 +1239,8 @@ function TabEndividamento({ dividas, setDividas }) {
       </div>
 
       {rows.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-          <KpiCard label="Valor financiado" value={fmtCurrency(totalFinanc)} icon={Wallet} color="#3A4F6B" bg="#EDF1F6"
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
+          <KpiCard label="Valor total (dívida)" value={fmtCurrency(totalFinanc)} icon={Wallet} color="#3A4F6B" bg="#EDF1F6"
             sub={`${rows.length} ${rows.length === 1 ? 'dívida' : 'dívidas'} ativas`} />
           <KpiCard label="Juros totais" value={fmtCurrency(totalJuros)} icon={Percent} color="#8C3B4A" bg="#F7EDEF"
             sub={totalFinanc > 0 ? `${pctJuros.toFixed(1).replace('.', ',')}% sobre o financiado` : 'Sem valor financiado'} />
@@ -1261,10 +1248,6 @@ function TabEndividamento({ dividas, setDividas }) {
             sub="Soma das parcelas" />
           <KpiCard label="Total a pagar" value={fmtCurrency(totalPagar)} icon={FileText} color="#0B0B0B" bg="#F0F0F0"
             sub="Financiado + juros" />
-          <KpiCard label="Taxa média" value={taxaMedia == null ? '—' : `${pct(taxaMedia)} a.m.`} icon={TrendingUp} color="#8C3B4A" bg="#F7EFEF"
-            sub="Média ponderada pelo financiado" />
-          <KpiCard label="Quitação prevista" value={fmtDateIso(quitacao)} icon={Clock} color="#3A4F6B" bg="#EDF1F6"
-            sub={totalParcelas > 0 ? `${restantes} de ${totalParcelas} parcelas restantes` : 'Sem parcelas'} />
         </div>
       )}
 
@@ -1453,20 +1436,20 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
       {showModal && <NovoCustoModal onSave={handleCreate} onClose={() => setShowModal(false)} />}
       {editing   && <NovoCustoModal custo={editing} onSave={handleUpdate} onClose={() => setEditing(null)} />}
 
-      <div style={{ display: 'grid', gridTemplateColumns: pieData.length > 0 ? 'minmax(300px, 1.35fr) minmax(0, 1fr)' : '1fr', gap: '16px', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: pieData.length > 0 ? 'minmax(320px, 1fr) minmax(0, 1.18fr)' : '1fr', gap: '16px', alignItems: 'start' }}>
         {/* Gráfico pizza */}
         {pieData.length > 0 && (
-          <div className="card p-5">
+          <div className="card p-5" style={{ display: 'flex', flexDirection: 'column' }}>
             <p style={{ fontSize: '12px', fontWeight: 700, ...T, marginBottom: '12px' }}>Distribuição dos custos fixos</p>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <PieChart width={300} height={300}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <PieChart width={270} height={320}>
                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={72} outerRadius={126} paddingAngle={3} dataKey="value">
                   {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
                 <Tooltip formatter={v => fmtCurrency(v)} itemStyle={{ color: '#F5F5F5', fontWeight: 600 }} labelStyle={{ color: '#B9B9B9' }} contentStyle={{ background: '#1C1C1C', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F5F5F5' }} />
               </PieChart>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginTop: '14px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
               {pieData.map((item, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
@@ -2161,12 +2144,8 @@ export default function AdminFinanceiro() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ fontSize: '18px', fontWeight: 800, ...T }}>Financeiro</h1>
-          <p style={{ fontSize: '12px', ...TM, marginTop: '2px' }}>Gestão financeira integrada</p>
-        </div>
+      {/* Header — o título da sub-aba é exibido pela topbar do AdminLayout */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
         <PeriodSelector
           type={periodType}
           offset={offset}
