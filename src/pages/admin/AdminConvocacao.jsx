@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Loader2, CheckCircle2, XCircle, Clock, MapPin, Star, Shield, RefreshCw, Info, Send, Trash2,
+  CalendarDays, Filter, ChevronDown, Check,
 } from 'lucide-react';
 import {
   fetchConvocacoesAgente, subscribeConvocacoes,
@@ -29,6 +30,7 @@ const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }
 const MES_ATUAL = TODAY.slice(0, 7);
 const QUINZENA_ATUAL = Number(TODAY.slice(8, 10)) <= 15 ? 1 : 2;
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 function limitesDoMes(mes) {
   const [ano, m] = String(mes || MES_ATUAL).split('-').map(Number);
@@ -66,6 +68,7 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
   const [loading, setLoading] = useState(true);
   const [agindo, setAgindo]   = useState(null);
   const [excluindo, setExcluindo] = useState(null);
+  const [menuAberto, setMenuAberto] = useState(null); // 'periodo' | 'status' | null
 
   const statuses = FILTROS.find(f => f.id === filtro)?.statuses ?? null;
 
@@ -74,7 +77,9 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
   const de  = modo === 'mes' ? limite.primeiro : (quinzena === 1 ? limite.primeiro : `${mesEfetivo}-16`);
   const ate = modo === 'mes' ? limite.ultimoDia : (quinzena === 1 ? `${mesEfetivo}-15` : limite.ultimoDia);
   const labelMes = `${MESES[limite.mesNum - 1]}/${limite.ano}`;
-  const labelPeriodo = modo === 'mes' ? labelMes : `${quinzena}ª quinzena · ${labelMes}`;
+  const labelMesCurto = `${MESES_CURTOS[limite.mesNum - 1]}/${limite.ano}`;
+  const labelPeriodo = modo === 'mes' ? `Mensal · ${labelMesCurto}` : `${quinzena}ª quinzena · ${labelMesCurto}`;
+  const labelStatus = FILTROS.find(f => f.id === filtro)?.label || 'Todas';
 
   const load = useCallback(() => {
     setLoading(true);
@@ -85,6 +90,13 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
 
   // Status ao vivo (o agente, quando existir, atualiza as mesmas linhas)
   useEffect(() => subscribeConvocacoes(null, () => load()), [load]);
+
+  useEffect(() => {
+    if (!menuAberto) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setMenuAberto(null); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuAberto]);
 
   const grupos = useMemo(() => {
     const map = new Map();
@@ -147,61 +159,106 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
         </button>
       </div>
 
-      {/* Período: mensal ou quinzenal */}
+      {/* Filtros compactos: cada botão abre as opções */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B' }}>Período:</span>
-
-        <div style={{ display: 'flex', gap: '4px', padding: '4px', borderRadius: '12px', background: '#F1F5F9' }}>
-          {[['quinzena', 'Quinzenal'], ['mes', 'Mensal']].map(([valor, label]) => (
-            <button key={valor} onClick={() => setModo(valor)}
-              style={{
-                padding: '6px 14px', borderRadius: '9px', border: 'none', cursor: 'pointer',
-                fontSize: '12px', fontWeight: 700,
-                background: modo === valor ? 'white' : 'transparent',
-                color: modo === valor ? '#0F172A' : '#94A3B8',
-                boxShadow: modo === valor ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
-              }}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <input
-          type="month"
-          className="input-field"
-          value={mesEfetivo}
-          onChange={e => setMes(e.target.value)}
-          style={{ width: '165px', height: '36px', padding: '0 10px', fontSize: '12px' }}
-        />
-
-        {modo === 'quinzena' && (
-          <div style={{ display: 'flex', gap: '4px', padding: '4px', borderRadius: '12px', background: '#F1F5F9' }}>
-            {[1, 2].map(q => (
-              <button key={q} onClick={() => setQuinzena(q)}
-                style={{
-                  padding: '6px 14px', borderRadius: '9px', border: 'none', cursor: 'pointer',
-                  fontSize: '12px', fontWeight: 700,
-                  background: quinzena === q ? 'white' : 'transparent',
-                  color: quinzena === q ? '#0F172A' : '#94A3B8',
-                  boxShadow: quinzena === q ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
-                }}>
-                {q}ª quinzena
-              </button>
-            ))}
-          </div>
+        {menuAberto && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 20 }} onClick={() => setMenuAberto(null)} />
         )}
 
-        <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B' }}>{labelPeriodo}</span>
-      </div>
-
-      {/* Filtros */}
-      <div style={{ display: 'flex', gap: '4px', padding: '4px', borderRadius: '12px', background: '#F1F5F9', width: 'fit-content', flexWrap: 'wrap' }}>
-        {FILTROS.map(f => (
-          <button key={f.id} onClick={() => setFiltro(f.id)}
-            style={{ padding: '6px 16px', borderRadius: '9px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, background: filtro === f.id ? 'white' : 'transparent', color: filtro === f.id ? '#0F172A' : '#94A3B8', boxShadow: filtro === f.id ? '0 1px 4px rgba(0,0,0,0.10)' : 'none' }}>
-            {f.label}
+        <div style={{ position: 'relative', zIndex: 30 }}>
+          <button type="button" onClick={() => setMenuAberto(m => m === 'periodo' ? null : 'periodo')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '7px',
+              padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.08)',
+              background: '#fff', color: '#0F172A', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+            }}>
+            <CalendarDays size={13} style={{ color: '#BC4A2A' }} />
+            {labelPeriodo}
+            <ChevronDown size={13} style={{ color: '#94A3B8', transition: 'transform .15s', transform: menuAberto === 'periodo' ? 'rotate(180deg)' : 'none' }} />
           </button>
-        ))}
+
+          {menuAberto === 'periodo' && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 31, width: '270px',
+              background: '#fff', border: '1px solid rgba(0,0,0,0.10)', borderRadius: '12px',
+              boxShadow: '0 18px 40px rgba(0,0,0,0.16)', padding: '10px',
+            }}>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '7px' }}>
+                {labelMes}
+              </p>
+              <div style={{ display: 'flex', gap: '4px', padding: '4px', borderRadius: '10px', background: '#F1F5F9', marginBottom: '8px' }}>
+                {[['quinzena', 'Quinzenal'], ['mes', 'Mensal']].map(([valor, label]) => (
+                  <button key={valor} type="button" onClick={() => setModo(valor)}
+                    style={{
+                      flex: 1, padding: '6px 0', borderRadius: '7px', border: 'none', cursor: 'pointer',
+                      fontSize: '11px', fontWeight: 700,
+                      background: modo === valor ? 'white' : 'transparent',
+                      color: modo === valor ? '#0F172A' : '#94A3B8',
+                      boxShadow: modo === valor ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
+                    }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <input type="month" className="input-field" value={mesEfetivo} onChange={e => setMes(e.target.value)}
+                style={{ width: '100%', height: '34px', padding: '0 10px', fontSize: '12px', marginBottom: modo === 'quinzena' ? '8px' : 0 }} />
+              {modo === 'quinzena' && (
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {[1, 2].map(q => (
+                    <button key={q} type="button" onClick={() => setQuinzena(q)}
+                      style={{
+                        flex: 1, padding: '7px 0', borderRadius: '8px', cursor: 'pointer',
+                        border: `1px solid ${quinzena === q ? '#BC4A2A' : 'rgba(0,0,0,0.08)'}`,
+                        background: quinzena === q ? '#FAF4F1' : '#fff',
+                        color: quinzena === q ? '#8A3520' : '#64748B',
+                        fontSize: '11px', fontWeight: 700,
+                      }}>
+                      {q}ª quinzena
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div style={{ position: 'relative', zIndex: 30 }}>
+          <button type="button" onClick={() => setMenuAberto(m => m === 'status' ? null : 'status')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '7px',
+              padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.08)',
+              background: '#fff', color: '#0F172A', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+            }}>
+            <Filter size={13} style={{ color: '#BC4A2A' }} />
+            {labelStatus}
+            <ChevronDown size={13} style={{ color: '#94A3B8', transition: 'transform .15s', transform: menuAberto === 'status' ? 'rotate(180deg)' : 'none' }} />
+          </button>
+
+          {menuAberto === 'status' && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 31, width: '200px',
+              background: '#fff', border: '1px solid rgba(0,0,0,0.10)', borderRadius: '12px',
+              boxShadow: '0 18px 40px rgba(0,0,0,0.16)', padding: '6px',
+            }}>
+              {FILTROS.map(f => {
+                const ativo = filtro === f.id;
+                return (
+                  <button key={f.id} type="button" onClick={() => { setFiltro(f.id); setMenuAberto(null); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '7px', width: '100%',
+                      padding: '8px 9px', borderRadius: '7px', border: 'none', cursor: 'pointer', textAlign: 'left',
+                      background: ativo ? '#FAF4F1' : 'transparent',
+                      color: ativo ? '#8A3520' : '#0F172A',
+                      fontSize: '12px', fontWeight: ativo ? 800 : 600,
+                    }}>
+                    <span style={{ flex: 1 }}>{f.label}</span>
+                    {ativo && <Check size={12} style={{ color: '#BC4A2A' }} />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {loading ? (
