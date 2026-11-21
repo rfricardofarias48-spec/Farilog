@@ -556,7 +556,7 @@ export default function DemandForm({
             <label className="block text-xs font-semibold mb-1.5" style={{ color: '#4A4A4A' }}>Modalidade</label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
               {[
-                { value: 'entrega', label: 'Entrega (9h base)' },
+                { value: 'entrega', label: 'Diária (9h base)' },
                 { value: 'carga_descarga', label: 'Carga/Descarga (8h)' },
               ].map(opt => {
                 const sel = form.tipoServico === opt.value;
@@ -616,7 +616,7 @@ export default function DemandForm({
               <p style={{ fontSize: '11px', color: '#6B6B6B', marginTop: '2px' }}>
                 {isCargaDescarga
                   ? 'Regra Carga/Descarga: 8h base de trabalho direto.'
-                  : 'Regra Entrega: 8h trabalho + 1h almoço (total 9h). Acima de 9h é hora extra.'}
+                  : 'Regra Diária: 8h trabalho + 1h almoço (total 9h). Acima de 9h é hora extra.'}
               </p>
             </div>
 

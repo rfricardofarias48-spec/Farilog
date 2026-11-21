@@ -259,7 +259,7 @@ function DemandModal({ demand, employees, onChangeStatus, onUpdateTimes, onUpdat
               background: demand.tipoServico === 'carga_descarga' ? '#F5F5F5' : '#F5F5F5',
               color: demand.tipoServico === 'carga_descarga' ? '#0B0B0B' : '#4A4A4A',
             }}>
-              {demand.tipoServico === 'carga_descarga' ? 'Carga e Descarga' : 'Entrega'}
+              {demand.tipoServico === 'carga_descarga' ? 'Carga e Descarga' : 'Diária'}
             </span>
             <span style={{ fontSize: '11px', color: '#9A9A9A', fontWeight: 600 }}>Gestão Manual de Horários</span>
           </div>
@@ -816,7 +816,7 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onU
                       background: isCargaDescarga ? '#F5F5F5' : '#F5F5F5',
                       color: isCargaDescarga ? '#0B0B0B' : '#4A4A4A',
                     }}>
-                      {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
+                      {isCargaDescarga ? 'Carga e Descarga' : 'Diária'}
                     </span>
                     {isToday && (
                       <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FAF4F1', color: '#BC4A2A' }}>

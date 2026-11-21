@@ -217,7 +217,7 @@ export default function AjudantePerfilModal({ employee, onClose }) {
                               background: n.tipoServico === 'carga_descarga' ? '#0B0B0B' : '#F4F4F5',
                               color: n.tipoServico === 'carga_descarga' ? '#FFFFFF' : '#4A4A4A',
                             }}>
-                              {n.tipoServico === 'carga_descarga' ? 'Carga/Descarga' : 'Entrega'}
+                              {n.tipoServico === 'carga_descarga' ? 'Carga/Descarga' : 'Diária'}
                             </span>
                           )}
                         </div>

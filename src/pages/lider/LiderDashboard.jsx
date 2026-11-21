@@ -158,7 +158,7 @@ function StatusBadge({ status }) {
 
 // ── Badge de tipo de serviço ──────────────────────────────────────────────
 const TIPO_CFG = {
-  entrega:        { label: 'Entrega',          color: '#2563EB', bg: '#EFF6FF' },
+  entrega:        { label: 'Diária',          color: '#2563EB', bg: '#EFF6FF' },
   carga_descarga: { label: 'Carga e Descarga', color: '#64748B', bg: '#F1F5F9' },
 };
 function TipoBadge({ tipo }) {
@@ -1004,7 +1004,7 @@ function NovaEscalaForm({ user, onSaved, onCancel }) {
         <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '8px' }}>Tipo de Operação *</label>
         <div style={{ display: 'flex', gap: '8px' }}>
           {[
-            { val: 'entrega',        label: 'Entrega',          icon: '🚚', desc: 'Horário completo por ajudante' },
+            { val: 'entrega',        label: 'Diária',          icon: '🚚', desc: 'Horário completo por ajudante' },
             { val: 'carga_descarga', label: 'Carga e Descarga', icon: '📦', desc: 'Horário da equipe (início/final)' },
           ].map(opt => {
             const sel = form.tipoServico === opt.val;

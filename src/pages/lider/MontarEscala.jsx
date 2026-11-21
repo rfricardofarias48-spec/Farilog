@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Building2, X, Search, CheckCircle2, Users, ArrowRight, ArrowLeft, Shield, Loader2, Info,
-  AlertTriangle, Trash2,
+  AlertTriangle, Trash2, ChevronDown,
 } from 'lucide-react';
 import {
   fetchEmpresasDoLider, fetchUltimosEscaladosDaEmpresa, fetchCandidatosComDistancia,
@@ -29,6 +29,8 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
   const [vagas, setVagas]     = useState(10);
 
   const [empresas, setEmpresas]   = useState([]);
+  const [empresaAberta, setEmpresaAberta] = useState(false);
+  const [buscaEmpresa, setBuscaEmpresa]   = useState('');
   const [ultimos, setUltimos]     = useState({ company: null, list: [], lastDate: null });
   const [loadingUlt, setLoadingUlt] = useState(false);
   const [mantidos, setMantidos]   = useState([]);
@@ -99,10 +101,23 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
   }, [form.companyId, form.date, refreshConflito]);
 
   const empresa = busca.company || ultimos.company || empresas.find(e => e.id === form.companyId) || null;
+  const empresaSelecionada = empresas.find(e => e.id === form.companyId) || null;
+  const empresasFiltradas = useMemo(() => {
+    const q = normalizeText(buscaEmpresa);
+    if (!q) return empresas;
+    return empresas.filter(e => normalizeText(`${e.name} ${e.city || ''}`).includes(q));
+  }, [empresas, buscaEmpresa]);
   const pagamentoEm = useMemo(
     () => computePagamentoEm(form.date, empresa?.prazoPagamento ?? 5),
     [form.date, empresa?.prazoPagamento]
   );
+
+  useEffect(() => {
+    if (!empresaAberta) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setEmpresaAberta(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [empresaAberta]);
 
   const toggleMantido = (id) => setMantidos(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
@@ -110,6 +125,8 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
     setForm(f => ({ ...f, companyId: emp.id }));
     setResp(emp.responsavel || emp.contact || '');
     setContato(emp.telefone || emp.phone || '');
+    setEmpresaAberta(false);
+    setBuscaEmpresa('');
   };
 
   // Passo 1 → 2: busca candidatos e já deixa marcados os que o encarregado manteve.
@@ -283,17 +300,77 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
                 {admin ? 'Nenhuma empresa cadastrada. Cadastre uma empresa primeiro.' : 'Nenhuma empresa vinculada. Fale com o administrador.'}
               </p>
             ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {empresas.map(emp => {
-                  const sel = form.companyId === emp.id;
-                  return (
-                    <button key={emp.id} type="button" onClick={() => selecionarEmpresa(emp)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '8px 14px', borderRadius: '10px', border: `2px solid ${sel ? '#BC4A2A' : 'rgba(0,0,0,0.1)'}`, background: sel ? '#FAF4F1' : 'white', cursor: 'pointer' }}>
-                      <Building2 size={13} style={{ color: sel ? '#BC4A2A' : '#94A3B8' }} />
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: sel ? '#BC4A2A' : '#0F172A' }}>{emp.name}</span>
-                    </button>
-                  );
-                })}
+              <div style={{ position: 'relative' }}>
+                <button type="button" onClick={() => setEmpresaAberta(v => !v)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '10px 12px', borderRadius: '10px', background: '#fff',
+                    border: `1.5px solid ${empresaAberta ? '#BC4A2A' : 'rgba(0,0,0,0.12)'}`,
+                    cursor: 'pointer', textAlign: 'left',
+                  }}>
+                  <Building2 size={14} style={{ color: empresaSelecionada ? '#BC4A2A' : '#94A3B8', flexShrink: 0 }} />
+                  <span style={{
+                    flex: 1, minWidth: 0, fontSize: '13px', fontWeight: 700,
+                    color: empresaSelecionada ? '#0F172A' : '#94A3B8',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {empresaSelecionada?.name || 'Selecione a empresa'}
+                  </span>
+                  {empresaSelecionada?.city && (
+                    <span style={{ fontSize: '11px', color: '#94A3B8', flexShrink: 0 }}>{empresaSelecionada.city}</span>
+                  )}
+                  <ChevronDown size={14} style={{ color: '#94A3B8', flexShrink: 0, transition: 'transform .15s', transform: empresaAberta ? 'rotate(180deg)' : 'none' }} />
+                </button>
+
+                {empresaAberta && (
+                  <>
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 20 }} onClick={() => setEmpresaAberta(false)} />
+                    <div style={{
+                      position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 30,
+                      background: '#fff', border: '1px solid rgba(0,0,0,0.10)', borderRadius: '12px',
+                      boxShadow: '0 18px 40px rgba(0,0,0,0.16)', padding: '8px',
+                      display: 'flex', flexDirection: 'column', maxHeight: '300px',
+                    }}>
+                      <div style={{ position: 'relative', marginBottom: '6px' }}>
+                        <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                        <input
+                          autoFocus
+                          className="input-field"
+                          style={{ paddingLeft: '30px', height: '34px', fontSize: '12px' }}
+                          placeholder="Buscar empresa..."
+                          value={buscaEmpresa}
+                          onChange={e => setBuscaEmpresa(e.target.value)}
+                        />
+                      </div>
+                      <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        {empresasFiltradas.length === 0 ? (
+                          <p style={{ fontSize: '12px', color: '#94A3B8', textAlign: 'center', padding: '12px 0' }}>Nenhuma empresa encontrada.</p>
+                        ) : empresasFiltradas.map(emp => {
+                          const sel = form.companyId === emp.id;
+                          return (
+                            <button key={emp.id} type="button" onClick={() => selecionarEmpresa(emp)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                                padding: '9px 10px', borderRadius: '8px', border: 'none',
+                                background: sel ? '#FAF4F1' : 'transparent', cursor: 'pointer', textAlign: 'left',
+                              }}>
+                              <Building2 size={13} style={{ color: sel ? '#BC4A2A' : '#94A3B8', flexShrink: 0 }} />
+                              <span style={{ flex: 1, minWidth: 0 }}>
+                                <span style={{
+                                  display: 'block', fontSize: '12.5px', fontWeight: sel ? 800 : 600,
+                                  color: sel ? '#8A3520' : '#0F172A',
+                                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                }}>{emp.name}</span>
+                                {emp.city && <span style={{ display: 'block', fontSize: '10px', color: '#94A3B8', marginTop: '1px' }}>{emp.city}</span>}
+                              </span>
+                              {sel && <CheckCircle2 size={13} style={{ color: '#BC4A2A', flexShrink: 0 }} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -319,7 +396,7 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {[
-              { val: 'entrega', label: 'Entrega', icon: '🚚' },
+              { val: 'entrega', label: 'Diária', icon: '🚚' },
               { val: 'carga_descarga', label: 'Carga e Descarga', icon: '📦' },
             ].map(opt => {
               const sel = form.tipoServico === opt.val;

@@ -1438,7 +1438,7 @@ function HistoryTab({ companyId }) {
                 </div>
                 <div style={{ width:'1px', height:'28px', background:'rgba(0,0,0,0.08)', justifySelf:'center' }} />
                 <p style={{ fontSize:'13px', fontWeight:600, color:'#4A4A4A' }}>
-                  {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
+                  {isCargaDescarga ? 'Carga e Descarga' : 'Diária'}
                   <span style={{ fontWeight:400, color:'#9A9A9A' }}> ({escala} ajudante{escala !== 1 ? 's' : ''})</span>
                 </p>
               </div>
@@ -2442,7 +2442,7 @@ function EscalasProximas({ companyId }) {
                 </div>
                 <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)', flexShrink: 0 }} />
                 <p style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A' }}>
-                  {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
+                  {isCargaDescarga ? 'Carga e Descarga' : 'Diária'}
                   <span style={{ fontWeight: 400, color: '#9A9A9A' }}> ({dateRecs.length} ajudante{dateRecs.length !== 1 ? 's' : ''})</span>
                 </p>
               </div>
@@ -2721,7 +2721,7 @@ function EscalasAnteriores({ companyId }) {
                 <div style={{ width: '1px', height: '28px', background: 'rgba(0,0,0,0.08)', flexShrink: 0 }} />
                 <div>
                   <p style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A' }}>
-                    {isCargaDescarga ? 'Carga e Descarga' : 'Entrega'}
+                    {isCargaDescarga ? 'Carga e Descarga' : 'Diária'}
                     <span style={{ fontWeight: 400, color: '#9A9A9A' }}> ({dateRecs.length} ajudante{dateRecs.length !== 1 ? 's' : ''})</span>
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
@@ -2971,7 +2971,7 @@ function DiaDetalheRelModal({ date, records, onClose }) {
   );
 }
 
-const TIPO_LABEL = { entrega: 'Entrega', carga_descarga: 'Carga e Descarga' };
+const TIPO_LABEL = { entrega: 'Diária', carga_descarga: 'Carga e Descarga' };
 
 // ── Bloco reutilizável: Relatório do Líder ────────────────────────────────
 function LiderReportBlock({ date }) {
@@ -3156,7 +3156,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
     const lbCount  = isTodos ? 'Diárias + Descargas' : isCD ? 'Descargas'       : 'Diárias';
     const lbVal    = isTodos ? 'Valor'               : isCD ? 'Total Descargas' : 'Valor Diárias';
     const lbValShort = isTodos ? 'Valor'             : isCD ? 'Total Descargas' : 'Val. Diária';
-    const tipoTxt  = isTodos ? 'Diárias + Descargas' : isCD ? 'Carga e Descarga' : 'Entrega';
+    const tipoTxt  = isTodos ? 'Diárias + Descargas' : isCD ? 'Carga e Descarga' : 'Diária';
 
     // ── Resumo do Período ────────────────────────────────────
     doc.setFontSize(10.5); doc.setFont('helvetica', 'bold');
