@@ -1802,6 +1802,22 @@ export async function deleteLancamento(id) {
   return true;
 }
 
+// Status de um lançamento: 'pendente' | 'pago' | 'recebido' (null = pendente).
+export async function updateLancamentoStatus(id, status) {
+  const { data, error } = await supabase
+    .from('financeiro_lancamentos').update({ status }).eq('id', id).select().single();
+  if (error) { console.error('[db] updateLancamentoStatus:', error.message); return null; }
+  return data;
+}
+
+// Reagenda o vencimento de um lançamento (mudar a data).
+export async function updateLancamentoData(id, dataVencimento) {
+  const { data, error } = await supabase
+    .from('financeiro_lancamentos').update({ data_vencimento: dataVencimento }).eq('id', id).select().single();
+  if (error) { console.error('[db] updateLancamentoData:', error.message); return null; }
+  return data;
+}
+
 // ── Benefícios (VT/VR) ────────────────────────────────────────────────────
 
 export async function fetchRecargas(tipo) {
