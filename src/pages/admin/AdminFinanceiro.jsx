@@ -32,7 +32,8 @@ const T  = { color: '#0B0B0B' };
 const TM = { color: '#9A9A9A' };
 const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-const PIE_COLORS  = ['#BC4A2A','#4A4A4A','#0B0B0B','#4A4A4A','#6B6B6B','#4A4A4A','#4A4A4A','#9A9A9A'];
+// Paleta das fatias (custos fixos): cores distintas e legíveis, nunca preto/cinza.
+const PIE_COLORS  = ['#BC4A2A','#3A4F6B','#96671F','#2F6F73','#7B5EA7','#8C3B4A','#2F7A4F','#B8891F','#4A6FA5','#A3567E'];
 // Paleta das fatias do faturamento (Visão Geral): cores distintas, sóbrias e
 // com contraste suficiente para o valor também ser legível colorido no branco.
 const REVENUE_COLORS = {
@@ -175,7 +176,7 @@ function KpiCard({ label, value, icon: Icon, color, bg, sub }) {
   return (
     <div className="card" style={{ padding: '16px', overflow: 'hidden' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-        <p style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B' }}>{label}</p>
+        <p style={{ fontSize: '13px', fontWeight: 700, color: '#6B6B6B' }}>{label}</p>
         <div style={{ width: '30px', height: '30px', borderRadius: '9px', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon size={13} style={{ color }} />
         </div>
@@ -992,7 +993,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
       <div className="card p-5">
         <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <p style={{ fontSize: '13px', fontWeight: 700, ...T }}>Fluxo de Caixa — {bounds.label}</p>
+            <p style={{ fontSize: '15px', fontWeight: 800, ...T }}>Fluxo de Caixa — {bounds.label}</p>
             <p style={{ fontSize: '11px', ...TM, marginTop: '2px' }}>Entradas vs. Saídas por período</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '8px', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -1629,7 +1630,10 @@ function NovoCustoModal({ custo, onSave, onClose }) {
                 <div style={{ background: '#FAF4F1', border: '1px solid rgba(188,74,42,0.16)', borderRadius: '14px', padding: '14px 16px' }}>
                   {[
                     ['Lançamentos', `${vencimentos.length}x ${fmtCurrency(Number(form.valor) || 0)}`],
-                    ['Período', `${fmtDateIso(vencimentos[0])} → ${fmtDateIso(vencimentos[vencimentos.length - 1])}`],
+                    form.indeterminado
+                      // Sem prazo definido: nada de data final.
+                      ? ['Período', `A partir de ${fmtDateIso(vencimentos[0])} · sem data limite`]
+                      : ['Período', `${fmtDateIso(vencimentos[0])} → ${fmtDateIso(vencimentos[vencimentos.length - 1])}`],
                     ['Total lançado', fmtCurrency((Number(form.valor) || 0) * vencimentos.length)],
                   ].map(([rotulo, valor]) => (
                     <div key={rotulo} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
@@ -1645,7 +1649,9 @@ function NovoCustoModal({ custo, onSave, onClose }) {
           <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '-4px' }}>
             {edit
               ? 'As alterações valem para os lançamentos a partir de hoje no Fluxo de Caixa; meses já lançados não mudam.'
-              : 'Um lançamento a pagar é criado no Fluxo de Caixa por mês, no dia de pagamento informado. Se o dia for anterior ao início, a 1ª cobrança cai no mês seguinte.'}
+              : form.indeterminado
+                ? `Sem prazo de término: os lançamentos seguem indefinidamente (projetamos os próximos ${CUSTO_FIXO_HORIZONTE} meses). Se o dia de pagamento for anterior ao início, a 1a cobrança cai no mês seguinte.`
+                : 'Um lançamento a pagar é criado no Fluxo de Caixa por mês, no dia de pagamento informado. Se o dia for anterior ao início, a 1a cobrança cai no mês seguinte.'}
           </p>
           <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
             <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
@@ -1692,7 +1698,7 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
     <div className="space-y-5">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <p style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 600 }}>Total de custos fixos / mês</p>
+          <p style={{ fontSize: '13px', color: '#6B6B6B', fontWeight: 700 }}>Total de custos fixos / mês</p>
           <p style={{ fontSize: '26px', fontWeight: 900, ...T, lineHeight: 1.1 }}>{fmtCurrency(total)}</p>
         </div>
         <button onClick={() => setShowModal(true)}
@@ -1708,7 +1714,7 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
         {/* Gráfico pizza */}
         {pieData.length > 0 && (
           <div className="card p-5" style={{ display: 'flex', flexDirection: 'column' }}>
-            <p style={{ fontSize: '12px', fontWeight: 700, ...T, marginBottom: '12px' }}>Distribuição dos custos fixos</p>
+            <p style={{ fontSize: '15px', fontWeight: 800, ...T, marginBottom: '12px' }}>Distribuição dos custos fixos</p>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <PieChart width={270} height={320}>
                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={72} outerRadius={126} paddingAngle={3} dataKey="value">
@@ -1739,7 +1745,7 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
         ) : (
           <div className="card overflow-hidden">
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '14px 16px 10px' }}>
-              <p style={{ fontSize: '12px', fontWeight: 700, ...T }}>Itens cadastrados</p>
+              <p style={{ fontSize: '15px', fontWeight: 800, ...T }}>Itens cadastrados</p>
               <p style={{ fontSize: '11px', color: '#9A9A9A', fontWeight: 600 }}>{custosFixos.length} {custosFixos.length === 1 ? 'item' : 'itens'}</p>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: CUSTO_COLS, padding: '9px 16px', background: '#F7F7F7', borderTop: '1px solid rgba(0,0,0,0.06)', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '10px' }}>
@@ -1823,7 +1829,7 @@ function TabDRE({ records, lancamentos, employees, bounds, companies }) {
   return (
     <div className="space-y-5">
       <div>
-        <p style={{ fontSize: '14px', fontWeight: 800, ...T }}>Demonstrativo de Resultado do Exercício</p>
+        <p style={{ fontSize: '16px', fontWeight: 800, ...T }}>Demonstrativo de Resultado do Exercício</p>
         <p style={{ fontSize: '12px', ...TM, marginTop: '2px' }}>{bounds.label} — dados operacionais do período</p>
       </div>
 
