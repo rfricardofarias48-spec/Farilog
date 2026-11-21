@@ -717,9 +717,6 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const activeMode = CHART_MODES.find(m => m.key === chartMode) || CHART_MODES[0];
   // O gráfico de saldo plota o resultado do dia (operação), não o acumulado:
   // dias com operação negativa caem abaixo da linha do zero.
-  const minSaldo = chartData.length
-    ? chartData.reduce((a, b) => (b.saldo < a.saldo ? b : a), chartData[0])
-    : null;
   const saldoVals = chartData.map(b => b.saldo);
   const saldoDataMax = chartData.length ? Math.max(...saldoVals) : 0;
   const saldoDataMin = chartData.length ? Math.min(...saldoVals) : 0;
@@ -914,14 +911,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                     fill={hasNegSaldo ? 'url(#gradSaldoFill)' : 'url(#gradSerie)'} tooltipType="none" />
                   <Line type="monotone" dataKey="saldo" name="Saldo do dia"
                     stroke={hasNegSaldo ? 'url(#gradSaldoLine)' : CASH_BAL} strokeWidth={2.8} dot={SaldoNegativeDot} />
-                  <ReferenceLine y={0} stroke={hasNegSaldo ? CASH_OUT : '#9A9A9A'} strokeOpacity={hasNegSaldo ? 0.7 : 0.45} strokeDasharray="4 4"
-                    label={{ value: hasNegSaldo ? 'operação negativa' : 'zero', position: 'insideTopLeft', fill: hasNegSaldo ? CASH_OUT : '#9A9A9A', fontSize: 9, fontWeight: 700 }} />
-                  {minSaldo && (
-                    <ReferenceDot x={minSaldo.label} y={minSaldo.saldo} r={4}
-                      fill={minSaldo.saldo < 0 ? CASH_OUT : '#fff'}
-                      stroke={minSaldo.saldo < 0 ? CASH_OUT : CASH_BAL} strokeWidth={2.2}
-                      label={{ value: `${minSaldo.saldo < 0 ? 'pior dia' : 'menor'}: ${fmtCurrency(minSaldo.saldo)}`, position: 'top', fill: minSaldo.saldo < 0 ? CASH_OUT : '#6B6B6B', fontSize: 9, fontWeight: 700 }} />
-                  )}
+                  <ReferenceLine y={0} stroke={hasNegSaldo ? CASH_OUT : '#9A9A9A'} strokeOpacity={hasNegSaldo ? 0.7 : 0.45} strokeDasharray="4 4" />
                 </>
               ) : (
                 <>
