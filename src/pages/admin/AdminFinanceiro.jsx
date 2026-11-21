@@ -6,7 +6,7 @@ import {
   fetchWorkRecordsByPeriod, fetchLancamentos,
   fetchDividas, createDivida, deleteDivida,
   fetchCustosFixos, createCustoFixo, updateCustoFixo, deleteCustoFixo,
-  gerarVencimentosCustoFixo, CUSTO_FIXO_HORIZONTE,
+  gerarVencimentosCustoFixo, CUSTO_FIXO_HORIZONTE, statusPorVencimento,
   createLancamentoManual, deleteLancamento, updateLancamentoStatus, updateLancamentoData,
   fetchAdiantamentosPorQuinzena, createAdiantamento, deleteAdiantamento,
   fetchPagosPorQuinzena, marcarPago, desmarcarPago,
@@ -69,7 +69,7 @@ const statusOf = (l) => {
 const isVencido = (l) => statusOf(l) === 'pendente' && !!l?.data_vencimento && l.data_vencimento < TODAY_ISO;
 
 // Grade do Fluxo de Caixa: Descrição · Classificação · Valor · Data de pagamento · Status.
-const FLUXO_COLS      = 'minmax(0, 2.2fr) minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1.05fr) minmax(150px, 1.3fr)';
+const FLUXO_COLS      = 'minmax(0, 2.1fr) minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1.05fr) minmax(180px, 1.6fr)';
 const FLUXO_COLS_LIST = FLUXO_COLS + ' 34px';
 
 // ── Period helpers ─────────────────────────────────────────────────────────
@@ -149,9 +149,10 @@ function buildChartData(type, start, end, records, lancamentos, companiesById) {
     const lancReceber = lancamentos.filter(l => l.tipo === 'a_receber' && match(l.data_vencimento));
     const lancPagar   = lancamentos.filter(l => l.tipo === 'a_pagar'   && match(l.data_vencimento));
     // O gráfico só trabalha com FATOS: lançamentos com status 'pago'/'recebido'.
-    // Serviços realizados (records) entram como receita da operação.
+    // Serviços realizados (records) entram como receita da operação — mas só a
+    // partir de hoje, para casar com o status identificado pela data.
     const aReceber =
-      records.filter(r => r.status !== 'absent' && match(r.date))
+      records.filter(r => r.status !== 'absent' && match(r.date) && r.date <= TODAY_ISO)
         .reduce((s, r) => s + recordRevenue(r, companiesById), 0) +
       lancReceber.filter(l => statusOf(l) === 'recebido').reduce((s, l) => s + Number(l.valor || 0), 0);
     const aPagar = lancPagar.filter(l => statusOf(l) === 'pago').reduce((s, l) => s + Number(l.valor || 0), 0);
@@ -516,6 +517,8 @@ function AddLancamentoModal({ onSave, onClose, classificacoes = [], onCreateClas
   }, [onClose]);
 
   const isPagar = form.tipo === 'a_pagar';
+  // O app identifica o status pela data: vencimento até hoje = já liquidado.
+  const statusPreview = statusPorVencimento(form.tipo, form.data);
   const classOptions = (classificacoes || []).filter(c => c.tipo === (isPagar ? 'despesa' : 'receita'));
 
   // Mantém sempre uma classificação válida para o tipo selecionado.
@@ -645,6 +648,25 @@ function AddLancamentoModal({ onSave, onClose, classificacoes = [], onCreateClas
             </div>
           </div>
 
+          {/* Status identificado automaticamente pela data */}
+          {form.data && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '10px', padding: '9px 12px' }}>
+              <span style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 600 }}>Status identificado</span>
+              <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 9px', borderRadius: '6px',
+                background: statusPreview === 'pendente' ? AMBER_BG : (statusPreview === 'recebido' ? CASH_IN_BG : '#EFEFEF'),
+                color: statusPreview === 'pendente' ? '#7A5B12' : (statusPreview === 'recebido' ? CASH_IN : '#4A4A4A'),
+                fontSize: '11px', fontWeight: 700 }}>
+                {statusPreview === 'pendente' ? <Clock size={11} /> : <Check size={11} />}
+                {statusPreview === 'pendente' ? (isPagar ? 'A pagar (pendente)' : 'A receber (pendente)') : (statusPreview === 'recebido' ? 'Recebido' : 'Pago')}
+              </span>
+            </div>
+          )}
+          <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '-6px' }}>
+            {statusPreview === 'pendente'
+              ? 'Vencimento futuro: entra como pendente até você confirmar o pagamento/recebimento.'
+              : 'Vencimento até hoje: o app considera já liquidado (pago/recebido).'}
+          </p>
+
           {/* Ações */}
           <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
             <button onClick={onClose}
@@ -679,36 +701,46 @@ function fmtShortDate(iso) {
   return `${d}/${m}/${y.slice(2)}`;
 }
 
-// Status por linha: botão "Pago"/"Recebido" quando pendente; chip confirmado
-// (clique volta para pendente) quando já foi confirmado.
+// Status por linha. Linhas com lançamento salvo são acionáveis (botão
+// "Pago"/"Recebido"); linhas derivadas dos serviços mostram o status, que é
+// identificado automaticamente pela data (vencido → Pendente, futuro → A receber).
+// A coluna nunca fica vazia.
 function StatusCell({ item, rec, stored, status, vencido, onStatus }) {
-  if (!stored) {
-    return <span style={{ fontSize: '10px', color: '#C8C8C8' }} title="Receita derivada dos serviços realizados — sem confirmação manual">—</span>;
-  }
-  if (status === 'pago' || status === 'recebido') {
+  const settled = status === 'pago' || status === 'recebido';
+  const actionLabel = rec ? 'Recebido' : 'Pago';
+
+  if (settled) {
     return (
-      <button onClick={() => onStatus(item.id, 'pendente')} title="Clique para voltar a pendente"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '7px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-          background: rec ? CASH_IN_BG : '#EEEEEE', color: rec ? CASH_IN : '#4A4A4A', fontSize: '11px', fontWeight: 700 }}>
-        <Check size={11} /> {rec ? 'Recebido' : 'Pago'}
+      <button onClick={() => stored && onStatus(item.id, 'pendente')} disabled={!stored}
+        title={stored ? 'Clique para voltar a pendente' : 'Confirmado automaticamente pela data'}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '7px', border: 'none',
+          cursor: stored ? 'pointer' : 'default', whiteSpace: 'nowrap',
+          background: rec ? CASH_IN_BG : '#EFEFEF', color: rec ? CASH_IN : '#4A4A4A', fontSize: '11px', fontWeight: 700 }}>
+        <Check size={11} /> {actionLabel}
       </button>
     );
   }
+
+  // Não liquidado: rótulo de estado (Pendente / A receber / A pagar) + ação.
+  const stateLabel = vencido ? 'Pendente' : (rec ? 'A receber' : 'A pagar');
+  const stateColor = vencido ? CASH_OUT : '#8A6A5E';
+  const stateBg    = vencido ? CASH_OUT_BG : AMBER_BG;
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-      {vencido && (
-        <span title="Vencido e ainda não confirmado"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '3px 6px', borderRadius: '5px', background: CASH_OUT_BG, color: CASH_OUT, fontSize: '10px', fontWeight: 700, whiteSpace: 'nowrap' }}>
-          <AlertTriangle size={9} /> Vencido
-        </span>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px' }}>
+      <span title={vencido ? 'Vencido e ainda não confirmado' : `Vencimento em ${item.date.split('-').reverse().join('/')}`}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 8px', borderRadius: '6px', background: stateBg, color: stateColor, fontSize: '10.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+        {vencido ? <AlertTriangle size={9} /> : <Clock size={9} />} {stateLabel}
+      </span>
+      {stored && (
+        <button onClick={() => onStatus(item.id, rec ? 'recebido' : 'pago')}
+          title={rec ? 'Confirmar recebimento' : 'Confirmar pagamento'}
+          style={{ padding: '5px 10px', borderRadius: '7px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 700,
+            background: '#fff', color: vencido ? CASH_OUT : '#4A4A4A',
+            border: `1px solid ${vencido ? 'rgba(188,74,42,0.45)' : 'rgba(11,11,11,0.12)'}` }}>
+          {actionLabel}
+        </button>
       )}
-      <button onClick={() => onStatus(item.id, rec ? 'recebido' : 'pago')}
-        title={rec ? 'Confirmar recebimento' : 'Confirmar pagamento'}
-        style={{ padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 700,
-          background: '#fff', color: vencido ? CASH_OUT : '#4A4A4A',
-          border: `1px solid ${vencido ? 'rgba(188,74,42,0.45)' : 'rgba(11,11,11,0.12)'}` }}>
-        {rec ? 'Recebido' : 'Pago'}
-      </button>
     </div>
   );
 }
@@ -768,7 +800,7 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onClose }) {
         </div>
         {/* Cabeçalho tabela */}
         <div style={{ display: 'grid', gridTemplateColumns: FLUXO_COLS_LIST, padding: '9px 24px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '10px', alignItems: 'center' }}>
-          <span>Descrição</span>
+          <span style={{ textAlign: 'center' }}>Descrição</span>
           <span style={{ textAlign: 'center' }}>Classificação</span>
           <span style={{ textAlign: 'center' }}>Valor</span>
           <span style={{ textAlign: 'center' }}>Data de pagamento</span>
@@ -783,10 +815,10 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onClose }) {
             </div>
           ) : items.map((item, idx) => {
             const rec = item.tipo === 'a_receber';
-            const pend = !!item.id && (item.status || 'pendente') === 'pendente';
+            const pend = (item.status || 'pendente') === 'pendente';
             return (
               <div key={idx} style={{ display: 'grid', gridTemplateColumns: FLUXO_COLS_LIST, padding: '12px 24px', borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '10px', boxShadow: `inset 3px 0 0 ${rec ? CASH_IN : CASH_OUT}`, background: item.vencido ? 'rgba(188,74,42,0.045)' : undefined }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.descricao}</span>
+                <span style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.descricao}>{item.descricao}</span>
                 <span style={{ textAlign: 'center' }}>
                   <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: `${item.classificacaoCor || CASH_OUT}1A`, color: item.classificacaoCor || '#6B6B6B', whiteSpace: 'nowrap' }}>
                     {item.classificacaoNome || '—'}
@@ -892,7 +924,15 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     });
     const fromRecs = Object.values(map).map(g => {
       const co = companies?.find(c => c.id === g.companyId);
-      return { date: g.date, descricao: `${co?.name || g.companyId} — ${g.count} ajudante${g.count !== 1 ? 's' : ''}`, origem: 'Serviço', valor: g.valor, tipo: 'a_receber', isManual: false, classificacaoNome: receitasClass.nome, classificacaoCor: receitasClass.cor };
+      // Receita de serviço: o status é identificado pela data (até hoje = recebido;
+      // futuro = a receber), então a coluna Status nunca fica vazia.
+      const recebido = g.date <= TODAY_ISO;
+      return {
+        date: g.date, descricao: `${co?.name || g.companyId} — ${g.count} ajudante${g.count !== 1 ? 's' : ''}`,
+        origem: 'Serviço', valor: g.valor, tipo: 'a_receber', isManual: false, derivado: true,
+        status: recebido ? 'recebido' : 'pendente', vencido: false,
+        classificacaoNome: receitasClass.nome, classificacaoCor: receitasClass.cor,
+      };
     });
     const fromManual = lancamentos
       .filter(l => l.tipo === 'a_receber')
@@ -1163,7 +1203,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
       {/* Lista inline (preview — máx 8 itens) */}
       <div className="card overflow-hidden">
         <div style={{ display: 'grid', gridTemplateColumns: FLUXO_COLS, padding: '10px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '10px', alignItems: 'center' }}>
-          <span>Descrição</span>
+          <span style={{ textAlign: 'center' }}>Descrição</span>
           <span style={{ textAlign: 'center' }}>Classificação</span>
           <span style={{ textAlign: 'center' }}>Valor</span>
           <span style={{ textAlign: 'center' }}>Data de pagamento</span>
@@ -1177,10 +1217,10 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           <>
             {inlineItems.map((item, idx) => {
               const rec  = item.tipo === 'a_receber';
-              const pend = !!item.id && (item.status || 'pendente') === 'pendente';
+              const pend = (item.status || 'pendente') === 'pendente';
               return (
                 <div key={idx} style={{ display: 'grid', gridTemplateColumns: FLUXO_COLS, padding: '11px 16px', borderBottom: idx < inlineItems.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '10px', boxShadow: `inset 3px 0 0 ${rec ? CASH_IN : CASH_OUT}`, background: item.vencido ? 'rgba(188,74,42,0.045)' : undefined }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.descricao}>{item.descricao}</span>
+                  <span style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.descricao}>{item.descricao}</span>
                   <span style={{ textAlign: 'center' }}>
                     <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: `${item.classificacaoCor || '#4A4A4A'}1A`, color: item.classificacaoCor || '#6B6B6B', whiteSpace: 'nowrap' }}>
                       {item.classificacaoNome || '—'}

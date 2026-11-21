@@ -1568,6 +1568,34 @@ export async function fetchDividas() {
   return data || [];
 }
 
+// ── Lançamentos: status automático e inserção tolerante ────────────────────
+function hojeISO() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+}
+
+// O app identifica o status pela data do lançamento: vencimento até hoje = já
+// liquidado ('pago'/'recebido'); vencimento futuro = ainda a pagar/receber ('pendente').
+export function statusPorVencimento(tipo, dataVencimento) {
+  if (!dataVencimento) return 'pendente';
+  if (dataVencimento > hojeISO()) return 'pendente';
+  return tipo === 'a_receber' ? 'recebido' : 'pago';
+}
+
+// Insere lançamentos tolerando colunas ainda não migradas no banco
+// (status / classificacao_id): em vez de falhar, reenvia sem a coluna.
+async function insertLancamentos(rows) {
+  const list = Array.isArray(rows) ? rows : [rows];
+  let data = list;
+  for (let i = 0; i < 4; i++) {
+    const { error } = await supabase.from('financeiro_lancamentos').insert(data);
+    if (!error) return null;
+    if (/status/.test(error.message))          { data = data.map(({ status, ...r }) => r); continue; }
+    if (/classificacao_id/.test(error.message)) { data = data.map(({ classificacao_id, ...r }) => r); continue; }
+    return error;
+  }
+  return new Error('insertLancamentos: falha ao remover colunas ausentes');
+}
+
 export async function createDivida({ nome, valorPrincipal, valorParcela, numParcelas, dataInicio }) {
   // valor_total é o total a pagar (parcela x quantidade); valor_principal é o
   // valor financiado, base para juros e taxa mensal.
@@ -1598,22 +1626,21 @@ export async function createDivida({ nome, valorPrincipal, valorParcela, numParc
     while (m >= 12) { m -= 12; y++; }
     const last = new Date(y, m + 1, 0).getDate();
     const d    = String(Math.min(day, last)).padStart(2, '0');
+    const venc = `${y}-${String(m + 1).padStart(2, '0')}-${d}`;
     const row = {
       id: crypto.randomUUID(),
       tipo: 'a_pagar',
       descricao: `${nome} — Parcela ${i + 1}/${numParcelas}`,
       valor: valorParcela,
-      data_vencimento: `${y}-${String(m + 1).padStart(2, '0')}-${d}`,
+      data_vencimento: venc,
       origem_tipo: 'divida',
       origem_id: divida.id,
+      status: statusPorVencimento('a_pagar', venc),
     };
     if (classId) row.classificacao_id = classId;
     return row;
   });
-  const { error: lErr } = await supabase.from('financeiro_lancamentos').insert(lancamentos);
-  if (lErr && /classificacao_id/.test(lErr.message)) {
-    await supabase.from('financeiro_lancamentos').insert(lancamentos.map(({ classificacao_id, ...r }) => r));
-  }
+  await insertLancamentos(lancamentos);
   return divida;
 }
 
@@ -1676,15 +1703,13 @@ export async function createCustoFixo({ nome, valor, diaVencimento, dataInicio, 
       data_vencimento: data,
       origem_tipo: 'custo_fixo',
       origem_id: custo.id,
+      status: statusPorVencimento('a_pagar', data),
     };
     if (classId) row.classificacao_id = classId;
     return row;
   });
 
-  const { error: lErr } = await supabase.from('financeiro_lancamentos').insert(lancamentos);
-  if (lErr && /classificacao_id/.test(lErr.message)) {
-    await supabase.from('financeiro_lancamentos').insert(lancamentos.map(({ classificacao_id, ...r }) => r));
-  }
+  await insertLancamentos(lancamentos);
   return custo;
 }
 
@@ -1742,11 +1767,16 @@ export async function createLancamentoManual({ tipo, descricao, valor, dataVenci
   const payload = {
     id: crypto.randomUUID(), tipo, descricao, valor,
     data_vencimento: dataVencimento, origem_tipo: 'manual',
+    status: statusPorVencimento(tipo, dataVencimento),
   };
   if (classificacaoId || fallback) payload.classificacao_id = classificacaoId || fallback;
 
   let { data, error } = await supabase
     .from('financeiro_lancamentos').insert(payload).select().single();
+  if (error && /status/.test(error.message)) {
+    const { status, ...rest } = payload;
+    ({ data, error } = await supabase.from('financeiro_lancamentos').insert(rest).select().single());
+  }
   if (error && /classificacao_id/.test(error.message)) {
     delete payload.classificacao_id;
     ({ data, error } = await supabase.from('financeiro_lancamentos').insert(payload).select().single());
@@ -1778,6 +1808,7 @@ export async function fecharFolha({ quinzenaIdx, total, dataVencimento, label })
     valor: total,
     data_vencimento: dataVencimento,
     origem_id: folhaOrigemId(quinzenaIdx),
+    status: statusPorVencimento('a_pagar', dataVencimento),
   };
   if (classId) base.classificacao_id = classId;
 
@@ -1786,6 +1817,11 @@ export async function fecharFolha({ quinzenaIdx, total, dataVencimento, label })
     .from('financeiro_lancamentos').insert(payload).select().single();
   if (error && /origem_tipo|23514/.test(error.message)) {
     payload = { ...base, origem_tipo: 'manual' };
+    ({ data, error } = await supabase.from('financeiro_lancamentos').insert(payload).select().single());
+  }
+  if (error && /status/.test(error.message)) {
+    const { status, ...rest } = payload;
+    payload = rest;
     ({ data, error } = await supabase.from('financeiro_lancamentos').insert(payload).select().single());
   }
   if (error && /classificacao_id/.test(error.message)) {
@@ -1872,16 +1908,16 @@ export async function createRecargasLote(items) {
         data_vencimento: it.dataRecarga,
         origem_tipo: 'beneficio',
         origem_id: r.id,
+        status: statusPorVencimento('a_pagar', it.dataRecarga),
         classificacao_id: classId,
       };
     });
-    const { error: lErr } = await supabase.from('financeiro_lancamentos').insert(lancamentos);
-    if (lErr && /origem_tipo|23514/.test(lErr.message)) {
+    let err = await insertLancamentos(lancamentos);
+    if (err && /origem_tipo|23514/.test(err.message)) {
       // Constraint antiga ainda não aceita 'beneficio' → grava como 'manual'.
-      await supabase.from('financeiro_lancamentos').insert(lancamentos.map((l) => ({ ...l, origem_tipo: 'manual' })));
-    } else if (lErr) {
-      console.error('[db] createRecargasLote lancamentos:', lErr.message);
+      err = await insertLancamentos(lancamentos.map((l) => ({ ...l, origem_tipo: 'manual' })));
     }
+    if (err) console.error('[db] createRecargasLote lancamentos:', err.message);
   }
   return true;
 }
