@@ -265,6 +265,24 @@ function ChartTip({ active, payload, label, mode, breakdown }) {
   );
 }
 
+// Aviso de pendências: os números/gráficos consideram só fatos (pago/recebido).
+function PendenciaNote({ custos = 0, receitas = 0, vencidos = 0, where = 'no painel' }) {
+  if (!(custos > 0 || receitas > 0)) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', background: AMBER_BG, border: '1px solid rgba(184,137,31,0.28)', borderRadius: '10px', padding: '9px 12px' }}>
+      <AlertTriangle size={13} style={{ color: AMBER, flexShrink: 0, marginTop: '1px' }} />
+      <p style={{ fontSize: '11px', color: '#7A5B12', lineHeight: 1.5 }}>
+        <b>{fmtCurrency(custos + receitas)}</b> em lançamentos pendentes
+        {vencidos > 0 && <> (<b style={{ color: CASH_OUT }}>{fmtCurrency(vencidos)} já vencidos</b>)</>}
+        {' '}não entram {where} — só o que já foi <b>pago</b> ou <b>recebido</b> é considerado.
+        {custos > 0 && <> Custos pendentes: <b>{fmtCurrency(custos)}</b>.</>}
+        {receitas > 0 && <> Receitas pendentes: <b>{fmtCurrency(receitas)}</b>.</>}
+        {' '}Confirme no <b>Fluxo de Caixa</b>.
+      </p>
+    </div>
+  );
+}
+
 function PeriodSelector({ type, offset, bounds, onChangeType, onChangeOffset }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -339,15 +357,22 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
   });
   const beneficios = beneficiosVT + beneficiosVR;
 
-  const custoFixo    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo').reduce((s, l) => s + Number(l.valor || 0), 0);
-  const endivPeriodo = lancamentos.filter(l => l.origem_tipo === 'divida').reduce((s, l) => s + Number(l.valor || 0), 0);
+  // Custos lançados só entram quando confirmados (status 'pago') — o painel
+  // trabalha com fatos, igual ao Fluxo de Caixa.
+  const custoFixo    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo' && statusOf(l) === 'pago').reduce((s, l) => s + Number(l.valor || 0), 0);
+  const endivPeriodo = lancamentos.filter(l => l.origem_tipo === 'divida'     && statusOf(l) === 'pago').reduce((s, l) => s + Number(l.valor || 0), 0);
 
-  // Totais por classificação, a partir dos lançamentos a pagar. Folha e
+  // Pendentes do período (ficam fora dos números; sinalizados no aviso).
+  const pendCustos   = lancamentos.filter(l => l.tipo === 'a_pagar'   && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
+  const pendReceitas = lancamentos.filter(l => l.tipo === 'a_receber' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
+  const pendVencidos = lancamentos.filter(l => statusOf(l) === 'pendente' && isVencido(l)).reduce((s, l) => s + Number(l.valor || 0), 0);
+
+  // Totais por classificação, a partir dos lançamentos a pagar CONFIRMADOS. Folha e
   // Benefícios entram por competência (registros de ponto), então os lançamentos
   // dessas duas origens não são somados aqui — evita duplicidade.
   const totalsPorClasse = {};
   lancamentos
-    .filter(l => l.tipo === 'a_pagar' && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio')
+    .filter(l => l.tipo === 'a_pagar' && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio' && statusOf(l) === 'pago')
     .forEach(l => {
       const key = l.classificacao_id || '__sem';
       totalsPorClasse[key] = (totalsPorClasse[key] || 0) + Number(l.valor || 0);
@@ -410,6 +435,8 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
         {kpis.map(k => <KpiCard key={k.label} {...k} />)}
       </div>
+
+      <PendenciaNote custos={pendCustos} receitas={pendReceitas} vencidos={pendVencidos} where="nos totais e no gráfico" />
 
       {/* Gráfico + legenda */}
       <div className="card" style={{ padding: '32px' }}>
@@ -1807,8 +1834,14 @@ function TabDRE({ records, lancamentos, employees, bounds, companies }) {
     return s + Number(emp?.dailyRate ?? 0) + (overtimeToMinutes(r.overtime) / 60) * Number(emp?.overtimeRate ?? 50);
   }, 0);
   const lucroBruto     = receitaBruta - custServicos;
-  const custFixoPer    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo').reduce((s, l) => s + Number(l.valor || 0), 0);
-  const encargosDiv    = lancamentos.filter(l => l.origem_tipo === 'divida').reduce((s, l) => s + Number(l.valor || 0), 0);
+  // Despesas lançadas entram apenas quando confirmadas (status 'pago'): o DRE,
+  // como o Fluxo de Caixa, só considera fatos.
+  const custFixoPer    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo' && statusOf(l) === 'pago').reduce((s, l) => s + Number(l.valor || 0), 0);
+  const encargosDiv    = lancamentos.filter(l => l.origem_tipo === 'divida'     && statusOf(l) === 'pago').reduce((s, l) => s + Number(l.valor || 0), 0);
+  // Pendentes do período (não entram no resultado).
+  const pendCustos     = lancamentos.filter(l => l.tipo === 'a_pagar'   && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
+  const pendReceitas   = lancamentos.filter(l => l.tipo === 'a_receber' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
+  const pendVencidos   = lancamentos.filter(l => statusOf(l) === 'pendente' && isVencido(l)).reduce((s, l) => s + Number(l.valor || 0), 0);
   const totalDespesas  = custFixoPer + encargosDiv;
   const resultado      = lucroBruto - totalDespesas;
   const margemBruta    = receitaBruta > 0 ? (lucroBruto / receitaBruta) * 100 : 0;
@@ -1866,6 +1899,8 @@ function TabDRE({ records, lancamentos, employees, bounds, companies }) {
           ))}
         </div>
       </div>
+
+      <PendenciaNote custos={pendCustos} receitas={pendReceitas} vencidos={pendVencidos} where="no resultado" />
     </div>
   );
 }
