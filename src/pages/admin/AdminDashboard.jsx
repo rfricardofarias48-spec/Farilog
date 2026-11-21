@@ -241,7 +241,7 @@ export default function AdminDashboard() {
 
           {/* Gráfico receita + Pie */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-fade-up delay-2">
-            <div className="card p-5 lg:col-span-2">
+            <div className="card p-5 lg:col-span-2" style={{ display: 'flex', flexDirection: 'column' }}>
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <h3 className="text-sm font-semibold" style={T}>
@@ -259,23 +259,25 @@ export default function AdminDashboard() {
                   </span>
                 )}
               </div>
-              <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-                  <defs>
-                    <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#BC4A2A" stopOpacity={0.18} />
-                      <stop offset="95%" stopColor="#BC4A2A" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-                  <XAxis dataKey={xKey} tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false}
-                    tickFormatter={v => v === 0 ? '0' : `R$${(v/1000).toFixed(0)}k`} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Area type="monotone" dataKey="receita" name="Receita" stroke="#BC4A2A" strokeWidth={2.5}
-                    fill="url(#revenueGrad)" dot={{ fill: '#BC4A2A', strokeWidth: 0, r: 3 }} />
-                </AreaChart>
-              </ResponsiveContainer>
+              <div style={{ flex: 1, minHeight: '180px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+                    <defs>
+                      <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor="#BC4A2A" stopOpacity={0.18} />
+                        <stop offset="95%" stopColor="#BC4A2A" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+                    <XAxis dataKey={xKey} tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false}
+                      tickFormatter={v => v === 0 ? '0' : `R$${(v/1000).toFixed(0)}k`} />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Area type="monotone" dataKey="receita" name="Receita" stroke="#BC4A2A" strokeWidth={2.5}
+                      fill="url(#revenueGrad)" dot={{ fill: '#BC4A2A', strokeWidth: 0, r: 3 }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
             <div className="card p-5">
