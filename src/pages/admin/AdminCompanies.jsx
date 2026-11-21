@@ -159,7 +159,6 @@ export default function AdminCompanies() {
     <div className="space-y-5">
       <div className="flex items-center justify-between animate-fade-up">
         <div>
-          <h1 className="text-xl font-bold" style={T}>Empresas</h1>
           <p className="text-xs mt-0.5" style={TM}>{companies.length} empresas cadastradas</p>
         </div>
         <button onClick={() => setModal('new')} className="btn-primary flex items-center gap-2">

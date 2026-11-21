@@ -41,7 +41,6 @@ export default function AdminSolicitacoes() {
   return (
     <div className="space-y-6">
       <div className="animate-fade-up">
-        <h1 className="text-xl font-bold" style={{ color: '#0B0B0B' }}>Solicitações de Ajudantes</h1>
         <p className="text-xs mt-0.5" style={{ color: '#9A9A9A' }}>Pedidos de ajudantes recebidos das empresas</p>
       </div>
 

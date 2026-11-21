@@ -285,7 +285,6 @@ function Historico() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-bold" style={T}>Histórico</h2>
         <p className="text-xs mt-0.5" style={TM}>Consulte por empresa ou ajudante — clique no dia para ver os detalhes</p>
       </div>
 
@@ -741,7 +740,6 @@ function Relatorios() {
     <div className="space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-lg font-bold" style={T}>Relatórios</h2>
           <p className="text-xs mt-0.5" style={TM}>Extrato quinzenal ou mensal</p>
         </div>
         <button onClick={exportPDF} disabled={!selected}

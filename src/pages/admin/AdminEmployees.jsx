@@ -282,7 +282,6 @@ export default function AdminEmployees() {
     <div className="space-y-5">
       <div className="flex items-center justify-between animate-fade-up">
         <div>
-          <h1 className="text-xl font-bold" style={T}>Funcionários</h1>
           <p className="text-xs mt-0.5" style={TM}>
             {`${employees.filter(e => e.status === 'active').length} ativos de ${employees.length} cadastrados · ${employees.filter(e => e.latitude != null && e.longitude != null).length} com localização exata`}
           </p>

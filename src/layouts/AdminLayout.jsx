@@ -37,11 +37,13 @@ const RH_TAB_LABELS  = Object.fromEntries(RH_TABS.map(t => [t.key, t.label]));
 const FIN_TAB_LABELS = Object.fromEntries(FIN_TABS.map(t => [t.key, t.label]));
 
 const PAGE_TITLES = {
-  '/admin':            'Visão Geral',
-  '/admin/companies':  'Empresas',
-  '/admin/financeiro': 'Financeiro',
-  '/admin/operacional':'Operacional',
-  '/admin/rh':         'RH',
+  '/admin':             'Visão Geral',
+  '/admin/companies':   'Empresas',
+  '/admin/employees':   'Funcionários',
+  '/admin/financeiro':  'Financeiro',
+  '/admin/operacional': 'Operacional',
+  '/admin/rh':          'RH',
+  '/admin/solicitacoes':'Solicitações de Ajudantes',
 };
 
 export default function AdminLayout() {

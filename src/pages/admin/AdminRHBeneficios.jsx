@@ -393,7 +393,6 @@ export default function AdminRHBeneficios() {
       {/* Cabeçalho */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0B0B0B' }}>Benefícios</h1>
           <p style={{ fontSize: '13px', color: '#6B6B6B', marginTop: '2px' }}>
             {ativos.length} ajudante{ativos.length !== 1 ? 's' : ''} ativo{ativos.length !== 1 ? 's' : ''}
           </p>

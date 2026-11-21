@@ -599,7 +599,6 @@ export default function AdminEncarregados() {
     <div className="space-y-5">
       <div className="flex items-center justify-between animate-fade-up">
         <div>
-          <h1 className="text-xl font-bold" style={T}>Encarregados</h1>
           <p className="text-xs mt-0.5" style={TM}>
             {`${lideres.filter(l => !estaInativo(l)).length} ativos de ${lideres.length} cadastrados`}
           </p>

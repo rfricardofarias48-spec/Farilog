@@ -70,7 +70,6 @@ export default function AdminRHPonto() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0B0B0B' }}>Controle de Horários & Horas Extras da Equipe</h1>
           <p style={{ fontSize: '13px', color: '#6B6B6B', marginTop: '2px' }}>
             Auditoria de jornada, intervalos e cálculo automático de HE (8h de trabalho + 1h intervalo = 9h base; ou 8h sem intervalo)
           </p>

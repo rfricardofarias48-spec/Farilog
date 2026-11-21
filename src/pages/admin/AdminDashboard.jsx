@@ -169,9 +169,7 @@ export default function AdminDashboard() {
         <p className="text-xs capitalize" style={TM}>
           {weekday}, {TODAY_DATE.getUTCDate()} de {monthPT} de {TODAY_DATE.getUTCFullYear()}
         </p>
-        <div className="flex items-center justify-between mt-1.5 flex-wrap gap-3">
-          <h1 className="text-xl font-bold" style={T}>Visão Geral</h1>
-
+        <div className="flex items-center justify-end mt-1.5 flex-wrap gap-3">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#FFFFFF', border: '1px solid rgba(11, 11, 11,0.08)', boxShadow: '0 1px 2px rgba(11, 11, 11,0.05)' }}>
               {[['quinzena','Quinzenal'],['mes','Mensal'],['ano','Anual']].map(([val, lbl]) => (

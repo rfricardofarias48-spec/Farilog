@@ -35,7 +35,6 @@ export default function AdminRHEPI() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0B0B0B' }}>Controle de EPI</h1>
         <p style={{ fontSize: '13px', color: '#6B6B6B', marginTop: '2px' }}>
           Equipamentos de Proteção Individual por ajudante
         </p>
