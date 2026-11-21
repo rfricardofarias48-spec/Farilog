@@ -12,14 +12,19 @@ import { TrendingUp, Users, Building2, DollarSign, ChevronLeft, ChevronRight } f
 // ── Constantes ─────────────────────────────────────────────────────────────
 const TODAY      = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 const TODAY_DATE = new Date(TODAY + 'T12:00:00Z'); // UTC noon no dia SP — getUTC* sempre correto
-const PIE_COLORS = ['#BC4A2A', '#4A4A4A', '#0B0B0B', '#4A4A4A', '#6B6B6B'];
+// Paleta das fatias: cores distintas (sem preto/cinza) e em quantidade
+// suficiente para todas as empresas — a última fatia já caía no fill preto
+// padrão do SVG quando passava do fim do array.
+const PIE_COLORS = [
+  '#BC4A2A', '#3A4F6B', '#2F7A4F', '#96671F', '#7B5EA7',
+  '#2F6F73', '#A3567E', '#4A6FA5', '#B8891F', '#8C3B4A',
+];
 const BASE_YEAR  = 2000;
 
 const MONTH_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
 const T  = { color: '#0B0B0B' };
-const T2 = { color: '#4A4A4A' };
 const TM = { color: '#9A9A9A' };
 
 // ── Cálculo de período ──────────────────────────────────────────────────────
@@ -63,15 +68,23 @@ function getPeriodBounds(period, offset) {
 }
 
 // ── Tooltip dos gráficos ───────────────────────────────────────────────────
+// O texto não usa a cor da série: fatias escuras (preto/cinza) deixavam o
+// valor invisível sobre o fundo escuro do tooltip. A cor fica só no marcador.
 const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#1C1C1C', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px' }}>
-      <p style={{ color: '#F5F5F5', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>{label}</p>
+    <div style={{ background: '#1C1C1C', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 14px', minWidth: '140px' }}>
+      {label && (
+        <p style={{ color: '#F5F5F5', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>{label}</p>
+      )}
       {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color, fontSize: '12px' }}>
-          {p.name}: {p.name === 'Receita' ? fmtCurrency(p.value) : p.value}
-        </p>
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: i > 0 ? '4px' : 0 }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '2px', flexShrink: 0, background: p.color ?? p.payload?.color ?? '#BC4A2A' }} />
+          <span style={{ color: '#C9C9C9', fontSize: '12px' }}>{p.name}</span>
+          <span style={{ color: '#FFFFFF', fontSize: '12px', fontWeight: 700, marginLeft: 'auto', paddingLeft: '12px' }}>
+            {p.name === 'Ajudantes' ? p.value : fmtCurrency(p.value)}
+          </span>
+        </div>
       ))}
     </div>
   );
@@ -274,37 +287,39 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="card p-5">
+            <div className="card p-5" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 className="text-sm font-semibold mb-1" style={T}>Receita por Empresa</h3>
               <p className="text-xs mb-4" style={TM}>{label}</p>
               {pieData.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-40 gap-2">
+                <div className="flex flex-col items-center justify-center flex-1 gap-2" style={{ minHeight: '160px' }}>
                   <Building2 size={28} style={{ color: '#E4E4E4' }} />
                   <p className="text-xs" style={TM}>Sem dados no período</p>
                 </div>
               ) : (
-                <>
-                  <ResponsiveContainer width="100%" height={160}>
-                    <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={46} outerRadius={68}
-                        paddingAngle={3} dataKey="value">
-                        {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip content={<ChartTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="space-y-2 mt-1">
+                <div className="flex items-center gap-4 flex-1">
+                  <div style={{ width: '150px', height: '150px', flexShrink: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={42} outerRadius={64}
+                          paddingAngle={3} dataKey="value" stroke="#FFFFFF" strokeWidth={2}>
+                          {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip content={<ChartTooltip />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {pieData.map((d, i) => (
-                      <div key={i} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: PIE_COLORS[i] }} />
-                          <span className="text-xs" style={T2}>{d.name}</span>
+                      <div key={i} className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2" style={{ minWidth: 0 }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '2px', flexShrink: 0, background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          <span className="text-xs" style={{ color: '#4A4A4A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
                         </div>
-                        <span className="text-xs font-semibold" style={{ color: PIE_COLORS[i] }}>{fmtCurrency(d.value)}</span>
+                        <span className="text-xs font-semibold" style={{ color: '#0B0B0B', whiteSpace: 'nowrap' }}>{fmtCurrency(d.value)}</span>
                       </div>
                     ))}
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>
