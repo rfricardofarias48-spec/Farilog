@@ -1631,7 +1631,33 @@ export async function fetchCustosFixos() {
   return data || [];
 }
 
-export async function createCustoFixo({ nome, valor, diaVencimento }) {
+// Meses lançados no fluxo de caixa quando o custo fixo é por tempo indeterminado.
+export const CUSTO_FIXO_HORIZONTE = 24;
+
+// Datas de vencimento de um custo fixo: uma por mês, a partir do mês de início.
+// Regras:
+//  - o dia de cada vencimento é `diaVencimento` (limitado ao último dia do mês);
+//  - se o dia de pagamento for anterior ao dia do início, a 1ª cobrança cai no
+//    mês seguinte (nunca se lança uma data anterior ao início);
+//  - `meses` finito gera exatamente N parcelas; 0/ausente usa o horizonte padrão.
+export function gerarVencimentosCustoFixo({ dataInicio, diaVencimento, meses } = {}) {
+  const inicio = dataInicio || new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  const [sy, sm, sd] = inicio.split('-').map(Number); // sm: 1-indexado
+  const dia   = Math.min(Math.max(Number(diaVencimento) || sd, 1), 31);
+  const total = Number(meses) > 0 ? Math.floor(Number(meses)) : CUSTO_FIXO_HORIZONTE;
+  const offset = dia < sd ? 1 : 0;
+
+  return Array.from({ length: total }, (_, i) => {
+    const idx = (sm - 1) + i + offset;
+    const y = sy + Math.floor(idx / 12);
+    const m = (idx % 12) + 1;
+    const last = new Date(y, m, 0).getDate();          // último dia do mês
+    const d = String(Math.min(dia, last)).padStart(2, '0');
+    return `${y}-${String(m).padStart(2, '0')}-${d}`;
+  });
+}
+
+export async function createCustoFixo({ nome, valor, diaVencimento, dataInicio, meses }) {
   const { data: custo, error } = await supabase
     .from('financeiro_custos_fixos')
     .insert({ nome, valor, dia_vencimento: diaVencimento })
@@ -1639,30 +1665,22 @@ export async function createCustoFixo({ nome, valor, diaVencimento }) {
   if (error) { console.error('[db] createCustoFixo:', error.message); return null; }
 
   const classId = await getClassificacaoId('Custo Fixo');
-  // Usa fuso SP para não errar o mês de início
-  const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-  const [_ty, _tm, _td] = todayISO.split('-').map(Number);
-  let startYear  = _ty;
-  let startMonth = _tm - 1; // 0-indexed
-  if (diaVencimento < _td) { startMonth++; if (startMonth >= 12) { startMonth = 0; startYear++; } }
-
-  const lancamentos = Array.from({ length: 24 }, (_, i) => {
-    let m = startMonth + i, y = startYear;
-    while (m >= 12) { m -= 12; y++; }
-    const last = new Date(y, m + 1, 0).getDate();
-    const d    = String(Math.min(diaVencimento, last)).padStart(2, '0');
+  // Uma lançamento por mês no Fluxo de Caixa, respeitando o início e o dia de pagamento.
+  const vencimentos = gerarVencimentosCustoFixo({ dataInicio, diaVencimento, meses });
+  const lancamentos = vencimentos.map(data => {
     const row = {
       id: crypto.randomUUID(),
       tipo: 'a_pagar',
       descricao: nome,
       valor,
-      data_vencimento: `${y}-${String(m + 1).padStart(2, '0')}-${d}`,
+      data_vencimento: data,
       origem_tipo: 'custo_fixo',
       origem_id: custo.id,
     };
     if (classId) row.classificacao_id = classId;
     return row;
   });
+
   const { error: lErr } = await supabase.from('financeiro_lancamentos').insert(lancamentos);
   if (lErr && /classificacao_id/.test(lErr.message)) {
     await supabase.from('financeiro_lancamentos').insert(lancamentos.map(({ classificacao_id, ...r }) => r));

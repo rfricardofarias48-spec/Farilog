@@ -6,6 +6,7 @@ import {
   fetchWorkRecordsByPeriod, fetchLancamentos,
   fetchDividas, createDivida, deleteDivida,
   fetchCustosFixos, createCustoFixo, updateCustoFixo, deleteCustoFixo,
+  gerarVencimentosCustoFixo, CUSTO_FIXO_HORIZONTE,
   createLancamentoManual, deleteLancamento,
   fetchAdiantamentosPorQuinzena, createAdiantamento, deleteAdiantamento,
   fetchPagosPorQuinzena, marcarPago, desmarcarPago,
@@ -1320,10 +1321,14 @@ function TabEndividamento({ dividas, setDividas, showModal, setShowModal }) {
 // ── Modal: Novo / Editar Custo Fixo ────────────────────────────────────────
 function NovoCustoModal({ custo, onSave, onClose }) {
   const edit = !!custo;
+  const todayDay = Number(TODAY_ISO.slice(8, 10));
   const [form,   setForm]   = useState({
     nome:          custo?.nome || '',
     valor:         custo?.valor != null ? String(custo.valor) : '',
-    diaVencimento: String(custo?.dia_vencimento ?? 10),
+    diaVencimento: String(custo?.dia_vencimento ?? todayDay),
+    inicio:        TODAY_ISO,
+    indeterminado: false,
+    meses:         '12',
   });
   const [saving, setSaving] = useState(false);
 
@@ -1333,19 +1338,34 @@ function NovoCustoModal({ custo, onSave, onClose }) {
     return () => document.removeEventListener('keydown', h);
   }, [onClose]);
 
-  const canSave = form.nome.trim() && form.valor && !saving;
+  const mesesNum = Math.floor(Number(form.meses) || 0);
+  const duracaoOk = edit || form.indeterminado || mesesNum >= 1;
+  const canSave = form.nome.trim() && form.valor && duracaoOk && !saving;
+
+  // Prévia das datas que serão lançadas no Fluxo de Caixa (mesma regra do banco).
+  const vencimentos = useMemo(() => {
+    if (edit) return [];
+    const meses = form.indeterminado ? 0 : mesesNum;
+    if (!form.indeterminado && meses < 1) return [];
+    return gerarVencimentosCustoFixo({ dataInicio: form.inicio, diaVencimento: Number(form.diaVencimento), meses });
+  }, [edit, form.inicio, form.diaVencimento, mesesNum, form.indeterminado]);
 
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
-    await onSave({ nome: form.nome.trim(), valor: Number(form.valor), diaVencimento: Number(form.diaVencimento) || 10 });
+    await onSave({
+      nome: form.nome.trim(),
+      valor: Number(form.valor),
+      diaVencimento: Number(form.diaVencimento) || todayDay,
+      ...(edit ? {} : { dataInicio: form.inicio, meses: form.indeterminado ? 0 : mesesNum }),
+    });
     setSaving(false);
   };
 
   return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()}
       style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(11, 11, 11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '440px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 32px 80px rgba(0,0,0,0.22)' }}>
         <div style={{ padding: '22px 24px 18px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <button onClick={onClose} style={{ position: 'absolute', top: '18px', right: '18px', width: '32px', height: '32px', borderRadius: '8px', background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={15} />
@@ -1358,20 +1378,75 @@ function NovoCustoModal({ custo, onSave, onClose }) {
             <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Nome do custo</label>
             <input className="input-field" placeholder="Ex: Aluguel, Energia elétrica, Internet..." value={form.nome} onChange={e => setForm(f => ({...f, nome: e.target.value}))} />
           </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Valor mensal (R$)</label>
               <input className="input-field" type="number" min="0" step="0.01" placeholder="0,00" value={form.valor} onChange={e => setForm(f => ({...f, valor: e.target.value}))} />
             </div>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Dia do vencimento</label>
-              <input className="input-field" type="number" min="1" max="31" placeholder="10" value={form.diaVencimento} onChange={e => setForm(f => ({...f, diaVencimento: e.target.value}))} />
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Dia de pagamento</label>
+              <input className="input-field" type="number" min="1" max="31" placeholder={String(todayDay)} value={form.diaVencimento} onChange={e => setForm(f => ({...f, diaVencimento: e.target.value}))} />
             </div>
           </div>
+
+          {!edit && (
+            <>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Duração</label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {[['det', 'Tempo determinado'], ['ind', 'Indeterminado']].map(([key, lbl]) => {
+                    const active = (key === 'ind') === form.indeterminado;
+                    return (
+                      <button key={key} type="button" onClick={() => setForm(f => ({ ...f, indeterminado: key === 'ind' }))}
+                        style={{ flex: 1, padding: '10px', borderRadius: '10px', cursor: 'pointer', fontSize: '12px', fontWeight: 600,
+                          border: `1px solid ${active ? '#0B0B0B' : 'rgba(11,11,11,0.10)'}`,
+                          background: active ? '#0B0B0B' : '#fff', color: active ? '#fff' : '#6B6B6B' }}>
+                        {lbl}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Início (1º lançamento)</label>
+                  <input className="input-field" type="date" value={form.inicio} onChange={e => setForm(f => ({...f, inicio: e.target.value}))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>
+                    Qtd. de meses {form.indeterminado && <span style={{ color: '#9A9A9A', fontWeight: 400 }}>— n/a</span>}
+                  </label>
+                  <input className="input-field" type="number" min="1" placeholder={String(CUSTO_FIXO_HORIZONTE)}
+                    disabled={form.indeterminado} value={form.indeterminado ? '' : form.meses}
+                    onChange={e => setForm(f => ({...f, meses: e.target.value}))}
+                    style={{ opacity: form.indeterminado ? 0.5 : 1, cursor: form.indeterminado ? 'not-allowed' : 'text' }} />
+                </div>
+              </div>
+
+              {/* Prévia dos lançamentos gerados */}
+              {vencimentos.length > 0 && (
+                <div style={{ background: '#FAF4F1', border: '1px solid rgba(188,74,42,0.16)', borderRadius: '14px', padding: '14px 16px' }}>
+                  {[
+                    ['Lançamentos', `${vencimentos.length}x ${fmtCurrency(Number(form.valor) || 0)}`],
+                    ['Período', `${fmtDateIso(vencimentos[0])} → ${fmtDateIso(vencimentos[vencimentos.length - 1])}`],
+                    ['Total lançado', fmtCurrency((Number(form.valor) || 0) * vencimentos.length)],
+                  ].map(([rotulo, valor]) => (
+                    <div key={rotulo} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '11px', color: '#8A6A5E', fontWeight: 600 }}>{rotulo}</span>
+                      <span style={{ fontSize: '12px', color: '#0B0B0B', fontWeight: 800 }}>{valor}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
           <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '-4px' }}>
             {edit
               ? 'As alterações valem para os lançamentos a partir de hoje no Fluxo de Caixa; meses já lançados não mudam.'
-              : 'O custo será lançado automaticamente no Fluxo de Caixa pelos próximos 24 meses.'}
+              : 'Um lançamento a pagar é criado no Fluxo de Caixa por mês, no dia de pagamento informado. Se o dia for anterior ao início, a 1ª cobrança cai no mês seguinte.'}
           </p>
           <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
             <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
