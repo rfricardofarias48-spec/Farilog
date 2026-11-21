@@ -202,21 +202,39 @@ export default function AdminDashboard() {
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-up delay-1">
             {[
-              { label: `Faturamento (${period === 'ano' ? label : period === 'mes' ? MONTH_SHORT[tMonth] : 'Quinzena'})`,
-                value: fmtCurrency(periodRevenue), icon: DollarSign, small: true },
-              { label: 'Func. ativos',        value: activeEmployees, icon: Users },
-              { label: 'Empresas',             value: companies.length, icon: Building2 },
+              { label: 'Faturamento', value: fmtCurrency(periodRevenue), icon: DollarSign },
+              { label: 'Func. ativos', value: activeEmployees, icon: Users },
+              { label: 'Empresas',     value: companies.length, icon: Building2 },
             ].map((k, i) => (
-              <div key={i} className="stat-card">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FAF4F1, #F0DFD8)', border: '1px solid rgba(188,74,42,0.12)' }}>
-                    <k.icon size={17} style={{ color: '#BC4A2A' }} />
+              <div key={i} className="stat-card"
+                style={{
+                  background: 'linear-gradient(135deg, #0B0B0B 0%, #1C1C1C 100%)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: '0 14px 34px -18px rgba(11,11,11,0.60)',
+                }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(188,74,42,0.16)', border: '1px solid rgba(188,74,42,0.30)',
+                  }}>
+                    <k.icon size={16} style={{ color: '#E08A70' }} />
                   </div>
+                  <p style={{ fontSize: '12px', fontWeight: 600, color: '#BDBDBD', letterSpacing: '0.01em' }}>{k.label}</p>
                 </div>
-                <p className={`font-bold leading-none ${k.small ? 'text-base' : 'text-2xl'}`} style={{ color: '#0B0B0B' }}>
+                <p style={{
+                  fontSize: i === 0 ? '32px' : '30px',
+                  fontWeight: 800,
+                  lineHeight: 1.05,
+                  letterSpacing: '-0.02em',
+                  color: '#FFFFFF',
+                  marginTop: '12px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
                   {k.value}
                 </p>
-                <p className="text-xs mt-2" style={{ color: '#9A9A9A' }}>{k.label}</p>
               </div>
             ))}
           </div>
