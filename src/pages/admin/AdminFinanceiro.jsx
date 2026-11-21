@@ -2315,6 +2315,9 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
     + (Number(TODAY_ISO.split('-')[1]) - 1) * 2
     + (Number(TODAY_ISO.split('-')[2]) <= 15 ? 0 : 1);
   const [qi, setQi]     = useState(curIdx);
+  const [modo, setModo] = useState('quinzena'); // 'quinzena' | 'mes'
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adiantamentos, setAdiantamentos] = useState([]);
@@ -2324,7 +2327,21 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
   const [folhaLanc, setFolhaLanc] = useState(null);
   const [closing, setClosing] = useState(false);
 
-  const q = useMemo(() => quinzenaBounds(qi), [qi]);
+  // Índices das quinzenas cobertas pela seleção (1 no modo quinzenal, 2 no mensal).
+  const monthQ1 = Math.floor(qi / 2) * 2;
+
+  const q = useMemo(() => {
+    if (modo === 'quinzena') return quinzenaBounds(qi);
+    const a = quinzenaBounds(monthQ1), b = quinzenaBounds(monthQ1 + 1);
+    return { start: a.start, end: b.end, payDate: a.payDate, label: a.monthLabel, monthLabel: a.monthLabel };
+  }, [qi, modo, monthQ1]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const h = e => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [menuOpen]);
 
   // Quinzena padrão do lançamento = a do próximo pagamento que ainda vai ocorrer:
   // dias 01–07 → Q2 do mês anterior (paga dia 07); dias 08–22 → Q1 do mês (paga dia 22);
@@ -2340,11 +2357,18 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
       setRecords(recs || []);
       setLoading(false);
     });
-    fetchAdiantamentosPorQuinzena(qi).then(setAdiantamentos);
-    fetchPagosPorQuinzena(qi).then(setPagos);
-  }, [q.start, q.end, qi]);
+    const list = modo === 'quinzena' ? [qi] : [monthQ1, monthQ1 + 1];
+    Promise.all(list.map(i => fetchAdiantamentosPorQuinzena(i))).then(arr => setAdiantamentos(arr.flatMap(x => x || [])));
+    Promise.all(list.map(i => fetchPagosPorQuinzena(i))).then(arr => setPagos(arr.flatMap(x => x || [])));
+  }, [q.start, q.end, modo, qi]);
 
-  useEffect(() => { fetchLancamentoFolha(qi).then(setFolhaLanc); }, [qi]);
+  useEffect(() => {
+    const list = modo === 'quinzena' ? [qi] : [monthQ1, monthQ1 + 1];
+    Promise.all(list.map(i => fetchLancamentoFolha(i))).then(arr => {
+      const found = arr.filter(Boolean);
+      setFolhaLanc(found.length === 0 ? null : found.length === 1 ? found[0] : { valor: found.reduce((s, x) => s + Number(x.valor || 0), 0) });
+    });
+  }, [qi, modo]);
 
   const handleSalvarAdiantamento = async (dados) => {
     const criado = await createAdiantamento(dados);
@@ -2362,6 +2386,7 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
 
   // Marca/desmarca o pagamento de um ajudante na quinzena exibida.
   const handleTogglePago = async (employeeId) => {
+    if (modo !== 'quinzena') return; // pagamento é sempre por quinzena
     const jaPago = pagos.find(p => p.employeeId === employeeId);
     if (jaPago) {
       await desmarcarPago(employeeId, qi);
@@ -2407,7 +2432,7 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
   // Fecha a folha da quinzena: cria (ou atualiza) o lançamento no fluxo de caixa,
   // classificado como "Folha de Pagamento".
   const handleFecharFolha = async () => {
-    if (closing || totalAPagar <= 0) return;
+    if (modo !== 'quinzena' || closing || totalAPagar <= 0) return;
     setClosing(true);
     const label = `${q.monthLabel} · ${qi % 2 === 0 ? 'Q1' : 'Q2'}`;
     const l = await fecharFolha({ quinzenaIdx: qi, total: totalAPagar, dataVencimento: q.payDate, label });
@@ -2432,27 +2457,49 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
     <div className="space-y-4">
       {/* Seletor de quinzena */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', background: '#fff', borderRadius: '14px', padding: '12px 16px', border: '1px solid rgba(11, 11, 11,0.06)', boxShadow: '0 1px 3px rgba(11, 11, 11,0.05)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button onClick={() => setQi(v => v - 1)}
-            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#F7F7F7', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', color: '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Filtro único da folha: Mensal/Quinzenal no estilo do seletor do cabeçalho */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div ref={menuRef} style={{ position: 'relative' }}>
+            <button onClick={() => setMenuOpen(v => !v)}
+              style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px', borderRadius: '10px', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', background: '#fff', fontSize: '12px', fontWeight: 600, color: '#0B0B0B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)', whiteSpace: 'nowrap' }}>
+              {modo === 'mes' ? q.monthLabel : `${q.label} — ${q.monthLabel}`}
+              <span style={{ fontSize: '10px', color: '#9A9A9A', fontWeight: 500 }}>· {modo === 'mes' ? 'Mensal' : 'Quinzenal'}</span>
+              <ChevronDown size={12} style={{ color: '#9A9A9A' }} />
+            </button>
+            {menuOpen && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 200, background: '#fff', borderRadius: '12px', padding: '6px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.07)', minWidth: '150px' }}>
+                {[['quinzena', 'Quinzenal'], ['mes', 'Mensal']].map(([val, lbl]) => (
+                  <button key={val} onClick={() => { setModo(val); setMenuOpen(false); }}
+                    style={{ width: '100%', display: 'block', padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', fontWeight: 600, background: modo === val ? '#FAF4F1' : 'transparent', color: modo === val ? '#BC4A2A' : '#333333' }}
+                    onMouseEnter={e => { if (modo !== val) e.currentTarget.style.background = '#F7F7F7'; }}
+                    onMouseLeave={e => { if (modo !== val) e.currentTarget.style.background = 'transparent'; }}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button onClick={() => setQi(v => (modo === 'mes' ? v - 2 : v - 1))}
+            title="Anterior"
+            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', color: '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
             <ChevronLeft size={13} />
           </button>
-          <div style={{ textAlign: 'center', minWidth: '230px' }}>
-            <p style={{ fontSize: '13px', fontWeight: 800, ...T }}>{q.label}</p>
-            <p style={{ fontSize: '11px', ...TM }}>{q.monthLabel}</p>
-          </div>
-          <button onClick={() => setQi(v => Math.min(v + 1, curIdx))} disabled={qi >= curIdx}
-            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#F7F7F7', border: '1px solid rgba(11, 11, 11,0.08)', cursor: qi >= curIdx ? 'not-allowed' : 'pointer', color: qi >= curIdx ? '#C8C8C8' : '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: qi >= curIdx ? 0.5 : 1 }}>
+          <button onClick={() => setQi(v => Math.min(modo === 'mes' ? v + 2 : v + 1, curIdx))}
+            disabled={modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx}
+            title="Próximo"
+            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(11, 11, 11,0.08)', cursor: (modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx) ? 'not-allowed' : 'pointer', color: (modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx) ? '#C8C8C8' : '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)', opacity: (modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx) ? 0.5 : 1 }}>
             <ChevronRight size={13} />
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {modo === 'quinzena' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 13px', borderRadius: '10px', background: isPaid ? '#F5F5F5' : '#F7F7F7', border: `1px solid ${isPaid ? '#E6E6E6' : '#E4C9BF'}` }}>
             <CalendarDays size={14} style={{ color: isPaid ? '#0B0B0B' : '#6B6B6B' }} />
             <span style={{ fontSize: '12px', fontWeight: 700, color: isPaid ? '#0B0B0B' : '#6B6B6B' }}>
               {isPaid ? 'Pago em' : 'Pagamento em'} {payLabel}
             </span>
           </div>
+          )}
           {folhaLanc && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 13px', borderRadius: '10px', background: '#EAF4EE', border: '1px solid #CDE5D5' }}>
               <FileText size={13} style={{ color: PROFIT_COLOR }} />
@@ -2461,11 +2508,13 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
               </span>
             </div>
           )}
+          {modo === 'quinzena' && (
           <button onClick={handleFecharFolha} disabled={closing || totalAPagar <= 0}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: 'none', cursor: (closing || totalAPagar <= 0) ? 'not-allowed' : 'pointer', background: '#BC4A2A', color: '#fff', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(188,74,42,0.3)', opacity: (closing || totalAPagar <= 0) ? 0.5 : 1 }}>
             <FileText size={14} />
             {closing ? 'Fechando...' : folhaLanc ? 'Atualizar no fluxo' : 'Fechar folha'}
           </button>
+          )}
           <button onClick={() => setShowLancarModal(true)}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#4A4A4A', color: '#fff', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(74, 74, 74,0.3)' }}>
             <HandCoins size={14} />
@@ -2493,12 +2542,12 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
           <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid rgba(11, 11, 11,0.06)', boxShadow: '0 1px 3px rgba(11, 11, 11,0.05)', overflow: 'hidden' }}>
             <div style={{ padding: '14px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
               <p style={{ fontSize: '11px', fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
-                Pagamentos por Ajudante — {q.label}
+                Pagamentos por Ajudante — {modo === 'mes' ? `${q.monthLabel} (mês)` : q.label}
               </p>
             </div>
             {linhas.length === 0 ? (
               <div style={{ padding: '50px', textAlign: 'center' }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#6B6B6B' }}>Nenhum trabalho registrado nesta quinzena</p>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#6B6B6B' }}>Nenhum trabalho registrado {modo === 'mes' ? 'neste mês' : 'nesta quinzena'}</p>
                 <p style={{ fontSize: '12px', color: '#9A9A9A', marginTop: '4px' }}>Os pagamentos aparecem conforme os registros de ponto.</p>
               </div>
             ) : (
@@ -2510,7 +2559,7 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
                   ))}
                 </div>
                 {linhas.map(l => {
-                  const registroPago = pagos.find(p => p.employeeId === l.emp.id);
+                  const registroPago = modo === 'quinzena' ? pagos.find(p => p.employeeId === l.emp.id) : null;
                   const fmtDataPago = registroPago
                     ? (() => { const d = new Date(registroPago.pagoEm); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; })()
                     : null;
@@ -2550,11 +2599,15 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
                       ) : null}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                      {modo === 'mes' ? (
+                        <span style={{ fontSize: '12px', color: '#C8C8C8' }} title="Marque os pagamentos na visão por quinzena">—</span>
+                      ) : (
                       <button onClick={() => handleTogglePago(l.emp.id)}
                         title={registroPago ? `Pago em ${fmtDataPago} — clique para desfazer` : 'Marcar como pago'}
                         style={{ width: '27px', height: '27px', borderRadius: '9px', border: registroPago ? 'none' : '1.5px solid #C8C8C8', background: registroPago ? '#0B0B0B' : '#fff', color: registroPago ? '#fff' : '#C8C8C8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: registroPago ? '0 2px 6px rgba(11, 11, 11,0.35)' : 'none', transition: 'all 0.15s' }}>
                         <Check size={15} strokeWidth={3.5} />
                       </button>
+                      )}
                     </div>
                   </div>
                   );
@@ -2652,13 +2705,17 @@ export default function AdminFinanceiro() {
     <div className="space-y-5">
       {/* Header — o título da sub-aba é exibido pela topbar do AdminLayout */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
-        <PeriodSelector
-          type={periodType}
-          offset={offset}
-          bounds={bounds}
-          onChangeType={handleChangePeriodType}
-          onChangeOffset={setOffset}
-        />
+        {/* A aba Folha tem o seu próprio filtro (Mensal/Quinzenal), então o
+            seletor geral do cabeçalho fica oculto nela — evita 2 filtros na tela. */}
+        {activeTab !== 'folha' && (
+          <PeriodSelector
+            type={periodType}
+            offset={offset}
+            bounds={bounds}
+            onChangeType={handleChangePeriodType}
+            onChangeOffset={setOffset}
+          />
+        )}
         {activeTab === 'dividas' && (
           <button onClick={() => setShowNovaDivida(true)}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#BC4A2A', color: 'white', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(188,74,42,0.3)' }}>
