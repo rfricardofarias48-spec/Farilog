@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fetchWorkRecordsByPeriod } from '../../lib/db';
 import { sumOvertimeMinutes, minutesToOvertimeString, recordRevenue } from '../../lib/timeUtils';
-import { fmtCurrency, WEEKDAYS, MONTHS } from '../../data/mockData';
+import { fmtCurrency } from '../../data/mockData';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -158,17 +158,11 @@ export default function AdminDashboard() {
     [periodRecs, companies, companiesById]
   );
 
-  const weekday = WEEKDAYS[TODAY_DATE.getUTCDay()];
-  const monthPT = MONTHS[TODAY_DATE.getUTCMonth()];
-
   return (
     <div className="space-y-5">
 
       {/* Header + seletor de período */}
       <div className="animate-fade-up">
-        <p className="text-xs capitalize" style={TM}>
-          {weekday}, {TODAY_DATE.getUTCDate()} de {monthPT} de {TODAY_DATE.getUTCFullYear()}
-        </p>
         <div className="flex items-center justify-end mt-1.5 flex-wrap gap-3">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#FFFFFF', border: '1px solid rgba(11, 11, 11,0.08)', boxShadow: '0 1px 2px rgba(11, 11, 11,0.05)' }}>
