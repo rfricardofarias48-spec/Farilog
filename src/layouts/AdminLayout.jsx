@@ -227,14 +227,14 @@ export default function AdminLayout() {
 
       <div className={`flex-1 flex flex-col transition-all duration-300 ${open ? 'md:ml-56' : 'md:ml-16'}`}>
         <div className="topbar">
-          <div className="flex items-center justify-between mb-5" style={{ padding: '26px 24px 0 24px' }}>
+          <div className="flex items-center justify-between mb-2" style={{ padding: '18px 24px 0 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', alignSelf: 'flex-end', paddingBottom: '3px' }}>
               <span style={{ width: '4px', height: '30px', borderRadius: '999px', background: 'linear-gradient(180deg, #BC4A2A 0%, #8C3B4A 100%)', boxShadow: '0 1px 6px rgba(188,74,42,0.35)' }} />
               <span style={{ color: '#0B0B0B', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.15 }}>{pageTitle}</span>
             </div>
           </div>
         </div>
-        <main className="flex-1 p-6" style={{ paddingTop: '20px' }}>
+        <main className="flex-1 p-6" style={{ paddingTop: '8px' }}>
           <Outlet />
         </main>
       </div>
