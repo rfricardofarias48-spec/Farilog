@@ -194,7 +194,7 @@ export default function AdminLayout() {
       <div className={`flex-1 flex flex-col transition-all duration-300 ${open ? 'md:ml-56' : 'md:ml-16'}`}>
         <div className="topbar">
           <div className="flex items-center justify-between mb-5" style={{ padding: '18px 24px 0 24px' }}>
-            <span className="font-semibold" style={{ color: '#0B0B0B', fontSize: '15px', letterSpacing: '-0.02em' }}>{pageTitle}</span>
+            <span style={{ color: '#0B0B0B', fontSize: isFinanceiro ? '24px' : '15px', fontWeight: isFinanceiro ? 800 : 600, letterSpacing: '-0.02em', lineHeight: 1.15 }}>{pageTitle}</span>
             <div className="flex items-center gap-2.5">
               <div className="relative">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9A9A9A' }} />
