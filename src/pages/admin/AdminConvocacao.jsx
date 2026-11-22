@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Loader2, CheckCircle2, XCircle, Clock, MapPin, Star, Shield, RefreshCw, Info, Send, Trash2,
-  CalendarDays, Filter, ChevronDown, Check,
+  CalendarDays, Filter, ChevronDown, Check, MessageCircle,
 } from 'lucide-react';
 import {
   fetchConvocacoesAgente, subscribeConvocacoes,
@@ -17,6 +18,14 @@ const FILTROS = [
   { id: 'confirmado', label: 'Confirmados',    statuses: ['confirmado', 'falta'] },
   { id: 'reserva',    label: 'Reservas',       statuses: ['reserva', 'acionada'] },
   { id: 'todas',      label: 'Todas',          statuses: null },
+];
+
+// Respostas possíveis do ajudante (mutuamente exclusivas) — ficam em um menu
+// por linha em vez de vários botões soltos, para não poluir a lista.
+const RESPOSTAS = [
+  { id: 'aceitar',  label: 'Aceitou',  desc: 'Confirmar a diária',       icon: CheckCircle2, color: '#047857', bg: '#F0FDF4' },
+  { id: 'recusar',  label: 'Recusou',  desc: 'Recusar a convocação',     icon: XCircle,      color: '#B91C1C', bg: '#FEF2F2' },
+  { id: 'silencio', label: 'Silêncio', desc: 'Não respondeu ao convite', icon: Clock,        color: '#64748B', bg: '#F8FAFC' },
 ];
 
 const fmtDia = (iso) => {
@@ -69,6 +78,7 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
   const [agindo, setAgindo]   = useState(null);
   const [excluindo, setExcluindo] = useState(null);
   const [menuAberto, setMenuAberto] = useState(null); // 'periodo' | 'status' | null
+  const [menuRow, setMenuRow] = useState(null);       // { id, top, left } — menu "Responder"
 
   const statuses = FILTROS.find(f => f.id === filtro)?.statuses ?? null;
 
@@ -97,6 +107,13 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [menuAberto]);
+
+  useEffect(() => {
+    if (!menuRow) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setMenuRow(null); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuRow]);
 
   const grupos = useMemo(() => {
     const map = new Map();
@@ -130,6 +147,18 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
     if (tipo === 'silencio') await marcarSemResposta(conv);
     setAgindo(null);
     load();
+  };
+
+  // Abre o menu "Responder" ancorado ao botão (fixed evita corte pelo card).
+  const abrirMenuResposta = (e, conv) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const largura = 224, altura = 196;
+    const acima = rect.bottom + altura + 8 > window.innerHeight;
+    setMenuRow({
+      id: conv.id,
+      top: acima ? Math.max(12, rect.top - altura - 8) : rect.bottom + 8,
+      left: Math.max(12, Math.min(rect.right - largura, window.innerWidth - largura - 12)),
+    });
   };
 
   const excluirGrupo = async (g) => {
@@ -325,23 +354,21 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
 
                     <ConvocacaoBadge status={c.status} />
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                       <WhatsAppButton phone={c.phone} message={textoConvite(c)} label="Convite" compact />
                       {acionavel && (
-                        <>
-                          <button onClick={() => agir('aceitar', c)} disabled={agindo === c.id} title="Ajudante aceitou"
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 9px', borderRadius: '8px', border: '1px solid #BBF7D0', background: '#F0FDF4', color: '#047857', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}>
-                            <CheckCircle2 size={11} /> Aceitou
-                          </button>
-                          <button onClick={() => agir('recusar', c)} disabled={agindo === c.id} title="Ajudante recusou"
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 9px', borderRadius: '8px', border: '1px solid #FECACA', background: '#FEF2F2', color: '#B91C1C', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}>
-                            <XCircle size={11} /> Recusou
-                          </button>
-                          <button onClick={() => agir('silencio', c)} disabled={agindo === c.id} title="Sem resposta"
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 9px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}>
-                            <Clock size={11} /> Silêncio
-                          </button>
-                        </>
+                        <button onClick={(e) => abrirMenuResposta(e, c)} disabled={agindo === c.id}
+                          title="Registrar a resposta do ajudante"
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px',
+                            borderRadius: '8px', border: '1px solid rgba(188,74,42,0.35)', background: '#FAF4F1',
+                            color: '#8A3520', fontSize: '10px', fontWeight: 800,
+                            cursor: agindo === c.id ? 'wait' : 'pointer', opacity: agindo === c.id ? 0.6 : 1,
+                          }}>
+                          <MessageCircle size={11} />
+                          {agindo === c.id ? 'Salvando...' : 'Responder'}
+                          <ChevronDown size={12} style={{ transition: 'transform .15s', transform: menuRow?.id === c.id ? 'rotate(180deg)' : 'none' }} />
+                        </button>
                       )}
                     </div>
                   </div>
@@ -351,6 +378,45 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
           ))}
         </div>
       )}
+
+      {/* Menu "Responder" ancorado à linha selecionada. O portal evita que o
+          transform de :hover do card (que vira bloco contentor) desloque o
+          position: fixed. */}
+      {menuRow && createPortal((() => {
+        const conv = convs.find(x => x.id === menuRow.id);
+        if (!conv) return null;
+        return (
+          <>
+            <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setMenuRow(null)} />
+            <div style={{
+              position: 'fixed', top: menuRow.top, left: menuRow.left, zIndex: 41, width: '224px',
+              background: '#fff', border: '1px solid rgba(0,0,0,0.10)', borderRadius: '12px',
+              boxShadow: '0 18px 40px rgba(0,0,0,0.20)', padding: '6px',
+            }}>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '6px 8px 8px' }}>
+                Registrar resposta
+              </p>
+              {RESPOSTAS.map(({ id, label, desc, icon: Icon, color, bg }) => (
+                <button key={id} type="button" disabled={agindo === conv.id}
+                  onClick={() => { setMenuRow(null); agir(id, conv); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '9px', width: '100%',
+                    padding: '8px 9px', borderRadius: '9px', border: 'none', background: 'transparent',
+                    cursor: agindo === conv.id ? 'wait' : 'pointer', textAlign: 'left',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = bg; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+                  <Icon size={15} style={{ color, flexShrink: 0 }} />
+                  <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
+                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#0F172A' }}>{label}</span>
+                    <span style={{ fontSize: '10.5px', color: '#94A3B8' }}>{desc}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        );
+      })(), document.body)}
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)' }}>
         <Info size={13} style={{ color: '#64748B', flexShrink: 0, marginTop: '1px' }} />
