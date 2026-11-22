@@ -1904,12 +1904,26 @@ function mapRecarga(r) {
 export async function fetchRecargas(tipo = null) {
   let query = supabase
     .from('beneficios_recargas')
-    .select('*, funcionarios(id, nome, iniciais, cor, cidade)')
+    .select('*')
     .order('criado_em', { ascending: false });
   if (tipo) query = query.eq('tipo', tipo);
   const { data, error } = await query;
   if (error) { console.error('[db] fetchRecargas:', error.message); return []; }
-  return (data || []).map(mapRecarga);
+
+  const rows = data || [];
+  // Os dados do funcionário são resolvidos à parte: nem todo projeto declara FK
+  // entre beneficios_recargas e funcionarios, e sem ela o embed do PostgREST
+  // (select com join) falha a consulta inteira.
+  const ids = [...new Set(rows.map(r => r.funcionario_id).filter(Boolean))];
+  let funcs = {};
+  if (ids.length) {
+    const { data: f } = await supabase
+      .from('funcionarios')
+      .select('id, nome, iniciais, cidade')
+      .in('id', ids);
+    funcs = Object.fromEntries((f || []).map(x => [x.id, x]));
+  }
+  return rows.map(r => mapRecarga({ ...r, funcionarios: funcs[r.funcionario_id] || {} }));
 }
 
 // Cria uma recarga inteira (um lote nomeado) e um único lançamento a pagar

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -14,7 +14,6 @@ const fmt = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', cur
 const pad2 = n => String(n).padStart(2, '0');
 const TODAY_ISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 const MONTH_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const WEEKDAY = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
 const corDoTipo = tipo => (tipo === 'VT' ? '#4A4A4A' : '#0B0B0B');
 const nomeDoTipo = tipo => (tipo === 'VT' ? 'Vale Transporte' : 'Vale Refeição');
@@ -41,6 +40,17 @@ function quinzenaFromKey(key) {
     start: ymd(y, mo, q === 1 ? 1 : 16),
     end:   ymd(y, mo, q === 1 ? 15 : lastDay),
   };
+}
+
+// Período efetivo de uma recarga, tolerando registros antigos:
+// colunas v2 → intervalo textual guardado na quinzena → chave "YYYY-MM-Qn".
+function periodoDaRecarga(r) {
+  if (r.dataInicio && r.dataFim) return { inicio: r.dataInicio, fim: r.dataFim };
+  const range = /^(\d{4}-\d{2}-\d{2})\s+a\s+(\d{4}-\d{2}-\d{2})$/.exec(r.quinzena || '');
+  if (range) return { inicio: range[1], fim: range[2] };
+  const q = quinzenaFromKey(r.quinzena);
+  if (q) return { inicio: q.start, fim: q.end };
+  return null;
 }
 
 // Lista todos os dias do intervalo (inclusive). Limite defensivo de 400 dias.
@@ -81,16 +91,6 @@ function fmtDiasLista(dias) {
 
 // Dias que uma linha de recarga cobre. Registros antigos (sem dias_uso) caem
 // para o período ou para a quinzena.
-function diasEfetivos(r) {
-  if (r.diasUso && r.diasUso.length) return r.diasUso;
-  if (r.dataInicio && r.dataFim) return listDays(r.dataInicio, r.dataFim);
-  if (r.quinzena) {
-    const q = quinzenaFromKey(r.quinzena);
-    if (q) return listDays(q.start, q.end);
-  }
-  return r.dataRecarga ? [r.dataRecarga] : [];
-}
-
 function groupRecargas(rows) {
   const map = new Map();
   rows.forEach(r => {
@@ -144,46 +144,18 @@ function groupRecargas(rows) {
   });
 }
 
-// Índice funcionário → recargas já lançadas (com o nome de cada recarga).
-function indexarExistentes(rows) {
+// Índice funcionário → recargas já lançadas e o total de dias creditados.
+// Serve para calcular o saldo em aberto (crédito recebido − dias trabalhados).
+function indexarCreditos(rows) {
   const idx = {};
   rows.forEach(r => {
-    const dias = diasEfetivos(r);
-    if (!dias.length) return;
-    if (!idx[r.funcionarioId]) idx[r.funcionarioId] = [];
-    idx[r.funcionarioId].push({
-      recargaId: r.loteId || r.id,
-      nome: r.nome || 'Recarga anterior',
-      dias: new Set(dias),
-    });
+    const dias = Number(r.dias || 0);
+    if (dias <= 0) return;
+    if (!idx[r.funcionarioId]) idx[r.funcionarioId] = { creditado: 0, periodos: [] };
+    idx[r.funcionarioId].creditado += dias;
+    idx[r.funcionarioId].periodos.push({ inicio: r.dataInicio || null, fim: r.dataFim || null });
   });
   return idx;
-}
-
-function diasConflitantesDe(idx, funcionarioId, dias) {
-  const conflitantes = new Set();
-  (idx[funcionarioId] || []).forEach(rec => {
-    dias.forEach(d => { if (rec.dias.has(d)) conflitantes.add(d); });
-  });
-  return conflitantes;
-}
-
-function encontrarConflitos(idx, itens) {
-  const conflitos = [];
-  itens.forEach(it => {
-    (idx[it.funcionarioId] || []).forEach(rec => {
-      const dias = it.diasUso.filter(d => rec.dias.has(d));
-      if (dias.length) {
-        conflitos.push({
-          funcionarioId: it.funcionarioId,
-          nomeFuncionario: it.nomeFuncionario,
-          recarga: rec.nome,
-          dias,
-        });
-      }
-    });
-  });
-  return conflitos;
 }
 
 function rangeDoFiltro(chave, custom) {
@@ -264,144 +236,6 @@ function EditableValue({ value, onSave }) {
   );
 }
 
-// ── Seletor de dias de uso ────────────────────────────────────────────────
-function DayPickerModal({ employee, dias, periodo, valorDia, tipo, conflitantes, onChange, onClose }) {
-  const diasPeriodo = useMemo(() => listDays(periodo.start, periodo.end), [periodo.start, periodo.end]);
-  const selecionados = new Set(dias);
-  const cor = corDoTipo(tipo);
-  const total = dias.length * valorDia;
-  const inicioVazio = diasPeriodo.length ? weekdayOf(diasPeriodo[0]) : 0;
-
-  const toggle = iso => {
-    const next = new Set(selecionados);
-    if (next.has(iso)) next.delete(iso); else next.add(iso);
-    onChange([...next].sort());
-  };
-
-  const diasUteis = diasPeriodo.filter(d => { const w = weekdayOf(d); return w >= 1 && w <= 5; });
-  const temConflito = diasPeriodo.some(d => conflitantes.has(d));
-
-  return (
-    <Overlay onClose={onClose} maxWidth="460px">
-      <ModalHeader eyebrow="Dias de uso" titulo={employee.name} onClose={onClose} />
-
-      <div style={{ padding: '20px 24px 24px' }}>
-        <p style={{ fontSize: '12px', color: '#6B6B6B', marginBottom: '14px' }}>
-          Período: <strong style={{ color: '#0B0B0B' }}>{periodoTexto(periodo.start, periodo.end)}</strong>
-        </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '6px' }}>
-          {WEEKDAY.map(d => (
-            <p key={d} style={{ textAlign: 'center', fontSize: '9px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase' }}>{d}</p>
-          ))}
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
-          {Array.from({ length: inicioVazio }).map((_, i) => <div key={`vazio-${i}`} />)}
-          {diasPeriodo.map(dia => {
-            const sel  = selecionados.has(dia);
-            const conf = conflitantes.has(dia);
-            return (
-              <button key={dia} onClick={() => toggle(dia)}
-                title={conf ? 'Este dia já tem crédito em outra recarga' : undefined}
-                style={{
-                  position: 'relative', padding: '9px 0', borderRadius: '8px', cursor: 'pointer',
-                  fontSize: '12px', fontWeight: 700, transition: 'all 0.12s',
-                  background: sel ? cor : '#F7F7F7',
-                  color: sel ? '#fff' : '#4A4A4A',
-                  border: conf ? '1.5px solid #C2410C' : '1px solid transparent',
-                }}>
-                {Number(dia.slice(8, 10))}
-                {conf && (
-                  <span style={{
-                    position: 'absolute', top: '3px', right: '3px', width: '5px', height: '5px',
-                    borderRadius: '50%', background: sel ? '#FDBA74' : '#C2410C',
-                  }} />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {temConflito && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginTop: '14px', padding: '10px 12px', borderRadius: '10px', background: '#FFF7ED', border: '1px solid #FED7AA' }}>
-            <AlertTriangle size={14} style={{ color: '#C2410C', flexShrink: 0, marginTop: '1px' }} />
-            <p style={{ fontSize: '11px', color: '#9A3412', lineHeight: 1.4 }}>
-              Os dias com borda laranja já possuem crédito em outra recarga deste ajudante. O sistema não deixa salvar com esses dias repetidos.
-            </p>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '16px' }}>
-          <button onClick={() => onChange(diasUteis)} className="btn-ghost" style={{ padding: '6px 12px', fontSize: '11px' }}>
-            Dias úteis
-          </button>
-          <button onClick={() => onChange(diasPeriodo)} className="btn-ghost" style={{ padding: '6px 12px', fontSize: '11px' }}>
-            Todos os dias
-          </button>
-          <button onClick={() => onChange([])} className="btn-ghost" style={{ padding: '6px 12px', fontSize: '11px' }}>
-            Limpar
-          </button>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '16px 24px', background: '#F7F7F7', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-        <div>
-          <p style={{ fontSize: '11px', color: '#9A9A9A', fontWeight: 600 }}>
-            {dias.length} dia{dias.length !== 1 ? 's' : ''} × {fmt(valorDia)}
-          </p>
-          <p style={{ fontSize: '15px', fontWeight: 900, color: cor }}>{fmt(total)}</p>
-        </div>
-        <button onClick={onClose} className="btn-primary" style={{ padding: '9px 18px' }}>Concluir</button>
-      </div>
-    </Overlay>
-  );
-}
-
-// ── Aviso de conflito (bloqueia o salvamento) ──────────────────────────────
-function ConflictModal({ conflitos, saving, onAdjust, onRemove }) {
-  const totalDias = conflitos.reduce((s, c) => s + c.dias.length, 0);
-  return (
-    <Overlay onClose={onAdjust} maxWidth="520px">
-      <ModalHeader eyebrow="Lançamento bloqueado" titulo="Dias já creditados para estes ajudantes" onClose={onAdjust} />
-
-      <div style={{ padding: '20px 24px' }}>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', padding: '12px 14px', borderRadius: '12px', background: '#FFF7ED', border: '1px solid #FED7AA', marginBottom: '16px' }}>
-          <AlertTriangle size={16} style={{ color: '#C2410C', flexShrink: 0, marginTop: '1px' }} />
-          <p style={{ fontSize: '12px', color: '#9A3412', lineHeight: 1.5 }}>
-            {totalDias} dia{totalDias !== 1 ? 's' : ''} desta recarga já {totalDias !== 1 ? 'estão' : 'está'} em outra recarga do mesmo ajudante.
-            Para evitar crédito duplicado, ajuste a seleção ou remova só os dias em conflito.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
-          {conflitos.map((c, i) => (
-            <div key={`${c.funcionarioId}-${i}`} style={{ padding: '10px 12px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.05)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '3px' }}>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0B0B0B' }}>{c.nomeFuncionario}</p>
-                <p style={{ fontSize: '11px', color: '#9A9A9A', fontWeight: 600 }}>{c.dias.length} dia{c.dias.length !== 1 ? 's' : ''}</p>
-              </div>
-              <p style={{ fontSize: '11px', color: '#6B6B6B' }}>
-                Conflito com a recarga <strong style={{ color: '#0B0B0B' }}>“{c.recarga}”</strong>
-              </p>
-              <p style={{ fontSize: '11px', color: '#C2410C', fontWeight: 600, marginTop: '2px' }}>
-                {c.dias.map(fmtDia).join(', ')}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '16px 24px', background: '#F7F7F7', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-        <button onClick={onAdjust} className="btn-ghost" style={{ padding: '9px 16px' }}>Voltar e ajustar</button>
-        <button onClick={onRemove} disabled={saving} className="btn-primary" style={{ padding: '9px 16px', opacity: saving ? 0.6 : 1 }}>
-          {saving ? 'Salvando...' : 'Remover dias em conflito e salvar'}
-        </button>
-      </div>
-    </Overlay>
-  );
-}
-
 // ── Detalhe da recarga (histórico) ─────────────────────────────────────────
 function RecargaDetalhe({ lote, onClose }) {
   const Icon = lote.tipo === 'VT' ? Bus : UtensilsCrossed;
@@ -458,7 +292,9 @@ function RecargaDetalhe({ lote, onClose }) {
                 <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '1px' }}>
                   {item.dias} dia{item.dias !== 1 ? 's' : ''} × {fmt(item.valorDia)}
                 </p>
-                <p style={{ fontSize: '10px', color: '#9A9A9A', marginTop: '1px' }}>{fmtDiasLista(item.diasUso)}</p>
+                {item.diasUso?.length > 0 && (
+                  <p style={{ fontSize: '10px', color: '#9A9A9A', marginTop: '1px' }}>{fmtDiasLista(item.diasUso)}</p>
+                )}
               </div>
               <p style={{ fontSize: '14px', fontWeight: 800, color: cor, flexShrink: 0 }}>{fmt(item.total)}</p>
             </div>
@@ -487,14 +323,13 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
     dataPagamento: TODAY_ISO,
     dataRecarga: TODAY_ISO,
   }));
-  const [selected,   setSelected]   = useState({});
-  const [diasUso,    setDiasUso]    = useState({});   // empId -> ['YYYY-MM-DD']
-  const [workedDays, setWorkedDays] = useState({});
-  const [empValues,  setEmpValues]  = useState({});
-  const [existentes, setExistentes] = useState([]);
-  const [picker,     setPicker]     = useState(null);  // empId
-  const [conflito,   setConflito]   = useState(null);  // { conflitos, itens }
-  const [erros,      setErros]      = useState([]);
+  const [selected,    setSelected]    = useState({});
+  const [diasQtd,     setDiasQtd]     = useState({});   // empId -> quantidade de dias
+  const [trabalhados, setTrabalhados] = useState({});   // empId -> dias trabalhados (base do cálculo)
+  const [empValues,   setEmpValues]   = useState({});
+  const [saldos,      setSaldos]      = useState([]);   // saldos em aberto de recargas anteriores
+  const [saldoKey,    setSaldoKey]    = useState(0);
+  const [erros,       setErros]       = useState([]);
   const [aviso,      setAviso]      = useState(null);
   const [sucesso,    setSucesso]    = useState(null);
   const [varrendo,   setVarrendo]   = useState(false);
@@ -503,6 +338,10 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
 
   const diasDoPeriodo = useMemo(() => listDays(form.dataInicio, form.dataFim), [form.dataInicio, form.dataFim]);
   const periodoValido = diasDoPeriodo.length > 0;
+  const diasUteisQtd = useMemo(
+    () => diasDoPeriodo.filter(d => { const w = weekdayOf(d); return w >= 1 && w <= 5; }).length,
+    [diasDoPeriodo]
+  );
 
   // Seleciona os ativos por padrão (mantém escolhas anteriores ao re-renderizar).
   useEffect(() => {
@@ -513,36 +352,91 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
     });
   }, [employees]);
 
-  const recarregarExistentes = () => fetchRecargas(tipo).then(setExistentes);
-  useEffect(() => { recarregarExistentes(); }, [tipo]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const existentesIdx = useMemo(() => indexarExistentes(existentes), [existentes]);
-
-  // Ao mudar o período, descarta dias que ficaram fora dele.
-  useEffect(() => {
-    const dentro = new Set(diasDoPeriodo);
-    setDiasUso(prev => {
-      const next = {};
-      Object.entries(prev).forEach(([id, dias]) => { next[id] = dias.filter(d => dentro.has(d)); });
-      return next;
-    });
-    setWorkedDays({});
-  }, [form.dataInicio, form.dataFim]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const valorDiaDe = emp => empValues[emp.id] ?? emp[field];
 
-  const montarItens = (mapaDias, selecao = selected) => employees
-    .filter(e => selecao[e.id] && (mapaDias[e.id]?.length || 0) > 0)
+  // Conta os dias efetivamente trabalhados (registros de ponto) no período.
+  // A "quantidade de dias de uso" é sempre calculada — não se escolhe dia a dia.
+  const calcularTrabalhados = useCallback(async (start, end) => {
+    if (!start || !end || start > end) return {};
+    const recs = await fetchWorkRecordsByPeriod(null, null, start, end);
+    const dentro = new Set(listDays(start, end));
+    const mapa = {};
+    recs.filter(r => r.checkIn).forEach(r => {
+      if (!dentro.has(r.date)) return;
+      mapa[r.employeeId] = (mapa[r.employeeId] || 0) + 1;
+    });
+    return mapa;
+  }, []);
+
+  // Recalcula as quantidades sempre que o período muda.
+  useEffect(() => {
+    if (!periodoValido) { setTrabalhados({}); setDiasQtd({}); return undefined; }
+    let ativo = true;
+    (async () => {
+      const mapa = await calcularTrabalhados(form.dataInicio, form.dataFim);
+      if (!ativo) return;
+      const base = {};
+      const qtd  = {};
+      employees.forEach(e => { base[e.id] = mapa[e.id] || 0; qtd[e.id] = mapa[e.id] || 0; });
+      setTrabalhados(base);
+      setDiasQtd(qtd);
+    })();
+    return () => { ativo = false; };
+  }, [form.dataInicio, form.dataFim, employees, periodoValido, calcularTrabalhados]);
+
+  // Saldo em aberto: recargas anteriores deste tipo em que o ajudante recebeu
+  // mais diárias do que trabalhou dentro do período da recarga.
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      const recs = await fetchRecargas(tipo);
+      // Normaliza o período (recargas antigas guardam-no em `quinzena`) para
+      // poder comparar crédito × dias trabalhados dentro do período.
+      const comCredito = recs
+        .filter(r => Number(r.dias || 0) > 0)
+        .map(r => { const p = periodoDaRecarga(r); return p ? { ...r, dataInicio: p.inicio, dataFim: p.fim } : null; })
+        .filter(Boolean);
+      if (!comCredito.length) { if (ativo) setSaldos([]); return; }
+      const inicios = comCredito.map(r => r.dataInicio).sort();
+      const fins    = comCredito.map(r => r.dataFim).sort();
+      const desde   = inicios[0];
+      const ate     = fins[fins.length - 1] || TODAY_ISO;
+      const works   = desde ? await fetchWorkRecordsByPeriod(null, null, desde, ate) : [];
+      const worked  = {};
+      works.filter(w => w.checkIn).forEach(w => {
+        (worked[w.employeeId] || (worked[w.employeeId] = new Set())).add(w.date);
+      });
+      const idx = indexarCreditos(comCredito);
+      const lista = Object.entries(idx).map(([funcionarioId, info]) => {
+        const set = worked[funcionarioId];
+        let trabalhado = 0;
+        if (set) {
+          info.periodos.forEach(({ inicio, fim }) => {
+            set.forEach(d => {
+              if ((!inicio || d >= inicio) && (!fim || d <= fim)) trabalhado += 1;
+            });
+          });
+        }
+        const nome = comCredito.find(r => r.funcionarioId === funcionarioId)?.nomeFuncionario || '—';
+        return { funcionarioId, nome, creditado: info.creditado, trabalhado, saldo: Math.max(0, info.creditado - trabalhado) };
+      }).filter(f => f.saldo > 0).sort((a, b) => b.saldo - a.saldo);
+      if (ativo) setSaldos(lista);
+    })();
+    return () => { ativo = false; };
+  }, [tipo, saldoKey]);
+
+  const montarItens = (mapaQtd = diasQtd, selecao = selected) => employees
+    .filter(e => selecao[e.id] && Number(mapaQtd[e.id] || 0) > 0)
     .map(e => {
-      const dias = [...mapaDias[e.id]].sort();
+      const dias = Math.max(0, Math.floor(Number(mapaQtd[e.id]) || 0));
       const valorDia = Number(valorDiaDe(e)) || 0;
       return {
         funcionarioId: e.id,
         nomeFuncionario: e.name,
-        dias: dias.length,
-        diasUso: dias,
+        dias,
+        diasUso: [],
         valorDia,
-        total: dias.length * valorDia,
+        total: dias * valorDia,
         quinzena: getQuinzenaInfo(form.dataInicio).key,
       };
     });
@@ -576,16 +470,9 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
       if (res.colunasAusentes?.length) setMigracaoPendente(true);
       setSucesso(`Recarga “${form.nome.trim()}” salva com ${itens.length} ajudante${itens.length !== 1 ? 's' : ''}.`);
       setForm(f => ({ ...f, nome: '' }));
-      setDiasUso({});
-      setWorkedDays({});
       setEmpValues({});
-      await recarregarExistentes();
+      setSaldoKey(k => k + 1);
       onCreated?.();
-      return;
-    }
-    if (res.error === 'conflito') {
-      setErros(['Outra recarga foi salva em paralelo com dias repetidos. Atualizando os dados, revise os dias e tente novamente.']);
-      await recarregarExistentes();
       return;
     }
     setErros([`Não foi possível salvar a recarga: ${res.error}`]);
@@ -595,47 +482,12 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
     if (saving) return;
     setSucesso(null);
     setAviso(null);
-    const itens = montarItens(diasUso);
+    const itens = montarItens();
     const errs = validar(itens);
     if (errs.length) { setErros(errs); return; }
     setErros([]);
     setSaving(true);
-
-    // Relê antes de validar para não depender de dados antigos em tela.
-    const atuais = await fetchRecargas(tipo);
-    setExistentes(atuais);
-    const conflitos = encontrarConflitos(indexarExistentes(atuais), itens);
-    if (conflitos.length) {
-      setSaving(false);
-      setConflito({ conflitos, itens });
-      return;
-    }
     await salvar(itens);
-  };
-
-  const removerConflitosESalvar = async () => {
-    if (!conflito || saving) return;
-    const porFuncionario = {};
-    conflito.conflitos.forEach(c => {
-      if (!porFuncionario[c.funcionarioId]) porFuncionario[c.funcionarioId] = new Set();
-      c.dias.forEach(d => porFuncionario[c.funcionarioId].add(d));
-    });
-
-    const novoMapa = {};
-    Object.entries(diasUso).forEach(([id, dias]) => {
-      novoMapa[id] = dias.filter(d => !porFuncionario[id]?.has(d));
-    });
-
-    const novosItens = montarItens(novoMapa);
-    setDiasUso(novoMapa);
-    setConflito(null);
-
-    if (novosItens.length === 0) {
-      setErros(['Todos os dias estavam em conflito. Escolha outros dias ou outro período.']);
-      return;
-    }
-    setSaving(true);
-    await salvar(novosItens);
   };
 
   const handleVarredura = async () => {
@@ -643,24 +495,13 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
     setVarrendo(true);
     setAviso(null);
     try {
-      const recs = await fetchWorkRecordsByPeriod(null, null, form.dataInicio, form.dataFim);
-      const dentro = new Set(diasDoPeriodo);
-      const mapa = {};
-      recs.filter(r => r.checkIn).forEach(r => {
-        if (!dentro.has(r.date)) return;
-        if (!mapa[r.employeeId]) mapa[r.employeeId] = new Set();
-        mapa[r.employeeId].add(r.date);
-      });
-      const worked = {};
-      const novo = {};
-      employees.forEach(e => {
-        const ds = mapa[e.id] ? [...mapa[e.id]].sort() : [];
-        worked[e.id] = ds.length;
-        novo[e.id] = ds;
-      });
-      setWorkedDays(worked);
-      setDiasUso(novo);
-      const comDias = Object.values(worked).filter(n => n > 0).length;
+      const mapa = await calcularTrabalhados(form.dataInicio, form.dataFim);
+      const base = {};
+      const qtd  = {};
+      employees.forEach(e => { base[e.id] = mapa[e.id] || 0; qtd[e.id] = mapa[e.id] || 0; });
+      setTrabalhados(base);
+      setDiasQtd(qtd);
+      const comDias = Object.values(base).filter(n => n > 0).length;
       setAviso(`Varredura concluída: ${comDias} ajudante${comDias !== 1 ? 's' : ''} com dias trabalhados no período.`);
     } finally {
       setVarrendo(false);
@@ -669,20 +510,10 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
 
   const aplicarDiasUteisTodos = () => {
     if (!periodoValido) return;
-    const uteis = diasDoPeriodo.filter(d => { const w = weekdayOf(d); return w >= 1 && w <= 5; });
     const novo = {};
-    employees.forEach(e => { novo[e.id] = uteis; });
-    setDiasUso(novo);
-    setAviso(`${uteis.length} dia${uteis.length !== 1 ? 's' : ''} útil${uteis.length !== 1 ? 'eis' : ''} em ${periodoTexto(form.dataInicio, form.dataFim)} aplicado${uteis.length !== 1 ? 's' : ''} a todos os ajudantes.`);
-  };
-
-  const aplicarPreset = preset => {
-    const base = form.dataInicio || TODAY_ISO;
-    const [y, m] = base.split('-').map(Number);
-    const ultimo = new Date(y, m, 0).getDate();
-    if (preset === 'q1')  setForm(f => ({ ...f, dataInicio: ymd(y, m, 1),  dataFim: ymd(y, m, 15) }));
-    if (preset === 'q2')  setForm(f => ({ ...f, dataInicio: ymd(y, m, 16), dataFim: ymd(y, m, ultimo) }));
-    if (preset === 'mes') setForm(f => ({ ...f, dataInicio: ymd(y, m, 1),  dataFim: ymd(y, m, ultimo) }));
+    employees.forEach(e => { novo[e.id] = diasUteisQtd; });
+    setDiasQtd(novo);
+    setAviso(`${diasUteisQtd} dia${diasUteisQtd !== 1 ? 's' : ''} útil${diasUteisQtd !== 1 ? 'eis' : ''} em ${periodoTexto(form.dataInicio, form.dataFim)} aplicado${diasUteisQtd !== 1 ? 's' : ''} a todos os ajudantes.`);
   };
 
   const todosSelecionados = employees.length > 0 && employees.every(e => selected[e.id]);
@@ -693,11 +524,15 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
     setSelected(sel);
   };
 
-  const comDias = employees.filter(e => selected[e.id] && (diasUso[e.id]?.length || 0) > 0);
-  const totalGeral = comDias.reduce((s, e) => s + (diasUso[e.id].length * (Number(valorDiaDe(e)) || 0)), 0);
+  const comDias = employees.filter(e => selected[e.id] && Number(diasQtd[e.id] || 0) > 0);
+  const totalGeral = comDias.reduce((s, e) => s + (Number(diasQtd[e.id] || 0) * (Number(valorDiaDe(e)) || 0)), 0);
   const podeSalvar = !!form.nome.trim() && periodoValido && totalGeral > 0;
 
-  const empDoPicker = picker ? employees.find(e => e.id === picker) : null;
+  // Mostra o aviso só para ajudantes ativos (os que entram em novas recargas).
+  const saldosVisiveis = useMemo(() => {
+    const ids = new Set(employees.map(e => e.id));
+    return saldos.filter(s => ids.has(s.funcionarioId));
+  }, [saldos, employees]);
 
   return (
     <div className="space-y-5">
@@ -707,6 +542,30 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
           <p style={{ fontSize: '12px', color: '#9A3412', lineHeight: 1.5 }}>
             O banco ainda não tem as colunas novas desta tela. Rode o script <strong>supabase/beneficios-recargas-v2.sql</strong> no SQL Editor do Supabase para que nome, datas e dias de uso sejam gravados.
           </p>
+        </div>
+      )}
+
+      {saldosVisiveis.length > 0 && (
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', padding: '12px 14px', borderRadius: '12px', background: '#FFF7ED', border: '1px solid #FED7AA' }}>
+          <Wallet size={15} style={{ color: '#C2410C', flexShrink: 0, marginTop: '1px' }} />
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: '#9A3412' }}>
+              {saldosVisiveis.length} ajudante{saldosVisiveis.length !== 1 ? 's' : ''} com saldo em aberto de recargas anteriores
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '5px' }}>
+              {saldosVisiveis.slice(0, 8).map(s => (
+                <p key={s.funcionarioId} style={{ fontSize: '11px', color: '#9A3412' }}>
+                  • <strong>{s.nome && s.nome !== '—' ? s.nome : 'Ajudante sem cadastro'}</strong> — {s.saldo} dia{s.saldo !== 1 ? 's' : ''} de saldo (recebeu {s.creditado} · trabalhou {s.trabalhado})
+                </p>
+              ))}
+              {saldosVisiveis.length > 8 && (
+                <p style={{ fontSize: '11px', color: '#9A3412' }}>• e mais {saldosVisiveis.length - 8} ajudante{saldosVisiveis.length - 8 !== 1 ? 's' : ''}…</p>
+              )}
+            </div>
+            <p style={{ fontSize: '11px', color: '#B45309', marginTop: '6px', lineHeight: 1.4 }}>
+              Esses ajudantes receberam mais diárias do que trabalharam. Considere descontar esse saldo antes de lançar a nova recarga.
+            </p>
+          </div>
         </div>
       )}
 
@@ -739,16 +598,6 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
             <input type="date" className="input-field" value={form.dataFim}
               onChange={e => setForm(f => ({ ...f, dataFim: e.target.value }))} />
           </Campo>
-
-          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {[['q1', '1ª quinzena'], ['q2', '2ª quinzena'], ['mes', 'Mês inteiro']].map(([k, l]) => (
-              <button key={k} onClick={() => aplicarPreset(k)} className="btn-ghost"
-                style={{ padding: '5px 11px', fontSize: '11px' }}>{l}</button>
-            ))}
-            <span style={{ alignSelf: 'center', fontSize: '11px', color: '#9A9A9A', marginLeft: '4px' }}>
-              Período atual: <strong style={{ color: '#4A4A4A' }}>{periodoTexto(form.dataInicio, form.dataFim)}</strong>
-            </span>
-          </div>
         </div>
       </div>
 
@@ -794,7 +643,7 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '10px', border: 'none', cursor: periodoValido ? 'pointer' : 'not-allowed', background: '#F5F5F5', color: '#0B0B0B', fontSize: '12px', fontWeight: 600, opacity: periodoValido ? 1 : 0.5 }}>
             <CalendarDays size={13} /> Dias úteis p/ todos
           </button>
-          <button onClick={() => setDiasUso({})} disabled={!periodoValido}
+          <button onClick={() => setDiasQtd({})} disabled={!periodoValido}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.08)', cursor: periodoValido ? 'pointer' : 'not-allowed', background: '#fff', color: '#6B6B6B', fontSize: '12px', fontWeight: 600, opacity: periodoValido ? 1 : 0.5 }}>
             Limpar dias
           </button>
@@ -824,11 +673,10 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
           </div>
         ) : employees.map((emp, idx) => {
           const isSelected = !!selected[emp.id];
-          const dias = diasUso[emp.id] || [];
+          const qtd = Number(diasQtd[emp.id] || 0);
           const valorDia = Number(valorDiaDe(emp)) || 0;
-          const total = dias.length * valorDia;
-          const worked = workedDays[emp.id];
-          const conflitantes = isSelected ? diasConflitantesDe(existentesIdx, emp.id, dias) : new Set();
+          const total = qtd * valorDia;
+          const calculado = trabalhados[emp.id];
 
           return (
             <div key={emp.id} style={{
@@ -852,14 +700,9 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
                   <p style={{ fontSize: '13px', fontWeight: 600, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {emp.name}{emp.cidade ? <span style={{ color: '#9A9A9A', fontWeight: 400 }}> ({emp.cidade})</span> : ''}
                   </p>
-                  {worked !== undefined && (
-                    <p style={{ fontSize: '10px', color: '#4A4A4A', marginTop: '1px' }}>
-                      {worked} dia{worked !== 1 ? 's' : ''} trabalhado{worked !== 1 ? 's' : ''} no período
-                    </p>
-                  )}
-                  {conflitantes.size > 0 && (
-                    <p style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#C2410C', fontWeight: 600, marginTop: '1px' }}>
-                      <AlertTriangle size={10} /> {conflitantes.size} dia{conflitantes.size !== 1 ? 's' : ''} em outra recarga
+                  {calculado !== undefined && calculado !== qtd && (
+                    <p style={{ fontSize: '10px', color: '#9A9A9A', marginTop: '1px' }}>
+                      {calculado} dia{calculado !== 1 ? 's' : ''} trabalhado{calculado !== 1 ? 's' : ''} no período (ajustado)
                     </p>
                   )}
                 </div>
@@ -876,18 +719,18 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <button onClick={() => setPicker(emp.id)} disabled={!periodoValido}
+                <input type="number" min="0" inputMode="numeric" value={qtd} disabled={!periodoValido}
+                  onChange={e => {
+                    const v = Math.max(0, Math.floor(Number(e.target.value) || 0));
+                    setDiasQtd(prev => ({ ...prev, [emp.id]: v }));
+                  }}
+                  title="Quantidade de dias de uso (calculada pelos dias trabalhados)"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px',
-                    cursor: periodoValido ? 'pointer' : 'not-allowed',
-                    border: `1px solid ${conflitantes.size > 0 ? '#FED7AA' : 'rgba(0,0,0,0.10)'}`,
-                    background: conflitantes.size > 0 ? '#FFF7ED' : dias.length > 0 ? 'rgba(74,74,74,0.06)' : '#F7F7F7',
-                    color: conflitantes.size > 0 ? '#9A3412' : dias.length > 0 ? '#0B0B0B' : '#9A9A9A',
-                    fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap',
-                  }}>
-                  <CalendarDays size={12} />
-                  {dias.length > 0 ? `${dias.length} dia${dias.length !== 1 ? 's' : ''}` : 'Selecionar'}
-                </button>
+                    width: '64px', textAlign: 'center', padding: '7px 8px', borderRadius: '8px',
+                    border: '1px solid rgba(0,0,0,0.12)', background: '#fff',
+                    fontSize: '13px', fontWeight: 700, color: qtd > 0 ? '#0B0B0B' : '#9A9A9A',
+                    cursor: periodoValido ? 'text' : 'not-allowed',
+                  }} />
               </div>
 
               <p style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: total > 0 ? cor : '#C8C8C8' }}>
@@ -923,28 +766,6 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
           </div>
         )}
       </div>
-
-      {empDoPicker && (
-        <DayPickerModal
-          employee={empDoPicker}
-          dias={diasUso[empDoPicker.id] || []}
-          periodo={{ start: form.dataInicio, end: form.dataFim }}
-          valorDia={Number(valorDiaDe(empDoPicker)) || 0}
-          tipo={tipo}
-          conflitantes={diasConflitantesDe(existentesIdx, empDoPicker.id, diasUso[empDoPicker.id] || [])}
-          onChange={novosDias => setDiasUso(prev => ({ ...prev, [empDoPicker.id]: novosDias }))}
-          onClose={() => setPicker(null)}
-        />
-      )}
-
-      {conflito && (
-        <ConflictModal
-          conflitos={conflito.conflitos}
-          saving={saving}
-          onAdjust={() => setConflito(null)}
-          onRemove={removerConflitosESalvar}
-        />
-      )}
     </div>
   );
 }
