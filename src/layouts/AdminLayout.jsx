@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LogOut, LayoutDashboard, Building2, ChevronLeft, ChevronRight,
   DollarSign, ClipboardList, Briefcase, Activity,
-  BarChart2, ChevronDown, Users, Heart, Clock, Shield,
+  BarChart2, ChevronDown, Users, Heart,
   TrendingUp, CreditCard, Wallet, FileText, UserCheck, MessageCircle, Settings,
 } from 'lucide-react';
 
@@ -17,10 +17,8 @@ const OP_TABS = [
 ];
 
 const RH_TABS = [
-  { key: 'funcionarios', label: 'Funcionários',      icon: Users },
-  { key: 'beneficios',   label: 'Benefícios',        icon: Heart },
-  { key: 'ponto',        label: 'Controle de Ponto', icon: Clock },
-  { key: 'epi',          label: 'EPI',               icon: Shield },
+  { key: 'funcionarios', label: 'Funcionários', icon: Users },
+  { key: 'beneficios',   label: 'Benefícios',   icon: Heart },
 ];
 
 const FIN_TABS = [
