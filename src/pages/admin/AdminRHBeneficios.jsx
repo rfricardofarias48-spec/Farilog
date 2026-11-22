@@ -352,6 +352,13 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
     });
   }, [employees]);
 
+  // O período de uso não é mais escolhido na tela: passa a ser a quinzena da
+  // data da recarga (é o intervalo usado para contar os dias trabalhados).
+  useEffect(() => {
+    const q = getQuinzenaInfo(form.dataRecarga || TODAY_ISO);
+    setForm(f => (f.dataInicio === q.start && f.dataFim === q.end) ? f : { ...f, dataInicio: q.start, dataFim: q.end });
+  }, [form.dataRecarga]);
+
   const valorDiaDe = emp => empValues[emp.id] ?? emp[field];
 
   // Conta os dias efetivamente trabalhados (registros de ponto) no período.
@@ -534,6 +541,12 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
     return saldos.filter(s => ids.has(s.funcionarioId));
   }, [saldos, employees]);
 
+  // Saldo em aberto por ajudante, usado na coluna "Saldo" da tabela.
+  const saldoPorFunc = useMemo(
+    () => Object.fromEntries(saldos.map(s => [s.funcionarioId, s.saldo])),
+    [saldos]
+  );
+
   return (
     <div className="space-y-5">
       {migracaoPendente && (
@@ -587,16 +600,6 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
           <Campo label="Data da recarga" hint="Dia em que o crédito é liberado.">
             <input type="date" className="input-field" value={form.dataRecarga}
               onChange={e => setForm(f => ({ ...f, dataRecarga: e.target.value }))} />
-          </Campo>
-
-          <Campo label="Início do período de uso">
-            <input type="date" className="input-field" value={form.dataInicio}
-              onChange={e => setForm(f => ({ ...f, dataInicio: e.target.value }))} />
-          </Campo>
-
-          <Campo label="Fim do período de uso">
-            <input type="date" className="input-field" value={form.dataFim}
-              onChange={e => setForm(f => ({ ...f, dataFim: e.target.value }))} />
           </Campo>
         </div>
       </div>
@@ -657,11 +660,12 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
 
       {/* Tabela */}
       <div className="card overflow-hidden">
-        <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 120px 160px 110px', padding: '9px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 130px 120px 160px 110px', padding: '9px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '10px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em', gap: '8px', alignItems: 'center' }}>
           <button onClick={toggleTodos} style={{ background: 'none', border: 'none', cursor: 'pointer', color: todosSelecionados ? '#0B0B0B' : '#C8C8C8', display: 'flex' }}>
             {todosSelecionados ? <CheckSquare size={15} /> : <Square size={15} />}
           </button>
           <span>Ajudante</span>
+          <span style={{ textAlign: 'center' }}>Saldo</span>
           <span style={{ textAlign: 'center' }}>Valor/dia</span>
           <span style={{ textAlign: 'center' }}>Dias de uso</span>
           <span style={{ textAlign: 'right' }}>Total</span>
@@ -680,7 +684,7 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
 
           return (
             <div key={emp.id} style={{
-              display: 'grid', gridTemplateColumns: '36px 1fr 120px 160px 110px',
+              display: 'grid', gridTemplateColumns: '36px 1fr 130px 120px 160px 110px',
               padding: '12px 16px', borderBottom: idx < employees.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
               alignItems: 'center', gap: '8px',
               background: isSelected ? 'rgba(74,74,74,0.02)' : 'transparent',
@@ -706,6 +710,22 @@ function NovaRecarga({ tipo, employees, onCreated, onShowHistory }) {
                     </p>
                   )}
                 </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                {saldoPorFunc[emp.id] > 0 ? (
+                  <span
+                    title="Dias recebidos em recargas anteriores que ainda não foram trabalhados"
+                    style={{
+                      fontSize: '12px', fontWeight: 800, color: '#9A3412',
+                      background: '#FFF7ED', border: '1px solid #FED7AA',
+                      padding: '4px 9px', borderRadius: '8px', whiteSpace: 'nowrap',
+                    }}>
+                    {saldoPorFunc[emp.id]} dia{saldoPorFunc[emp.id] !== 1 ? 's' : ''}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '12px', color: '#C8C8C8' }}>—</span>
+                )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'center' }}>
