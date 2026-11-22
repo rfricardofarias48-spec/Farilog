@@ -172,7 +172,31 @@ function buildChartData(type, start, end, records, lancamentos, companiesById) {
 }
 
 // ── Shared components ──────────────────────────────────────────────────────
-function KpiCard({ label, value, icon: Icon, color, bg, sub }) {
+function KpiCard({ label, value, icon: Icon, color, bg, sub, dark = false, darkColor }) {
+  if (dark) {
+    return (
+      <div className="card" style={{
+        padding: '16px', overflow: 'hidden',
+        background: 'linear-gradient(135deg, #0B0B0B 0%, #1C1C1C 100%)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 14px 34px -18px rgba(11,11,11,0.60)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 700, color: '#BDBDBD' }}>{label}</p>
+          <div style={{
+            width: '30px', height: '30px', borderRadius: '9px', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(188,74,42,0.16)', border: '1px solid rgba(188,74,42,0.30)',
+          }}>
+            <Icon size={13} style={{ color: '#E08A70' }} />
+          </div>
+        </div>
+        <p style={{ fontSize: '20px', fontWeight: 900, color: darkColor ?? '#FFFFFF', lineHeight: 1 }}>{value}</p>
+        {sub && <p style={{ fontSize: '11px', color: '#BDBDBD', marginTop: '4px' }}>{sub}</p>}
+      </div>
+    );
+  }
+
   return (
     <div className="card" style={{ padding: '16px', overflow: 'hidden' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
@@ -418,14 +442,14 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
       ].filter(s => s.value > 0);
 
   const kpis = [
-    { label: 'Faturamento', value: fmtCurrency(fat), icon: DollarSign, color: '#0B0B0B', bg: '#F5F5F5' },
+    { label: 'Faturamento', value: fmtCurrency(fat), icon: DollarSign, dark: true, darkColor: '#FFFFFF' },
     { label: 'Margem de Contribuição', value: fmtCurrency(margemContribValor), icon: Percent,
-      color: margemContribValor >= 0 ? '#BC4A2A' : '#4A4A4A',
-      bg:    margemContribValor >= 0 ? '#FAF4F1' : '#F5F5F5',
+      dark: true,
+      darkColor: margemContribValor >= 0 ? '#E59A82' : '#C9C9C9',
       sub:   `${margemContrib.toFixed(1)}% do faturamento` },
     { label: 'Lucro Líquido', value: fmtCurrency(lucroLiquido), icon: TrendingUp,
-      color: lucroLiquido >= 0 ? PROFIT_COLOR : '#8C3B4A',
-      bg:    lucroLiquido >= 0 ? '#EAF4EE' : '#F7EDEF',
+      dark: true,
+      darkColor: lucroLiquido >= 0 ? '#7CC79B' : '#E39AA6',
       sub:   `${margemLucro.toFixed(1)}% do faturamento` },
   ];
 

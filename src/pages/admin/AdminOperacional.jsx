@@ -90,11 +90,11 @@ function ResumoDia() {
   const dateLabel = `${DOW_PT[TODAY_DATE.getUTCDay()]}, ${TODAY_DATE.getUTCDate()} de ${MONTH_FULL[TODAY_DATE.getUTCMonth()]}`;
 
   const kpis = [
-    { label: 'Empresas',      value: companiesWorking.length,                           icon: Building2,    color: '#4A4A4A', bg: '#F5F5F5', bar: '#4A4A4A' },
-    { label: 'Ajudantes',     value: helpersWorking.length,                             icon: Users,        color: '#9E3D22', bg: '#F7F7F7', bar: '#9E3D22' },
-    { label: 'Concluídas',    value: doneRecs.length,                                   icon: CheckCircle2, color: '#0B0B0B', bg: '#F5F5F5', bar: '#0B0B0B' },
-    { label: 'Em andamento',  value: activeRecs.length,                                 icon: Activity,     color: '#4A4A4A', bg: '#F5F5F5', bar: '#4A4A4A' },
-    { label: 'Assertividade', value: assertividade !== null ? `${assertividade}%` : '—', icon: TrendingUp,   color: '#4A4A4A', bg: '#F7F7F7', bar: '#4A4A4A' },
+    { label: 'Empresas',      value: companiesWorking.length,                           icon: Building2,    accent: '#8FA6C4' },
+    { label: 'Ajudantes',     value: helpersWorking.length,                             icon: Users,        accent: '#E08A70' },
+    { label: 'Concluídas',    value: doneRecs.length,                                   icon: CheckCircle2, accent: '#7CC79B' },
+    { label: 'Em andamento',  value: activeRecs.length,                                 icon: Activity,     accent: '#B9B9B9' },
+    { label: 'Assertividade', value: assertividade !== null ? `${assertividade}%` : '—', icon: TrendingUp,   accent: '#D3B36A' },
   ];
 
   return (
@@ -120,16 +120,22 @@ function ResumoDia() {
 
       {/* KPIs — 5 colunas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
-        {kpis.map(({ label, value, icon: Icon, color, bg, bar }) => (
-          <div key={label} className="card p-4" style={{ background: '#fff', overflow: 'hidden', position: 'relative' }}>
-            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px', background: bar, borderRadius: '8px 0 0 8px' }} />
+        {kpis.map(({ label, value, icon: Icon, accent }) => (
+          <div key={label} className="card p-4" style={{
+            overflow: 'hidden', position: 'relative',
+            background: 'linear-gradient(135deg, #0B0B0B 0%, #1C1C1C 100%)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 14px 34px -18px rgba(11,11,11,0.60)',
+          }}>
+            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px', background: accent, opacity: 0.9, borderRadius: '8px 0 0 8px' }} />
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold" style={{ color: '#6B6B6B' }}>{label}</p>
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: bg }}>
-                <Icon size={14} style={{ color }} />
+              <p className="text-xs font-semibold" style={{ color: '#BDBDBD' }}>{label}</p>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
+                <Icon size={14} style={{ color: accent }} />
               </div>
             </div>
-            <p style={{ fontSize: '28px', fontWeight: 900, color, lineHeight: 1 }}>{value}</p>
+            <p style={{ fontSize: '28px', fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>{value}</p>
           </div>
         ))}
       </div>
