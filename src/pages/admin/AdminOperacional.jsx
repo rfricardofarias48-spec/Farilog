@@ -102,19 +102,23 @@ function ResumoDia() {
 
       {/* Banner de data */}
       <div className="rounded-2xl p-5 flex items-center justify-between animate-fade-up"
-        style={{ background: '#fff', border: '1px solid rgba(11, 11, 11,0.06)', boxShadow: '0 1px 3px rgba(11, 11, 11,0.04)' }}>
+        style={{
+          background: 'linear-gradient(135deg, #0B0B0B 0%, #1C1C1C 100%)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 14px 34px -18px rgba(11,11,11,0.60)',
+        }}>
         <div className="flex items-center gap-3">
-          <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg,#FAF4F1,#F0DFD8)', border: '1px solid rgba(188,74,42,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CalendarDays size={20} style={{ color: '#BC4A2A' }} />
+          <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(188,74,42,0.16)', border: '1px solid rgba(188,74,42,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CalendarDays size={20} style={{ color: '#E08A70' }} />
           </div>
           <div>
-            <p style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#0B0B0B' }}>{dateLabel}</p>
-            <p style={{ fontSize: '12px', color: '#9A9A9A', marginTop: '3px' }}>Dados em tempo real</p>
+            <p style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#FFFFFF' }}>{dateLabel}</p>
+            <p style={{ fontSize: '12px', color: '#BDBDBD', marginTop: '3px' }}>Dados em tempo real</p>
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: '11px', color: '#9A9A9A', marginBottom: '4px' }}>Faturamento do dia</p>
-          <p style={{ fontSize: '28px', fontWeight: 900, color: '#BC4A2A', lineHeight: 1 }}>{fmtCurrency(faturamentoDia)}</p>
+          <p style={{ fontSize: '11px', color: '#BDBDBD', marginBottom: '4px' }}>Faturamento do dia</p>
+          <p style={{ fontSize: '28px', fontWeight: 900, color: '#E08A70', lineHeight: 1 }}>{fmtCurrency(faturamentoDia)}</p>
         </div>
       </div>
 
