@@ -4,15 +4,15 @@ import { fmtDate } from '../../data/mockData';
 import { createEmployee, updateEmployee, deleteEmployee, uploadDocumentoFuncionario, documentoAceito, fetchMediasNotas } from '../../lib/db';
 import { fmtNota, notaCor, normalizeText, normalizarCidade } from '../../lib/notas';
 import { CIDADES_CONHECIDAS, parseCidade } from '../../lib/cidades';
-import { coordenadasDoLink } from '../../lib/geocoding';
+import { coordenadasDoLink, reverseGeocode } from '../../lib/geocoding';
 import { StarsDisplay } from '../../components/shared/StarRating';
 import AjudantePerfilModal from '../../components/shared/AjudantePerfilModal';
 import SeletorLocalizacao from '../../components/shared/SeletorLocalizacao';
 import { Plus, Edit2, Trash2, X, Users, Search, ToggleLeft, ToggleRight, FileText, Upload, Loader2, Eye, MapPin } from 'lucide-react';
 
 const EMPTY = {
-  name: '', phone: '', dailyRate: 150, overtimeRate: 50, vtDiario: 0, vrDiario: 0,
-  status: 'active', cidade: '', endereco: '', bairro: '', cep: '', localizacao: '',
+  name: '', phone: '', dailyRate: 100, overtimeRate: 15, vtDiario: 10, vrDiario: 0,
+  status: 'active', cidade: '', address: '', neighborhood: '', zip: '', location: '',
   latitude: null, longitude: null,
 };
 const T  = { color: '#0B0B0B' };
@@ -25,21 +25,41 @@ function Modal({ employee, onSave, onClose }) {
   const [linkMsg, setLinkMsg]     = useState('');
 
   const isNew = !employee;
-  const cidadeNoEndereco = parseCidade(form.endereco);
+  const cidadeNoEndereco = parseCidade(form.address);
   const cidadeAtual = normalizarCidade(form.cidade);
   const cidadeDiverge = !!cidadeNoEndereco.city && !!cidadeAtual &&
     normalizeText(cidadeNoEndereco.city) !== normalizeText(cidadeAtual);
   // Com localização (link do Maps ou pino no mapa), rua/número deixam de ser exigidos.
   const temLocalizacao = form.latitude != null && form.longitude != null;
 
-  const extrairDoLink = () => {
-    const coords = coordenadasDoLink(form.localizacao);
-    if (coords) {
-      setForm(f => ({ ...f, latitude: coords.lat, longitude: coords.lng }));
-      setLinkMsg('Coordenadas extraídas do link. Confira o pino no mapa.');
-    } else {
+  // Pega o link do Maps, capta a localização e preenche o endereço (rua, bairro
+  // e CEP) para o cadastro já sair completo ao salvar.
+  const extrairDoLink = async () => {
+    const coords = coordenadasDoLink(form.location);
+    if (!coords) {
       setLinkMsg('Não encontrei coordenadas. Abra o link no navegador e copie a URL completa (com "@lat,lng"), ou use o mapa.');
+      return;
     }
+    setForm(f => ({ ...f, latitude: coords.lat, longitude: coords.lng }));
+    setLinkMsg('Coordenadas extraídas do link. Buscando o endereço...');
+
+    const dados = await reverseGeocode(coords.lat, coords.lng);
+    if (!dados) {
+      setLinkMsg('Coordenadas extraídas do link, mas não consegui ler o endereço. Preencha rua, bairro e CEP na mão.');
+      return;
+    }
+
+    setForm(f => ({
+      ...f,
+      address:      dados.endereco || f.address,
+      neighborhood: dados.bairro   || f.neighborhood,
+      zip:          dados.cep      || f.zip,
+    }));
+
+    const lidos = [dados.endereco, dados.bairro, dados.cep].filter(Boolean);
+    setLinkMsg(lidos.length
+      ? `Endereço preenchido pelo link: ${lidos.join(' · ')}. Confira e ajuste se precisar.`
+      : 'Coordenadas extraídas, mas o endereço não veio no mapa. Preencha na mão.');
   };
 
   const handleDocumentoChange = async (e) => {
@@ -105,8 +125,8 @@ function Modal({ employee, onSave, onClose }) {
                 <input className="input-field" autoComplete="off"
                   placeholder="Ex: Rua Aparício Soares da Cunha, 142"
                   required={isNew && !temLocalizacao}
-                  value={form.endereco ?? ''}
-                  onChange={e => setForm({ ...form, endereco: e.target.value })}
+                  value={form.address ?? ''}
+                  onChange={e => setForm({ ...form, address: e.target.value })}
                   onBlur={() => {
                     if (!String(form.cidade ?? '').trim() && cidadeNoEndereco.city) {
                       setForm(f => ({ ...f, cidade: cidadeNoEndereco.city }));
@@ -116,22 +136,22 @@ function Modal({ employee, onSave, onClose }) {
               <div>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Bairro</label>
                 <input className="input-field" autoComplete="off" placeholder="Ex: Jardim Vitória"
-                  value={form.bairro ?? ''}
-                  onChange={e => setForm({ ...form, bairro: e.target.value })} />
+                  value={form.neighborhood ?? ''}
+                  onChange={e => setForm({ ...form, neighborhood: e.target.value })} />
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>CEP</label>
                 <input className="input-field" autoComplete="off" inputMode="numeric" placeholder="00000-000"
-                  value={form.cep ?? ''}
-                  onChange={e => setForm({ ...form, cep: e.target.value })} />
+                  value={form.zip ?? ''}
+                  onChange={e => setForm({ ...form, zip: e.target.value })} />
               </div>
               <div className="col-span-2">
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Link completo do Google Maps (opcional)</label>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <input className="input-field" style={{ flex: 1 }} autoComplete="off"
                     placeholder="https://www.google.com/maps/place/... (não use maps.app.goo.gl)"
-                    value={form.localizacao ?? ''}
-                    onChange={e => { setForm({ ...form, localizacao: e.target.value }); setLinkMsg(''); }} />
+                    value={form.location ?? ''}
+                    onChange={e => { setForm({ ...form, location: e.target.value }); setLinkMsg(''); }} />
                   <button type="button" onClick={extrairDoLink}
                     style={{ flexShrink: 0, padding: '0 12px', borderRadius: '10px', border: '1px solid #E4E4E4', background: '#fff', color: '#0B0B0B', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>
                     Extrair
@@ -155,9 +175,9 @@ function Modal({ employee, onSave, onClose }) {
               latitude={form.latitude}
               longitude={form.longitude}
               cidade={form.cidade}
-              endereco={form.endereco}
-              bairro={form.bairro}
-              cep={form.cep}
+              endereco={form.address}
+              bairro={form.neighborhood}
+              cep={form.zip}
               onChange={(lat, lng) => setForm(f => ({ ...f, latitude: lat, longitude: lng }))}
             />
           </div>
@@ -250,7 +270,7 @@ export default function AdminEmployees() {
   const handleSave = async (form) => {
     const colors = ['#0B0B0B','#1C1C1C','#2A2A2A','#333333','#3D3D3D','#4A4A4A','#5A5A5A'];
     const avisoEndereco = (saved) => {
-      if (saved && String(form.endereco ?? '').trim() && !saved.address) {
+      if (saved && String(form.address ?? '').trim() && !saved.address) {
         alert('O endereço não foi salvo porque as colunas de endereço ainda não existem no Supabase. Rode o arquivo supabase/funcionario-endereco.sql no SQL Editor.');
       }
     };
