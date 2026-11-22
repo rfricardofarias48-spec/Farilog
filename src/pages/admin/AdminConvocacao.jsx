@@ -5,7 +5,7 @@ import {
   CalendarDays, Filter, ChevronDown, Check, MessageCircle,
 } from 'lucide-react';
 import {
-  fetchConvocacoesAgente, subscribeConvocacoes,
+  fetchConvocacoesPeriodo, subscribeConvocacoes,
   aceitarConvocacao, recusarConvocacao, marcarSemResposta, deleteConvocacao,
 } from '../../lib/db';
 import { ConvocacaoBadge } from '../../components/shared/ConvocacaoStatus';
@@ -14,10 +14,10 @@ import { fmtNota } from '../../lib/notas';
 import WhatsAppButton from '../../components/shared/WhatsAppButton';
 
 const FILTROS = [
-  { id: 'fila',       label: 'Fila do agente', statuses: ['pendente', 'enviada'] },
-  { id: 'confirmado', label: 'Confirmados',    statuses: ['confirmado', 'falta'] },
-  { id: 'reserva',    label: 'Reservas',       statuses: ['reserva', 'acionada'] },
-  { id: 'todas',      label: 'Todas',          statuses: null },
+  { id: 'aguardando',  label: 'Aguardando resposta', statuses: ['pendente', 'enviada'] },
+  { id: 'confirmado',  label: 'Confirmados',         statuses: ['confirmado', 'falta'] },
+  { id: 'reserva',     label: 'Reservas',            statuses: ['reserva'] },
+  { id: 'todas',       label: 'Todas',               statuses: null },
 ];
 
 // Respostas possíveis do ajudante (mutuamente exclusivas) — ficam em um menu
@@ -53,7 +53,7 @@ function limitesDoMes(mes) {
   };
 }
 
-// Texto do convite (mesmo formato documentado em supabase/agente-whatsapp.md).
+// Texto do convite enviado pelo botão de WhatsApp (abre a conversa direto).
 function textoConvite(c) {
   const primeiro = String(c.name || '').split(' ')[0];
   return [
@@ -93,12 +93,12 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
 
   const load = useCallback(() => {
     setLoading(true);
-    fetchConvocacoesAgente({ statuses, from: de, to: ate }).then(list => { setConvs(list); setLoading(false); });
+    fetchConvocacoesPeriodo({ statuses, from: de, to: ate }).then(list => { setConvs(list); setLoading(false); });
   }, [filtro, de, ate]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
-  // Status ao vivo (o agente, quando existir, atualiza as mesmas linhas)
+  // Status ao vivo (o encarregado marca a resposta e a lista atualiza sozinha)
   useEffect(() => subscribeConvocacoes(null, () => load()), [load]);
 
   useEffect(() => {
@@ -131,10 +131,10 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
         horario: list[0]?.horario,
         vagas: list[0]?.vagas,
         endereco: list[0]?.endereco,
-        confirmados: list[0]?.confirmados ?? 0,
+        confirmados: list.filter(c => c.status === 'confirmado').length,
       }))
       .sort((a, b) => (
-        filtro === 'fila'
+        filtro === 'aguardando'
           ? String(a.data).localeCompare(String(b.data))
           : String(b.data).localeCompare(String(a.data))
       ));
@@ -180,7 +180,7 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
         <div>
           <p style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A' }}>Histórico de convocações</p>
           <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-            Convocações do período selecionado. Use os filtros de status para acompanhar a fila do agente.
+            Convocações do período selecionado. Use os filtros de status e período para acompanhar as respostas.
           </p>
         </div>
         <button onClick={load} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', background: '#F1F5F9', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>
@@ -330,7 +330,7 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
               </div>
 
               {g.list.map(c => {
-                const acionavel = ['pendente', 'enviada', 'reserva', 'acionada'].includes(c.status);
+                const acionavel = ['pendente', 'enviada', 'reserva'].includes(c.status);
                 return (
                   <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                     <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: c.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
@@ -421,8 +421,9 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)' }}>
         <Info size={13} style={{ color: '#64748B', flexShrink: 0, marginTop: '1px' }} />
         <p style={{ fontSize: '11px', color: '#64748B', lineHeight: 1.5 }}>
-          <b>Simulador:</b> os botões gravam os mesmos status que o agente gravará. Regra de vagas: ao aceitar com a
-          lista cheia, o ajudante vira <b>reserva</b>. O contrato completo está em <code>supabase/agente-whatsapp.md</code>.
+          <b>Convocação manual:</b> use o botão <b>Convite</b> para abrir a conversa no WhatsApp e, depois,
+          registre a resposta pelo menu <b>Responder</b> (Aceitou / Recusou / Silêncio). Regra de vagas: ao aceitar
+          com a lista cheia, o ajudante vira <b>reserva</b>.
         </p>
       </div>
     </div>

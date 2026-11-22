@@ -1,5 +1,5 @@
 // Geolocalização e distância — usados pela busca "estilo Uber", pelo ranking de
-// candidatos e pelas reservas do agente. O modelo do app ainda não tem
+// candidatos e pelas reservas da escala. O modelo do app ainda não tem
 // coordenadas obrigatórias: quando o cadastro traz latitude/longitude usamos
 // esse ponto; quando o link do Google Maps traz coordenadas, usamos o ponto do
 // link; caso contrário caímos no centroide da cidade lida do endereço.

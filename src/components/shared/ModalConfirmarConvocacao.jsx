@@ -9,8 +9,8 @@ const fmtDia = (iso) => {
   return `${dow}, ${d}/${m}/${y}`;
 };
 
-// Confirmação final: mostra titulares e reservas e dispara a convocação
-// (o agente de WhatsApp assume a partir daqui).
+// Confirmação final: mostra titulares e reservas e grava a convocação.
+// A partir daqui o envio é manual (botão de WhatsApp) + registro da resposta.
 export default function ModalConfirmarConvocacao({
   empresa, date, time, vagas, titulares = [], reservas = [], pagamentoEm, saving, onCancel, onConfirm,
 }) {
@@ -20,7 +20,7 @@ export default function ModalConfirmarConvocacao({
       <div className="modal-box animate-fade-up" style={{ maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
           <div>
-            <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>Confirmar convocação via WhatsApp?</p>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>Confirmar convocação?</p>
             <p style={{ fontSize: '12px', color: '#64748B', marginTop: '3px' }}>
               {empresa?.name || 'Empresa'} · {fmtDia(date)}{time ? ` · ${time}` : ''}
             </p>
@@ -86,8 +86,8 @@ export default function ModalConfirmarConvocacao({
 
         <div style={{ display: 'flex', gap: '8px', marginTop: '14px', padding: '10px 12px', borderRadius: '10px', background: '#FAF4F1', border: '1px solid #E4C9BF' }}>
           <p style={{ fontSize: '11px', color: '#8A3520', lineHeight: 1.5 }}>
-            Ao confirmar, o agente de WhatsApp envia o convite para os titulares. Se a lista lotar,
-            quem aceitar depois entra como <b>reserva</b>. O agente também buscará as reservas automaticamente.
+            Ao confirmar, cada titular e reserva fica <b>pendente</b> no histórico. Envie o convite pelo botão de
+            WhatsApp e registre a resposta na mão. Se a lista lotar, quem aceitar depois entra como <b>reserva</b>.
           </p>
         </div>
 

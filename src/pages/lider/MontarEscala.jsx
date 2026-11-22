@@ -542,8 +542,8 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)' }}>
             <Info size={13} style={{ color: '#64748B', flexShrink: 0, marginTop: '1px' }} />
             <p style={{ fontSize: '11px', color: '#64748B', lineHeight: 1.5 }}>
-              O agente buscará <b>{RESERVAS_PADRAO} reservas</b> automaticamente (fora desta lista) e cada escala fica com
-              {' '}{reservas.length || RESERVAS_PADRAO} reserva{(reservas.length || RESERVAS_PADRAO) !== 1 ? 's' : ''} sugerida{(reservas.length || RESERVAS_PADRAO) !== 1 ? 's' : ''}.
+              As <b>{RESERVAS_PADRAO} primeiras opções</b> fora da sua seleção ficam sugeridas como reserva.
+              Esta escala fica com {reservas.length || RESERVAS_PADRAO} reserva{(reservas.length || RESERVAS_PADRAO) !== 1 ? 's' : ''}.
             </p>
           </div>
 

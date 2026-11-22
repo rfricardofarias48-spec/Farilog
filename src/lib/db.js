@@ -1197,8 +1197,20 @@ export async function uploadFotoRelatorio(file, liderId) {
   return data.publicUrl;
 }
 
+const DOCUMENTO_EXTS = ['pdf', 'jpg', 'jpeg'];
+
+// Documento do funcionário aceito no upload: PDF ou JPG/JPEG.
+export function documentoAceito(file) {
+  if (!file) return false;
+  const ext = (String(file.name || '').split('.').pop() || '').toLowerCase();
+  return file.type === 'application/pdf' || file.type === 'image/jpeg' ||
+    file.type === 'image/jpg' || DOCUMENTO_EXTS.includes(ext);
+}
+
 export async function uploadDocumentoFuncionario(file, employeeId) {
-  const path = `${employeeId}/${Date.now()}.pdf`;
+  const bruta = (String(file.name || '').split('.').pop() || '').toLowerCase();
+  const ext   = DOCUMENTO_EXTS.includes(bruta) ? bruta : (file.type === 'application/pdf' ? 'pdf' : 'jpg');
+  const path  = `${employeeId}/${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from('documentos').upload(path, file, { upsert: true });
   if (error) { console.error('[db] uploadDocumentoFuncionario:', error.message); return null; }
   const { data } = supabase.storage.from('documentos').getPublicUrl(path);
@@ -2365,10 +2377,10 @@ export async function fetchCandidatosEscala({ companyId, date, incluirEscalados 
   };
 }
 
-// ── Convocação de escala (encarregado → agente de WhatsApp) ────────────────
-// O app grava a intenção (linhas em public.convocacoes com status 'pendente') e
-// mostra o status ao vivo; o agente externo envia as mensagens e atualiza.
-// Ver supabase/convocacoes.sql e supabase/agente-whatsapp.md.
+// ── Convocação de escala (fluxo manual) ────────────────────────────────────
+// O encarregado (ou o admin) monta a escala e grava as convocações em
+// public.convocacoes (status inicial 'pendente'). A resposta é registrada na
+// mão e o status é acompanhado ao vivo. Ver supabase/convocacoes.sql.
 
 function isMissingConvocacoes(error) {
   const msg = String(error?.message || '');
@@ -2409,9 +2421,7 @@ function mapConvocacao(r) {
     status:        r.status || 'pendente',
     distanciaKm:   r.distancia_km == null ? null : Number(r.distancia_km),
     notaSnapshot:  r.nota_snapshot == null ? null : Number(r.nota_snapshot),
-    conviteEnviadoEm:  r.convite_enviado_em  || null,
-    followupEnviadoEm: r.followup_enviado_em || null,
-    respondidoEm:      r.respondido_em       || null,
+    respondidoEm:  r.respondido_em || null,
     name:     f.nome || r.funcionario_nome || r.ajudante || '—',
     initials: f.iniciais || r.iniciais || '?',
     phone:    f.telefone || r.telefone || null,
@@ -2598,7 +2608,7 @@ export async function fetchEscalaDoDia({ companyId, date }) {
 }
 
 // Cria a escala com os titulares (registros) e as convocações (titulares +
-// reservas) com status 'pendente' — a fila que o agente vai consumir.
+// reservas) com status 'pendente' — a lista que aparece no histórico.
 export async function createEscalaComConvocacoes({
   liderId, companyId, date, time, service, employees = [], reservas = [],
   vagas, totalReservas = 2, responsavelDia, contatoDia, tipoServico,
@@ -2709,27 +2719,41 @@ export async function fetchConvocacoesByEscalas(escalaIds = []) {
   }, {});
 }
 
-// Fila/prateleira do agente (direto da view com o payload pronto).
-// `from`/`to` filtram o dia do serviço (datas ISO YYYY-MM-DD).
-export async function fetchConvocacoesAgente({ statuses, from, to, limit = 300 } = {}) {
-  let q = supabase.from('vw_convocacoes_agente')
-    .select('*')
-    .order('data_servico', { ascending: true })
-    .limit(limit);
-  if (statuses?.length) q = q.in('status', statuses);
-  if (from) q = q.gte('data_servico', from);
-  if (to) q = q.lte('data_servico', to);
-  const { data, error } = await q;
-  if (error) {
-    if (!isMissingConvocacoes(error)) console.error('[db] fetchConvocacoesAgente:', error.message);
-    return [];
+// Convocações de um período (histórico manual). `from`/`to` filtram o dia do
+// serviço (datas ISO YYYY-MM-DD) e `statuses` filtra pelos status atuais.
+// A empresa é anexada à parte: convocacoes.empresa_id não tem FK declarada.
+export async function fetchConvocacoesPeriodo({ statuses, from, to, limit = 300 } = {}) {
+  let escQ = supabase.from('escalas').select('id').order('data', { ascending: true }).limit(limit);
+  if (from) escQ = escQ.gte('data', from);
+  if (to) escQ = escQ.lte('data', to);
+  const { data: escalas, error: escErr } = await escQ;
+  if (escErr) { console.error('[db] fetchConvocacoesPeriodo escalas:', escErr.message); return []; }
+  const ids = (escalas || []).map(e => e.id);
+  if (!ids.length) return [];
+
+  // Em blocos: uma quinzena cheia pode ter muitas escalas e um único `in(...)`
+  // com centenas de ids estoura o tamanho da URL.
+  const list = [];
+  for (let i = 0; i < ids.length; i += 100) {
+    let q = supabase.from('convocacoes')
+      .select('*, funcionarios(nome, iniciais, telefone), escalas(data, horario, vagas, pagamento_em)')
+      .in('escala_id', ids.slice(i, i + 100));
+    if (statuses?.length) q = q.in('status', statuses);
+    const { data, error } = await q;
+    if (error) {
+      if (!isMissingConvocacoes(error)) console.error('[db] fetchConvocacoesPeriodo:', error.message);
+      continue;
+    }
+    list.push(...(data || []));
   }
-  return (data || []).map(r => ({
-    ...mapConvocacao({ ...r, id: r.convocacao_id }),
-    convocacaoId: r.convocacao_id,
-    confirmados:  Number(r.confirmados || 0),
-    liderId:      r.lider_id || null,
-  }));
+
+  const empresaIds = [...new Set(list.map(c => c.empresa_id).filter(Boolean))];
+  let empresasPorId = {};
+  if (empresaIds.length) {
+    const { data: emp } = await supabase.from('empresas').select('id, nome, endereco, diaria').in('id', empresaIds);
+    empresasPorId = Object.fromEntries((emp || []).map(e => [e.id, e]));
+  }
+  return list.map(c => mapConvocacao({ ...c, empresas: empresasPorId[c.empresa_id] || null }));
 }
 
 export function subscribeConvocacoes(escalaId, onChange) {

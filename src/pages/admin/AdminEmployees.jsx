@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fmtDate } from '../../data/mockData';
-import { createEmployee, updateEmployee, deleteEmployee, uploadDocumentoFuncionario, fetchMediasNotas } from '../../lib/db';
+import { createEmployee, updateEmployee, deleteEmployee, uploadDocumentoFuncionario, documentoAceito, fetchMediasNotas } from '../../lib/db';
 import { fmtNota, notaCor, normalizeText, normalizarCidade } from '../../lib/notas';
 import { CIDADES_CONHECIDAS, parseCidade } from '../../lib/cidades';
 import { coordenadasDoLink } from '../../lib/geocoding';
@@ -29,6 +29,8 @@ function Modal({ employee, onSave, onClose }) {
   const cidadeAtual = normalizarCidade(form.cidade);
   const cidadeDiverge = !!cidadeNoEndereco.city && !!cidadeAtual &&
     normalizeText(cidadeNoEndereco.city) !== normalizeText(cidadeAtual);
+  // Com localização (link do Maps ou pino no mapa), rua/número deixam de ser exigidos.
+  const temLocalizacao = form.latitude != null && form.longitude != null;
 
   const extrairDoLink = () => {
     const coords = coordenadasDoLink(form.localizacao);
@@ -43,7 +45,7 @@ function Modal({ employee, onSave, onClose }) {
   const handleDocumentoChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.type !== 'application/pdf') { alert('Selecione um arquivo em PDF.'); return; }
+    if (!documentoAceito(file)) { alert('Selecione um arquivo em PDF ou JPG.'); return; }
     setUploading(true);
     const url = await uploadDocumentoFuncionario(file, form.id);
     setUploading(false);
@@ -92,15 +94,17 @@ function Modal({ employee, onSave, onClose }) {
             <p style={{ fontSize: '11px', fontWeight: 800, color: '#0B0B0B' }}>Endereço residencial (dados do contrato)</p>
             <p style={{ fontSize: '10px', color: '#6B6B6B', marginTop: '2px', marginBottom: '10px', lineHeight: 1.45 }}>
               Usado para calcular a distância real até a empresa. Quanto mais exato o pino, melhor o ranking das buscas.
-              Cidade e rua/número são obrigatórios em novos cadastros. A busca por coordenadas usa OpenStreetMap (Photon); confirme sempre o pino.
+              Cidade é obrigatória em novos cadastros; rua/número só é exigida quando não há localização (link do Maps ou pino no mapa). A busca por coordenadas usa OpenStreetMap (Photon); confirme sempre o pino.
             </p>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Rua e número</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>
+                  Rua e número{temLocalizacao ? ' (opcional)' : ''}
+                </label>
                 <input className="input-field" autoComplete="off"
                   placeholder="Ex: Rua Aparício Soares da Cunha, 142"
-                  required={isNew}
+                  required={isNew && !temLocalizacao}
                   value={form.endereco ?? ''}
                   onChange={e => setForm({ ...form, endereco: e.target.value })}
                   onBlur={() => {
@@ -159,16 +163,16 @@ function Modal({ employee, onSave, onClose }) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Documento (PDF)</label>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Documento (PDF ou JPG)</label>
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)' }}>
               <label
                 className="w-full flex items-center gap-2 px-4 py-3 text-xs font-semibold transition-colors"
                 style={{ background: '#F7F7F7', color: '#4A4A4A', cursor: 'pointer' }}>
                 {uploading
                   ? <><Loader2 size={13} className="animate-spin" /> Enviando...</>
-                  : <><Upload size={13} /> {form.documentoUrl ? 'Substituir documento' : 'Selecionar PDF'}</>
+                  : <><Upload size={13} /> {form.documentoUrl ? 'Substituir documento' : 'Selecionar PDF ou JPG'}</>
                 }
-                <input type="file" accept="application/pdf" onChange={handleDocumentoChange} disabled={uploading} style={{ display: 'none' }} />
+                <input type="file" accept="application/pdf,image/jpeg,.pdf,.jpg,.jpeg" onChange={handleDocumentoChange} disabled={uploading} style={{ display: 'none' }} />
               </label>
               {form.documentoUrl && (
                 <a href={form.documentoUrl} target="_blank" rel="noopener noreferrer"
