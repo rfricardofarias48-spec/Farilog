@@ -400,16 +400,20 @@ export default function AdminRHBeneficios() {
       </div>
 
       {/* Tabs VT | VR */}
-      <div style={{ display: 'flex', gap: '6px' }}>
-        {[['VT', Bus, '#4A4A4A', '#F5F5F5'], ['VR', UtensilsCrossed, '#0B0B0B', '#F5F5F5']].map(([tipo, Icon, c, bg]) => (
+      <div style={{
+        display: 'inline-flex', gap: '4px', padding: '4px', borderRadius: '14px',
+        background: 'linear-gradient(135deg, #0B0B0B 0%, #1C1C1C 100%)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 14px 34px -18px rgba(11,11,11,0.60)',
+      }}>
+        {[['VT', Bus], ['VR', UtensilsCrossed]].map(([tipo, Icon]) => (
           <button key={tipo} onClick={() => setBenefTab(tipo)}
             style={{
               display: 'flex', alignItems: 'center', gap: '8px',
-              padding: '10px 20px', borderRadius: '12px', border: '2px solid',
-              borderColor: benefTab === tipo ? c : 'rgba(0,0,0,0.08)',
+              padding: '9px 18px', borderRadius: '10px', border: 'none',
               cursor: 'pointer', fontSize: '13px', fontWeight: 700, transition: 'all 0.15s',
-              background: benefTab === tipo ? bg : '#F7F7F7',
-              color:      benefTab === tipo ? c  : '#6B6B6B',
+              background: benefTab === tipo ? '#FFFFFF' : 'transparent',
+              color:      benefTab === tipo ? '#0B0B0B'  : '#BDBDBD',
             }}>
             <Icon size={15} />
             {tipo === 'VT' ? 'Vale Transporte (VT)' : 'Vale Refeição (VR)'}

@@ -299,27 +299,31 @@ function Historico() {
       </div>
 
       {/* Filtros */}
-      <div className="card p-4 space-y-4">
+      <div className="card p-4 space-y-4" style={{
+        background: 'linear-gradient(135deg, #0B0B0B 0%, #1C1C1C 100%)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 14px 34px -18px rgba(11,11,11,0.60)',
+      }}>
         {/* Período */}
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#6B6B6B' }}>Período</p>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#BDBDBD' }}>Período</p>
           <div className="flex items-center gap-2">
-            <div className="flex gap-1 p-0.5 rounded-xl" style={{ background: '#F5F5F5', border: '1px solid rgba(0,0,0,0.06)' }}>
+            <div className="flex gap-1 p-0.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
               {[['quinzena','Quinzenal'],['mes','Mensal']].map(([val, lbl]) => (
                 <button key={val} onClick={() => { setPeriod(val); setOffset(0); }}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                  style={{ background: period === val ? '#0B0B0B' : 'transparent', color: period === val ? 'white' : '#6B6B6B', border: 'none', cursor: 'pointer' }}>
+                  style={{ background: period === val ? '#FFFFFF' : 'transparent', color: period === val ? '#0B0B0B' : '#BDBDBD', border: 'none', cursor: 'pointer' }}>
                   {lbl}
                 </button>
               ))}
             </div>
             <button onClick={() => setOffset(o => o - 1)} className="p-1.5 rounded-lg"
-              style={{ background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#4A4A4A', display: 'flex' }}>
+              style={{ background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', color: '#E4E4E4', display: 'flex' }}>
               <ChevronLeft size={14} />
             </button>
-            <span className="text-xs font-bold flex-1 text-center" style={T}>{label}</span>
+            <span className="text-xs font-bold flex-1 text-center" style={{ color: '#FFFFFF' }}>{label}</span>
             <button onClick={() => setOffset(o => Math.min(o + 1, 0))} className="p-1.5 rounded-lg"
-              style={{ background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#4A4A4A', display: 'flex' }}>
+              style={{ background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', color: '#E4E4E4', display: 'flex' }}>
               <ChevronRight size={14} />
             </button>
           </div>
@@ -327,15 +331,15 @@ function Historico() {
 
         {/* Toggle Empresa/Ajudante */}
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#6B6B6B' }}>Ver por</p>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#BDBDBD' }}>Ver por</p>
           <div className="flex gap-2">
             {[['empresa','Empresa', Building2],['ajudante','Ajudante', Users]].map(([val, lbl, Icon]) => (
               <button key={val} onClick={() => handleViewBy(val)}
                 className="flex items-center gap-2 flex-1 justify-center py-2.5 rounded-xl text-xs font-semibold border transition-all"
                 style={{
-                  background:  viewBy === val ? (val === 'empresa' ? '#FAF4F1' : '#F7F7F7') : '#F7F7F7',
-                  borderColor: viewBy === val ? '#0B0B0B' : 'rgba(0,0,0,0.08)',
-                  color:       viewBy === val ? '#0B0B0B' : '#9A9A9A',
+                  background:  viewBy === val ? 'rgba(188,74,42,0.18)' : 'rgba(255,255,255,0.04)',
+                  borderColor: viewBy === val ? '#E08A70' : 'rgba(255,255,255,0.12)',
+                  color:       viewBy === val ? '#FFFFFF' : '#BDBDBD',
                   cursor: 'pointer',
                 }}>
                 <Icon size={13} /> {lbl}
@@ -346,16 +350,18 @@ function Historico() {
 
         {/* Seletor */}
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#6B6B6B' }}>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#BDBDBD' }}>
             {viewBy === 'empresa' ? 'Selecionar empresa' : 'Selecionar ajudante'}
           </p>
           {viewBy === 'empresa' ? (
-            <select value={selected} onChange={e => { setSelected(e.target.value); setSelectedDay(null); }} className="input-field">
+            <select value={selected} onChange={e => { setSelected(e.target.value); setSelectedDay(null); }} className="input-field"
+              style={{ background: '#1C1C1C', color: '#F5F5F5', borderColor: 'rgba(255,255,255,0.14)', colorScheme: 'dark' }}>
               <option value="">Escolha uma empresa...</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : (
-            <select value={selected} onChange={e => { setSelected(e.target.value); setSelectedDay(null); }} className="input-field">
+            <select value={selected} onChange={e => { setSelected(e.target.value); setSelectedDay(null); }} className="input-field"
+              style={{ background: '#1C1C1C', color: '#F5F5F5', borderColor: 'rgba(255,255,255,0.14)', colorScheme: 'dark' }}>
               <option value="">Escolha um ajudante...</option>
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
@@ -741,7 +747,7 @@ function Relatorios() {
   };
 
   const navBtn = (icon, fn) => (
-    <button onClick={fn} className="p-1.5 rounded-lg" style={{ background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#4A4A4A', display: 'flex' }}>
+    <button onClick={fn} className="p-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', color: '#E4E4E4', display: 'flex' }}>
       {icon}
     </button>
   );
@@ -760,19 +766,23 @@ function Relatorios() {
       </div>
 
       {/* Controles */}
-      <div className="card p-4 space-y-4">
+      <div className="card p-4 space-y-4" style={{
+        background: 'linear-gradient(135deg, #0B0B0B 0%, #1C1C1C 100%)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 14px 34px -18px rgba(11,11,11,0.60)',
+      }}>
 
         {/* Toggle Empresa / Ajudante */}
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#6B6B6B' }}>Tipo de relatório</p>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#BDBDBD' }}>Tipo de relatório</p>
           <div className="flex gap-2">
             {[['empresa','Empresa', Building2],['ajudante','Funcionário', Users]].map(([val, lbl, Icon]) => (
               <button key={val} onClick={() => handleViewBy(val)}
                 className="flex items-center gap-2 flex-1 justify-center py-2.5 rounded-xl text-xs font-semibold border transition-all"
                 style={{
-                  background:  viewBy === val ? (val === 'empresa' ? '#FAF4F1' : '#F7F7F7') : '#F7F7F7',
-                  borderColor: viewBy === val ? '#0B0B0B' : 'rgba(0,0,0,0.08)',
-                  color:       viewBy === val ? '#0B0B0B' : '#9A9A9A',
+                  background:  viewBy === val ? 'rgba(188,74,42,0.18)' : 'rgba(255,255,255,0.04)',
+                  borderColor: viewBy === val ? '#E08A70' : 'rgba(255,255,255,0.12)',
+                  color:       viewBy === val ? '#FFFFFF' : '#BDBDBD',
                   cursor: 'pointer',
                 }}>
                 <Icon size={13} /> {lbl}
@@ -783,16 +793,18 @@ function Relatorios() {
 
         {/* Seletor */}
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#6B6B6B' }}>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#BDBDBD' }}>
             {viewBy === 'empresa' ? 'Selecionar empresa' : 'Selecionar funcionário'}
           </p>
           {viewBy === 'empresa' ? (
-            <select value={selected} onChange={e => setSelected(e.target.value)} className="input-field">
+            <select value={selected} onChange={e => setSelected(e.target.value)} className="input-field"
+              style={{ background: '#1C1C1C', color: '#F5F5F5', borderColor: 'rgba(255,255,255,0.14)', colorScheme: 'dark' }}>
               <option value="">Escolha uma empresa...</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : (
-            <select value={selected} onChange={e => setSelected(e.target.value)} className="input-field">
+            <select value={selected} onChange={e => setSelected(e.target.value)} className="input-field"
+              style={{ background: '#1C1C1C', color: '#F5F5F5', borderColor: 'rgba(255,255,255,0.14)', colorScheme: 'dark' }}>
               <option value="">Escolha um funcionário...</option>
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
@@ -801,12 +813,12 @@ function Relatorios() {
 
         {/* Período */}
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#6B6B6B' }}>Período</p>
-          <div className="flex gap-1 p-0.5 rounded-xl w-fit mb-3" style={{ background: '#F5F5F5', border: '1px solid rgba(0,0,0,0.06)' }}>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#BDBDBD' }}>Período</p>
+          <div className="flex gap-1 p-0.5 rounded-xl w-fit mb-3" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
             {[['quinzena','Quinzenal'],['mes','Mensal']].map(([val, lbl]) => (
               <button key={val} onClick={() => { setPeriod(val); setOffset(0); }}
                 className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{ background: period === val ? '#0B0B0B' : 'transparent', color: period === val ? 'white' : '#6B6B6B', border: 'none', cursor: 'pointer' }}>
+                style={{ background: period === val ? '#FFFFFF' : 'transparent', color: period === val ? '#0B0B0B' : '#BDBDBD', border: 'none', cursor: 'pointer' }}>
                 {lbl}
               </button>
             ))}
@@ -814,8 +826,8 @@ function Relatorios() {
           <div className="flex items-center gap-3">
             {navBtn(<ChevronLeft size={15} />, () => setOffset(o => o - 1))}
             <div className="flex-1 text-center">
-              <p className="text-sm font-bold" style={T}>{label}</p>
-              <p className="text-xs" style={TM}>{String(sday).padStart(2,'0')}/{String(sm).padStart(2,'0')} — {String(eday).padStart(2,'0')}/{String(sm).padStart(2,'0')}/{tYear}</p>
+              <p className="text-sm font-bold" style={{ color: '#FFFFFF' }}>{label}</p>
+              <p className="text-xs" style={{ color: '#BDBDBD' }}>{String(sday).padStart(2,'0')}/{String(sm).padStart(2,'0')} — {String(eday).padStart(2,'0')}/{String(sm).padStart(2,'0')}/{tYear}</p>
             </div>
             {navBtn(<ChevronRight size={15} />, () => setOffset(o => Math.min(o + 1, 0)))}
           </div>

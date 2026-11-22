@@ -1202,13 +1202,12 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     <div className="space-y-5">
       {/* Totais — valores do período com o quanto já é fato (pago/recebido) e o pendente */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-        <KpiCard label="A Receber no Período" value={fmtCurrency(totalRec)} icon={TrendingUp} color={CASH_IN} bg={CASH_IN_BG}
+        <KpiCard label="A Receber no Período" value={fmtCurrency(totalRec)} icon={TrendingUp} dark darkColor="#7CC79B"
           sub={recPend > 0 ? `${fmtCurrency(recSettled)} confirmado · ${fmtCurrency(recPend)} pendente` : `${fmtCurrency(recSettled)} confirmado`} />
-        <KpiCard label="A Pagar no Período" value={fmtCurrency(totalPag)} icon={TrendingDown} color={CASH_OUT} bg={CASH_OUT_BG}
+        <KpiCard label="A Pagar no Período" value={fmtCurrency(totalPag)} icon={TrendingDown} dark darkColor="#E59A82"
           sub={pagPend > 0 ? `${fmtCurrency(pagSettled)} pago · ${fmtCurrency(pagPend)} pendente` : `${fmtCurrency(pagSettled)} pago`} />
-        <KpiCard label="Saldo realizado" value={fmtCurrency(saldoReal)} icon={BarChart2}
-          color={saldoReal >= 0 ? CASH_BAL : CASH_OUT}
-          bg={saldoReal >= 0 ? '#EDF1F6' : CASH_OUT_BG}
+        <KpiCard label="Saldo realizado" value={fmtCurrency(saldoReal)} icon={BarChart2} dark
+          darkColor={saldoReal >= 0 ? '#9DB2CC' : '#E39AA6'}
           sub={totalPend > 0 ? `Só fatos · ${fmtCurrency(totalPend)} pendente fora do cálculo` : 'Só itens pagos/recebidos'} />
       </div>
 
@@ -1678,13 +1677,13 @@ function TabEndividamento({ dividas, setDividas, showModal, setShowModal }) {
     <div className="space-y-5">
       {rows.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
-          <KpiCard label="Valor total (dívida)" value={fmtCurrency(totalFinanc)} icon={Wallet} color="#3A4F6B" bg="#EDF1F6"
+          <KpiCard label="Valor total (dívida)" value={fmtCurrency(totalFinanc)} icon={Wallet} dark darkColor="#9DB2CC"
             sub={`${rows.length} ${rows.length === 1 ? 'dívida' : 'dívidas'} ativas`} />
-          <KpiCard label="Juros totais" value={fmtCurrency(totalJuros)} icon={Percent} color="#8C3B4A" bg="#F7EDEF"
+          <KpiCard label="Juros totais" value={fmtCurrency(totalJuros)} icon={Percent} dark darkColor="#E39AA6"
             sub={totalFinanc > 0 ? `${pctJuros.toFixed(1).replace('.', ',')}% sobre o financiado` : 'Sem valor financiado'} />
-          <KpiCard label="Custo mensal" value={fmtCurrency(custoMensal)} icon={CalendarDays} color="#4A4A4A" bg="#F5F5F5"
+          <KpiCard label="Custo mensal" value={fmtCurrency(custoMensal)} icon={CalendarDays} dark darkColor="#C9C9C9"
             sub="Soma das parcelas" />
-          <KpiCard label="Total a pagar" value={fmtCurrency(totalPagar)} icon={FileText} color="#0B0B0B" bg="#F0F0F0"
+          <KpiCard label="Total a pagar" value={fmtCurrency(totalPagar)} icon={FileText} dark darkColor="#FFFFFF"
             sub="Financiado + juros" />
         </div>
       )}
@@ -2465,14 +2464,24 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
     if (onFolhaFechada) onFolhaFechada();
   };
 
-  const Card = ({ label, value, color, bg, icon: Icon }) => (
-    <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(11, 11, 11,0.06)', boxShadow: '0 1px 3px rgba(11, 11, 11,0.05)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon size={18} style={{ color }} />
+  const Card = ({ label, value, icon: Icon, valueColor = '#FFFFFF' }) => (
+    <div style={{
+      background: 'linear-gradient(135deg, #0B0B0B 0%, #1C1C1C 100%)',
+      borderRadius: '14px', padding: '16px 18px',
+      border: '1px solid rgba(255,255,255,0.08)',
+      boxShadow: '0 14px 34px -18px rgba(11,11,11,0.60)',
+      display: 'flex', alignItems: 'center', gap: '12px',
+    }}>
+      <div style={{
+        width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0,
+        background: 'rgba(188,74,42,0.16)', border: '1px solid rgba(188,74,42,0.30)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon size={18} style={{ color: '#E08A70' }} />
       </div>
       <div>
-        <p style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</p>
-        <p style={{ fontSize: '17px', fontWeight: 800, color }}>{value}</p>
+        <p style={{ fontSize: '10px', fontWeight: 700, color: '#BDBDBD', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</p>
+        <p style={{ fontSize: '17px', fontWeight: 800, color: valueColor }}>{value}</p>
       </div>
     </div>
   );
@@ -2480,22 +2489,22 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
   return (
     <div className="space-y-4">
       {/* Seletor de quinzena */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', background: '#fff', borderRadius: '14px', padding: '12px 16px', border: '1px solid rgba(11, 11, 11,0.06)', boxShadow: '0 1px 3px rgba(11, 11, 11,0.05)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', background: 'linear-gradient(135deg, #0B0B0B 0%, #1C1C1C 100%)', borderRadius: '14px', padding: '12px 16px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 14px 34px -18px rgba(11,11,11,0.60)' }}>
         {/* Filtro único da folha: Mensal/Quinzenal no estilo do seletor do cabeçalho */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <div ref={menuRef} style={{ position: 'relative' }}>
             <button onClick={() => setMenuOpen(v => !v)}
-              style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px', borderRadius: '10px', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', background: '#fff', fontSize: '12px', fontWeight: 600, color: '#0B0B0B', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)', whiteSpace: 'nowrap' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', fontSize: '12px', fontWeight: 600, color: '#FFFFFF', whiteSpace: 'nowrap' }}>
               {modo === 'mes' ? q.monthLabel : `${q.label} — ${q.monthLabel}`}
-              <span style={{ fontSize: '10px', color: '#9A9A9A', fontWeight: 500 }}>· {modo === 'mes' ? 'Mensal' : 'Quinzenal'}</span>
-              <ChevronDown size={12} style={{ color: '#9A9A9A' }} />
+              <span style={{ fontSize: '10px', color: '#A8A8A8', fontWeight: 500 }}>· {modo === 'mes' ? 'Mensal' : 'Quinzenal'}</span>
+              <ChevronDown size={12} style={{ color: '#A8A8A8' }} />
             </button>
             {menuOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 200, background: '#fff', borderRadius: '12px', padding: '6px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.07)', minWidth: '150px' }}>
+              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 200, background: '#1C1C1C', borderRadius: '12px', padding: '6px', boxShadow: '0 12px 32px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.10)', minWidth: '150px' }}>
                 {[['quinzena', 'Quinzenal'], ['mes', 'Mensal']].map(([val, lbl]) => (
                   <button key={val} onClick={() => { setModo(val); setMenuOpen(false); }}
-                    style={{ width: '100%', display: 'block', padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', fontWeight: 600, background: modo === val ? '#FAF4F1' : 'transparent', color: modo === val ? '#BC4A2A' : '#333333' }}
-                    onMouseEnter={e => { if (modo !== val) e.currentTarget.style.background = '#F7F7F7'; }}
+                    style={{ width: '100%', display: 'block', padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', fontWeight: 600, background: modo === val ? 'rgba(188,74,42,0.20)' : 'transparent', color: modo === val ? '#E08A70' : '#D6D6D6' }}
+                    onMouseEnter={e => { if (modo !== val) e.currentTarget.style.background = '#2A2A2A'; }}
                     onMouseLeave={e => { if (modo !== val) e.currentTarget.style.background = 'transparent'; }}>
                     {lbl}
                   </button>
@@ -2505,29 +2514,29 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
           </div>
           <button onClick={() => setQi(v => (modo === 'mes' ? v - 2 : v - 1))}
             title="Anterior"
-            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(11, 11, 11,0.08)', cursor: 'pointer', color: '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
+            style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer', color: '#E4E4E4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ChevronLeft size={13} />
           </button>
           <button onClick={() => setQi(v => Math.min(modo === 'mes' ? v + 2 : v + 1, curIdx))}
             disabled={modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx}
             title="Próximo"
-            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(11, 11, 11,0.08)', cursor: (modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx) ? 'not-allowed' : 'pointer', color: (modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx) ? '#C8C8C8' : '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)', opacity: (modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx) ? 0.5 : 1 }}>
+            style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', cursor: (modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx) ? 'not-allowed' : 'pointer', color: (modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx) ? '#6B6B6B' : '#E4E4E4', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: (modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx) ? 0.5 : 1 }}>
             <ChevronRight size={13} />
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {modo === 'quinzena' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 13px', borderRadius: '10px', background: isPaid ? '#F5F5F5' : '#F7F7F7', border: `1px solid ${isPaid ? '#E6E6E6' : '#E4C9BF'}` }}>
-            <CalendarDays size={14} style={{ color: isPaid ? '#0B0B0B' : '#6B6B6B' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: isPaid ? '#0B0B0B' : '#6B6B6B' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 13px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
+            <CalendarDays size={14} style={{ color: isPaid ? '#C9C9C9' : '#FFFFFF' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: isPaid ? '#C9C9C9' : '#FFFFFF' }}>
               {isPaid ? 'Pago em' : 'Pagamento em'} {payLabel}
             </span>
           </div>
           )}
           {folhaLanc && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 13px', borderRadius: '10px', background: '#EAF4EE', border: '1px solid #CDE5D5' }}>
-              <FileText size={13} style={{ color: PROFIT_COLOR }} />
-              <span style={{ fontSize: '12px', fontWeight: 700, color: PROFIT_COLOR }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 13px', borderRadius: '10px', background: 'rgba(47,122,79,0.22)', border: '1px solid rgba(124,199,155,0.35)' }}>
+              <FileText size={13} style={{ color: '#7CC79B' }} />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#7CC79B' }}>
                 No fluxo: {fmtCurrency(Number(folhaLanc.valor))}
               </span>
             </div>
@@ -2540,7 +2549,7 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
           </button>
           )}
           <button onClick={() => setShowLancarModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: '#4A4A4A', color: '#fff', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(74, 74, 74,0.3)' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.16)', cursor: 'pointer', background: 'rgba(255,255,255,0.12)', color: '#FFFFFF', fontSize: '12px', fontWeight: 700 }}>
             <HandCoins size={14} />
             Lançar Adiantamento
           </button>
@@ -2555,11 +2564,11 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
         <>
           {/* KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-            <Card label="Total a Pagar" value={fmtCurrency(totalAPagar)} color="#0B0B0B" bg="#F5F5F5" icon={Wallet} />
-            <Card label="Diárias" value={fmtCurrency(totalDiar)} color="#4A4A4A" bg="#F5F5F5" icon={DollarSign} />
-            <Card label="Horas Extras" value={fmtCurrency(totalHE)} color="#6B6B6B" bg="#F7F7F7" icon={Clock} />
-            <Card label="Adiantamentos" value={fmtCurrency(totalAdiant)} color="#4A4A4A" bg="#F5F5F5" icon={HandCoins} />
-            <Card label="Ajudantes na Quinzena" value={String(linhas.length)} color="#BC4A2A" bg="#FAF4F1" icon={Users} />
+            <Card label="Total a Pagar" value={fmtCurrency(totalAPagar)} icon={Wallet} />
+            <Card label="Diárias" value={fmtCurrency(totalDiar)} icon={DollarSign} />
+            <Card label="Horas Extras" value={fmtCurrency(totalHE)} icon={Clock} />
+            <Card label="Adiantamentos" value={fmtCurrency(totalAdiant)} icon={HandCoins} />
+            <Card label="Ajudantes na Quinzena" value={String(linhas.length)} icon={Users} valueColor="#E08A70" />
           </div>
 
           {/* Lista de ajudantes */}
