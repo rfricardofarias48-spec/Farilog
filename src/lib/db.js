@@ -1875,70 +1875,110 @@ export async function updateLancamentoData(id, dataVencimento) {
 
 // ── Benefícios (VT/VR) ────────────────────────────────────────────────────
 
-export async function fetchRecargas(tipo) {
-  const { data, error } = await supabase
-    .from('beneficios_recargas')
-    .select('*, funcionarios(nome, iniciais, cor, cidade)')
-    .eq('tipo', tipo)
-    .order('criado_em', { ascending: false });
-  if (error) { console.error('[db] fetchRecargas:', error.message); return []; }
-  return (data || []).map(r => ({
-    id:            r.id,
-    funcionarioId: r.funcionario_id,
-    nome:          r.funcionarios?.nome || '—',
-    iniciais:      r.funcionarios?.iniciais || '?',
-    cor:           avatarTone(r.funcionarios?.id || r.funcionarios?.nome),
-    cidade:        normalizarCidade(r.funcionarios?.cidade),
-    tipo:          r.tipo,
-    dias:          r.dias,
-    valorDia:      Number(r.valor_dia),
-    total:         Number(r.total),
-    quinzena:      r.quinzena,
-    dataRecarga:   r.data_recarga,
-  }));
+function mapRecarga(r) {
+  const func = r.funcionarios || {};
+  return {
+    id:              r.id,
+    loteId:          r.lote_id || null,
+    nome:            r.nome || null,
+    funcionarioId:   r.funcionario_id,
+    nomeFuncionario: func.nome || '—',
+    iniciais:        func.iniciais || '?',
+    cor:             avatarTone(func.id || func.nome),
+    cidade:          normalizarCidade(func.cidade),
+    tipo:            r.tipo,
+    dias:            Number(r.dias || 0),
+    diasUso:         Array.isArray(r.dias_uso) ? r.dias_uso : [],
+    valorDia:        Number(r.valor_dia),
+    total:           Number(r.total),
+    quinzena:        r.quinzena || null,
+    dataPagamento:   r.data_pagamento || null,
+    dataRecarga:     r.data_recarga || null,
+    dataInicio:      r.data_inicio || null,
+    dataFim:         r.data_fim || null,
+    criadoEm:        r.criado_em || null,
+  };
 }
 
-export async function createRecargasLote(items) {
-  const rows = items.map(i => ({
-    id:             crypto.randomUUID(),
-    funcionario_id: i.funcionarioId,
-    tipo:           i.tipo,
-    dias:           i.dias,
-    valor_dia:      i.valorDia,
-    total:          i.total,
-    quinzena:       i.quinzena,
-    data_recarga:   i.dataRecarga,
-  }));
-  const { error } = await supabase.from('beneficios_recargas').insert(rows);
-  if (error) { console.error('[db] createRecargasLote:', error.message); return false; }
+// tipo null/undefined devolve VT e VR (usado pelo histórico com filtro "Todos").
+export async function fetchRecargas(tipo = null) {
+  let query = supabase
+    .from('beneficios_recargas')
+    .select('*, funcionarios(id, nome, iniciais, cor, cidade)')
+    .order('criado_em', { ascending: false });
+  if (tipo) query = query.eq('tipo', tipo);
+  const { data, error } = await query;
+  if (error) { console.error('[db] fetchRecargas:', error.message); return []; }
+  return (data || []).map(mapRecarga);
+}
 
-  // A recarga de benefício entra automaticamente no fluxo de caixa (a pagar),
-  // classificada como "Benefícios".
+// Cria uma recarga inteira (um lote nomeado) e um único lançamento a pagar
+// no fluxo de caixa, com vencimento na data de pagamento escolhida.
+// Retorna { ok, loteId, error } — a tela usa error para exibir conflitos.
+export async function createRecarga({ nome, tipo, dataPagamento, dataRecarga, dataInicio, dataFim, itens }) {
+  const loteId = crypto.randomUUID();
+  const rows = (itens || []).map(i => ({
+    id:              crypto.randomUUID(),
+    lote_id:         loteId,
+    nome,
+    funcionario_id:  i.funcionarioId,
+    tipo,
+    dias:            i.dias,
+    dias_uso:        i.diasUso,
+    valor_dia:       i.valorDia,
+    total:           i.total,
+    quinzena:        i.quinzena || null,
+    data_pagamento:  dataPagamento || null,
+    data_recarga:    dataRecarga || null,
+    data_inicio:     dataInicio || null,
+    data_fim:        dataFim || null,
+  }));
+  if (rows.length === 0) return { ok: false, error: 'Nenhum ajudante selecionado.' };
+
+  let atual = rows;
+  let inserido = false;
+  const colunasAusentes = new Set();
+  for (let tentativa = 0; tentativa < 8; tentativa++) {
+    const { error } = await supabase.from('beneficios_recargas').insert(atual);
+    if (!error) { inserido = true; break; }
+
+    if (/DIAS_DUPLICADOS/.test(error.message)) {
+      return { ok: false, error: 'conflito', detalhe: error.message };
+    }
+    const col = missingColumnName(error);
+    if (!col || !(col in atual[0])) {
+      console.error('[db] createRecarga:', error.message);
+      return { ok: false, error: error.message };
+    }
+    console.warn(`[db] createRecarga: coluna ${col} ausente — rode supabase/beneficios-recargas-v2.sql. Salvando sem ela.`);
+    colunasAusentes.add(col);
+    atual = atual.map(({ [col]: _ignorado, ...resto }) => resto);
+  }
+  if (!inserido) return { ok: false, error: 'Não foi possível salvar a recarga.' };
+
+  const total = atual.reduce((s, r) => s + Number(r.total || 0), 0);
   const classId = await getClassificacaoId('Benefícios');
-  if (classId) {
-    const lancamentos = rows.map((r, idx) => {
-      const it  = items[idx];
-      const nome = it.tipo === 'VT' ? 'Vale Transporte (VT)' : 'Vale Refeição (VR)';
-      return {
-        id: crypto.randomUUID(),
-        tipo: 'a_pagar',
-        descricao: `${nome} — ${it.nome || 'Ajudante'} · ${it.quinzena}`,
-        valor: it.total,
-        data_vencimento: it.dataRecarga,
-        origem_tipo: 'beneficio',
-        origem_id: r.id,
-        status: statusPorVencimento('a_pagar', it.dataRecarga),
-        classificacao_id: classId,
-      };
-    });
-    let err = await insertLancamentos(lancamentos);
+  if (classId && total > 0) {
+    const nomeBeneficio = tipo === 'VT' ? 'Vale Transporte (VT)' : 'Vale Refeição (VR)';
+    const lancamento = {
+      id: crypto.randomUUID(),
+      tipo: 'a_pagar',
+      descricao: `${nomeBeneficio} — ${nome} · ${atual.length} ajudante${atual.length !== 1 ? 's' : ''}`,
+      valor: total,
+      data_vencimento: dataPagamento || dataRecarga || null,
+      origem_tipo: 'beneficio',
+      origem_id: loteId,
+      status: statusPorVencimento('a_pagar', dataPagamento || dataRecarga),
+      classificacao_id: classId,
+    };
+    let err = await insertLancamentos([lancamento]);
     if (err && /origem_tipo|23514/.test(err.message)) {
       // Constraint antiga ainda não aceita 'beneficio' → grava como 'manual'.
-      err = await insertLancamentos(lancamentos.map((l) => ({ ...l, origem_tipo: 'manual' })));
+      err = await insertLancamentos([{ ...lancamento, origem_tipo: 'manual' }]);
     }
-    if (err) console.error('[db] createRecargasLote lancamentos:', err.message);
+    if (err) console.error('[db] createRecarga lancamento:', err.message);
   }
-  return true;
+  return { ok: true, loteId, colunasAusentes: [...colunasAusentes] };
 }
 
 // ── Carretas ───────────────────────────────────────────────────────────────
