@@ -350,6 +350,34 @@ function PeriodSelector({ type, offset, bounds, onChangeType, onChangeOffset }) 
   );
 }
 
+// Custos diretos da operação, derivados dos registros de ponto do período.
+// Ficam em helpers para a Visão Geral e o DRE usarem exatamente a mesma base.
+// Folha = diárias + horas extras dos ajudantes.
+function folhaDosRegistros(activeRecords, employees) {
+  return activeRecords.reduce((s, r) => {
+    const emp = employees.find(e => e.id === r.employeeId);
+    return s + Number(emp?.dailyRate ?? 0) + (overtimeToMinutes(r.overtime) / 60) * Number(emp?.overtimeRate ?? 50);
+  }, 0);
+}
+
+// Benefícios (VT/VR) = valor/dia cadastrado do ajudante × dias distintos
+// trabalhados no período. Ex.: VT R$ 10/dia × 5 diárias = R$ 50.
+function beneficiosDosRegistros(activeRecords, employees) {
+  const porAjudante = {};
+  activeRecords.forEach(r => {
+    if (!porAjudante[r.employeeId]) porAjudante[r.employeeId] = new Set();
+    porAjudante[r.employeeId].add(r.date);
+  });
+  let vt = 0;
+  let vr = 0;
+  Object.entries(porAjudante).forEach(([empId, dias]) => {
+    const emp = employees.find(e => e.id === empId);
+    vt += dias.size * Number(emp?.vtDiario ?? 0);
+    vr += dias.size * Number(emp?.vrDiario ?? 0);
+  });
+  return { vt, vr, total: vt + vr };
+}
+
 // ── Tab: Visão Geral ───────────────────────────────────────────────────────
 function TabVisaoGeral({ records, lancamentos, employees, companies, classificacoes }) {
   const active = records.filter(r => r.status !== 'absent');
@@ -358,28 +386,9 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
   // Faturamento: diária da empresa (admin) + HE proporcional (diária ÷ 8 × 1,5)
   const fat = active.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
 
-  // Folha de pagamento: diárias + horas extras dos ajudantes
-  const folha = active.reduce((s, r) => {
-    const emp = employees.find(e => e.id === r.employeeId);
-    return s + Number(emp?.dailyRate ?? 0) + (overtimeToMinutes(r.overtime) / 60) * Number(emp?.overtimeRate ?? 50);
-  }, 0);
-
-  // Benefícios (VT/VR): valor/dia cadastrado do ajudante × dias efetivamente trabalhados
-  // no período (datas distintas presentes). Ex.: VT R$ 10/dia × 5 diárias = R$ 50.
-  const diasTrabalhados = {};
-  active.forEach(r => {
-    if (r.status === 'absent') return;
-    if (!diasTrabalhados[r.employeeId]) diasTrabalhados[r.employeeId] = new Set();
-    diasTrabalhados[r.employeeId].add(r.date);
-  });
-  let beneficiosVT = 0;
-  let beneficiosVR = 0;
-  Object.entries(diasTrabalhados).forEach(([empId, dias]) => {
-    const emp = employees.find(e => e.id === empId);
-    beneficiosVT += dias.size * Number(emp?.vtDiario ?? 0);
-    beneficiosVR += dias.size * Number(emp?.vrDiario ?? 0);
-  });
-  const beneficios = beneficiosVT + beneficiosVR;
+  // Custos diretos derivados dos registros de ponto (mesma base usada no DRE).
+  const folha = folhaDosRegistros(active, employees);
+  const { vt: beneficiosVT, vr: beneficiosVR, total: beneficios } = beneficiosDosRegistros(active, employees);
 
   // Custos lançados só entram quando confirmados (status 'pago') — o painel
   // trabalha com fatos, igual ao Fluxo de Caixa.
@@ -395,9 +404,14 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
   // Benefícios entram por competência (registros de ponto), então os lançamentos
   // dessas duas origens não são somados aqui — evita duplicidade.
   const totalsPorClasse = {};
+  const nomePorClasse = Object.fromEntries((classificacoes || []).map(c => [c.id, c.nome]));
   lancamentos
     .filter(l => l.tipo === 'a_pagar' && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio' && statusOf(l) === 'pago')
     .forEach(l => {
+      // Classes Folha/Benefícios não entram aqui: esses custos vêm por competência
+      // (registros de ponto) e duplicariam o valor. O banco grava os lançamentos
+      // de benefícios como 'manual' (fallback), por isso filtramos pela classe.
+      if (['Folha de Pagamento', 'Benefícios'].includes(nomePorClasse[l.classificacao_id])) return;
       const key = l.classificacao_id || '__sem';
       totalsPorClasse[key] = (totalsPorClasse[key] || 0) + Number(l.valor || 0);
     });
@@ -2038,26 +2052,42 @@ function TabCustosFixos({ custosFixos, setCustosFixos }) {
 }
 
 // ── Tab: DRE ───────────────────────────────────────────────────────────────
-function TabDRE({ records, lancamentos, employees, bounds, companies }) {
+function TabDRE({ records, lancamentos, employees, bounds, companies, classificacoes }) {
   const active = records.filter(r => r.status !== 'absent');
   const companiesById = Object.fromEntries((companies || []).map(c => [c.id, c]));
+  const nomePorClasse = Object.fromEntries((classificacoes || []).map(c => [c.id, c.nome]));
 
   // Receita bruta: diária da empresa (admin) + HE proporcional (diária ÷ 8 × 1,5)
   const receitaBruta   = active.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
-  const custServicos   = active.reduce((s, r) => {
-    const emp = employees.find(e => e.id === r.employeeId);
-    return s + Number(emp?.dailyRate ?? 0) + (overtimeToMinutes(r.overtime) / 60) * Number(emp?.overtimeRate ?? 50);
-  }, 0);
+  // Custo dos serviços = custos diretos: folha (diárias + HE) e benefícios VT/VR.
+  const folha          = folhaDosRegistros(active, employees);
+  const beneficios     = beneficiosDosRegistros(active, employees).total;
+  const custServicos   = folha + beneficios;
   const lucroBruto     = receitaBruta - custServicos;
   // Despesas lançadas entram apenas quando confirmadas (status 'pago'): o DRE,
-  // como o Fluxo de Caixa, só considera fatos.
-  const custFixoPer    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo' && statusOf(l) === 'pago').reduce((s, l) => s + Number(l.valor || 0), 0);
-  const encargosDiv    = lancamentos.filter(l => l.origem_tipo === 'divida'     && statusOf(l) === 'pago').reduce((s, l) => s + Number(l.valor || 0), 0);
+  // como o Fluxo de Caixa, só considera fatos. Folha e benefícios entram por
+  // competência (acima), então seus lançamentos são ignorados mesmo quando o
+  // banco os grava como 'manual' (fallback) — evitando dupla contagem.
+  const custosConfirmados = lancamentos.filter(l =>
+    l.tipo === 'a_pagar'
+    && l.origem_tipo !== 'folha'
+    && l.origem_tipo !== 'beneficio'
+    && !['Folha de Pagamento', 'Benefícios'].includes(nomePorClasse[l.classificacao_id])
+    && statusOf(l) === 'pago');
+  const somaPorClasse = nome => custosConfirmados
+    .filter(l => nomePorClasse[l.classificacao_id] === nome)
+    .reduce((s, l) => s + Number(l.valor || 0), 0);
+  const custFixoPer    = somaPorClasse('Custo Fixo');
+  const encargosDiv    = somaPorClasse('Endividamento');
+  // Demais despesas confirmadas (ex.: "Despesas Variáveis").
+  const despVariaveis  = custosConfirmados
+    .filter(l => !['Custo Fixo', 'Endividamento'].includes(nomePorClasse[l.classificacao_id]))
+    .reduce((s, l) => s + Number(l.valor || 0), 0);
   // Pendentes do período (não entram no resultado).
   const pendCustos     = lancamentos.filter(l => l.tipo === 'a_pagar'   && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
   const pendReceitas   = lancamentos.filter(l => l.tipo === 'a_receber' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
   const pendVencidos   = lancamentos.filter(l => statusOf(l) === 'pendente' && isVencido(l)).reduce((s, l) => s + Number(l.valor || 0), 0);
-  const totalDespesas  = custFixoPer + encargosDiv;
+  const totalDespesas  = custFixoPer + encargosDiv + despVariaveis;
   const resultado      = lucroBruto - totalDespesas;
   const margemBruta    = receitaBruta > 0 ? (lucroBruto / receitaBruta) * 100 : 0;
   const margemOp       = receitaBruta > 0 ? (resultado  / receitaBruta) * 100 : 0;
@@ -2091,11 +2121,14 @@ function TabDRE({ records, lancamentos, employees, bounds, companies }) {
 
         <Row label="(+) Receita Bruta de Serviços" value={receitaBruta} bold positive={receitaBruta > 0} />
         <Row label="(−) Custo dos Serviços" value={-custServicos} indent={1} muted negative={custServicos > 0} />
+        <Row label="Mão de obra (diárias + H.E.)" value={-folha} indent={2} muted />
+        <Row label="Benefícios (VT/VR)" value={-beneficios} indent={2} muted />
         <Row label="= LUCRO BRUTO" value={lucroBruto} bold sep positive={lucroBruto >= 0} negative={lucroBruto < 0} />
 
         <Row label="DESPESAS OPERACIONAIS" value={-totalDespesas} bold sep />
         <Row label="(−) Custos Fixos" value={-custFixoPer} indent={1} muted />
         <Row label="(−) Encargos de Dívidas" value={-encargosDiv} indent={1} muted />
+        <Row label="(−) Despesas Variáveis" value={-despVariaveis} indent={1} muted />
 
         <Row label="= RESULTADO OPERACIONAL" value={resultado} bold sep positive={resultado >= 0} negative={resultado < 0} />
 
@@ -2769,7 +2802,7 @@ export default function AdminFinanceiro() {
           {activeTab === 'folha'   && <TabFolhaPagamento employees={employees} onFolhaFechada={reloadLancamentos} />}
           {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} showModal={showNovaDivida} setShowModal={setShowNovaDivida} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}
-          {activeTab === 'dre'     && <TabDRE           records={records} lancamentos={lancamentos} employees={employees} bounds={bounds} companies={companies} />}
+          {activeTab === 'dre'     && <TabDRE           records={records} lancamentos={lancamentos} employees={employees} bounds={bounds} companies={companies} classificacoes={classificacoes} />}
         </>
       )}
     </div>
