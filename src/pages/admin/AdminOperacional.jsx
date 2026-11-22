@@ -393,7 +393,7 @@ function Historico() {
             <div className="grid grid-cols-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
               {[
                 ['Diárias', totalDias, '#0B0B0B'],
-                ['Horas extras', totalHEGeral > 0 ? `${totalHEGeral}x` : '—', '#0B0B0B'],
+                ['Horas extras', totalHEMin > 0 ? minutesToOvertimeString(totalHEMin) : '—', '#0B0B0B'],
                 ['Total cobrança', fmtCurrency(totalCobranca), '#4A4A4A'],
               ].map(([lbl, val, color], i) => (
                 <div key={lbl} className="py-3 text-center" style={{ borderRight: i < 2 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
