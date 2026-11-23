@@ -3161,11 +3161,13 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
     // ── Resumo do Período ────────────────────────────────────
     doc.setFontSize(10.5); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text('Resumo do Período', 10, 53);
 
     autoTable(doc, {
-      startY: 56,
-      head: [[lbCount, lbVal, 'H. Extras', 'Valor HE', 'Total Geral']],
+      startY: 50,
+      head: [
+        [{ content: 'Resumo do Período', colSpan: 5, styles: { halign: 'center', fillColor: [51,65,85], textColor: 255, fontSize: 10.5, fontStyle: 'bold' } }],
+        [lbCount, lbVal, 'H. Extras', 'Valor HE', 'Total Geral'],
+      ],
       body: [[
         String(totalDiarias),
         fmtCurrency(totalValorDiarias),
@@ -3195,11 +3197,13 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
     const y2 = doc.lastAutoTable.finalY + 10;
     doc.setFontSize(10.5); doc.setFont('helvetica', 'bold');
     doc.setTextColor(...dark);
-    doc.text('Extrato por Dia', 10, y2);
 
     autoTable(doc, {
-      startY: y2 + 4,
-      head: [['Data', lbCount, lbValShort, 'H. Extra', 'Val. HE', 'Total Dia']],
+      startY: y2,
+      head: [
+        [{ content: 'Extrato por Dia', colSpan: 6, styles: { halign: 'center', fillColor: [226,232,240], textColor: mid, fontSize: 10.5, fontStyle: 'bold' } }],
+        ['Data', lbCount, lbValShort, 'H. Extra', 'Val. HE', 'Total Dia'],
+      ],
       body: allDays.filter(d => !d.isWeekend).map(d => [
         d.label,
         d.diarias      > 0 ? String(d.diarias)           : '—',
