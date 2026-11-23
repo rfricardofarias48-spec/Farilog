@@ -539,6 +539,43 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
   );
 }
 
+// ── Máscara de moeda (inputs de valor) ─────────────────────────────────────
+// Separa o que foi digitado em parte inteira e decimal, aceitando vírgula ou
+// ponto. Um separador seguido de até 2 dígitos é tratado como decimal; senão,
+// os separadores são milhar.
+function separarValor(raw) {
+  const s = String(raw ?? '').replace(/[^\d.,]/g, '');
+  if (!s) return { inteira: '', decimal: '' };
+  const i = Math.max(s.lastIndexOf(','), s.lastIndexOf('.'));
+  if (i >= 0 && /^\d{0,2}$/.test(s.slice(i + 1))) {
+    return { inteira: s.slice(0, i).replace(/[^\d]/g, ''), decimal: s.slice(i + 1) };
+  }
+  return { inteira: s.replace(/[^\d]/g, ''), decimal: '' };
+}
+
+// Formata enquanto digita (milhar com ponto, decimais com vírgula), sem forçar
+// as 2 casas — isso evita o cursor "pular" durante a digitação.
+function formatarValorInput(raw) {
+  const { inteira, decimal } = separarValor(raw);
+  const intFmt = inteira.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return /[.,]/.test(String(raw ?? '')) ? `${intFmt},${decimal}` : intFmt;
+}
+
+// Ao sair do campo, completa com ,00 para o valor ficar no formato R$ completo.
+function completarValor(raw) {
+  const { inteira, decimal } = separarValor(raw);
+  if (!inteira && !decimal) return '';
+  const intFmt = (inteira || '0').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${intFmt},${decimal.padEnd(2, '0').slice(0, 2)}`;
+}
+
+function valorParaNumero(raw) {
+  const { inteira, decimal } = separarValor(raw);
+  if (!inteira && !decimal) return 0;
+  const n = Number(`${inteira || '0'}.${decimal || '0'}`);
+  return Number.isFinite(n) ? n : 0;
+}
+
 // ── Modal adicionar lançamento ─────────────────────────────────────────────
 function AddLancamentoModal({ onSave, onClose, classificacoes = [], onCreateClassificacao }) {
   const [form,   setForm]   = useState({ tipo: 'a_pagar', descricao: '', valor: '', data: TODAY_ISO, classificacaoId: '' });
@@ -569,14 +606,14 @@ function AddLancamentoModal({ onSave, onClose, classificacoes = [], onCreateClas
     }
   }, [form.tipo, classificacoes]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const canSave = form.descricao.trim() && form.valor && form.data && !saving
+  const canSave = form.descricao.trim() && valorParaNumero(form.valor) > 0 && form.data && !saving
     && (classificacoes.length === 0 || form.classificacaoId);
 
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
     await onSave({
-      tipo: form.tipo, descricao: form.descricao.trim(), valor: Number(form.valor),
+      tipo: form.tipo, descricao: form.descricao.trim(), valor: valorParaNumero(form.valor),
       dataVencimento: form.data, classificacaoId: form.classificacaoId || null,
     });
     setSaving(false);
@@ -675,8 +712,14 @@ function AddLancamentoModal({ onSave, onClose, classificacoes = [], onCreateClas
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Valor (R$)</label>
-              <input className="input-field" type="number" min="0" step="0.01" placeholder="0,00"
-                value={form.valor} onChange={e => setForm(f => ({...f, valor: e.target.value}))} />
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', fontWeight: 700, color: '#9A9A9A', pointerEvents: 'none' }}>R$</span>
+                <input className="input-field" type="text" inputMode="decimal" placeholder="0,00"
+                  style={{ paddingLeft: '40px' }}
+                  value={form.valor}
+                  onChange={e => setForm(f => ({ ...f, valor: formatarValorInput(e.target.value) }))}
+                  onBlur={() => setForm(f => ({ ...f, valor: completarValor(f.valor) }))} />
+              </div>
             </div>
             <div>
               <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>Data de vencimento</label>
