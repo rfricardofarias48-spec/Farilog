@@ -764,7 +764,7 @@ function Relatorios() {
     <div className="space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs mt-0.5" style={TM}>Extrato quinzenal ou mensal</p>
+          <p className="text-xs mt-0.5" style={TM}>Extrato por período de fechamento ou mensal</p>
         </div>
         <button onClick={exportPDF} disabled={!selected}
           className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
