@@ -10,10 +10,9 @@
 //   • Dias = dias DISTINTOS trabalhados por ajudante na quinzena.
 //   • Folha = dias × diaria + minutos de HE × hora_extra.
 //   • VT    = dias × vt_diario   ·   VR = dias × vr_diario.
-//   • Cada linha é datada no fim da quinzena de competência (as diárias
-//     aconteceram nela). A folha fica pendente até a data de pagamento da
-//     quinzena passar (Q1 dia 1–15 → paga dia 22; Q2 dia 16–fim → dia 7 do mês
-//     seguinte); VT/VR entram como já pagos.
+//   • Cada linha é datada no pagamento: fim da quinzena + prazo_folha do
+//     cadastro da empresa (padrão 7 dias). A folha fica pendente até essa data
+//     passar; VT/VR entram como já pagos.
 
 import { overtimeToMinutes } from './timeUtils';
 
@@ -60,11 +59,19 @@ export function diasTrabalhadosPorAjudante(records) {
   return mapa;
 }
 
-// Linhas a pagar derivadas (Folha/VT/VR) agrupadas por quinzena de competência.
-// Devolve itens no mesmo formato dos lançamentos derivados de receita (sem id).
-export function payablesAutomaticos(records, employees, hojeIso) {
+function addDias(dateIso, n) {
+  const d = new Date(`${dateIso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + Number(n || 0));
+  return d.toISOString().slice(0, 10);
+}
+
+// Linhas a pagar derivadas (Folha/VT/VR) por empresa × quinzena de competência.
+// A data de pagamento = fim da quinzena + prazo_folha do cadastro da empresa
+// (padrão 7 dias). Devolve itens no formato das linhas derivadas de receita.
+export function payablesAutomaticos(records, employees, companies, hojeIso) {
   const empById = new Map((employees || []).map(e => [e.id, e]));
-  const porQuinzena = new Map();
+  const coById  = new Map((companies || []).map(c => [c.id, c]));
+  const porGrupo = new Map();
 
   for (const r of (records || [])) {
     if (!trabalhou(r)) continue;
@@ -72,15 +79,17 @@ export function payablesAutomaticos(records, employees, hojeIso) {
     if (!emp) continue;
     const q = quinzenaDaData(r.date);
     if (!q) continue;
-    if (!porQuinzena.has(q.idx)) porQuinzena.set(q.idx, { q, dias: new Map(), heMin: new Map() });
-    const g = porQuinzena.get(q.idx);
+    const co = r.companyId ? coById.get(r.companyId) : null;
+    const key = `${r.companyId || 'sem'}__${q.idx}`;
+    if (!porGrupo.has(key)) porGrupo.set(key, { q, co, dias: new Map(), heMin: new Map() });
+    const g = porGrupo.get(key);
     if (!g.dias.has(emp.id)) g.dias.set(emp.id, new Set());
     g.dias.get(emp.id).add(r.date);
     g.heMin.set(emp.id, (g.heMin.get(emp.id) || 0) + overtimeToMinutes(r.overtime));
   }
 
   const itens = [];
-  for (const { q, dias, heMin } of porQuinzena.values()) {
+  for (const { q, co, dias, heMin } of porGrupo.values()) {
     let folha = 0, vt = 0, vr = 0, nAjudantes = 0, nDias = 0;
     for (const [empId, datas] of dias) {
       const emp = empById.get(empId);
@@ -93,28 +102,29 @@ export function payablesAutomaticos(records, employees, hojeIso) {
       vr += d * Number(emp.vrDiario || 0);
     }
     const resumo = `${nAjudantes} ajudante${nAjudantes !== 1 ? 's' : ''} · ${nDias} diária${nDias !== 1 ? 's' : ''}`;
-    // Datada no fim da quinzena de competência (as diárias aconteceram nela),
-    // para a linha cair no mesmo período do Fluxo de Caixa.
-    const base = { date: q.fim, tipo: 'a_pagar', isManual: false, derivado: true, vencido: false };
+    const prazo = Number(co?.prazoFolha ?? 7);
+    const dataPagamento = addDias(q.fim, prazo);
+    const periodo = co?.name ? `${q.label} · ${co.name}` : q.label;
+    const base = { date: dataPagamento, tipo: 'a_pagar', isManual: false, derivado: true, vencido: false };
 
     if (folha > 0) {
       itens.push({
-        ...base, origem: 'Folha', valor: folha, status: q.payDate <= hojeIso ? 'pago' : 'pendente',
-        descricao: `Folha de Pagamento — ${q.label} (${resumo})`,
+        ...base, origem: 'Folha', valor: folha, status: dataPagamento <= hojeIso ? 'pago' : 'pendente',
+        descricao: `Folha de Pagamento — ${periodo} (${resumo})`,
         classificacaoNome: 'Folha de Pagamento', classificacaoCor: COR_FOLHA,
       });
     }
     if (vt > 0) {
       itens.push({
         ...base, origem: 'Benefício', valor: vt, status: 'pago',
-        descricao: `Vale Transporte (VT) — ${q.label} (${resumo})`,
+        descricao: `Vale Transporte (VT) — ${periodo} (${resumo})`,
         classificacaoNome: 'Benefícios', classificacaoCor: COR_VT,
       });
     }
     if (vr > 0) {
       itens.push({
         ...base, origem: 'Benefício', valor: vr, status: 'pago',
-        descricao: `Vale Refeição (VR) — ${q.label} (${resumo})`,
+        descricao: `Vale Refeição (VR) — ${periodo} (${resumo})`,
         classificacaoNome: 'Benefícios', classificacaoCor: COR_VR,
       });
     }

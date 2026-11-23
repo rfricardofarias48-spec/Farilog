@@ -6,7 +6,7 @@ import { parseEmpresaLocalizacao } from '../../lib/cidades';
 import { MODOS_FECHAMENTO, normalizarDias, rotuloFechamento } from '../../lib/fechamento';
 import SeletorLocalizacao from '../../components/shared/SeletorLocalizacao';
 import { Plus, Edit2, Trash2, X, Building2, Search, Phone, Mail, MapPin } from 'lucide-react';
-const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', latitude: null, longitude: null, dailyRate: 150, valorDescarga: 0, prazoPagamento: 5, closingCycle: 'diaria', closingDays: [] };
+const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', latitude: null, longitude: null, dailyRate: 150, valorDescarga: 0, prazoPagamento: 5, prazoFolha: 7, closingCycle: 'diaria', closingDays: [] };
 const T  = { color: '#0B0B0B' };
 const T2 = { color: '#4A4A4A' };
 const TM = { color: '#9A9A9A' };
@@ -56,6 +56,7 @@ function Modal({ company, onSave, onClose }) {
               dailyRate: Number(form.dailyRate),
               valorDescarga: Number(form.valorDescarga ?? 0),
               prazoPagamento: Math.max(0, Number(form.prazoPagamento) || 0),
+              prazoFolha: Math.max(0, Number(form.prazoFolha) || 0),
               closingCycle: form.closingCycle === 'datas' ? 'datas' : 'diaria',
               closingDays: dias,
             });
@@ -88,6 +89,14 @@ function Modal({ company, onSave, onClose }) {
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Prazo de Pagamento (dias após o fechamento)</label>
               <input type="number" min="0" step="1" required value={form.prazoPagamento ?? 5}
                 onChange={e => setForm({ ...form, prazoPagamento: e.target.value })} className="input-field" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Pagamento dos ajudantes (dias após o fim da quinzena)</label>
+              <input type="number" min="0" step="1" required value={form.prazoFolha ?? 7}
+                onChange={e => setForm({ ...form, prazoFolha: e.target.value })} className="input-field" />
+              <p className="text-xs mt-1" style={{ color: '#9A9A9A' }}>
+                Usado para lançar automaticamente a Folha/VT/VR em Contas a Pagar.
+              </p>
             </div>
 
             {form.closingCycle === 'datas' && (

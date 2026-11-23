@@ -1175,10 +1175,11 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     return (classificacoes || []).find(x => x.nome === nome) || { nome, cor: '#4A4A4A' };
   };
 
-  // Custos automáticos (Folha/VT/VR) derivados das diárias realizadas.
+  // Custos automáticos (Folha/VT/VR) derivados das diárias realizadas; a data
+  // de pagamento usa o prazo de folha do cadastro de cada empresa.
   const payablesAuto = useMemo(
-    () => payablesAutomaticos(records, employees, TODAY_ISO),
-    [records, employees]
+    () => payablesAutomaticos(records, employees, companies, TODAY_ISO),
+    [records, employees, companies]
   );
 
   const chartData = useMemo(
