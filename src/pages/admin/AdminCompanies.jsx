@@ -6,7 +6,7 @@ import { parseEmpresaLocalizacao } from '../../lib/cidades';
 import { MODOS_FECHAMENTO, normalizarDias, rotuloFechamento } from '../../lib/fechamento';
 import SeletorLocalizacao from '../../components/shared/SeletorLocalizacao';
 import { Plus, Edit2, Trash2, X, Building2, Search, Phone, Mail, MapPin } from 'lucide-react';
-const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', latitude: null, longitude: null, dailyRate: 150, valorDescarga: 0, prazoPagamento: 5, prazoFolha: 7, folhaModo: 'quinzena', closingCycle: 'diaria', closingDays: [] };
+const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', latitude: null, longitude: null, dailyRate: 150, valorDescarga: 0, prazoPagamento: 5, prazoDiasUteis: false, prazoFolha: 7, folhaModo: 'quinzena', closingCycle: 'diaria', closingDays: [] };
 const T  = { color: '#0B0B0B' };
 const T2 = { color: '#4A4A4A' };
 const TM = { color: '#9A9A9A' };
@@ -56,6 +56,7 @@ function Modal({ company, onSave, onClose }) {
               dailyRate: Number(form.dailyRate),
               valorDescarga: Number(form.valorDescarga ?? 0),
               prazoPagamento: Math.max(0, Number(form.prazoPagamento) || 0),
+              prazoDiasUteis: !!form.prazoDiasUteis,
               prazoFolha: Math.max(0, Number(form.prazoFolha ?? 7) || 0),
               folhaModo: form.folhaModo === 'semanal' ? 'semanal' : 'quinzena',
               closingCycle: form.closingCycle === 'datas' ? 'datas' : 'diaria',
@@ -90,6 +91,11 @@ function Modal({ company, onSave, onClose }) {
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Prazo de Pagamento (dias após o fechamento)</label>
               <input type="number" min="0" step="1" required value={form.prazoPagamento ?? 5}
                 onChange={e => setForm({ ...form, prazoPagamento: e.target.value })} className="input-field" />
+              <label className="flex items-center gap-2 mt-2" style={{ fontSize: '11px', color: '#4A4A4A', cursor: 'pointer' }}>
+                <input type="checkbox" checked={!!form.prazoDiasUteis}
+                  onChange={e => setForm({ ...form, prazoDiasUteis: e.target.checked })} />
+                Contar em dias úteis (pula sábado e domingo)
+              </label>
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Pagamento dos ajudantes</label>
@@ -274,7 +280,7 @@ export default function AdminCompanies() {
                   R$ {((Number(c.dailyRate ?? 150) / 8) * 1.5).toFixed(2)}/h
                 </span>
                 <span className="text-xs font-semibold" style={{ color: '#0B0B0B' }}>
-                  {Number(c.prazoPagamento ?? 5)} {Number(c.prazoPagamento ?? 5) === 1 ? 'dia' : 'dias'}
+                  {Number(c.prazoPagamento ?? 5)} {Number(c.prazoPagamento ?? 5) === 1 ? 'dia' : 'dias'}{c.prazoDiasUteis ? ' úteis' : ''}
                 </span>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setModal(c)} className="p-1.5 rounded-lg transition-colors"

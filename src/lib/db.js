@@ -3,7 +3,7 @@ import { calculateWorkAndOvertime, overtimeMinutesToTimeString, recordRevenue } 
 import { getCompanyCity, rankCandidatos, avatarTone, compararProximidade } from './notas';
 import { coordsFuncionario, coordsEmpresa, distanciaKm, jitterCoords } from './geo';
 import { parseCidade, parseEmpresaLocalizacao, normalizarCidade, cidadeMaisProxima, coordsDeLink } from './cidades.js';
-import { normalizarDias } from './fechamento';
+import { normalizarDias, periodoDeFechamento } from './fechamento';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -92,6 +92,7 @@ function mapCompany(r) {
     dailyRate:      Number(r.diaria ?? 150),
     valorDescarga:  Number(r.valor_descarga ?? 0),
     prazoPagamento: Number(r.prazo_pagamento ?? 5),
+    prazoDiasUteis: !!r.prazo_dias_uteis,
     prazoFolha:     Number(r.prazo_folha ?? 7),
     folhaModo:      r.folha_modo === 'semanal' ? 'semanal' : 'quinzena',
     closingCycle:   r.periodicidade_fechamento || 'diaria',
@@ -419,6 +420,7 @@ export async function createCompany(co) {
     diaria:          co.dailyRate ?? 150,
     valor_descarga:  co.valorDescarga ?? 0,
     prazo_pagamento: co.prazoPagamento ?? 5,
+    prazo_dias_uteis: !!co.prazoDiasUteis,
     prazo_folha:     co.prazoFolha ?? 7,
     folha_modo:      co.folhaModo === 'semanal' ? 'semanal' : 'quinzena',
     periodicidade_fechamento: co.closingCycle === 'datas' ? 'datas' : 'diaria',
@@ -451,6 +453,11 @@ export async function createCompany(co) {
     delete payload.dias_fechamento;
     ({ data, error } = await supabase.from('empresas').insert(payload).select().single());
   }
+  if (error && /prazo_dias_uteis/.test(error.message || '')) {
+    console.warn('[db] createCompany: coluna prazo_dias_uteis ausente — rode supabase/prazo-dias-uteis.sql no Supabase.');
+    delete payload.prazo_dias_uteis;
+    ({ data, error } = await supabase.from('empresas').insert(payload).select().single());
+  }
   if (error) { console.error('[db] createCompany:', error.message); return null; }
   return mapCompany(data);
 }
@@ -472,6 +479,7 @@ export async function updateCompany(id, co) {
   if (co.folhaModo      !== undefined) patch.folha_modo      = co.folhaModo === 'semanal' ? 'semanal' : 'quinzena';
   if (co.closingCycle   !== undefined) patch.periodicidade_fechamento = co.closingCycle === 'datas' ? 'datas' : 'diaria';
   if (co.closingDays    !== undefined) patch.dias_fechamento = normalizarDias(co.closingDays);
+  if (co.prazoDiasUteis  !== undefined) patch.prazo_dias_uteis = !!co.prazoDiasUteis;
 
   const latInformada = co.latitude;
   const lngInformada = co.longitude;
@@ -2550,14 +2558,16 @@ function isMissingColumn(error) {
 
 // Data prevista de pagamento: prazo da empresa em dias após o fechamento da
 // quinzena (1ª fecha dia 15; 2ª fecha no último dia do mês).
-export function computePagamentoEm(dateIso, prazoDias = 5) {
-  if (!dateIso) return null;
-  const [y, m, d] = String(dateIso).split('-').map(Number);
-  if (!y || !m || !d) return null;
-  const prazo = Number.isFinite(Number(prazoDias)) ? Number(prazoDias) : 5;
-  const base = d <= 15 ? new Date(Date.UTC(y, m - 1, 15)) : new Date(Date.UTC(y, m, 0));
-  base.setUTCDate(base.getUTCDate() + prazo);
-  return base.toISOString().slice(0, 10);
+// Data prevista de pagamento de uma diária: fim do período de fechamento da
+// empresa + prazo (em dias corridos ou úteis, conforme o cadastro da empresa).
+export function computePagamentoEm(dateIso, prazoDias = 5, config = {}) {
+  const periodo = periodoDeFechamento(dateIso, {
+    modo:  config.modo,
+    dias:  config.dias,
+    prazo: prazoDias,
+    uteis: config.uteis,
+  });
+  return periodo?.vencimento || null;
 }
 
 function mapConvocacao(r) {
@@ -2602,11 +2612,18 @@ function cmpDistanciaNota(a, b) {
 // Resumo da empresa com coordenadas resolvidas (mapa + pagamento).
 export async function fetchEmpresaResumo(companyId) {
   if (!companyId) return null;
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('empresas')
-    .select('id, nome, endereco, localizacao, diaria, prazo_pagamento, latitude, longitude, raio_km')
+    .select('id, nome, endereco, localizacao, diaria, prazo_pagamento, latitude, longitude, raio_km, periodicidade_fechamento, dias_fechamento, prazo_dias_uteis')
     .eq('id', companyId)
     .maybeSingle();
+  if (error && isMissingColumn(error)) {
+    ({ data, error } = await supabase
+      .from('empresas')
+      .select('id, nome, endereco, localizacao, diaria, prazo_pagamento, latitude, longitude, raio_km')
+      .eq('id', companyId)
+      .maybeSingle());
+  }
   if (error) { console.error('[db] fetchEmpresaResumo:', error.message); return null; }
   if (!data) return null;
   const coords = coordsEmpresa(data);
@@ -2639,6 +2656,9 @@ export async function fetchEmpresaResumo(companyId) {
     citySource,
     dailyRate: Number(data.diaria ?? 0),
     prazoPagamento: Number(data.prazo_pagamento ?? 5),
+    prazoDiasUteis: !!data.prazo_dias_uteis,
+    closingCycle:   data.periodicidade_fechamento || 'diaria',
+    closingDays:    Array.isArray(data.dias_fechamento) ? data.dias_fechamento.map(Number) : [],
     raioKm:    Number(data.raio_km ?? 40),
     coords,
     temCoords: !!coords?.exata,
@@ -2770,7 +2790,9 @@ export async function createEscalaComConvocacoes({
 }) {
   const [diaria, company] = await Promise.all([getCompanyDiaria(companyId), fetchEmpresaResumo(companyId)]);
   const escalaId    = crypto.randomUUID();
-  const pagamentoEm = computePagamentoEm(date, company?.prazoPagamento ?? 5);
+  const pagamentoEm = computePagamentoEm(date, company?.prazoPagamento ?? 5, {
+    modo: company?.closingCycle, dias: company?.closingDays, uteis: company?.prazoDiasUteis,
+  });
   const nVagas      = Number.isFinite(Number(vagas)) ? Number(vagas) : employees.length;
 
   // Não permite duas convocações para a mesma empresa no mesmo dia.

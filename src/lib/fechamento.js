@@ -25,6 +25,20 @@ function addDias(dateIso, n) {
   return d.toISOString().slice(0, 10);
 }
 
+// Soma dias ÚTEIS (pula sábado e domingo), começando a contar no dia seguinte.
+// Ex.: sexta 20/11 + 5 dias úteis = sexta 27/11.
+// Não considera feriados — só fins de semana.
+export function addDiasUteis(dateIso, n) {
+  const d = new Date(`${dateIso}T12:00:00Z`);
+  let restantes = Math.max(0, Number(n) || 0);
+  while (restantes > 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    const dow = d.getUTCDay();
+    if (dow !== 0 && dow !== 6) restantes -= 1;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
 // Aceita [10,20,31] ou "10, 20, 31" e devolve dias únicos e ordenados (1..31).
 export function normalizarDias(dias) {
   const bruto = Array.isArray(dias) ? dias : String(dias ?? '').split(/[^\d]+/);
@@ -44,8 +58,9 @@ export function rotuloFechamento(modo, dias) {
 }
 
 // Período de fechamento que contém a data informada.
+// `uteis` = true conta o prazo em dias úteis (pula fins de semana).
 // Devolve { inicio, fim, vencimento, modo, rotulo } ou null.
-export function periodoDeFechamento(dateIso, { modo = 'diaria', dias = [], prazo = 5 } = {}) {
+export function periodoDeFechamento(dateIso, { modo = 'diaria', dias = [], prazo = 5, uteis = false } = {}) {
   const [y, m, d] = String(dateIso || '').split('-').map(Number);
   if (!y || !m || !d) return null;
 
@@ -78,7 +93,8 @@ export function periodoDeFechamento(dateIso, { modo = 'diaria', dias = [], prazo
   }
 
   const prazoNum = Number.isFinite(Number(prazo)) ? Number(prazo) : 5;
-  return { inicio, fim, vencimento: addDias(fim, prazoNum), modo: normalizarModo(modo), rotulo };
+  const vencimento = uteis ? addDiasUteis(fim, prazoNum) : addDias(fim, prazoNum);
+  return { inicio, fim, vencimento, modo: normalizarModo(modo), rotulo };
 }
 
 // Agrupa registros ({ companyId, date, valor }) por empresa + período de
@@ -94,6 +110,7 @@ export function agruparPorFechamento(registros = [], empresasPorId = {}) {
       modo: co?.closingCycle,
       dias: co?.closingDays,
       prazo: co?.prazoPagamento,
+      uteis: co?.prazoDiasUteis,
     });
     if (!periodo) continue;
 

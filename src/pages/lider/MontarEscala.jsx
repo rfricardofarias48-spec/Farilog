@@ -108,8 +108,16 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
     return empresas.filter(e => normalizeText(`${e.name} ${e.city || ''}`).includes(q));
   }, [empresas, buscaEmpresa]);
   const pagamentoEm = useMemo(
-    () => computePagamentoEm(form.date, empresa?.prazoPagamento ?? 5),
-    [form.date, empresa?.prazoPagamento]
+    () => computePagamentoEm(
+      form.date,
+      empresaSelecionada?.prazoPagamento ?? empresa?.prazoPagamento ?? 5,
+      {
+        modo:  empresaSelecionada?.closingCycle   ?? empresa?.closingCycle,
+        dias:  empresaSelecionada?.closingDays    ?? empresa?.closingDays,
+        uteis: empresaSelecionada?.prazoDiasUteis ?? empresa?.prazoDiasUteis,
+      }
+    ),
+    [form.date, empresaSelecionada, empresa]
   );
 
   useEffect(() => {
