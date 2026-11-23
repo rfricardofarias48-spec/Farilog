@@ -91,6 +91,7 @@ function mapCompany(r) {
     dailyRate:      Number(r.diaria ?? 150),
     valorDescarga:  Number(r.valor_descarga ?? 0),
     prazoPagamento: Number(r.prazo_pagamento ?? 5),
+    closingCycle:   r.periodicidade_fechamento || 'quinzenal',
     isActive:       r.ativo,
   };
 }
@@ -412,11 +413,17 @@ export async function createCompany(co) {
     diaria:          co.dailyRate ?? 150,
     valor_descarga:  co.valorDescarga ?? 0,
     prazo_pagamento: co.prazoPagamento ?? 5,
+    periodicidade_fechamento: co.closingCycle || 'quinzenal',
   };
   let { data, error } = await supabase.from('empresas').insert(payload).select().single();
   if (error && missingPrazoColumn(error)) {
     console.warn('[db] createCompany: coluna prazo_pagamento ausente — rode supabase/prazo-pagamento.sql no Supabase.');
     delete payload.prazo_pagamento;
+    ({ data, error } = await supabase.from('empresas').insert(payload).select().single());
+  }
+  if (error && /periodicidade_fechamento/.test(error.message || '')) {
+    console.warn('[db] createCompany: coluna periodicidade_fechamento ausente — rode supabase/fechamento-empresas.sql no Supabase.');
+    delete payload.periodicidade_fechamento;
     ({ data, error } = await supabase.from('empresas').insert(payload).select().single());
   }
   if (error) { console.error('[db] createCompany:', error.message); return null; }
@@ -436,6 +443,7 @@ export async function updateCompany(id, co) {
   if (co.dailyRate      !== undefined) patch.diaria          = co.dailyRate;
   if (co.valorDescarga  !== undefined) patch.valor_descarga  = co.valorDescarga;
   if (co.prazoPagamento !== undefined) patch.prazo_pagamento = co.prazoPagamento;
+  if (co.closingCycle   !== undefined) patch.periodicidade_fechamento = co.closingCycle;
 
   const latInformada = co.latitude;
   const lngInformada = co.longitude;
@@ -467,6 +475,16 @@ export async function updateCompany(id, co) {
   if (error && missingPrazoColumn(error)) {
     console.warn('[db] updateCompany: coluna prazo_pagamento ausente — rode supabase/prazo-pagamento.sql no Supabase.');
     delete patch.prazo_pagamento;
+    ({ data, error } = await supabase
+      .from('empresas')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single());
+  }
+  if (error && /periodicidade_fechamento/.test(error.message || '')) {
+    console.warn('[db] updateCompany: coluna periodicidade_fechamento ausente — rode supabase/fechamento-empresas.sql no Supabase.');
+    delete patch.periodicidade_fechamento;
     ({ data, error } = await supabase
       .from('empresas')
       .update(patch)

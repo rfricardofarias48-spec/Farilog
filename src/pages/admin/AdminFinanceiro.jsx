@@ -15,6 +15,7 @@ import {
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
 import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
+import { agruparPorFechamento } from '../../lib/fechamento';
 import {
   ComposedChart, Bar, Line, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceDot,
@@ -1114,32 +1115,31 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
 
   const isDaily = periodType === 'quinzenal' || periodType === 'mensal';
 
-  // a_receber: registros agrupados + manuais
+  // a_receber: diárias agrupadas pelo FECHAMENTO de cada empresa + manuais.
+  // Cada empresa fecha na sua cadência (diária/semanal/10 dias/quinzenal): as
+  // diárias do período viram UM único lançamento ("Nov 2 - Fitlog"), com
+  // vencimento = fim do período + prazo de pagamento da empresa.
   const recGroups = useMemo(() => {
-    const map = {};
-    records.filter(r => r.status !== 'absent').forEach(r => {
-      const key = `${r.date}__${r.companyId}`;
-      if (!map[key]) map[key] = { date: r.date, companyId: r.companyId, valor: 0, count: 0 };
-      map[key].valor += recordRevenue(r, companiesById);
-      map[key].count++;
-    });
-    const fromRecs = Object.values(map).map(g => {
-      const co = companies?.find(c => c.id === g.companyId);
-      // Receita de serviço: o status é identificado pela data (até hoje = recebido;
-      // futuro = a receber), então a coluna Status nunca fica vazia.
-      const recebido = g.date <= TODAY_ISO;
-      return {
-        date: g.date, descricao: `${co?.name || g.companyId} — ${g.count} ajudante${g.count !== 1 ? 's' : ''}`,
-        origem: 'Serviço', valor: g.valor, tipo: 'a_receber', isManual: false, derivado: true,
-        status: recebido ? 'recebido' : 'pendente', vencido: false,
-        classificacaoNome: receitasClass.nome, classificacaoCor: receitasClass.cor,
-      };
-    });
+    const grupos = agruparPorFechamento(
+      records
+        .filter(r => r.status !== 'absent')
+        .map(r => ({ ...r, valor: recordRevenue(r, companiesById) })),
+      companiesById
+    );
+
+    const fromRecs = grupos.map(g => ({
+      date: g.vencimento,
+      descricao: `${g.rotulo} - ${g.empresa}`,
+      origem: 'Serviço', valor: g.valor, tipo: 'a_receber', isManual: false, derivado: true,
+      status: g.vencimento <= TODAY_ISO ? 'recebido' : 'pendente', vencido: false,
+      classificacaoNome: receitasClass.nome, classificacaoCor: receitasClass.cor,
+      periodo: { inicio: g.inicio, fim: g.fim, rotulo: g.rotulo, ajudantes: g.count, dias: g.dias.size },
+    }));
     const fromManual = lancamentos
       .filter(l => l.tipo === 'a_receber')
       .map(l => { const cl = classOf(l); return { date: l.data_vencimento, descricao: l.descricao, origem: 'Manual', valor: Number(l.valor || 0), tipo: 'a_receber', isManual: true, id: l.id, status: statusOf(l), vencido: isVencido(l), classificacaoId: l.classificacao_id || '', classificacaoNome: cl.nome, classificacaoCor: cl.cor }; });
     return [...fromRecs, ...fromManual].sort((a, b) => a.date.localeCompare(b.date));
-  }, [records, lancamentos, companies, classificacoes]);
+  }, [records, lancamentos, companiesById, classificacoes]);
 
   const pagItems = useMemo(() =>
     lancamentos.filter(l => l.tipo === 'a_pagar').map(l => {

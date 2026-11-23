@@ -3,9 +3,10 @@ import { useAuth } from '../../context/AuthContext';
 import { fmtCurrency } from '../../data/mockData';
 import { createCompany, updateCompany, deleteCompany } from '../../lib/db';
 import { parseEmpresaLocalizacao } from '../../lib/cidades';
+import { CADENCIAS, CADENCIA_CURTA } from '../../lib/fechamento';
 import SeletorLocalizacao from '../../components/shared/SeletorLocalizacao';
 import { Plus, Edit2, Trash2, X, Building2, Search, Phone, Mail, MapPin } from 'lucide-react';
-const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', latitude: null, longitude: null, dailyRate: 150, valorDescarga: 0, prazoPagamento: 5 };
+const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', latitude: null, longitude: null, dailyRate: 150, valorDescarga: 0, prazoPagamento: 5, closingCycle: 'quinzenal' };
 const T  = { color: '#0B0B0B' };
 const T2 = { color: '#4A4A4A' };
 const TM = { color: '#9A9A9A' };
@@ -35,7 +36,7 @@ function Modal({ company, onSave, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-box animate-fade-up" style={{ maxWidth: '760px' }}>
+      <div className="modal-box animate-fade-up" style={{ maxWidth: '1040px' }}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-base font-bold" style={T}>{company ? 'Editar Empresa' : 'Nova Empresa'}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg transition-colors" style={{ color: '#9A9A9A', background: '#F5F5F5' }}>
@@ -59,14 +60,23 @@ function Modal({ company, onSave, onClose }) {
               <input type="number" required value={form.dailyRate ?? 150}
                 onChange={e => setForm({ ...form, dailyRate: e.target.value })} className="input-field" />
             </div>
-            {/* Linha 4b: Prazo de Pagamento (full) */}
-            <div className="col-span-2">
+{/* Linha 4b: Fechamento | Prazo de Pagamento */}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Fechamento</label>
+              <select className="input-field" value={form.closingCycle || 'quinzenal'}
+                onChange={e => setForm({ ...form, closingCycle: e.target.value })}>
+                {CADENCIAS.map(c => <option key={c.val} value={c.val}>{c.label}</option>)}
+              </select>
+            </div>
+            <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Prazo de Pagamento (dias após o fechamento)</label>
               <input type="number" min="0" step="1" required value={form.prazoPagamento ?? 5}
                 onChange={e => setForm({ ...form, prazoPagamento: e.target.value })} className="input-field" />
-              <p className="text-xs mt-1" style={{ color: '#9A9A9A' }}>
-                Data de pagamento dos valores fechados = último dia da quinzena + prazo.
-                Ex.: 10 dias → 1ª quinzena (fecha 15/08) vence 25/08; 2ª quinzena (fecha 31/08) vence 10/09.
+            </div>
+            <div className="col-span-2" style={{ marginTop: '-4px' }}>
+              <p className="text-xs" style={{ color: '#9A9A9A' }}>
+                As diárias do período entram num único lançamento a receber, com vencimento = fim do
+                fechamento + prazo. Ex.: quinzenal (fecha 15/08) + 10 dias → vence 25/08.
               </p>
             </div>
             {/* Linha 5: Valor Descarga (full) */}
@@ -198,6 +208,7 @@ export default function AdminCompanies() {
                       {c.city && <span className="flex items-center gap-1 text-xs" style={TM}><MapPin size={9}/>{c.city}</span>}
                       <span className="flex items-center gap-1 text-xs" style={TM}><Phone size={9}/>{c.phone}</span>
                       <span className="flex items-center gap-1 text-xs" style={TM}><Mail size={9}/>{c.email}</span>
+                      <span className="text-xs" style={{ ...TM, fontWeight: 600 }}>Fechamento: {CADENCIA_CURTA[c.closingCycle] || 'Quinzenal'}</span>
                     </div>
                   </div>
                 </div>
