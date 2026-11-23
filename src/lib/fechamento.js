@@ -120,3 +120,94 @@ export function agruparPorFechamento(registros = [], empresasPorId = {}) {
 
   return [...map.values()];
 }
+
+const MESES_LONGOS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+// Períodos de fechamento de um mês, em ordem. Cada período fica dentro do mês.
+function periodosDoMes(ano, mes, config = {}) {
+  const last = ultimoDiaDoMes(ano, mes);
+  const mm = pad(mes);
+  const out = [];
+
+  // Modo diária: cada dia é um período.
+  if (normalizarModo(config.modo) !== 'datas' || normalizarDias(config.dias).length === 0) {
+    for (let d = 1; d <= last; d++) {
+      const dia = `${ano}-${mm}-${pad(d)}`;
+      out.push({ inicio: dia, fim: dia, label: ddmm(dia), sday: d, eday: d, sm: mes, tYear: ano });
+    }
+    return out;
+  }
+
+  const pontos = normalizarDias(config.dias).filter(dd => dd <= last);
+  if (pontos.length === 0) pontos.push(last);
+
+  let inicioDia = 1;
+  for (const fechamento of pontos) {
+    out.push({
+      inicio: `${ano}-${mm}-${pad(inicioDia)}`,
+      fim:    `${ano}-${mm}-${pad(fechamento)}`,
+      label:  `${pad(inicioDia)}/${mm} a ${pad(fechamento)}/${mm}`,
+      sday: inicioDia, eday: fechamento, sm: mes, tYear: ano,
+    });
+    inicioDia = fechamento + 1;
+  }
+  // Sobras depois do último fechamento (ex.: fechamento nos dias 10 e 20) viram
+  // um último período até o fim do mês.
+  if (inicioDia <= last) {
+    out.push({
+      inicio: `${ano}-${mm}-${pad(inicioDia)}`,
+      fim:    `${ano}-${mm}-${pad(last)}`,
+      label:  `${pad(inicioDia)}/${mm} a ${pad(last)}/${mm}`,
+      sday: inicioDia, eday: last, sm: mes, tYear: ano,
+    });
+  }
+  return out;
+}
+
+// Limites do período exibido nos relatórios/histórico:
+//   mensal = true  → mês inteiro (offset em meses)
+//   mensal = false → períodos de fechamento da empresa (offset em períodos)
+// Devolve { start, end, label, sday, eday, sm, tYear }.
+export function getFechamentoBounds(config = {}, mensal = false, offset = 0) {
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  const [cy, cm] = hoje.split('-').map(Number);
+
+  if (mensal) {
+    let m = (cm - 1) + offset;
+    let y = cy;
+    while (m < 0) { m += 12; y -= 1; }
+    while (m >= 12) { m -= 12; y += 1; }
+    const last = ultimoDiaDoMes(y, m + 1);
+    const mm = pad(m + 1);
+    return {
+      start: `${y}-${mm}-01`,
+      end:   `${y}-${mm}-${pad(last)}`,
+      label: `${MESES_LONGOS[m]} ${y}`,
+      sday: 1, eday: last, sm: m + 1, tYear: y,
+    };
+  }
+
+  // Navega pelos períodos de fechamento a partir do período atual.
+  let ano = cy;
+  let mes = cm;
+  let lista = periodosDoMes(ano, mes, config);
+  let idx = lista.findIndex(p => hoje >= p.inicio && hoje <= p.fim);
+  if (idx < 0) idx = lista.length - 1;
+
+  let i = idx + offset;
+  while (i < 0) {
+    mes -= 1;
+    if (mes < 1) { mes = 12; ano -= 1; }
+    lista = periodosDoMes(ano, mes, config);
+    i += lista.length;
+  }
+  while (i >= lista.length) {
+    i -= lista.length;
+    mes += 1;
+    if (mes > 12) { mes = 1; ano += 1; }
+    lista = periodosDoMes(ano, mes, config);
+  }
+
+  const p = lista[i];
+  return { start: p.inicio, end: p.fim, label: p.label, sday: p.sday, eday: p.eday, sm: p.sm, tYear: p.tYear };
+}

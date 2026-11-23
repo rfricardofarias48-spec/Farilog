@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { fetchTodayAllRecords, fetchWorkRecordsByPeriod } from '../../lib/db';
 import { fmtCurrency, fmtDate } from '../../data/mockData';
 import { overtimeToMinutes, sumOvertimeMinutes, minutesToOvertimeString, recordRevenue } from '../../lib/timeUtils';
+import { getFechamentoBounds } from '../../lib/fechamento';
 import AdminConvocacoes from './AdminConvocacoes';
 import AdminEncarregados from './AdminEncarregados';
 import jsPDF from 'jspdf';
@@ -243,15 +244,19 @@ function Historico() {
   const { companies, employees } = useAuth();
   const [viewBy,      setViewBy]      = useState('empresa');
   const [selected,    setSelected]    = useState('');
-  const [period,      setPeriod]      = useState('quinzena');
+  const [mensal,      setMensal]      = useState(false);
   const [offset,      setOffset]      = useState(0);
   const [histRecords, setHistRecords] = useState([]);
   const [loadingHist, setLoadingHist] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
 
-  const handleViewBy = (v) => { setViewBy(v); setSelected(''); setHistRecords([]); setSelectedDay(null); };
+  const handleViewBy = (v) => { setViewBy(v); setSelected(''); setHistRecords([]); setSelectedDay(null); setOffset(0); };
 
-  const { start, end, label, sday, eday, sm, tYear } = getPeriodBounds(period, offset);
+  const company = viewBy === 'empresa' ? companies.find(c => c.id === selected) : null;
+  const cfgFechamento = company
+    ? { modo: company.closingCycle, dias: company.closingDays }
+    : { modo: 'datas', dias: [15, 31] };
+  const { start, end, label, sday, eday, sm, tYear } = getFechamentoBounds(cfgFechamento, mensal, offset);
 
   useEffect(() => {
     if (!selected) { setHistRecords([]); return; }
@@ -263,7 +268,6 @@ function Historico() {
       .finally(() => setLoadingHist(false));
   }, [selected, start, end, viewBy]);
 
-  const company  = viewBy === 'empresa'  ? companies.find(c => c.id === selected) : null;
   const employee = viewBy === 'ajudante' ? employees.find(e => e.id === selected) : null;
   const selectedName = company?.name ?? employee?.name ?? '';
   const dailyRate = viewBy === 'empresa' ? Number(company?.dailyRate ?? 150) : Number(employee?.dailyRate ?? 150);
@@ -308,15 +312,16 @@ function Historico() {
         <div>
           <p className="text-xs font-semibold mb-2" style={{ color: '#BDBDBD' }}>Período</p>
           <div className="flex items-center gap-2">
-            <div className="flex gap-1 p-0.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
-              {[['quinzena','Quinzenal'],['mes','Mensal']].map(([val, lbl]) => (
-                <button key={val} onClick={() => { setPeriod(val); setOffset(0); }}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                  style={{ background: period === val ? '#FFFFFF' : 'transparent', color: period === val ? '#0B0B0B' : '#BDBDBD', border: 'none', cursor: 'pointer' }}>
-                  {lbl}
-                </button>
-              ))}
-            </div>
+            <button onClick={() => { setMensal(v => !v); setOffset(0); }}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+              style={{
+                background: mensal ? '#FFFFFF' : 'rgba(255,255,255,0.06)',
+                color: mensal ? '#0B0B0B' : '#BDBDBD',
+                border: `1px solid ${mensal ? '#FFFFFF' : 'rgba(255,255,255,0.14)'}`,
+                cursor: 'pointer',
+              }}>
+              Mensal
+            </button>
             <button onClick={() => setOffset(o => o - 1)} className="p-1.5 rounded-lg"
               style={{ background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', color: '#E4E4E4', display: 'flex' }}>
               <ChevronLeft size={14} />
@@ -354,13 +359,13 @@ function Historico() {
             {viewBy === 'empresa' ? 'Selecionar empresa' : 'Selecionar ajudante'}
           </p>
           {viewBy === 'empresa' ? (
-            <select value={selected} onChange={e => { setSelected(e.target.value); setSelectedDay(null); }} className="input-field"
+            <select value={selected} onChange={e => { setSelected(e.target.value); setSelectedDay(null); setOffset(0); }} className="input-field"
               style={{ background: '#1C1C1C', color: '#F5F5F5', borderColor: 'rgba(255,255,255,0.14)', colorScheme: 'dark' }}>
               <option value="">Escolha uma empresa...</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : (
-            <select value={selected} onChange={e => { setSelected(e.target.value); setSelectedDay(null); }} className="input-field"
+            <select value={selected} onChange={e => { setSelected(e.target.value); setSelectedDay(null); setOffset(0); }} className="input-field"
               style={{ background: '#1C1C1C', color: '#F5F5F5', borderColor: 'rgba(255,255,255,0.14)', colorScheme: 'dark' }}>
               <option value="">Escolha um ajudante...</option>
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
@@ -605,14 +610,18 @@ function Relatorios() {
   const { companies, employees } = useAuth();
   const [viewBy,   setViewBy]   = useState('empresa');   // 'empresa' | 'ajudante'
   const [selected, setSelected] = useState('');
-  const [period,   setPeriod]   = useState('quinzena');
+  const [mensal,   setMensal]   = useState(false);
   const [offset,   setOffset]   = useState(0);
   const [records,  setRecords]  = useState([]);
   const [loading,  setLoading]  = useState(false);
 
-  const handleViewBy = (v) => { setViewBy(v); setSelected(''); setRecords([]); };
+  const handleViewBy = (v) => { setViewBy(v); setSelected(''); setRecords([]); setOffset(0); };
 
-  const { start, end, label, sday, eday, sm, tYear } = getPeriodBounds(period, offset);
+  const company = viewBy === 'empresa' ? companies.find(c => c.id === selected) : null;
+  const cfgFechamento = company
+    ? { modo: company.closingCycle, dias: company.closingDays }
+    : { modo: 'datas', dias: [15, 31] };
+  const { start, end, label, sday, eday, sm, tYear } = getFechamentoBounds(cfgFechamento, mensal, offset);
 
   useEffect(() => {
     if (!selected) { setRecords([]); return; }
@@ -625,7 +634,6 @@ function Relatorios() {
   }, [selected, start, end, viewBy]);
 
   // Taxas
-  const company  = viewBy === 'empresa'  ? companies.find(c => c.id === selected) : null;
   const employee = viewBy === 'ajudante' ? employees.find(e => e.id === selected) : null;
   const subject  = company || employee;
   const subjectName = company?.name ?? employee?.name ?? '';
@@ -684,7 +692,7 @@ function Relatorios() {
     doc.setFillColor(...headBg);
     doc.rect(0, 0, 210, headerH, 'F');
     doc.setTextColor(255,255,255); doc.setFontSize(15); doc.setFont('helvetica','bold');
-    doc.text(`Relatório ${period === 'quinzena' ? 'Quinzenal' : 'Mensal'} — ${viewBy === 'empresa' ? 'Empresa' : 'Funcionário'}`, 10, headerH / 2 + 3);
+    doc.text(`Relatório ${mensal ? 'Mensal' : 'por período'} — ${viewBy === 'empresa' ? 'Empresa' : 'Funcionário'}`, 10, headerH / 2 + 3);
     if (logoDataUrl) {
       const lH = 30;
       const lW = lH * logoAspect;
@@ -797,13 +805,13 @@ function Relatorios() {
             {viewBy === 'empresa' ? 'Selecionar empresa' : 'Selecionar funcionário'}
           </p>
           {viewBy === 'empresa' ? (
-            <select value={selected} onChange={e => setSelected(e.target.value)} className="input-field"
+            <select value={selected} onChange={e => { setSelected(e.target.value); setOffset(0); }} className="input-field"
               style={{ background: '#1C1C1C', color: '#F5F5F5', borderColor: 'rgba(255,255,255,0.14)', colorScheme: 'dark' }}>
               <option value="">Escolha uma empresa...</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : (
-            <select value={selected} onChange={e => setSelected(e.target.value)} className="input-field"
+            <select value={selected} onChange={e => { setSelected(e.target.value); setOffset(0); }} className="input-field"
               style={{ background: '#1C1C1C', color: '#F5F5F5', borderColor: 'rgba(255,255,255,0.14)', colorScheme: 'dark' }}>
               <option value="">Escolha um funcionário...</option>
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
@@ -814,14 +822,16 @@ function Relatorios() {
         {/* Período */}
         <div>
           <p className="text-xs font-semibold mb-2" style={{ color: '#BDBDBD' }}>Período</p>
-          <div className="flex gap-1 p-0.5 rounded-xl w-fit mb-3" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
-            {[['quinzena','Quinzenal'],['mes','Mensal']].map(([val, lbl]) => (
-              <button key={val} onClick={() => { setPeriod(val); setOffset(0); }}
-                className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{ background: period === val ? '#FFFFFF' : 'transparent', color: period === val ? '#0B0B0B' : '#BDBDBD', border: 'none', cursor: 'pointer' }}>
-                {lbl}
-              </button>
-            ))}
+          <div className="flex gap-1 p-0.5 rounded-xl w-fit mb-3">
+            <button onClick={() => { setMensal(v => !v); setOffset(0); }}
+              className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all"
+              style={{
+                background: mensal ? '#FFFFFF' : 'transparent',
+                color: mensal ? '#0B0B0B' : '#BDBDBD',
+                border: 'none', cursor: 'pointer',
+              }}>
+              Mensal
+            </button>
           </div>
           <div className="flex items-center gap-3">
             {navBtn(<ChevronLeft size={15} />, () => setOffset(o => o - 1))}
