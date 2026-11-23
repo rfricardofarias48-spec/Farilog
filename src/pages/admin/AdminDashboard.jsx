@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { fetchWorkRecordsByPeriod } from '../../lib/db';
+import { fetchWorkRecordsByPeriod, fetchLancamentos } from '../../lib/db';
 import { sumOvertimeMinutes, minutesToOvertimeString, recordRevenue } from '../../lib/timeUtils';
 import { agruparPorFechamento } from '../../lib/fechamento';
 import { fmtCurrency } from '../../data/mockData';
@@ -98,6 +98,7 @@ export default function AdminDashboard() {
   const [period,  setPeriod]  = useState('mes');
   const [offset,  setOffset]  = useState(0);
   const [records, setRecords] = useState([]);
+  const [lancamentos, setLancamentos] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const handlePeriod = (p) => { setPeriod(p); setOffset(0); };
@@ -105,11 +106,28 @@ export default function AdminDashboard() {
   const { start, end, label, tYear, tMonth } = getPeriodBounds(period, offset);
 
   // ── Busca dados reais do Supabase ─────────────────────────────────────────
-  useEffect(() => {
+  const loadData = useCallback(() => {
     setLoading(true);
-    fetchWorkRecordsByPeriod(null, null, start, end)
-      .then(r => { setRecords(r || []); setLoading(false); });
+    Promise.all([
+      fetchWorkRecordsByPeriod(null, null, start, end),
+      fetchLancamentos(start, end),
+    ])
+      .then(([recs, lancs]) => {
+        setRecords(recs || []);
+        setLancamentos(lancs || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, [start, end]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Recarrega ao voltar para a aba, para o painel não ficar com dados velhos.
+  useEffect(() => {
+    const onFocus = () => loadData();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [loadData]);
 
   // ── KPIs calculados dos dados reais ──────────────────────────────────────
   const periodRecs = records.filter(r => r.status !== 'absent'); // não-ausentes (agendado, ativo ou concluído)
@@ -119,24 +137,32 @@ export default function AdminDashboard() {
 
   const activeToday     = records.filter(r => r.date === TODAY && r.status !== 'absent').length;
   const activeEmployees = employees.filter(e => e.status === 'active').length;
-  const periodRevenue   = periodRecs.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
   const periodHEMin    = sumOvertimeMinutes(periodRecs);
 
-  // Faturamento é o total faturado no período (independe de já ter sido
-  // recebido). A divisão usa o fechamento de cada empresa: o que já venceu
-  // entra como Recebido e o que ainda vai vencer fica em A Receber.
-  const { periodReceived, periodToReceive } = useMemo(() => {
+  // Faturamento na MESMA base da aba Faturamento (Fluxo de Caixa): as diárias
+  // agrupadas pelo fechamento de cada empresa + os lançamentos manuais a receber
+  // do período. O total exibido é Recebido + A Receber.
+  const faturamento = useMemo(() => {
     const grupos = agruparPorFechamento(
       periodRecs.map(r => ({ ...r, valor: recordRevenue(r, companiesById) })),
       companiesById
     );
-    let recebido = 0, aReceber = 0;
+    let recebido = 0;
+    let aReceber = 0;
     for (const g of grupos) {
       if (g.vencimento <= TODAY) recebido += g.valor;
       else aReceber += g.valor;
     }
-    return { periodReceived: recebido, periodToReceive: aReceber };
-  }, [periodRecs, companiesById]);
+    for (const l of (lancamentos || [])) {
+      if (l.tipo !== 'a_receber') continue;
+      const valor = Number(l.valor || 0);
+      if (l.status === 'recebido') recebido += valor;
+      else aReceber += valor;
+    }
+    return { recebido, aReceber, total: recebido + aReceber };
+  }, [periodRecs, companiesById, lancamentos]);
+
+  const periodRevenue = faturamento.total;
 
   // ── Dados dos gráficos ────────────────────────────────────────────────────
   const chartData = useMemo(() => {
@@ -227,7 +253,7 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-up delay-1">
             {[
               { label: 'Faturamento', value: fmtCurrency(periodRevenue), icon: DollarSign,
-                extra: { recebido: periodReceived, aReceber: periodToReceive } },
+                extra: { recebido: faturamento.recebido, aReceber: faturamento.aReceber } },
               { label: 'Func. ativos', value: activeEmployees, icon: Users },
               { label: 'Empresas',     value: companies.length, icon: Building2 },
             ].map((k, i) => (
