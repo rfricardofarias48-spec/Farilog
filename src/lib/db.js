@@ -36,6 +36,7 @@ function mapRecord(r) {
     lunchReturn: fmtHHMM(r.retorno_almoco),
     checkOut:    fmtHHMM(r.saida),
     overtime:    r.hora_extra,
+    ajuste:      Number(r.ajuste ?? 0),
     status:      r.status,
     value:       r.valor,
     confirmacao: r.confirmacao,
@@ -117,6 +118,8 @@ function mapDemand(escala) {
     contatoDia:      escala.contato_dia     || '',
     liderId:         escala.lider_id        || null,
     liderNome:       escala.lideres_equipe?.nome || escala.liderNome || null,
+    desconto:        Number(escala.desconto ?? 0),
+    acrescimo:       Number(escala.acrescimo ?? 0),
     employees: (escala.registros || []).map(wr => ({
       employeeId:    wr.funcionario_id,
       status:        wr.confirmacao || 'aguardando',
@@ -582,27 +585,37 @@ export async function fetchDemands() {
 
 export async function createDemand({
   companyId, date, time, service, employeeIds, adminId, liderId, tipoServico,
-  entrada, saida, saidaAlmoco, retornoAlmoco, employeeTimes,
+  entrada, saida, saidaAlmoco, retornoAlmoco, employeeTimes, desconto = 0, acrescimo = 0,
 }) {
   const diaria = await getCompanyDiaria(companyId);
   const escalaId = crypto.randomUUID();
   const escalaStatus = saida ? 'completed' : (entrada || time) ? 'active' : 'scheduled';
 
-  const { data: escala, error: escErr } = await supabase
+  const escalaPayload = {
+    id:           escalaId,
+    empresa_id:   companyId,
+    data:         date,
+    horario:      time || entrada || null,
+    servico:      service || null,
+    tipo_servico: tipoServico || 'entrega',
+    status:       escalaStatus,
+    criado_por:   adminId || null,
+    lider_id:     liderId || null,
+    desconto:     Number(desconto) || 0,
+    acrescimo:    Number(acrescimo) || 0,
+  };
+
+  let { data: escala, error: escErr } = await supabase
     .from('escalas')
-    .insert({
-      id:           escalaId,
-      empresa_id:   companyId,
-      data:         date,
-      horario:      time || entrada || null,
-      servico:      service || null,
-      tipo_servico: tipoServico || 'entrega',
-      status:       escalaStatus,
-      criado_por:   adminId || null,
-      lider_id:     liderId || null,
-    })
+    .insert(escalaPayload)
     .select()
     .single();
+  if (escErr && /desconto|acrescimo/.test(escErr.message || '')) {
+    console.warn('[db] createDemand: colunas desconto/acrescimo ausentes — rode supabase/escalas-desconto-acrescimo.sql no Supabase.');
+    delete escalaPayload.desconto;
+    delete escalaPayload.acrescimo;
+    ({ data: escala, error: escErr } = await supabase.from('escalas').insert(escalaPayload).select().single());
+  }
 
   if (escErr) { console.error('[db] createDemand escala:', escErr.message); return null; }
 
@@ -648,6 +661,11 @@ export async function createDemand({
 
   const { error: wrErr } = await supabase.from('registros').insert(workRecords);
   if (wrErr) { console.error('[db] createDemand registros:', wrErr.message); return null; }
+
+  // Distribui o ajuste da demanda (acréscimo − desconto) entre os registros,
+  // para o faturamento já considerá-lo. Ignora se a coluna ainda não existe.
+  const ajustePorRegistro = (Number(acrescimo) - Number(desconto)) / (employeeIds.length || 1);
+  await supabase.from('registros').update({ ajuste: ajustePorRegistro }).eq('escala_id', escalaId);
 
   return mapDemand({ ...escala, registros: workRecords });
 }
@@ -766,19 +784,28 @@ export async function archiveDemand(id) {
 
 export async function editDemand(id, {
   companyId, date, time, service, selectedEmployees, liderId, tipoServico,
-  entrada, saida, saidaAlmoco, retornoAlmoco, employeeTimes,
+  entrada, saida, saidaAlmoco, retornoAlmoco, employeeTimes, desconto, acrescimo,
 }) {
-  const { error: escErr } = await supabase
+  const escalaPatch = {
+    empresa_id: companyId,
+    data: date,
+    horario: time || entrada || null,
+    servico: service,
+    lider_id: liderId || null,
+    tipo_servico: tipoServico || 'entrega',
+  };
+  if (desconto  !== undefined) escalaPatch.desconto  = Number(desconto) || 0;
+  if (acrescimo !== undefined) escalaPatch.acrescimo = Number(acrescimo) || 0;
+
+  let { error: escErr } = await supabase
     .from('escalas')
-    .update({
-      empresa_id: companyId,
-      data: date,
-      horario: time || entrada || null,
-      servico: service,
-      lider_id: liderId || null,
-      tipo_servico: tipoServico || 'entrega',
-    })
+    .update(escalaPatch)
     .eq('id', id);
+  if (escErr && /desconto|acrescimo/.test(escErr.message || '')) {
+    delete escalaPatch.desconto;
+    delete escalaPatch.acrescimo;
+    ({ error: escErr } = await supabase.from('escalas').update(escalaPatch).eq('id', id));
+  }
   if (escErr) { console.error('[db] editDemand escala:', escErr.message); return false; }
 
   // Atualiza também data, empresa_id e servico nos registros existentes
@@ -850,6 +877,15 @@ export async function editDemand(id, {
         await updateDemandEmployeeTimes(id, empId, times);
       }
     }
+  }
+
+  // Recalcula a distribuição do ajuste (acréscimo − desconto) entre os registros
+  // da demanda, já com a lista final de ajudantes. Ignora se a coluna não existe.
+  if (desconto !== undefined || acrescimo !== undefined) {
+    const { data: atuais } = await supabase.from('registros').select('id').eq('escala_id', id);
+    const n = (atuais || []).length || 1;
+    const ajustePorRegistro = (Number(acrescimo || 0) - Number(desconto || 0)) / n;
+    await supabase.from('registros').update({ ajuste: ajustePorRegistro }).eq('escala_id', id);
   }
 
   return true;
@@ -1104,13 +1140,19 @@ export async function fetchLiderDesempenho(liderId, period) {
   const { from, to } = period || defaultLiderPeriod();
   const vazio = { empresas: [], total: { diarias: 0, faltas: 0, pend: 0, faturado: 0 }, presenca: 0, from, to };
 
-  const { data, error } = await supabase
+  // tolera a coluna ajuste ainda não migrada (registros sem ela)
+  const query = (cols) => supabase
     .from('escalas')
-    .select('id, data, empresa_id, empresas(nome, diaria), registros(status, hora_extra)')
+    .select(cols)
     .eq('lider_id', liderId)
     .gte('data', from)
     .lte('data', to)
     .order('data', { ascending: false });
+
+  let { data, error } = await query('id, data, empresa_id, empresas(nome, diaria), registros(status, hora_extra, ajuste)');
+  if (error && /ajuste/.test(error.message || '')) {
+    ({ data, error } = await query('id, data, empresa_id, empresas(nome, diaria), registros(status, hora_extra)'));
+  }
 
   if (error) { console.error('[db] fetchLiderDesempenho:', error.message); return vazio; }
 
@@ -1135,7 +1177,7 @@ export async function fetchLiderDesempenho(liderId, period) {
     for (const reg of esc.registros || []) {
       if (reg.status === 'completed') {
         row.diarias  += 1;
-        row.faturado += recordRevenue({ companyId: esc.empresa_id, overtime: reg.hora_extra }, { [esc.empresa_id]: { dailyRate: diaria } });
+        row.faturado += recordRevenue({ companyId: esc.empresa_id, overtime: reg.hora_extra, ajuste: reg.ajuste }, { [esc.empresa_id]: { dailyRate: diaria } });
       } else if (reg.status === 'absent') {
         row.faltas   += 1;
       } else {

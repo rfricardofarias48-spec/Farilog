@@ -570,6 +570,8 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
                 service:           editando.service || '',
                 selectedEmployees: (editando.employees || []).map(e => e.employeeId),
                 tipoServico:       editando.tipoServico || 'entrega',
+                desconto:          editando.desconto  ?? '',
+                acrescimo:         editando.acrescimo ?? '',
                 employeeTimes:     (editando.employees || []).reduce((acc, e) => {
                   acc[e.employeeId] = {
                     entrada: hhmm(e.entrada),

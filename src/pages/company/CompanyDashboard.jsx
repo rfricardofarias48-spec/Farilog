@@ -269,7 +269,7 @@ function buildPeriodChartData(records, companyId, startIso, endIso, dailyRate = 
       label: `${String(d).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.length,
-      value: recs.reduce((s, r) => s + dailyRate, 0) + (heMin / 60) * VALOR_HORA_EXTRA(dailyRate),
+      value: recs.reduce((s, r) => s + dailyRate + (Number(r.ajuste) || 0), 0) + (heMin / 60) * VALOR_HORA_EXTRA(dailyRate),
       heMin,
       isWeekend,
     });
@@ -331,7 +331,7 @@ function buildQuinzenaData(records, offset = 0, dailyRate = VALOR_DIARIA) {
       label: `${String(d).padStart(2,'0')}/${String(month + 1).padStart(2,'0')}`,
       shortDay: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dow],
       count: recs.length,
-      value: recs.reduce((s, r) => s + dailyRate, 0) + (heMin / 60) * VALOR_HORA_EXTRA(dailyRate),
+      value: recs.reduce((s, r) => s + dailyRate + (Number(r.ajuste) || 0), 0) + (heMin / 60) * VALOR_HORA_EXTRA(dailyRate),
       heMin,
       isToday,
       isWeekend,
@@ -1664,7 +1664,7 @@ function calcPaymentTotal(payment, records, dailyRate = VALOR_DIARIA) {
   const presentes = recs.filter(r => r.status !== 'absent');
   const diarias  = presentes.length;
   const heMin    = sumOvertimeMinutes(presentes);
-  const valorDiarias = presentes.reduce((s, r) => s + dailyRate, 0);
+  const valorDiarias = presentes.reduce((s, r) => s + dailyRate + (Number(r.ajuste) || 0), 0);
   const valorHE      = (heMin / 60) * VALOR_HORA_EXTRA(dailyRate);
   return { total: valorDiarias + valorHE, diarias, heMin, valorDiarias, valorHE };
 }
@@ -1692,7 +1692,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
   const totalFaltas    = allRecs.filter(r => r.status === 'absent').length;
   const totalPresentes = totalEscala - totalFaltas;
   const heMin          = sumOvertimeMinutes(allRecs.filter(r => r.status !== 'absent'));
-  const totalValorDiarias = allRecs.filter(r => r.status !== 'absent').reduce((s, r) => s + dailyRate, 0);
+  const totalValorDiarias = allRecs.filter(r => r.status !== 'absent').reduce((s, r) => s + dailyRate + (Number(r.ajuste) || 0), 0);
   const totalValor     = totalValorDiarias + (heMin / 60) * VALOR_HORA_EXTRA(dailyRate);
   const statusColor = payment.status === 'paid' ? '#0B0B0B' : payment.status === 'overdue' ? '#4A4A4A' : '#6B6B6B';
   const statusLabel = payment.status === 'paid' ? 'Pago' : payment.status === 'pending' ? 'Pendente' : 'Atrasado';
@@ -1741,7 +1741,7 @@ function FinPeriodModal({ payment, companyId, onClose }) {
               const atrasos   = recs.filter(r => r.status !== 'absent' && r.checkIn > START_TIME).length;
               const presentes = recs.filter(r => r.status !== 'absent');
               const heMin     = sumOvertimeMinutes(presentes);
-              const valor     = presentes.reduce((s, r) => s + dailyRate, 0) + (heMin / 60) * VALOR_HORA_EXTRA(dailyRate);
+              const valor     = presentes.reduce((s, r) => s + dailyRate + (Number(r.ajuste) || 0), 0) + (heMin / 60) * VALOR_HORA_EXTRA(dailyRate);
               const [, m, d] = date.split('-');
               const dow = DOW_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
               const isToday = date === TODAY;
@@ -3069,7 +3069,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
       const presentes = recs.filter(r => r.status !== 'absent');
       diarias      = presentes.length;
       heMin        = sumOvertimeMinutes(presentes);
-      valorDiarias = presentes.reduce((s, r) => s + dailyRate, 0);
+      valorDiarias = presentes.reduce((s, r) => s + dailyRate + (Number(r.ajuste) || 0), 0);
       valorHE      = (heMin / 60) * VALOR_HORA_EXTRA(dailyRate);
     }
 
@@ -3620,7 +3620,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
                                   </div>
                                   <div style={{ textAlign: 'center' }}>
                                     <p style={{ fontSize: '8px', fontWeight: 600, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Valor</p>
-                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#0B0B0B', background: '#F5F5F5', padding: '2px 6px', borderRadius: '5px' }}>{fmtCurrency(dailyRate + (overtimeToMinutes(rec.overtime) / 60) * VALOR_HORA_EXTRA(dailyRate))}</p>
+                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#0B0B0B', background: '#F5F5F5', padding: '2px 6px', borderRadius: '5px' }}>{fmtCurrency(dailyRate + (Number(rec.ajuste) || 0) + (overtimeToMinutes(rec.overtime) / 60) * VALOR_HORA_EXTRA(dailyRate))}</p>
                                   </div>
                                 </div>
                               )}

@@ -276,6 +276,8 @@ export default function DemandForm({
         saidaAlmoco:   initialData.saidaAlmoco   || '',
         retornoAlmoco: initialData.retornoAlmoco || '',
         employeeTimes: initialData.employeeTimes || {},
+        desconto:      initialData.desconto  ?? '',
+        acrescimo:     initialData.acrescimo ?? '',
       };
     }
     return {
@@ -290,6 +292,8 @@ export default function DemandForm({
       selectedEmployees: [],
       tipoServico:       'entrega',
       employeeTimes:     {},
+      desconto:          '',
+      acrescimo:         '',
     };
   });
 
@@ -435,6 +439,11 @@ export default function DemandForm({
     ? `${totalOvertimeHours}h ${String(totalOvertimeRemainingMins).padStart(2, '0')}m`
     : '0h';
 
+  // Ajuste da demanda: acréscimo soma, desconto subtrai do total da diária.
+  const descontoValue  = Math.max(0, Number(String(form.desconto  ?? '').replace(',', '.')) || 0);
+  const acrescimoValue = Math.max(0, Number(String(form.acrescimo ?? '').replace(',', '.')) || 0);
+  const totalComAjuste = totalDiariasValue + acrescimoValue - descontoValue;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.companyId)                     { setError('Selecione uma empresa.'); return; }
@@ -458,6 +467,8 @@ export default function DemandForm({
             selectedEmployees: [],
             tipoServico:       'entrega',
             employeeTimes:     {},
+            desconto:          '',
+            acrescimo:         '',
           });
           setSuccess(true);
           setTimeout(() => setSuccess(false), 3500);
@@ -618,6 +629,29 @@ export default function DemandForm({
                   ? 'Regra Carga/Descarga: 8h base de trabalho direto.'
                   : 'Regra Diária: 8h trabalho + 1h almoço (total 9h). Acima de 9h é hora extra.'}
               </p>
+
+              {/* Desconto / Acréscimo da demanda */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: '#6B6B6B' }}>
+                  Desconto (R$)
+                  <input type="number" min="0" step="0.01" value={form.desconto ?? ''}
+                    onChange={e => setForm(f => ({ ...f, desconto: e.target.value }))}
+                    placeholder="0,00" className="input-field"
+                    style={{ width: '92px', padding: '4px 8px', fontSize: '12px' }} />
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: '#6B6B6B' }}>
+                  Acréscimo (R$)
+                  <input type="number" min="0" step="0.01" value={form.acrescimo ?? ''}
+                    onChange={e => setForm(f => ({ ...f, acrescimo: e.target.value }))}
+                    placeholder="0,00" className="input-field"
+                    style={{ width: '92px', padding: '4px 8px', fontSize: '12px' }} />
+                </label>
+                {(descontoValue > 0 || acrescimoValue > 0) && (
+                  <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#0B0B0B' }}>
+                    Total com ajuste: R$ {totalComAjuste.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Ações e Resumo de HE */}

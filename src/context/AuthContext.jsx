@@ -44,11 +44,12 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const addDemand = async ({ companyId, date, time, service, employeeIds, tipoServico, entrada, saida, saidaAlmoco, retornoAlmoco, employeeTimes }) => {
+  const addDemand = async ({ companyId, date, time, service, employeeIds, tipoServico, entrada, saida, saidaAlmoco, retornoAlmoco, employeeTimes, desconto, acrescimo }) => {
     const saved = await createDemand({
       companyId, date, time: time || entrada || '07:30', service, employeeIds,
       adminId: user?.id ?? null, liderId: null, tipoServico,
       entrada, saida, saidaAlmoco, retornoAlmoco, employeeTimes,
+      desconto, acrescimo,
     });
     if (saved) {
       const company = companies.find(c => c.id === companyId);

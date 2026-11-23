@@ -632,6 +632,8 @@ function AcompanharDemandas({ demands, employees, companies, onChangeStatus, onU
                 service:           editingDemand.service || '',
                 selectedEmployees: editingDemand.employees.map(e => e.employeeId),
                 tipoServico:       editingDemand.tipoServico || 'entrega',
+                desconto:          editingDemand.desconto  ?? '',
+                acrescimo:         editingDemand.acrescimo ?? '',
                 employeeTimes:     editingDemand.employees.reduce((acc, e) => {
                   acc[e.employeeId] = {
                     entrada:       e.entrada || '',

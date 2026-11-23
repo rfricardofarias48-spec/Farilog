@@ -159,9 +159,11 @@ export function heHourlyRate(dailyRate) {
 
 /**
  * Valor faturado de um registro para a empresa: diária da empresa (cadastro no
- * admin) + hora extra proporcional. companiesById é um mapa id → empresa.
+ * admin) + hora extra proporcional + ajuste da demanda (desconto/acréscimo
+ * distribuído por registro). companiesById é um mapa id → empresa.
  */
 export function recordRevenue(record, companiesById) {
   const rate = Number(companiesById?.[record?.companyId]?.dailyRate) || 150;
-  return rate + (overtimeToMinutes(record?.overtime) / 60) * heHourlyRate(rate);
+  return rate + (overtimeToMinutes(record?.overtime) / 60) * heHourlyRate(rate)
+       + Number(record?.ajuste || 0);
 }

@@ -282,7 +282,8 @@ function Historico() {
     const presentes = recs.filter(r => r.status !== 'absent');
     const diarias   = viewBy === 'empresa' ? presentes.length : (presentes.length > 0 ? 1 : 0);
     const heMin     = sumOvertimeMinutes(presentes);
-    const total     = diarias * dailyRate + (heMin / 60) * heRate;
+    const total     = diarias * dailyRate + (heMin / 60) * heRate
+                    + presentes.reduce((s, r) => s + (Number(r.ajuste) || 0), 0);
     allDays.push({
       date: iso, dow,
       label: `${DOW_SHORT[dow]}, ${String(day).padStart(2,'0')}/${String(sm).padStart(2,'0')}`,
@@ -558,7 +559,7 @@ function DayDetailModal({ day, employees, companies, viewBy, dailyRate, heRate, 
                 const emp     = viewBy === 'empresa' ? employees.find(e => e.id === rec.employeeId) : null;
                 // Valor faturado: diária da empresa (admin) + HE proporcional (diária ÷ 8 × 1,5) —
                 // não usa o salário do ajudante, que é custo interno
-                const recVal  = dailyRate + (overtimeToMinutes(rec.overtime) / 60) * heRate;
+                const recVal  = dailyRate + (Number(rec.ajuste) || 0) + (overtimeToMinutes(rec.overtime) / 60) * heRate;
                 return (
                   <div key={rec.id ?? idx} style={{
                     display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px 60px 70px 70px',
@@ -652,7 +653,8 @@ function Relatorios() {
     const presentes    = recs.filter(r => r.status !== 'absent');
     const diarias      = viewBy === 'empresa' ? presentes.length : (presentes.length > 0 ? 1 : 0);
     const heMin        = sumOvertimeMinutes(presentes);
-    const valorDiarias = diarias * dailyRate;
+    const valorDiarias = diarias * dailyRate
+                       + presentes.reduce((s, r) => s + (Number(r.ajuste) || 0), 0);
     const valorHE      = (heMin / 60) * heRate;
     allDays.push({
       date: iso, dow,
