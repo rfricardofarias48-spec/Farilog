@@ -93,6 +93,7 @@ function mapCompany(r) {
     valorDescarga:  Number(r.valor_descarga ?? 0),
     prazoPagamento: Number(r.prazo_pagamento ?? 5),
     prazoFolha:     Number(r.prazo_folha ?? 7),
+    folhaModo:      r.folha_modo === 'semanal' ? 'semanal' : 'quinzena',
     closingCycle:   r.periodicidade_fechamento || 'diaria',
     closingDays:    Array.isArray(r.dias_fechamento) ? r.dias_fechamento.map(Number) : [],
     isActive:       r.ativo,
@@ -419,6 +420,7 @@ export async function createCompany(co) {
     valor_descarga:  co.valorDescarga ?? 0,
     prazo_pagamento: co.prazoPagamento ?? 5,
     prazo_folha:     co.prazoFolha ?? 7,
+    folha_modo:      co.folhaModo === 'semanal' ? 'semanal' : 'quinzena',
     periodicidade_fechamento: co.closingCycle === 'datas' ? 'datas' : 'diaria',
     dias_fechamento: normalizarDias(co.closingDays),
   };
@@ -431,6 +433,11 @@ export async function createCompany(co) {
   if (error && /prazo_folha/.test(error.message || '')) {
     console.warn('[db] createCompany: coluna prazo_folha ausente — rode supabase/empresas-prazo-folha.sql no Supabase.');
     delete payload.prazo_folha;
+    ({ data, error } = await supabase.from('empresas').insert(payload).select().single());
+  }
+  if (error && /folha_modo/.test(error.message || '')) {
+    console.warn('[db] createCompany: coluna folha_modo ausente — rode supabase/empresas-folha-modo.sql no Supabase.');
+    delete payload.folha_modo;
     ({ data, error } = await supabase.from('empresas').insert(payload).select().single());
   }
   if (error && /periodicidade_fechamento/.test(error.message || '')) {
@@ -462,6 +469,7 @@ export async function updateCompany(id, co) {
   if (co.valorDescarga  !== undefined) patch.valor_descarga  = co.valorDescarga;
   if (co.prazoPagamento !== undefined) patch.prazo_pagamento = co.prazoPagamento;
   if (co.prazoFolha     !== undefined) patch.prazo_folha     = co.prazoFolha;
+  if (co.folhaModo      !== undefined) patch.folha_modo      = co.folhaModo === 'semanal' ? 'semanal' : 'quinzena';
   if (co.closingCycle   !== undefined) patch.periodicidade_fechamento = co.closingCycle === 'datas' ? 'datas' : 'diaria';
   if (co.closingDays    !== undefined) patch.dias_fechamento = normalizarDias(co.closingDays);
 
@@ -505,6 +513,16 @@ export async function updateCompany(id, co) {
   if (error && /prazo_folha/.test(error.message || '')) {
     console.warn('[db] updateCompany: coluna prazo_folha ausente — rode supabase/empresas-prazo-folha.sql no Supabase.');
     delete patch.prazo_folha;
+    ({ data, error } = await supabase
+      .from('empresas')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single());
+  }
+  if (error && /folha_modo/.test(error.message || '')) {
+    console.warn('[db] updateCompany: coluna folha_modo ausente — rode supabase/empresas-folha-modo.sql no Supabase.');
+    delete patch.folha_modo;
     ({ data, error } = await supabase
       .from('empresas')
       .update(patch)

@@ -59,15 +59,29 @@ export function diasTrabalhadosPorAjudante(records) {
   return mapa;
 }
 
+const ddmm = (dateIso) => `${String(dateIso).slice(8, 10)}/${String(dateIso).slice(5, 7)}`;
+
 function addDias(dateIso, n) {
   const d = new Date(`${dateIso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + Number(n || 0));
   return d.toISOString().slice(0, 10);
 }
 
-// Linhas a pagar derivadas (Folha/VT/VR) por empresa × quinzena de competência.
-// A data de pagamento = fim da quinzena + prazo_folha do cadastro da empresa
-// (padrão 7 dias). Devolve itens no formato das linhas derivadas de receita.
+// Sexta-feira que fecha a semana da data. Sábado/domingo caem na sexta seguinte,
+// então entram no lote da semana que está por vir.
+function sextaDaSemana(dateIso) {
+  const d = new Date(`${dateIso}T12:00:00Z`);
+  const dow = d.getUTCDay(); // 0=Dom ... 6=Sáb
+  const delta = dow === 5 ? 0 : dow === 6 ? 6 : dow === 0 ? 5 : 5 - dow;
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+// Linhas a pagar derivadas (Folha/VT/VR) por empresa × período de pagamento.
+//   • modo 'quinzena' → agrupa por quinzena e paga fim da quinzena + prazo_folha;
+//   • modo 'semanal'  → agrupa por semana (fecha na sexta) e paga na quarta
+//     seguinte (sexta + 5 dias).
+// Devolve itens no formato das linhas derivadas de receita (sem id).
 export function payablesAutomaticos(records, employees, companies, hojeIso) {
   const empById = new Map((employees || []).map(e => [e.id, e]));
   const coById  = new Map((companies || []).map(c => [c.id, c]));
@@ -77,11 +91,21 @@ export function payablesAutomaticos(records, employees, companies, hojeIso) {
     if (!trabalhou(r)) continue;
     const emp = empById.get(r.employeeId);
     if (!emp) continue;
-    const q = quinzenaDaData(r.date);
-    if (!q) continue;
     const co = r.companyId ? coById.get(r.companyId) : null;
-    const key = `${r.companyId || 'sem'}__${q.idx}`;
-    if (!porGrupo.has(key)) porGrupo.set(key, { q, co, dias: new Map(), heMin: new Map() });
+    const semanal = co?.folhaModo === 'semanal';
+
+    let key, ref;
+    if (semanal) {
+      ref = sextaDaSemana(r.date);            // sexta que fecha a semana da diária
+      key = `${r.companyId || 'sem'}__W${ref}`;
+    } else {
+      const q = quinzenaDaData(r.date);
+      if (!q) continue;
+      ref = q;
+      key = `${r.companyId || 'sem'}__Q${q.idx}`;
+    }
+
+    if (!porGrupo.has(key)) porGrupo.set(key, { semanal, ref, co, dias: new Map(), heMin: new Map() });
     const g = porGrupo.get(key);
     if (!g.dias.has(emp.id)) g.dias.set(emp.id, new Set());
     g.dias.get(emp.id).add(r.date);
@@ -89,7 +113,7 @@ export function payablesAutomaticos(records, employees, companies, hojeIso) {
   }
 
   const itens = [];
-  for (const { q, co, dias, heMin } of porGrupo.values()) {
+  for (const { semanal, ref, co, dias, heMin } of porGrupo.values()) {
     let folha = 0, vt = 0, vr = 0, nAjudantes = 0, nDias = 0;
     for (const [empId, datas] of dias) {
       const emp = empById.get(empId);
@@ -102,9 +126,16 @@ export function payablesAutomaticos(records, employees, companies, hojeIso) {
       vr += d * Number(emp.vrDiario || 0);
     }
     const resumo = `${nAjudantes} ajudante${nAjudantes !== 1 ? 's' : ''} · ${nDias} diária${nDias !== 1 ? 's' : ''}`;
-    const prazo = Number(co?.prazoFolha ?? 7);
-    const dataPagamento = addDias(q.fim, prazo);
-    const periodo = co?.name ? `${q.label} · ${co.name}` : q.label;
+
+    let dataPagamento, periodo;
+    if (semanal) {
+      dataPagamento = addDias(ref, 5); // sexta + 5 = quarta-feira seguinte
+      periodo = `Semana ${ddmm(addDias(ref, -4))} a ${ddmm(ref)}${co?.name ? ` · ${co.name}` : ''}`;
+    } else {
+      dataPagamento = addDias(ref.fim, Number(co?.prazoFolha ?? 7));
+      periodo = co?.name ? `${ref.label} · ${co.name}` : ref.label;
+    }
+
     const base = { date: dataPagamento, tipo: 'a_pagar', isManual: false, derivado: true, vencido: false };
 
     if (folha > 0) {
