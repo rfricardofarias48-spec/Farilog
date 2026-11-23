@@ -288,6 +288,8 @@ export async function createEmployee(emp) {
     status:   emp.status || 'active',
     diaria:   emp.dailyRate,
     hora_extra: emp.overtimeRate ?? 50,
+    vt_diario: Number(emp.vtDiario ?? 0),
+    vr_diario: Number(emp.vrDiario ?? 0),
     data_contratacao: emp.dataContratacao || null,
     cidade:   normalizarCidade(emp.cidade) || null,
     documento_url: emp.documentoUrl || null,

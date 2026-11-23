@@ -11,11 +11,11 @@ import {
   fetchAdiantamentosPorQuinzena, createAdiantamento, deleteAdiantamento,
   fetchPagosPorQuinzena, marcarPago, desmarcarPago,
   fetchClassificacoes, createClassificacao,
-  fetchLancamentoFolha, fecharFolha,
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
 import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
 import { agruparPorFechamento } from '../../lib/fechamento';
+import { payablesAutomaticos } from '../../lib/folha';
 import {
   ComposedChart, Bar, Line, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceDot,
@@ -119,7 +119,7 @@ function getBounds(type, offset) {
   return { start: `${yr}-01-01`, end: `${yr}-12-31`, label: String(yr) };
 }
 
-function buildChartData(type, start, end, records, lancamentos, companiesById) {
+function buildChartData(type, start, end, records, lancamentos, companiesById, pagDerivados = []) {
   const isDay = type === 'quinzenal' || type === 'mensal';
   const buckets = [];
 
@@ -148,6 +148,8 @@ function buildChartData(type, start, end, records, lancamentos, companiesById) {
     const match = (date) => isDay ? date === b.key : date.startsWith(b.key);
     const lancReceber = lancamentos.filter(l => l.tipo === 'a_receber' && match(l.data_vencimento));
     const lancPagar   = lancamentos.filter(l => l.tipo === 'a_pagar'   && match(l.data_vencimento));
+    // Custos automáticos do período (Folha/VT/VR) — derivados dos registros.
+    const pagAuto     = pagDerivados.filter(d => match(d.date));
     // O gráfico só trabalha com FATOS: lançamentos com status 'pago'/'recebido'.
     // Serviços realizados (records) entram como receita da operação — mas só a
     // partir de hoje, para casar com o status identificado pela data.
@@ -155,10 +157,12 @@ function buildChartData(type, start, end, records, lancamentos, companiesById) {
       records.filter(r => r.status !== 'absent' && match(r.date) && r.date <= TODAY_ISO)
         .reduce((s, r) => s + recordRevenue(r, companiesById), 0) +
       lancReceber.filter(l => statusOf(l) === 'recebido').reduce((s, l) => s + Number(l.valor || 0), 0);
-    const aPagar = lancPagar.filter(l => statusOf(l) === 'pago').reduce((s, l) => s + Number(l.valor || 0), 0);
+    const aPagar = lancPagar.filter(l => statusOf(l) === 'pago').reduce((s, l) => s + Number(l.valor || 0), 0)
+                 + pagAuto.filter(d => d.status === 'pago').reduce((s, d) => s + Number(d.valor || 0), 0);
     // Pendentes (fora dos fatos) — só para sinalizar no gráfico e nos totais.
     const aReceberPend = lancReceber.filter(l => statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
-    const aPagarPend   = lancPagar.filter(l => statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
+    const aPagarPend   = lancPagar.filter(l => statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0)
+                       + pagAuto.filter(d => d.status === 'pendente').reduce((s, d) => s + Number(d.valor || 0), 0);
     const aReceberVenc = lancReceber.filter(isVencido).reduce((s, l) => s + Number(l.valor || 0), 0);
     const aPagarVenc   = lancPagar.filter(isVencido).reduce((s, l) => s + Number(l.valor || 0), 0);
     const saldo = aReceber - aPagar;
@@ -1143,7 +1147,7 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onEdit, onClose }
 }
 
 // ── Tab: Fluxo de Caixa ────────────────────────────────────────────────────
-function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType, bounds, companies, classificacoes, onCreateClassificacao }) {
+function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType, bounds, companies, employees, classificacoes, onCreateClassificacao }) {
   const [modal,    setModal]    = useState(null); // 'receber' | 'pagar' | 'all'
   const [showAdd,  setShowAdd]  = useState(false);
   const [chartMode, setChartMode] = useState('entrada'); // entrada | saida | saldo
@@ -1171,9 +1175,15 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     return (classificacoes || []).find(x => x.nome === nome) || { nome, cor: '#4A4A4A' };
   };
 
+  // Custos automáticos (Folha/VT/VR) derivados das diárias realizadas.
+  const payablesAuto = useMemo(
+    () => payablesAutomaticos(records, employees, TODAY_ISO),
+    [records, employees]
+  );
+
   const chartData = useMemo(
-    () => buildChartData(periodType, bounds.start, bounds.end, records, lancamentos, companiesById),
-    [periodType, bounds.start, bounds.end, records, lancamentos, companiesById]
+    () => buildChartData(periodType, bounds.start, bounds.end, records, lancamentos, companiesById, payablesAuto),
+    [periodType, bounds.start, bounds.end, records, lancamentos, companiesById, payablesAuto]
   );
   const hasChart = chartData.some(b => b.aReceber > 0 || b.aPagar > 0 || b.pendTotal > 0);
   // Dia com pagamento acima do teto do eixo (ex.: folha) — recebe etiqueta.
@@ -1232,19 +1242,24 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     return [...fromRecs, ...fromManual].sort((a, b) => a.date.localeCompare(b.date));
   }, [records, lancamentos, companiesById, classificacoes]);
 
-  const pagItems = useMemo(() =>
-    lancamentos.filter(l => l.tipo === 'a_pagar').map(l => {
-      const cl = classOf(l);
-      return {
-        date: l.data_vencimento, descricao: l.descricao,
-        origem: l.origem_tipo === 'divida' ? 'Dívida' : l.origem_tipo === 'custo_fixo' ? 'Custo Fixo' : l.origem_tipo === 'beneficio' ? 'Benefício' : l.origem_tipo === 'folha' ? 'Folha' : 'Manual',
-        valor: Number(l.valor || 0), tipo: 'a_pagar', isManual: l.origem_tipo === 'manual', id: l.id,
-        status: statusOf(l), dataRecebimento: l.data_recebimento || null, vencido: isVencido(l), classificacaoId: l.classificacao_id || '',
-        classificacaoNome: cl.nome, classificacaoCor: cl.cor,
-      };
-    }).sort((a, b) => a.date.localeCompare(b.date)),
-    [lancamentos, classificacoes]
-  );
+  // a_pagar: lançamentos gravados (dívida/custo fixo/benefício/manual) + os
+  // custos automáticos do período (Folha/VT/VR). A folha gravada pelo antigo
+  // "Fechar folha" é ignorada para não duplicar a linha automática.
+  const pagItems = useMemo(() => {
+    const fromStored = lancamentos
+      .filter(l => l.tipo === 'a_pagar' && l.origem_tipo !== 'folha')
+      .map(l => {
+        const cl = classOf(l);
+        return {
+          date: l.data_vencimento, descricao: l.descricao,
+          origem: l.origem_tipo === 'divida' ? 'Dívida' : l.origem_tipo === 'custo_fixo' ? 'Custo Fixo' : l.origem_tipo === 'beneficio' ? 'Benefício' : l.origem_tipo === 'folha' ? 'Folha' : 'Manual',
+          valor: Number(l.valor || 0), tipo: 'a_pagar', isManual: l.origem_tipo === 'manual', id: l.id,
+          status: statusOf(l), dataRecebimento: l.data_recebimento || null, vencido: isVencido(l), classificacaoId: l.classificacao_id || '',
+          classificacaoNome: cl.nome, classificacaoCor: cl.cor,
+        };
+      });
+    return [...fromStored, ...payablesAuto].sort((a, b) => a.date.localeCompare(b.date));
+  }, [lancamentos, classificacoes, payablesAuto]);
 
   // Totais: realizados (fatos — pago/recebido) x pendentes.
   // Serviços realizados sempre contam como entrada (receita da operação).
@@ -2503,7 +2518,7 @@ function quinzenaBounds(idx) {
   };
 }
 
-function TabFolhaPagamento({ employees, onFolhaFechada }) {
+function TabFolhaPagamento({ employees }) {
   const curIdx = (Number(TODAY_ISO.split('-')[0]) - 2000) * 24
     + (Number(TODAY_ISO.split('-')[1]) - 1) * 2
     + (Number(TODAY_ISO.split('-')[2]) <= 15 ? 0 : 1);
@@ -2517,8 +2532,6 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
   const [showLancarModal, setShowLancarModal] = useState(false);
   const [detalheEmp, setDetalheEmp] = useState(null);
   const [pagos, setPagos] = useState([]);
-  const [folhaLanc, setFolhaLanc] = useState(null);
-  const [closing, setClosing] = useState(false);
 
   // Índices das quinzenas cobertas pela seleção (1 no modo quinzenal, 2 no mensal).
   const monthQ1 = Math.floor(qi / 2) * 2;
@@ -2554,14 +2567,6 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
     Promise.all(list.map(i => fetchAdiantamentosPorQuinzena(i))).then(arr => setAdiantamentos(arr.flatMap(x => x || [])));
     Promise.all(list.map(i => fetchPagosPorQuinzena(i))).then(arr => setPagos(arr.flatMap(x => x || [])));
   }, [q.start, q.end, modo, qi]);
-
-  useEffect(() => {
-    const list = modo === 'quinzena' ? [qi] : [monthQ1, monthQ1 + 1];
-    Promise.all(list.map(i => fetchLancamentoFolha(i))).then(arr => {
-      const found = arr.filter(Boolean);
-      setFolhaLanc(found.length === 0 ? null : found.length === 1 ? found[0] : { valor: found.reduce((s, x) => s + Number(x.valor || 0), 0) });
-    });
-  }, [qi, modo]);
 
   const handleSalvarAdiantamento = async (dados) => {
     const criado = await createAdiantamento(dados);
@@ -2621,18 +2626,6 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
   const totalAPagar   = totalGeral - totalAdiant;
   const payLabel   = `${q.payDate.split('-')[2]}/${q.payDate.split('-')[1]}/${q.payDate.split('-')[0]}`;
   const isPaid     = q.payDate < TODAY_ISO;
-
-  // Fecha a folha da quinzena: cria (ou atualiza) o lançamento no fluxo de caixa,
-  // classificado como "Folha de Pagamento".
-  const handleFecharFolha = async () => {
-    if (modo !== 'quinzena' || closing || totalAPagar <= 0) return;
-    setClosing(true);
-    const label = `${q.monthLabel} · ${qi % 2 === 0 ? 'Q1' : 'Q2'}`;
-    const l = await fecharFolha({ quinzenaIdx: qi, total: totalAPagar, dataVencimento: q.payDate, label });
-    setFolhaLanc(l);
-    setClosing(false);
-    if (onFolhaFechada) onFolhaFechada();
-  };
 
   const Card = ({ label, value, icon: Icon, valueColor = '#FFFFFF' }) => (
     <div style={{
@@ -2703,21 +2696,12 @@ function TabFolhaPagamento({ employees, onFolhaFechada }) {
             </span>
           </div>
           )}
-          {folhaLanc && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 13px', borderRadius: '10px', background: 'rgba(47,122,79,0.22)', border: '1px solid rgba(124,199,155,0.35)' }}>
-              <FileText size={13} style={{ color: '#7CC79B' }} />
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#7CC79B' }}>
-                No fluxo: {fmtCurrency(Number(folhaLanc.valor))}
-              </span>
-            </div>
-          )}
-          {modo === 'quinzena' && (
-          <button onClick={handleFecharFolha} disabled={closing || totalAPagar <= 0}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: 'none', cursor: (closing || totalAPagar <= 0) ? 'not-allowed' : 'pointer', background: '#BC4A2A', color: '#fff', fontSize: '12px', fontWeight: 700, boxShadow: '0 2px 8px rgba(188,74,42,0.3)', opacity: (closing || totalAPagar <= 0) ? 0.5 : 1 }}>
-            <FileText size={14} />
-            {closing ? 'Fechando...' : folhaLanc ? 'Atualizar no fluxo' : 'Fechar folha'}
-          </button>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 13px', borderRadius: '10px', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.14)' }}>
+            <FileText size={13} style={{ color: '#C9C9C9' }} />
+            <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#C9C9C9' }}>
+              Folha, VT e VR entram automaticamente no Fluxo de Caixa
+            </span>
+          </div>
           <button onClick={() => setShowLancarModal(true)}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.16)', cursor: 'pointer', background: 'rgba(255,255,255,0.12)', color: '#FFFFFF', fontSize: '12px', fontWeight: 700 }}>
             <HandCoins size={14} />
@@ -2873,8 +2857,6 @@ export default function AdminFinanceiro() {
 
   const handleChangePeriodType = (type) => { setPeriodType(type); setOffset(0); };
 
-  const reloadLancamentos = () => fetchLancamentos(bounds.start, bounds.end).then(l => setLancamentos(l || []));
-
   // Cria uma nova classificação com uma cor da paleta (cicla por índice).
   const handleCreateClassificacao = async ({ nome, tipo }) => {
     const cor = CLASS_PALETTE[classificacoes.length % CLASS_PALETTE.length];
@@ -2935,8 +2917,8 @@ export default function AdminFinanceiro() {
       ) : (
         <>
           {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} classificacoes={classificacoes} />}
-          {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} classificacoes={classificacoes} onCreateClassificacao={handleCreateClassificacao} />}
-          {activeTab === 'folha'   && <TabFolhaPagamento employees={employees} onFolhaFechada={reloadLancamentos} />}
+          {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} employees={employees} classificacoes={classificacoes} onCreateClassificacao={handleCreateClassificacao} />}
+          {activeTab === 'folha'   && <TabFolhaPagamento employees={employees} />}
           {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} showModal={showNovaDivida} setShowModal={setShowNovaDivida} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}
           {activeTab === 'dre'     && <TabDRE           records={records} lancamentos={lancamentos} employees={employees} bounds={bounds} companies={companies} classificacoes={classificacoes} />}
