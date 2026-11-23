@@ -201,18 +201,37 @@ export default function AdminDashboard() {
 
   const xKey = period === 'ano' ? 'month' : 'day';
 
-  // Receita por empresa no período
-  const pieData = useMemo(() =>
-    companies
-      .map(c => ({
-        name:  c.name.split(' ')[0],
-        value: periodRecs
-          .filter(r => r.companyId === c.id)
-          .reduce((s, r) => s + recordRevenue(r, companiesById), 0),
-      }))
-      .filter(d => d.value > 0),
-    [periodRecs, companies, companiesById]
-  );
+  // Receita por empresa no período: serviços (registros de ponto) + lançamentos
+  // manuais a receber, atribuídos pela empresa citada na descrição. Assim a soma
+  // bate com o card de Faturamento (que também inclui os lançamentos).
+  const pieData = useMemo(() => {
+    const porEmpresa = new Map(companies.map(c => [c.id, 0]));
+
+    for (const r of periodRecs) {
+      if (!r.companyId) continue;
+      porEmpresa.set(r.companyId, (porEmpresa.get(r.companyId) || 0) + recordRevenue(r, companiesById));
+    }
+
+    const nomes = companies
+      .filter(c => c.name)
+      .map(c => ({ id: c.id, nome: c.name.toLowerCase() }))
+      .sort((a, b) => b.nome.length - a.nome.length);
+    let outros = 0;
+    for (const l of (lancamentos || [])) {
+      if (l.tipo !== 'a_receber') continue;
+      const desc = String(l.descricao || '').toLowerCase();
+      const match = nomes.find(n => desc.includes(n.nome));
+      const valor = Number(l.valor || 0);
+      if (match) porEmpresa.set(match.id, (porEmpresa.get(match.id) || 0) + valor);
+      else outros += valor;
+    }
+
+    const arr = companies
+      .map(c => ({ name: c.name.split(' ')[0], value: porEmpresa.get(c.id) || 0 }))
+      .filter(d => d.value > 0);
+    if (outros > 0) arr.push({ name: 'Outros', value: outros });
+    return arr;
+  }, [periodRecs, companies, companiesById, lancamentos]);
 
   return (
     <div className="space-y-4">
