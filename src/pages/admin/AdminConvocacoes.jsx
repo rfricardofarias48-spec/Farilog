@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Send, ClipboardList } from 'lucide-react';
+import { Send, ClipboardList, CalendarPlus } from 'lucide-react';
 import MontarEscala from '../lider/MontarEscala';
 import AdminConvocacao from './AdminConvocacao';
+import LancamentoManual from './LancamentoManual';
 
 const SUB_TABS = [
-  { key: 'nova',      label: 'Convocação',             icon: Send },
+  { key: 'nova',      label: 'Convocação',               icon: Send },
+  { key: 'manual',    label: 'Lançamento manual',        icon: CalendarPlus },
   { key: 'historico', label: 'Histórico de convocações', icon: ClipboardList },
 ];
 
@@ -58,6 +60,12 @@ export default function AdminConvocacoes() {
             onSaved={aoSalvar}
             onCancel={() => setResetKey(k => k + 1)}
           />
+        </div>
+      )}
+
+      {sub === 'manual' && (
+        <div className="animate-fade-up">
+          <LancamentoManual />
         </div>
       )}
 

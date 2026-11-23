@@ -23,7 +23,7 @@ const fmtDiaBR = (iso) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString(
 // a escala a um encarregado.
 export default function MontarEscala({ user, admin = false, companies = EMPTY_COMPANIES, onSaved, onCancel }) {
   const [step, setStep]       = useState('montar');   // montar | buscando | lista
-  const [form, setForm]       = useState({ companyId: '', date: TODAY, time: '07:00', service: '', tipoServico: 'entrega' });
+  const [form, setForm]       = useState({ companyId: '', date: TODAY, time: '07:00', tipoServico: 'entrega' });
   const [resp, setResp]       = useState('');
   const [contato, setContato] = useState('');
   const [vagas, setVagas]     = useState(10);
@@ -190,7 +190,7 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
 
     const saved = await createEscalaComConvocacoes({
       liderId: admin ? null : user?.id, companyId: form.companyId, date: form.date,
-      time: form.time, service: form.service, tipoServico: form.tipoServico,
+      time: form.time, tipoServico: form.tipoServico,
       vagas: Number(vagas) || titulares.length,
       totalReservas: reservas.length || RESERVAS_PADRAO,
       employees: titulares.map(t => ({ id: t.id, distanciaKm: t.distanciaKm, media: t.media })),
@@ -375,7 +375,7 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
             )}
           </div>
 
-          <div className="grid-form-4">
+          <div className="grid-form-3">
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Data *</label>
               <input type="date" className="input-field" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
@@ -387,10 +387,6 @@ export default function MontarEscala({ user, admin = false, companies = EMPTY_CO
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Vagas *</label>
               <input type="number" min="1" className="input-field" value={vagas} onChange={e => setVagas(e.target.value)} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Serviço</label>
-              <input className="input-field" placeholder="Separação, entrega…" value={form.service} onChange={e => setForm(f => ({ ...f, service: e.target.value }))} />
             </div>
           </div>
 

@@ -1383,6 +1383,57 @@ export async function addRegistroToEscala(escalaId, employeeId, companyId, date,
   return true;
 }
 
+// Lançamento manual de diária: dias que já passaram e não foram lançados.
+// Não passa pela busca de ajudantes — grava direto as diárias informadas, já
+// como finalizadas, para entrarem na folha. Se a empresa já tiver escala nesse
+// dia, acrescenta os ajudantes nela (ignorando quem já estava), porque o banco
+// só permite uma escala por empresa/dia.
+// Devolve { escalaId, criada, criados, repetidos } ou null em caso de erro.
+export async function lancarDiariaManual({
+  companyId, date, time, tipoServico = 'entrega', employeeIds = [], adminId = null, liderId = null,
+}) {
+  if (!companyId || !date || !employeeIds.length) return null;
+
+  const diaria = await getCompanyDiaria(companyId);
+  const existente = await fetchEscalaDoDia({ companyId, date });
+
+  let escalaId = existente?.escalaId || null;
+  let criada = false;
+
+  if (!escalaId) {
+    escalaId = crypto.randomUUID();
+    const { error } = await supabase.from('escalas').insert({
+      id: escalaId, empresa_id: companyId, data: date, horario: time || null,
+      tipo_servico: tipoServico, status: 'completed', criado_por: adminId, lider_id: liderId,
+    });
+    if (error) { console.error('[db] lancarDiariaManual escala:', error.message); return null; }
+    criada = true;
+  }
+
+  // Quem já está na escala do dia não pode ser lançado de novo.
+  let jaLancados = new Set();
+  if (!criada) {
+    const { data: existentes, error } = await supabase
+      .from('registros').select('funcionario_id').eq('escala_id', escalaId);
+    if (error) { console.error('[db] lancarDiariaManual registros:', error.message); return null; }
+    jaLancados = new Set((existentes || []).map(r => r.funcionario_id));
+  }
+
+  const novos = employeeIds.filter(empId => !jaLancados.has(empId));
+  if (novos.length) {
+    const rows = novos.map(empId => ({
+      id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: empId, empresa_id: companyId,
+      data: date, servico: null, status: 'completed', confirmacao: 'finalizado',
+      entrada: time || null, saida: null, saida_almoco: null, retorno_almoco: null,
+      hora_extra: '00:00:00', valor: diaria,
+    }));
+    const { error } = await supabase.from('registros').insert(rows);
+    if (error) { console.error('[db] lancarDiariaManual insert:', error.message); return null; }
+  }
+
+  return { escalaId, criada, criados: novos.length, repetidos: employeeIds.length - novos.length };
+}
+
 // ── Banco de Ajudantes (ajudantes disponíveis) ────────────────────────────
 
 export async function fetchAjudantesDisponiveis(data) {

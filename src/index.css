@@ -320,10 +320,13 @@ select.input-field option { background: #fff; color: #0B0B0B; }
 .grid-kpi-cd { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 /* Formulário de escala: 2 colunas no mobile, 4 no desktop. */
 .grid-form-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+/* Formulário de escala sem o campo de serviço: 2 colunas no mobile, 3 no desktop. */
+.grid-form-3 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 @media (min-width: 640px) {
   .grid-kpi    { grid-template-columns: repeat(4, 1fr); }
   .grid-kpi-cd { grid-template-columns: 1fr 1fr 1fr 1.2fr; }
   .grid-form-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .grid-form-3 { grid-template-columns: 1fr 1fr 1fr; }
 }
 
 /* KPIs do modal de confirmação: 2x2 no mobile, 4 em linha no desktop. */
