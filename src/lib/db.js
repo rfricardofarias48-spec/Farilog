@@ -3,6 +3,7 @@ import { calculateWorkAndOvertime, overtimeMinutesToTimeString, recordRevenue } 
 import { getCompanyCity, rankCandidatos, avatarTone, compararProximidade } from './notas';
 import { coordsFuncionario, coordsEmpresa, distanciaKm, jitterCoords } from './geo';
 import { parseCidade, parseEmpresaLocalizacao, normalizarCidade, cidadeMaisProxima, coordsDeLink } from './cidades.js';
+import { normalizarDias } from './fechamento';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -91,7 +92,8 @@ function mapCompany(r) {
     dailyRate:      Number(r.diaria ?? 150),
     valorDescarga:  Number(r.valor_descarga ?? 0),
     prazoPagamento: Number(r.prazo_pagamento ?? 5),
-    closingCycle:   r.periodicidade_fechamento || 'quinzenal',
+    closingCycle:   r.periodicidade_fechamento || 'diaria',
+    closingDays:    Array.isArray(r.dias_fechamento) ? r.dias_fechamento.map(Number) : [],
     isActive:       r.ativo,
   };
 }
@@ -413,7 +415,8 @@ export async function createCompany(co) {
     diaria:          co.dailyRate ?? 150,
     valor_descarga:  co.valorDescarga ?? 0,
     prazo_pagamento: co.prazoPagamento ?? 5,
-    periodicidade_fechamento: co.closingCycle || 'quinzenal',
+    periodicidade_fechamento: co.closingCycle === 'datas' ? 'datas' : 'diaria',
+    dias_fechamento: normalizarDias(co.closingDays),
   };
   let { data, error } = await supabase.from('empresas').insert(payload).select().single();
   if (error && missingPrazoColumn(error)) {
@@ -422,8 +425,14 @@ export async function createCompany(co) {
     ({ data, error } = await supabase.from('empresas').insert(payload).select().single());
   }
   if (error && /periodicidade_fechamento/.test(error.message || '')) {
-    console.warn('[db] createCompany: coluna periodicidade_fechamento ausente — rode supabase/fechamento-empresas.sql no Supabase.');
+    console.warn('[db] createCompany: coluna periodicidade_fechamento ausente — rode supabase/fechamento-datas.sql no Supabase.');
     delete payload.periodicidade_fechamento;
+    delete payload.dias_fechamento;
+    ({ data, error } = await supabase.from('empresas').insert(payload).select().single());
+  }
+  if (error && /dias_fechamento/.test(error.message || '')) {
+    console.warn('[db] createCompany: coluna dias_fechamento ausente — rode supabase/fechamento-datas.sql no Supabase.');
+    delete payload.dias_fechamento;
     ({ data, error } = await supabase.from('empresas').insert(payload).select().single());
   }
   if (error) { console.error('[db] createCompany:', error.message); return null; }
@@ -443,7 +452,8 @@ export async function updateCompany(id, co) {
   if (co.dailyRate      !== undefined) patch.diaria          = co.dailyRate;
   if (co.valorDescarga  !== undefined) patch.valor_descarga  = co.valorDescarga;
   if (co.prazoPagamento !== undefined) patch.prazo_pagamento = co.prazoPagamento;
-  if (co.closingCycle   !== undefined) patch.periodicidade_fechamento = co.closingCycle;
+  if (co.closingCycle   !== undefined) patch.periodicidade_fechamento = co.closingCycle === 'datas' ? 'datas' : 'diaria';
+  if (co.closingDays    !== undefined) patch.dias_fechamento = normalizarDias(co.closingDays);
 
   const latInformada = co.latitude;
   const lngInformada = co.longitude;
@@ -483,8 +493,19 @@ export async function updateCompany(id, co) {
       .single());
   }
   if (error && /periodicidade_fechamento/.test(error.message || '')) {
-    console.warn('[db] updateCompany: coluna periodicidade_fechamento ausente — rode supabase/fechamento-empresas.sql no Supabase.');
+    console.warn('[db] updateCompany: coluna periodicidade_fechamento ausente — rode supabase/fechamento-datas.sql no Supabase.');
     delete patch.periodicidade_fechamento;
+    delete patch.dias_fechamento;
+    ({ data, error } = await supabase
+      .from('empresas')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single());
+  }
+  if (error && /dias_fechamento/.test(error.message || '')) {
+    console.warn('[db] updateCompany: coluna dias_fechamento ausente — rode supabase/fechamento-datas.sql no Supabase.');
+    delete patch.dias_fechamento;
     ({ data, error } = await supabase
       .from('empresas')
       .update(patch)

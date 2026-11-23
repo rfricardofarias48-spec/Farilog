@@ -3,16 +3,17 @@ import { useAuth } from '../../context/AuthContext';
 import { fmtCurrency } from '../../data/mockData';
 import { createCompany, updateCompany, deleteCompany } from '../../lib/db';
 import { parseEmpresaLocalizacao } from '../../lib/cidades';
-import { CADENCIAS, CADENCIA_CURTA } from '../../lib/fechamento';
+import { MODOS_FECHAMENTO, normalizarDias, rotuloFechamento } from '../../lib/fechamento';
 import SeletorLocalizacao from '../../components/shared/SeletorLocalizacao';
 import { Plus, Edit2, Trash2, X, Building2, Search, Phone, Mail, MapPin } from 'lucide-react';
-const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', latitude: null, longitude: null, dailyRate: 150, valorDescarga: 0, prazoPagamento: 5, closingCycle: 'quinzenal' };
+const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', latitude: null, longitude: null, dailyRate: 150, valorDescarga: 0, prazoPagamento: 5, closingCycle: 'diaria', closingDays: [] };
 const T  = { color: '#0B0B0B' };
 const T2 = { color: '#4A4A4A' };
 const TM = { color: '#9A9A9A' };
 
 function Modal({ company, onSave, onClose }) {
   const [form, setForm] = useState(company ? { ...company } : { ...EMPTY });
+  const [diasTexto, setDiasTexto] = useState(() => (company?.closingDays || []).join(', '));
 
   const rate    = Number(form.dailyRate) || 0;
   const he50    = (rate / 8 * 1.5).toFixed(2);
@@ -43,7 +44,22 @@ function Modal({ company, onSave, onClose }) {
             <X size={15} />
           </button>
         </div>
-        <form onSubmit={e => { e.preventDefault(); onSave({ ...form, dailyRate: Number(form.dailyRate), valorDescarga: Number(form.valorDescarga ?? 0), prazoPagamento: Math.max(0, Number(form.prazoPagamento) || 0) }); }} className="space-y-3" autoComplete="off">
+        <form onSubmit={e => {
+            e.preventDefault();
+            const dias = normalizarDias(diasTexto);
+            if (form.closingCycle === 'datas' && dias.length === 0) {
+              alert('Informe pelo menos um dia de fechamento.');
+              return;
+            }
+            onSave({
+              ...form,
+              dailyRate: Number(form.dailyRate),
+              valorDescarga: Number(form.valorDescarga ?? 0),
+              prazoPagamento: Math.max(0, Number(form.prazoPagamento) || 0),
+              closingCycle: form.closingCycle === 'datas' ? 'datas' : 'diaria',
+              closingDays: dias,
+            });
+          }} className="space-y-3" autoComplete="off">
           <div className="grid grid-cols-2 gap-3">
             {/* Linha 1: nome (full) */}
             {field('name',     'Razão Social',     { required: true, col: 2 })}
@@ -63,9 +79,9 @@ function Modal({ company, onSave, onClose }) {
 {/* Linha 4b: Fechamento | Prazo de Pagamento */}
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Fechamento</label>
-              <select className="input-field" value={form.closingCycle || 'quinzenal'}
+              <select className="input-field" value={form.closingCycle === 'datas' ? 'datas' : 'diaria'}
                 onChange={e => setForm({ ...form, closingCycle: e.target.value })}>
-                {CADENCIAS.map(c => <option key={c.val} value={c.val}>{c.label}</option>)}
+                {MODOS_FECHAMENTO.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
               </select>
             </div>
             <div>
@@ -73,10 +89,23 @@ function Modal({ company, onSave, onClose }) {
               <input type="number" min="0" step="1" required value={form.prazoPagamento ?? 5}
                 onChange={e => setForm({ ...form, prazoPagamento: e.target.value })} className="input-field" />
             </div>
+
+            {form.closingCycle === 'datas' && (
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Dias de fechamento</label>
+                <input className="input-field" placeholder="Ex: 10, 20, 31" value={diasTexto}
+                  onChange={e => setDiasTexto(e.target.value)} />
+                <p className="text-xs mt-1" style={{ color: '#9A9A9A' }}>
+                  Separe por vírgula. O período termina em cada data de fechamento; o dia 31 vale como
+                  último dia nos meses menores. Ex.: 10, 20 e 31 → períodos 01–10, 11–20 e 21–fim.
+                </p>
+              </div>
+            )}
+
             <div className="col-span-2" style={{ marginTop: '-4px' }}>
               <p className="text-xs" style={{ color: '#9A9A9A' }}>
-                As diárias do período entram num único lançamento a receber, com vencimento = fim do
-                fechamento + prazo. Ex.: quinzenal (fecha 15/08) + 10 dias → vence 25/08.
+                As diárias do período entram num único lançamento a receber, com vencimento =
+                data de fechamento + prazo. No modo diária, cada dia é um fechamento.
               </p>
             </div>
             {/* Linha 5: Valor Descarga (full) */}
@@ -208,7 +237,7 @@ export default function AdminCompanies() {
                       {c.city && <span className="flex items-center gap-1 text-xs" style={TM}><MapPin size={9}/>{c.city}</span>}
                       <span className="flex items-center gap-1 text-xs" style={TM}><Phone size={9}/>{c.phone}</span>
                       <span className="flex items-center gap-1 text-xs" style={TM}><Mail size={9}/>{c.email}</span>
-                      <span className="text-xs" style={{ ...TM, fontWeight: 600 }}>Fechamento: {CADENCIA_CURTA[c.closingCycle] || 'Quinzenal'}</span>
+                      <span className="text-xs" style={{ ...TM, fontWeight: 600 }}>Fechamento: {rotuloFechamento(c.closingCycle, c.closingDays)}</span>
                     </div>
                   </div>
                 </div>
