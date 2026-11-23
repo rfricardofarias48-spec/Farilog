@@ -1389,10 +1389,18 @@ export async function addRegistroToEscala(escalaId, employeeId, companyId, date,
 // dia, acrescenta os ajudantes nela (ignorando quem já estava), porque o banco
 // só permite uma escala por empresa/dia.
 // Devolve { escalaId, criada, criados, repetidos } ou null em caso de erro.
+// Regra: sem entrada e saída de cada ajudante não há lançamento.
 export async function lancarDiariaManual({
-  companyId, date, time, tipoServico = 'entrega', employeeIds = [], adminId = null, liderId = null,
+  companyId, date, time, tipoServico = 'entrega', employeeIds = [], employeeTimes = {},
+  adminId = null, liderId = null,
 }) {
   if (!companyId || !date || !employeeIds.length) return null;
+
+  const semHorarios = employeeIds.some(empId => {
+    const t = employeeTimes?.[empId] || {};
+    return !t.entrada || !t.saida;
+  });
+  if (semHorarios) return null;
 
   const diaria = await getCompanyDiaria(companyId);
   const existente = await fetchEscalaDoDia({ companyId, date });
@@ -1421,12 +1429,22 @@ export async function lancarDiariaManual({
 
   const novos = employeeIds.filter(empId => !jaLancados.has(empId));
   if (novos.length) {
-    const rows = novos.map(empId => ({
-      id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: empId, empresa_id: companyId,
-      data: date, servico: null, status: 'completed', confirmacao: 'finalizado',
-      entrada: time || null, saida: null, saida_almoco: null, retorno_almoco: null,
-      hora_extra: '00:00:00', valor: diaria,
-    }));
+    const rows = novos.map(empId => {
+      const t = employeeTimes[empId] || {};
+      const entrada       = t.entrada || null;
+      const saida         = t.saida || null;
+      const saidaAlmoco   = t.saidaAlmoco || null;
+      const retornoAlmoco = t.retornoAlmoco || null;
+      const calc = calculateWorkAndOvertime(entrada, saida, saidaAlmoco, retornoAlmoco);
+
+      return {
+        id: crypto.randomUUID(), escala_id: escalaId, funcionario_id: empId, empresa_id: companyId,
+        data: date, servico: null, status: 'completed', confirmacao: 'finalizado',
+        entrada, saida, saida_almoco: saidaAlmoco, retorno_almoco: retornoAlmoco,
+        hora_extra: overtimeMinutesToTimeString(calc.overtimeMinutes),
+        valor: diaria,
+      };
+    });
     const { error } = await supabase.from('registros').insert(rows);
     if (error) { console.error('[db] lancarDiariaManual insert:', error.message); return null; }
   }
