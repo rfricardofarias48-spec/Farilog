@@ -2806,8 +2806,17 @@ export async function fetchConvocacoesByEscalas(escalaIds = []) {
   }, {});
 }
 
-// Convocações de um período (histórico manual). `from`/`to` filtram o dia do
-// serviço (datas ISO YYYY-MM-DD) e `statuses` filtra pelos status atuais.
+// Situação de uma convocação lida a partir do registro da diária. Serve para
+// lançamentos que não têm linha em `convocacoes` (ex.: lançamento manual).
+const CONV_STATUS_DO_REGISTRO = {
+  finalizado: 'finalizado', confirmado: 'confirmado', falta: 'falta',
+  aguardando: 'pendente', atrasado: 'pendente',
+};
+
+// Convocações e lançamentos de um período (histórico manual). `from`/`to`
+// filtram o dia do serviço (datas ISO YYYY-MM-DD) e `statuses` filtra pelos
+// status atuais. Além das convocações, traz as diárias que só existem como
+// registro (lançamento manual), para que TODO lançamento apareça no histórico.
 // A empresa é anexada à parte: convocacoes.empresa_id não tem FK declarada.
 export async function fetchConvocacoesPeriodo({ statuses, from, to, limit = 300 } = {}) {
   let escQ = supabase.from('escalas').select('id').order('data', { ascending: true }).limit(limit);
@@ -2820,27 +2829,64 @@ export async function fetchConvocacoesPeriodo({ statuses, from, to, limit = 300 
 
   // Em blocos: uma quinzena cheia pode ter muitas escalas e um único `in(...)`
   // com centenas de ids estoura o tamanho da URL.
-  const list = [];
+  const convs = [];
+  const regs = [];
   for (let i = 0; i < ids.length; i += 100) {
-    let q = supabase.from('convocacoes')
+    const chunk = ids.slice(i, i + 100);
+
+    let cq = supabase.from('convocacoes')
       .select('*, funcionarios(nome, iniciais, telefone), escalas(data, horario, vagas, pagamento_em)')
-      .in('escala_id', ids.slice(i, i + 100));
-    if (statuses?.length) q = q.in('status', statuses);
-    const { data, error } = await q;
-    if (error) {
-      if (!isMissingConvocacoes(error)) console.error('[db] fetchConvocacoesPeriodo:', error.message);
-      continue;
-    }
-    list.push(...(data || []));
+      .in('escala_id', chunk);
+    if (statuses?.length) cq = cq.in('status', statuses);
+    const { data: convData, error: convErr } = await cq;
+    if (convErr) {
+      if (!isMissingConvocacoes(convErr)) console.error('[db] fetchConvocacoesPeriodo convocações:', convErr.message);
+    } else convs.push(...(convData || []));
+
+    const { data: regData, error: regErr } = await supabase
+      .from('registros')
+      .select('*, funcionarios(nome, iniciais, telefone), escalas(data, horario, vagas, pagamento_em)')
+      .in('escala_id', chunk);
+    if (regErr) console.error('[db] fetchConvocacoesPeriodo registros:', regErr.message);
+    else regs.push(...(regData || []));
   }
 
-  const empresaIds = [...new Set(list.map(c => c.empresa_id).filter(Boolean))];
+  const empresaIds = [...new Set([...convs, ...regs].map(c => c.empresa_id).filter(Boolean))];
   let empresasPorId = {};
   if (empresaIds.length) {
     const { data: emp } = await supabase.from('empresas').select('id, nome, endereco, diaria').in('id', empresaIds);
     empresasPorId = Object.fromEntries((emp || []).map(e => [e.id, e]));
   }
-  return list.map(c => mapConvocacao({ ...c, empresas: empresasPorId[c.empresa_id] || null }));
+  const comEmpresa = (r) => ({ ...r, empresas: empresasPorId[r.empresa_id] || null });
+
+  const itens = convs.map(c => mapConvocacao(comEmpresa(c)));
+
+  // Lançamentos que só têm registro (sem convocação) entram do mesmo jeito.
+  const jaTem = new Set(itens.map(c => `${c.escalaId}__${c.funcionarioId}`));
+  for (const r of regs) {
+    const chave = `${r.escala_id}__${r.funcionario_id}`;
+    if (jaTem.has(chave)) continue;
+    jaTem.add(chave);
+
+    const status = CONV_STATUS_DO_REGISTRO[r.confirmacao] || 'pendente';
+    if (statuses?.length && !statuses.includes(status)) continue;
+
+    const base = mapConvocacao(comEmpresa({ ...r, id: r.id, papel: 'titular', status, ordem: null }));
+    itens.push({
+      ...base,
+      origem: 'registro',
+      registro: {
+        id: r.id,
+        confirmacao: r.confirmacao || null,
+        status: r.status || null,
+        entrada: fmtHHMM(r.entrada) || null,
+        saida: fmtHHMM(r.saida) || null,
+        valor: Number(r.valor ?? 0),
+      },
+    });
+  }
+
+  return itens;
 }
 
 export function subscribeConvocacoes(escalaId, onChange) {

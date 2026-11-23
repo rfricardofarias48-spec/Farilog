@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Loader2, CheckCircle2, XCircle, Clock, MapPin, Star, Shield, RefreshCw, Info, Send, Trash2,
-  CalendarDays, Filter, ChevronDown, Check, MessageCircle,
+  CalendarDays, Filter, ChevronDown, Check, MessageCircle, Edit2,
 } from 'lucide-react';
 import {
   fetchConvocacoesPeriodo, subscribeConvocacoes,
   aceitarConvocacao, recusarConvocacao, marcarSemResposta, deleteConvocacao,
+  fetchDemands, editDemand,
 } from '../../lib/db';
+import { useAuth } from '../../context/AuthContext';
+import DemandForm from '../../components/admin/DemandForm';
 import { ConvocacaoBadge } from '../../components/shared/ConvocacaoStatus';
 import { fmtDistancia } from '../../lib/geo';
 import { fmtNota } from '../../lib/notas';
@@ -15,7 +18,7 @@ import WhatsAppButton from '../../components/shared/WhatsAppButton';
 
 const FILTROS = [
   { id: 'aguardando',  label: 'Aguardando resposta', statuses: ['pendente', 'enviada'] },
-  { id: 'confirmado',  label: 'Confirmados',         statuses: ['confirmado', 'falta'] },
+  { id: 'confirmado',  label: 'Confirmados',         statuses: ['confirmado', 'finalizado', 'falta'] },
   { id: 'reserva',     label: 'Reservas',            statuses: ['reserva'] },
   { id: 'todas',       label: 'Todas',               statuses: null },
 ];
@@ -40,6 +43,9 @@ const MES_ATUAL = TODAY.slice(0, 7);
 const QUINZENA_ATUAL = Number(TODAY.slice(8, 10)) <= 15 ? 1 : 2;
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+// "07:00:00" (formato do banco) → "07:00" (valor aceito por <input type="time">).
+const hhmm = (v) => (v ? String(v).slice(0, 5) : '');
 
 function limitesDoMes(mes) {
   const [ano, m] = String(mes || MES_ATUAL).split('-').map(Number);
@@ -79,6 +85,8 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
   const [excluindo, setExcluindo] = useState(null);
   const [menuAberto, setMenuAberto] = useState(null); // 'periodo' | 'status' | null
   const [menuRow, setMenuRow] = useState(null);       // { id, top, left } — menu "Responder"
+  const { employees, companies, setDemands } = useAuth();
+  const [editando, setEditando] = useState(null);     // demanda (escala) em edição
 
   const statuses = FILTROS.find(f => f.id === filtro)?.statuses ?? null;
 
@@ -129,9 +137,9 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
         empresa: list[0]?.empresaNome,
         data: list[0]?.data,
         horario: list[0]?.horario,
-        vagas: list[0]?.vagas,
+        vagas: list[0]?.vagas ?? list.length,
         endereco: list[0]?.endereco,
-        confirmados: list.filter(c => c.status === 'confirmado').length,
+        confirmados: list.filter(c => c.status === 'confirmado' || c.status === 'finalizado').length,
       }))
       .sort((a, b) => (
         filtro === 'aguardando'
@@ -172,6 +180,29 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
     setExcluindo(null);
     if (sucesso) load();
     else alert('Não foi possível excluir a convocação. Tente novamente.');
+  };
+
+  // Abre o lançamento no formulário de demanda (mesmo usado no Operacional),
+  // para editar data, horário, tipo e os horários de cada ajudante.
+  const abrirEdicao = async (g) => {
+    if (!g.escalaId) return;
+    const todos = await fetchDemands();
+    const d = (todos || []).find(x => x.id === g.escalaId);
+    if (!d) { alert('Não encontrei este lançamento para editar.'); return; }
+    setEditando(d);
+  };
+
+  const salvarEdicao = async (form) => {
+    if (!editando) return false;
+    const ok = await editDemand(editando.id, { ...form, liderId: null });
+    if (!ok) { alert('Não foi possível salvar as alterações. Tente novamente.'); return false; }
+    setEditando(null);
+    load();
+    try {
+      const fresh = await fetchDemands();
+      if (fresh?.length) setDemands(fresh);
+    } catch { /* a lista se atualiza ao recarregar */ }
+    return true;
   };
 
   return (
@@ -317,6 +348,15 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: g.confirmados >= g.vagas ? '#047857' : '#B45309', background: g.confirmados >= g.vagas ? '#D1FAE5' : '#FEF3C7', padding: '3px 9px', borderRadius: '7px' }}>
                   {g.confirmados}/{g.vagas} confirmados
                 </span>
+                <button type="button" onClick={() => abrirEdicao(g)}
+                  title="Editar lançamento"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 9px', borderRadius: '8px',
+                    border: '1px solid rgba(0,0,0,0.10)', background: '#F8FAFC', color: '#0F172A',
+                    fontSize: '10px', fontWeight: 700, cursor: 'pointer',
+                  }}>
+                  <Edit2 size={11} /> Editar
+                </button>
                 <button type="button" onClick={() => excluirGrupo(g)} disabled={excluindo === g.escalaId}
                   title="Excluir convocação"
                   style={{
@@ -348,6 +388,11 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px', flexWrap: 'wrap' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#64748B' }}><MapPin size={9} /> {fmtDistancia(c.distanciaKm)}</span>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#64748B' }}><Star size={9} /> {c.notaSnapshot == null ? 'sem nota' : fmtNota(c.notaSnapshot)}</span>
+                        {c.registro?.entrada && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#64748B' }}>
+                            <Clock size={9} /> {c.registro.entrada}{c.registro.saida ? `–${c.registro.saida}` : ''}
+                          </span>
+                        )}
                         {c.phone && <span style={{ fontSize: '10px', color: '#94A3B8' }}>{c.phone}</span>}
                       </div>
                     </div>
@@ -417,6 +462,44 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
           </>
         );
       })(), document.body)}
+
+      {/* Edição do lançamento — reaproveita o formulário de demanda do Operacional */}
+      {editando && createPortal(
+        <div className="modal-overlay" style={{ zIndex: 1300 }}
+          onClick={e => { if (e.target === e.currentTarget) setEditando(null); }}>
+          <div className="modal-box animate-fade-up" style={{ maxWidth: '1120px', maxHeight: '92vh', overflowY: 'auto', padding: '18px' }}>
+            <DemandForm
+              initialData={{
+                companyId:         editando.companyId,
+                date:              editando.date,
+                time:              editando.time || '07:30',
+                entrada:           hhmm(editando.employees?.[0]?.entrada) || editando.time || '07:30',
+                saida:             hhmm(editando.employees?.[0]?.saida),
+                saidaAlmoco:       hhmm(editando.employees?.[0]?.saidaAlmoco),
+                retornoAlmoco:     hhmm(editando.employees?.[0]?.retornoAlmoco),
+                service:           editando.service || '',
+                selectedEmployees: (editando.employees || []).map(e => e.employeeId),
+                tipoServico:       editando.tipoServico || 'entrega',
+                employeeTimes:     (editando.employees || []).reduce((acc, e) => {
+                  acc[e.employeeId] = {
+                    entrada: hhmm(e.entrada),
+                    saida: hhmm(e.saida),
+                    saidaAlmoco: hhmm(e.saidaAlmoco),
+                    retornoAlmoco: hhmm(e.retornoAlmoco),
+                  };
+                  return acc;
+                }, {}),
+              }}
+              employees={employees}
+              companies={companies}
+              submitLabel="Salvar alterações"
+              onCancel={() => setEditando(null)}
+              onSubmit={salvarEdicao}
+            />
+          </div>
+        </div>,
+        document.body
+      )}
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)' }}>
         <Info size={13} style={{ color: '#64748B', flexShrink: 0, marginTop: '1px' }} />

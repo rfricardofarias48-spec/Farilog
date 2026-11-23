@@ -9,6 +9,7 @@ export const CONV_STATUS = {
   pendente:     { label: 'Pendente',     color: '#B45309', bg: '#FEF3C7' },
   enviada:      { label: 'Aguardando',   color: '#B45309', bg: '#FEF3C7' },
   confirmado:   { label: 'Confirmado',   color: '#047857', bg: '#D1FAE5' },
+  finalizado:   { label: 'Finalizado',   color: '#047857', bg: '#D1FAE5' },
   recusado:     { label: 'Recusou',      color: '#B91C1C', bg: '#FEE2E2' },
   sem_resposta: { label: 'Sem resposta', color: '#6B7280', bg: '#F3F4F6' },
   reserva:      { label: 'Reserva',      color: '#6B7280', bg: '#F3F4F6' },
