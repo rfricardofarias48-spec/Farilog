@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fetchWorkRecordsByPeriod } from '../../lib/db';
 import { sumOvertimeMinutes, minutesToOvertimeString, recordRevenue } from '../../lib/timeUtils';
+import { agruparPorFechamento } from '../../lib/fechamento';
 import { fmtCurrency } from '../../data/mockData';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -121,6 +122,22 @@ export default function AdminDashboard() {
   const periodRevenue   = periodRecs.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
   const periodHEMin    = sumOvertimeMinutes(periodRecs);
 
+  // Faturamento é o total faturado no período (independe de já ter sido
+  // recebido). A divisão usa o fechamento de cada empresa: o que já venceu
+  // entra como Recebido e o que ainda vai vencer fica em A Receber.
+  const { periodReceived, periodToReceive } = useMemo(() => {
+    const grupos = agruparPorFechamento(
+      periodRecs.map(r => ({ ...r, valor: recordRevenue(r, companiesById) })),
+      companiesById
+    );
+    let recebido = 0, aReceber = 0;
+    for (const g of grupos) {
+      if (g.vencimento <= TODAY) recebido += g.valor;
+      else aReceber += g.valor;
+    }
+    return { periodReceived: recebido, periodToReceive: aReceber };
+  }, [periodRecs, companiesById]);
+
   // ── Dados dos gráficos ────────────────────────────────────────────────────
   const chartData = useMemo(() => {
     if (period !== 'ano') {
@@ -209,7 +226,8 @@ export default function AdminDashboard() {
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-up delay-1">
             {[
-              { label: 'Faturamento', value: fmtCurrency(periodRevenue), icon: DollarSign },
+              { label: 'Faturamento', value: fmtCurrency(periodRevenue), icon: DollarSign,
+                extra: { recebido: periodReceived, aReceber: periodToReceive } },
               { label: 'Func. ativos', value: activeEmployees, icon: Users },
               { label: 'Empresas',     value: companies.length, icon: Building2 },
             ].map((k, i) => (
@@ -229,19 +247,33 @@ export default function AdminDashboard() {
                   </div>
                   <p style={{ fontSize: '12px', fontWeight: 600, color: '#BDBDBD', letterSpacing: '0.01em' }}>{k.label}</p>
                 </div>
-                <p style={{
-                  fontSize: i === 0 ? '32px' : '30px',
-                  fontWeight: 800,
-                  lineHeight: 1.05,
-                  letterSpacing: '-0.02em',
-                  color: '#FFFFFF',
-                  marginTop: '12px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {k.value}
-                </p>
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '12px', marginTop: '12px' }}>
+                  <p style={{
+                    fontSize: i === 0 ? '32px' : '30px',
+                    fontWeight: 800,
+                    lineHeight: 1.05,
+                    letterSpacing: '-0.02em',
+                    color: '#FFFFFF',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {k.value}
+                  </p>
+                  {k.extra && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexShrink: 0, paddingBottom: '2px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '6px' }}>
+                        <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#8F8F8F', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recebido</span>
+                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#7CC79B' }}>{fmtCurrency(k.extra.recebido)}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '6px' }}>
+                        <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#8F8F8F', textTransform: 'uppercase', letterSpacing: '0.05em' }}>A Receber</span>
+                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#E59A82' }}>{fmtCurrency(k.extra.aReceber)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
