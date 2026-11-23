@@ -614,8 +614,9 @@ function Relatorios() {
   const [offset,   setOffset]   = useState(0);
   const [records,  setRecords]  = useState([]);
   const [loading,  setLoading]  = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
 
-  const handleViewBy = (v) => { setViewBy(v); setSelected(''); setRecords([]); setOffset(0); };
+  const handleViewBy = (v) => { setViewBy(v); setSelected(''); setRecords([]); setOffset(0); setSelectedDay(null); };
 
   const company = viewBy === 'empresa' ? companies.find(c => c.id === selected) : null;
   const cfgFechamento = company
@@ -659,6 +660,7 @@ function Relatorios() {
       isWeekend: dow === 0 || dow === 6,
       diarias, heMin, valorDiarias, valorHE,
       total: valorDiarias + valorHE,
+      recs, presentes,
     });
   }
 
@@ -805,13 +807,13 @@ function Relatorios() {
             {viewBy === 'empresa' ? 'Selecionar empresa' : 'Selecionar funcionário'}
           </p>
           {viewBy === 'empresa' ? (
-            <select value={selected} onChange={e => { setSelected(e.target.value); setOffset(0); }} className="input-field"
+            <select value={selected} onChange={e => { setSelected(e.target.value); setOffset(0); setSelectedDay(null); }} className="input-field"
               style={{ background: '#1C1C1C', color: '#F5F5F5', borderColor: 'rgba(255,255,255,0.14)', colorScheme: 'dark' }}>
               <option value="">Escolha uma empresa...</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : (
-            <select value={selected} onChange={e => { setSelected(e.target.value); setOffset(0); }} className="input-field"
+            <select value={selected} onChange={e => { setSelected(e.target.value); setOffset(0); setSelectedDay(null); }} className="input-field"
               style={{ background: '#1C1C1C', color: '#F5F5F5', borderColor: 'rgba(255,255,255,0.14)', colorScheme: 'dark' }}>
               <option value="">Escolha um funcionário...</option>
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
@@ -903,11 +905,14 @@ function Relatorios() {
                 const isLast  = idx === allDays.length - 1;
                 return (
                   <div key={d.date} className="px-5 py-2.5 grid text-xs"
+                    onClick={() => setSelectedDay(d.date)}
+                    title="Ver detalhes do dia"
                     style={{
                       gridTemplateColumns: '130px 1fr 1fr 1fr 1fr 1fr',
                       gap: '8px',
                       borderBottom: !isLast ? '1px solid rgba(0,0,0,0.04)' : 'none',
                       background: d.isWeekend ? 'rgba(245, 245, 245,0.7)' : 'transparent',
+                      cursor: 'pointer',
                     }}
                   >
                     {/* Data */}
@@ -951,6 +956,21 @@ function Relatorios() {
           </p>
         </div>
       )}
+
+      {selectedDay && (() => {
+        const day = allDays.find(d => d.date === selectedDay);
+        return day ? (
+          <DayDetailModal
+            day={day}
+            employees={employees}
+            companies={companies}
+            viewBy={viewBy}
+            dailyRate={dailyRate}
+            heRate={heRate}
+            onClose={() => setSelectedDay(null)}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }
