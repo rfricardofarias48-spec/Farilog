@@ -3005,6 +3005,7 @@ function LiderReportBlock({ date }) {
 // ── Relatório ──────────────────────────────────────────────────────────────
 function RelatorioTab({ companyId, valorDescarga = 0 }) {
   const { records, employees, escalas, dailyRate = VALOR_DIARIA, prazoPagamento = 5 } = useCompanyData();
+  const { user } = useAuth();
   const [offset, setOffset] = useState(0);
   const [openDay, setOpenDay] = useState(null);
   const [tipoFilter, setTipoFilter] = useState(null);
@@ -3135,7 +3136,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
     // Esquerda: título
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(15); doc.setFont('helvetica', 'bold');
-    doc.text('Relatório Quinzenal', 10, headerH / 2 + 3);
+    doc.text(`Relatório ${user?.name || 'Empresa'}`, 10, headerH / 2 + 3);
 
     // Direita: logo
     if (logoDataUrl) {
@@ -3181,7 +3182,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
       },
       bodyStyles: {
         fontSize: 10, fontStyle: 'bold', halign: 'center',
-        textColor: dark,
+        textColor: dark, fillColor: rowAlt,
       },
       columnStyles: {
         0: { textColor: mid },
@@ -3201,7 +3202,7 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
     autoTable(doc, {
       startY: y2,
       head: [
-        [{ content: 'Extrato por Dia', colSpan: 6, styles: { halign: 'center', fillColor: [226,232,240], textColor: mid, fontSize: 10.5, fontStyle: 'bold' } }],
+        [{ content: 'Extrato por Dia', colSpan: 6, styles: { halign: 'center', fillColor: [51,65,85], textColor: 255, fontSize: 10.5, fontStyle: 'bold' } }],
         ['Data', lbCount, lbValShort, 'H. Extra', 'Val. HE', 'Total Dia'],
       ],
       body: allDays.filter(d => !d.isWeekend).map(d => [
@@ -3213,13 +3214,12 @@ function RelatorioTab({ companyId, valorDescarga = 0 }) {
         d.total        > 0 ? fmtCurrency(d.total)        : '—',
       ]),
       headStyles: {
-        fillColor: [241, 245, 249], textColor: mid,
+        fillColor: headBg, textColor: 255,
         fontSize: 9.5, fontStyle: 'bold', halign: 'center',
       },
       bodyStyles: {
-        fontSize: 9.5, textColor: dark, halign: 'center',
+        fontSize: 9.5, textColor: dark, halign: 'center', fillColor: rowAlt,
       },
-      alternateRowStyles: { fillColor: rowAlt },
       columnStyles: {
         0: { halign: 'left', fontStyle: 'bold', textColor: dark },
         5: { fontStyle: 'bold', textColor: dark },

@@ -694,7 +694,7 @@ function Relatorios() {
     doc.setFillColor(...headBg);
     doc.rect(0, 0, 210, headerH, 'F');
     doc.setTextColor(255,255,255); doc.setFontSize(15); doc.setFont('helvetica','bold');
-    doc.text(`Relatório ${mensal ? 'Mensal' : 'por período'} — ${viewBy === 'empresa' ? 'Empresa' : 'Funcionário'}`, 10, headerH / 2 + 3);
+    doc.text(`Relatório ${subjectName}`, 10, headerH / 2 + 3);
     if (logoDataUrl) {
       const lH = 30;
       const lW = lH * logoAspect;
@@ -722,7 +722,7 @@ function Relatorios() {
       ],
       body: [[String(totalDiarias), fmtCurrency(totalValorDiarias), fmtOvertime(totalHE), fmtCurrency(totalValorHE), fmtCurrency(totalGeral)]],
       headStyles: { fillColor: headBg, textColor: 255, fontSize: 9.5, fontStyle: 'bold', halign: 'center' },
-      bodyStyles: { fontSize: 10, fontStyle: 'bold', halign: 'center', textColor: dark },
+      bodyStyles: { fontSize: 10, fontStyle: 'bold', halign: 'center', textColor: dark, fillColor: rowAlt },
       margin: { left: 10, right: 10 },
     });
 
@@ -731,7 +731,7 @@ function Relatorios() {
     autoTable(doc, {
       startY: y2,
       head: [
-        [{ content: 'Extrato por Dia', colSpan: 6, styles: { halign: 'center', fillColor: [226,232,240], textColor: mid, fontSize: 10.5, fontStyle: 'bold' } }],
+        [{ content: 'Extrato por Dia', colSpan: 6, styles: { halign: 'center', fillColor: [51,65,85], textColor: 255, fontSize: 10.5, fontStyle: 'bold' } }],
         ['Data', 'Diárias', 'Val. Diária', 'H. Extra', 'Val. HE', 'Total Dia'],
       ],
       body: allDays.filter(d => !d.isWeekend).map(d => [
@@ -742,9 +742,8 @@ function Relatorios() {
         d.valorHE > 0 ? fmtCurrency(d.valorHE) : '—',
         d.total > 0 ? fmtCurrency(d.total) : '—',
       ]),
-      headStyles: { fillColor: [241,245,249], textColor: mid, fontSize: 9.5, fontStyle: 'bold', halign: 'center' },
-      bodyStyles: { fontSize: 9.5, textColor: dark, halign: 'center' },
-      alternateRowStyles: { fillColor: rowAlt },
+      headStyles: { fillColor: headBg, textColor: 255, fontSize: 9.5, fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { fontSize: 9.5, textColor: dark, halign: 'center', fillColor: rowAlt },
       columnStyles: { 0: { halign: 'left', fontStyle: 'bold', textColor: dark }, 5: { fontStyle: 'bold', textColor: dark } },
       margin: { left: 10, right: 10 },
     });
