@@ -782,13 +782,76 @@ function fmtShortDate(iso) {
   return `${d}/${m}/${y.slice(2)}`;
 }
 
+// DD/MM — usada no rótulo "Recebido em 10/05".
+function fmtDayMonth(iso) {
+  if (!iso) return '';
+  const [, m, d] = String(iso).slice(0, 10).split('-');
+  return `${d}/${m}`;
+}
+
+// Confirmação da liquidação: pede a data efetiva (padrão = vencimento).
+function ConfirmarStatusModal({ rec, dataVencimento, onConfirm, onClose }) {
+  const [data, setData] = useState(dataVencimento || TODAY_ISO);
+
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  return createPortal(
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(11, 11, 11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '400px', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+        <div style={{ padding: '20px 22px 14px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+          <div>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: '#0B0B0B' }}>{rec ? 'Confirmar recebimento' : 'Confirmar pagamento'}</p>
+            <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '3px' }}>
+              Informe a data em que o valor foi {rec ? 'recebido' : 'pago'}.
+            </p>
+          </div>
+          <button onClick={onClose} style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={14} />
+          </button>
+        </div>
+
+        <div style={{ padding: '20px 22px 22px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: '6px' }}>
+            {rec ? 'Data de recebimento' : 'Data de pagamento'}
+          </label>
+          <input type="date" autoFocus value={data} onChange={e => setData(e.target.value)}
+            className="input-field" style={{ width: '100%', boxSizing: 'border-box' }} />
+          <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '7px' }}>
+            A data padrão é o vencimento ({fmtShortDate(dataVencimento)}). Clique para mudar.
+          </p>
+
+          <div style={{ display: 'flex', gap: '8px', marginTop: '18px' }}>
+            <button onClick={onClose}
+              style={{ flex: 1, padding: '11px', borderRadius: '11px', border: 'none', cursor: 'pointer', background: '#F5F5F5', color: '#6B6B6B', fontSize: '13px', fontWeight: 600 }}>
+              Cancelar
+            </button>
+            <button onClick={() => data && onConfirm(data)} disabled={!data}
+              style={{ flex: 2, padding: '11px', borderRadius: '11px', border: 'none', cursor: data ? 'pointer' : 'not-allowed',
+                background: data ? (rec ? CASH_IN : CASH_OUT) : '#E4E4E4', color: data ? 'white' : '#9A9A9A', fontSize: '13px', fontWeight: 700 }}>
+              Salvar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // Status por linha. Linhas com lançamento salvo são acionáveis (botão
 // "Pago"/"Recebido"); linhas derivadas dos serviços mostram o status, que é
 // identificado automaticamente pela data (vencido → Pendente, futuro → A receber).
 // A coluna nunca fica vazia.
 function StatusCell({ item, rec, stored, status, vencido, onStatus }) {
+  const [confirming, setConfirming] = useState(false);
   const settled = status === 'pago' || status === 'recebido';
   const actionLabel = rec ? 'Recebido' : 'Pago';
+  const quando = item.dataRecebimento ? ` em ${fmtDayMonth(item.dataRecebimento)}` : '';
 
   if (settled) {
     return (
@@ -797,7 +860,7 @@ function StatusCell({ item, rec, stored, status, vencido, onStatus }) {
         style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '7px', border: 'none',
           cursor: stored ? 'pointer' : 'default', whiteSpace: 'nowrap',
           background: rec ? CASH_IN_BG : '#EFEFEF', color: rec ? CASH_IN : '#4A4A4A', fontSize: '11px', fontWeight: 700 }}>
-        <Check size={11} /> {actionLabel}
+        <Check size={11} /> {actionLabel}{quando}
       </button>
     );
   }
@@ -814,13 +877,23 @@ function StatusCell({ item, rec, stored, status, vencido, onStatus }) {
         {vencido ? <AlertTriangle size={9} /> : <Clock size={9} />} {stateLabel}
       </span>
       {stored && (
-        <button onClick={() => onStatus(item.id, rec ? 'recebido' : 'pago')}
-          title={rec ? 'Confirmar recebimento' : 'Confirmar pagamento'}
-          style={{ padding: '5px 10px', borderRadius: '7px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 700,
-            background: '#fff', color: vencido ? CASH_OUT : '#4A4A4A',
-            border: `1px solid ${vencido ? 'rgba(188,74,42,0.45)' : 'rgba(11,11,11,0.12)'}` }}>
-          {actionLabel}
-        </button>
+        <>
+          <button onClick={() => setConfirming(true)}
+            title={rec ? 'Confirmar recebimento' : 'Confirmar pagamento'}
+            style={{ padding: '5px 10px', borderRadius: '7px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 700,
+              background: '#fff', color: vencido ? CASH_OUT : '#4A4A4A',
+              border: `1px solid ${vencido ? 'rgba(188,74,42,0.45)' : 'rgba(11,11,11,0.12)'}` }}>
+            {actionLabel}
+          </button>
+          {confirming && (
+            <ConfirmarStatusModal
+              rec={rec}
+              dataVencimento={item.date}
+              onConfirm={(data) => { setConfirming(false); onStatus(item.id, rec ? 'recebido' : 'pago', data); }}
+              onClose={() => setConfirming(false)}
+            />
+          )}
+        </>
       )}
     </div>
   );
@@ -1137,7 +1210,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     }));
     const fromManual = lancamentos
       .filter(l => l.tipo === 'a_receber')
-      .map(l => { const cl = classOf(l); return { date: l.data_vencimento, descricao: l.descricao, origem: 'Manual', valor: Number(l.valor || 0), tipo: 'a_receber', isManual: true, id: l.id, status: statusOf(l), vencido: isVencido(l), classificacaoId: l.classificacao_id || '', classificacaoNome: cl.nome, classificacaoCor: cl.cor }; });
+      .map(l => { const cl = classOf(l); return { date: l.data_vencimento, descricao: l.descricao, origem: 'Manual', valor: Number(l.valor || 0), tipo: 'a_receber', isManual: true, id: l.id, status: statusOf(l), dataRecebimento: l.data_recebimento || null, vencido: isVencido(l), classificacaoId: l.classificacao_id || '', classificacaoNome: cl.nome, classificacaoCor: cl.cor }; });
     return [...fromRecs, ...fromManual].sort((a, b) => a.date.localeCompare(b.date));
   }, [records, lancamentos, companiesById, classificacoes]);
 
@@ -1148,7 +1221,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
         date: l.data_vencimento, descricao: l.descricao,
         origem: l.origem_tipo === 'divida' ? 'Dívida' : l.origem_tipo === 'custo_fixo' ? 'Custo Fixo' : l.origem_tipo === 'beneficio' ? 'Benefício' : l.origem_tipo === 'folha' ? 'Folha' : 'Manual',
         valor: Number(l.valor || 0), tipo: 'a_pagar', isManual: l.origem_tipo === 'manual', id: l.id,
-        status: statusOf(l), vencido: isVencido(l), classificacaoId: l.classificacao_id || '',
+        status: statusOf(l), dataRecebimento: l.data_recebimento || null, vencido: isVencido(l), classificacaoId: l.classificacao_id || '',
         classificacaoNome: cl.nome, classificacaoCor: cl.cor,
       };
     }).sort((a, b) => a.date.localeCompare(b.date)),
@@ -1228,9 +1301,12 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   };
 
   // Confirma/reverte o status (Pago / Recebido / Pendente).
-  const handleStatus = async (id, status) => {
-    await updateLancamentoStatus(id, status);
-    setLancamentos(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+  const handleStatus = async (id, status, dataRecebimento = null) => {
+    await updateLancamentoStatus(id, status, dataRecebimento);
+    const settled = status === 'pago' || status === 'recebido';
+    setLancamentos(prev => prev.map(l => l.id === id
+      ? { ...l, status, data_recebimento: settled ? (dataRecebimento || l.data_recebimento || null) : null }
+      : l));
   };
 
   // Reagenda o vencimento (mudar a data).

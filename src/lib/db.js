@@ -1978,9 +1978,18 @@ export async function updateLancamento(id, patch) {
 }
 
 // Status de um lançamento: 'pendente' | 'pago' | 'recebido' (null = pendente).
-export async function updateLancamentoStatus(id, status) {
-  const { data, error } = await supabase
-    .from('financeiro_lancamentos').update({ status }).eq('id', id).select().single();
+// Ao liquidar, grava também a data efetiva (para exibir "Recebido em DD/MM").
+// Se a coluna data_recebimento ainda não existir no banco, salva só o status.
+export async function updateLancamentoStatus(id, status, dataRecebimento = null) {
+  const settled = status === 'pago' || status === 'recebido';
+  const payload = { status, data_recebimento: settled ? (dataRecebimento || null) : null };
+
+  let { data, error } = await supabase
+    .from('financeiro_lancamentos').update(payload).eq('id', id).select().single();
+  if (error && /data_recebimento/.test(error.message || '')) {
+    ({ data, error } = await supabase
+      .from('financeiro_lancamentos').update({ status }).eq('id', id).select().single());
+  }
   if (error) { console.error('[db] updateLancamentoStatus:', error.message); return null; }
   return data;
 }
