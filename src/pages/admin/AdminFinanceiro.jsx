@@ -1130,8 +1130,8 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onEdit, onClose }
                       <Pencil size={13} />
                     </button>
                   ) : null}
-                  {item.isManual && onDelete ? (
-                    <button onClick={() => onDelete(item.id)} title="Excluir" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
+                  {item.id && onDelete ? (
+                    <button onClick={() => onDelete(item.id, item.descricao)} title="Excluir lançamento" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
                       <Trash2 size={13} />
                     </button>
                   ) : null}
@@ -1329,7 +1329,9 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id, descricao = '') => {
+    const ok = window.confirm(`Excluir o lançamento${descricao ? ` "${descricao}"` : ''}? Esta ação não pode ser desfeita.`);
+    if (!ok) return;
     await deleteLancamento(id);
     setLancamentos(prev => prev.filter(l => l.id !== id));
   };
@@ -1558,11 +1560,17 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                   <span style={{ display: 'flex', justifyContent: 'center' }}>
                     <StatusCell item={item} rec={rec} stored={!!item.id} status={item.status || 'pendente'} vencido={!!item.vencido} onStatus={handleStatus} />
                   </span>
-                  <span style={{ display: 'flex', justifyContent: 'center' }}>
+                  <span style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
                     {item.id ? (
                       <button onClick={() => setEditItem(item)} title="Editar lançamento"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
                         <Pencil size={13} />
+                      </button>
+                    ) : null}
+                    {item.id ? (
+                      <button onClick={() => handleDelete(item.id, item.descricao)} title="Excluir lançamento"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
+                        <Trash2 size={13} />
                       </button>
                     ) : null}
                   </span>
