@@ -14,7 +14,7 @@ const TIPOS = [
 
 const fmtBR = (iso) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR') : '');
 
-const HORARIOS_VAZIOS = { entrada: '', saida: '', saidaAlmoco: '', retornoAlmoco: '' };
+const HORARIOS_VAZIOS = { entrada: '', saidaAlmoco: '', retornoAlmoco: '', saida: '' };
 
 // Lança diárias de dias que já passaram e não foram registrados: escolhe a
 // empresa, o dia e quem trabalhou — sem busca de ajudantes nem convocação.
@@ -289,9 +289,9 @@ export default function LancamentoManual() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
                       {[
                         { campo: 'entrada',       label: 'Entrada *' },
-                        { campo: 'saida',         label: 'Saída *' },
                         { campo: 'saidaAlmoco',   label: 'Almoço — saída' },
                         { campo: 'retornoAlmoco', label: 'Almoço — retorno' },
+                        { campo: 'saida',         label: 'Saída *' },
                       ].map(({ campo, label }) => (
                         <div key={campo}>
                           <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: '#64748B', marginBottom: '3px' }}>{label}</label>

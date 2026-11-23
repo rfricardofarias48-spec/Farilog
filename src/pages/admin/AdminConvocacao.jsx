@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Loader2, CheckCircle2, XCircle, Clock, MapPin, Star, Shield, RefreshCw, Info, Send, Trash2,
-  CalendarDays, Filter, ChevronDown, Check, MessageCircle, Edit2,
+  CalendarDays, Filter, ChevronDown, Check, MessageCircle, Edit2, ClipboardList, X,
 } from 'lucide-react';
 import {
   fetchConvocacoesPeriodo, subscribeConvocacoes,
   aceitarConvocacao, recusarConvocacao, marcarSemResposta, deleteConvocacao,
   fetchDemands, editDemand,
 } from '../../lib/db';
+import { calculateWorkAndOvertime, minutesToFormattedTime } from '../../lib/timeUtils';
 import { useAuth } from '../../context/AuthContext';
 import DemandForm from '../../components/admin/DemandForm';
 import { ConvocacaoBadge } from '../../components/shared/ConvocacaoStatus';
@@ -87,6 +88,10 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
   const [menuRow, setMenuRow] = useState(null);       // { id, top, left } — menu "Responder"
   const { employees, companies, setDemands } = useAuth();
   const [editando, setEditando] = useState(null);     // demanda (escala) em edição
+  const [mostrarDiarias, setMostrarDiarias] = useState(false);
+  const [diarias, setDiarias] = useState([]);
+  const [carregandoDiarias, setCarregandoDiarias] = useState(false);
+  const [detalheDiaria, setDetalheDiaria] = useState(null);
 
   const statuses = FILTROS.find(f => f.id === filtro)?.statuses ?? null;
 
@@ -108,6 +113,18 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
 
   // Status ao vivo (o encarregado marca a resposta e a lista atualiza sozinha)
   useEffect(() => subscribeConvocacoes(null, () => load()), [load]);
+
+  // Diárias (escalas) do período — carregadas sob demanda ao abrir o painel.
+  const carregarDiarias = useCallback(async () => {
+    setCarregandoDiarias(true);
+    const todas = await fetchDemands();
+    setDiarias((todas || []).filter(d => d.date && d.date >= de && d.date <= ate));
+    setCarregandoDiarias(false);
+  }, [de, ate]);
+
+  useEffect(() => {
+    if (mostrarDiarias) carregarDiarias();
+  }, [mostrarDiarias, carregarDiarias]);
 
   useEffect(() => {
     if (!menuAberto) return undefined;
@@ -147,6 +164,12 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
           : String(b.data).localeCompare(String(a.data))
       ));
   }, [convs, filtro]);
+
+  const employeesById = useMemo(() => {
+    const map = new Map();
+    (employees || []).forEach(e => map.set(e.id, e));
+    return map;
+  }, [employees]);
 
   const agir = async (tipo, conv) => {
     setAgindo(conv.id);
@@ -319,7 +342,74 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
             </div>
           )}
         </div>
+
+        <button type="button" onClick={() => setMostrarDiarias(v => !v)} aria-expanded={mostrarDiarias}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '7px',
+            padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.08)',
+            background: mostrarDiarias ? '#FAF4F1' : '#fff',
+            color: mostrarDiarias ? '#8A3520' : '#0F172A',
+            fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+          }}>
+          <ClipboardList size={13} style={{ color: '#BC4A2A' }} />
+          Detalhes das diárias
+          <ChevronDown size={13} style={{ color: '#94A3B8', transition: 'transform .15s', transform: mostrarDiarias ? 'rotate(180deg)' : 'none' }} />
+        </button>
       </div>
+
+      {/* Lista de diárias do período (abre/fecha pelo botão acima) */}
+      {mostrarDiarias && (
+        <div className="card" style={{ overflow: 'hidden' }}>
+          <div style={{ padding: '11px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+            <div>
+              <p style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>{modo === 'mes' ? 'Diárias do mês' : 'Diárias da quinzena'}</p>
+              <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                {labelPeriodo} · {diarias.length} diária{diarias.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+            <button type="button" onClick={carregarDiarias} disabled={carregandoDiarias}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 10px', borderRadius: '8px', background: '#F1F5F9', border: 'none', cursor: carregandoDiarias ? 'wait' : 'pointer', fontSize: '11px', fontWeight: 700, color: '#0F172A' }}>
+              <RefreshCw size={11} className={carregandoDiarias ? 'animate-spin' : ''} /> Atualizar
+            </button>
+          </div>
+
+          {carregandoDiarias ? (
+            <div style={{ padding: '32px 0', textAlign: 'center' }}>
+              <Loader2 size={20} className="animate-spin" style={{ color: '#BC4A2A', margin: '0 auto 8px' }} />
+              <p style={{ fontSize: '12px', color: '#94A3B8' }}>Carregando diárias...</p>
+            </div>
+          ) : diarias.length === 0 ? (
+            <p style={{ padding: '28px 16px', textAlign: 'center', fontSize: '12px', color: '#94A3B8' }}>
+              Nenhuma diária lançada neste período.
+            </p>
+          ) : (
+            diarias.map(d => {
+              const total = d.employees?.length || 0;
+              return (
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+                      {d.companyName || 'Empresa'} · {fmtDia(d.date)}{d.time ? ` · ${d.time}` : ''}
+                    </p>
+                    <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                      {total} ajudante{total !== 1 ? 's' : ''}{d.service ? ` · ${d.service}` : ''}
+                      {d.tipoServico === 'carga_descarga' ? ' · Carga e Descarga' : ''}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setDetalheDiaria(d)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', borderRadius: '8px',
+                      border: '1px solid rgba(188,74,42,0.35)', background: '#FAF4F1', color: '#8A3520',
+                      fontSize: '10px', fontWeight: 800, cursor: 'pointer',
+                    }}>
+                    <ClipboardList size={11} /> Ver detalhes
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center' }}>
@@ -500,6 +590,121 @@ export default function AdminConvocacao({ initialMes, initialQuinzena } = {}) {
         </div>,
         document.body
       )}
+
+      {/* Detalhes de uma diária: horários e horas extras de cada ajudante */}
+      {detalheDiaria && createPortal((() => {
+        const d = detalheDiaria;
+        const isCD = d.tipoServico === 'carga_descarga';
+        const linhas = (d.employees || []).map(e => ({
+          ...e,
+          emp: employeesById.get(e.employeeId),
+          calc: calculateWorkAndOvertime(
+            e.entrada,
+            e.saida,
+            isCD ? null : e.saidaAlmoco,
+            isCD ? null : e.retornoAlmoco,
+          ),
+        }));
+        const totalHE = linhas.reduce((s, l) => s + (l.calc?.overtimeMinutes || 0), 0);
+        const cell = { padding: '8px 12px', whiteSpace: 'nowrap' };
+        const th = { padding: '8px 12px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' };
+
+        return (
+          <div className="modal-overlay" style={{ zIndex: 1300 }}
+            onClick={ev => { if (ev.target === ev.currentTarget) setDetalheDiaria(null); }}>
+            <div className="modal-box animate-fade-up" style={{ maxWidth: '820px', maxHeight: '90vh', overflowY: 'auto', padding: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
+                <div>
+                  <p style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>{d.companyName || 'Empresa'}</p>
+                  <p style={{ fontSize: '12px', color: '#64748B', marginTop: '3px' }}>
+                    {fmtDia(d.date)}{d.time ? ` · ${d.time}` : ''} · {isCD ? 'Carga e Descarga' : 'Diária'}
+                  </p>
+                </div>
+                <button type="button" onClick={() => setDetalheDiaria(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}>
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#0F172A', background: '#F1F5F9', padding: '4px 10px', borderRadius: '7px' }}>
+                  {linhas.length} ajudante{linhas.length !== 1 ? 's' : ''}
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: totalHE > 0 ? '#8A3520' : '#047857', background: totalHE > 0 ? '#FAF4F1' : '#F0FDF4', padding: '4px 10px', borderRadius: '7px' }}>
+                  {totalHE > 0 ? `+${minutesToFormattedTime(totalHE)} de hora extra` : 'Sem horas extras'}
+                </span>
+                {d.service && (
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', background: '#F8FAFC', padding: '4px 10px', borderRadius: '7px' }}>
+                    {d.service}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ border: '1px solid rgba(0,0,0,0.07)', borderRadius: '12px', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ background: '#F8FAFC' }}>
+                      <th style={th}>Ajudante</th>
+                      {isCD ? (
+                        <>
+                          <th style={th}>Entrada</th>
+                          <th style={th}>Saída</th>
+                        </>
+                      ) : (
+                        <>
+                          <th style={th}>Entrada</th>
+                          <th style={th}>Almoço saída</th>
+                          <th style={th}>Almoço retorno</th>
+                          <th style={th}>Saída</th>
+                        </>
+                      )}
+                      <th style={th}>Jornada</th>
+                      <th style={th}>HE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {linhas.length === 0 ? (
+                      <tr>
+                        <td colSpan={isCD ? 5 : 7} style={{ ...cell, textAlign: 'center', color: '#94A3B8', padding: '24px 12px' }}>
+                          Nenhum ajudante nesta diária.
+                        </td>
+                      </tr>
+                    ) : linhas.map(l => (
+                      <tr key={l.employeeId} style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                        <td style={cell}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                            <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: l.emp?.color || '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                              {l.emp?.initials || '?'}
+                            </div>
+                            <span style={{ fontWeight: 700, color: '#0F172A' }}>{l.emp?.name || 'Ajudante'}</span>
+                          </div>
+                        </td>
+                        {isCD ? (
+                          <>
+                            <td style={cell}>{hhmm(l.entrada) || '—'}</td>
+                            <td style={cell}>{hhmm(l.saida) || '—'}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td style={cell}>{hhmm(l.entrada) || '—'}</td>
+                            <td style={cell}>{hhmm(l.saidaAlmoco) || '—'}</td>
+                            <td style={cell}>{hhmm(l.retornoAlmoco) || '—'}</td>
+                            <td style={cell}>{hhmm(l.saida) || '—'}</td>
+                          </>
+                        )}
+                        <td style={cell}>{l.calc?.isComplete ? l.calc.workedFormatted : '—'}</td>
+                        <td style={{ ...cell, fontWeight: 800, color: l.calc?.hasOvertime ? '#BC4A2A' : '#0F172A' }}>
+                          {l.calc?.hasOvertime ? `+${l.calc.overtimeFormatted}` : '0h'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+      })(), document.body)}
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', padding: '10px 12px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)' }}>
         <Info size={13} style={{ color: '#64748B', flexShrink: 0, marginTop: '1px' }} />
