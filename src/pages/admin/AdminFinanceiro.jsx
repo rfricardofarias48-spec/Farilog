@@ -384,8 +384,25 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
   const active = records.filter(r => r.status !== 'absent');
   const companiesById = Object.fromEntries((companies || []).map(c => [c.id, c]));
 
-  // Faturamento: diária da empresa (admin) + HE proporcional (diária ÷ 8 × 1,5)
-  const fat = active.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
+  // Faturamento na mesma base do Fluxo de Caixa: diárias agrupadas pelo
+  // fechamento de cada empresa + lançamentos manuais a receber do período.
+  // O total é Recebido + A Receber, igual ao "A Receber no Período" do Fluxo.
+  let fatRecebido = 0;
+  let fatAReceber = 0;
+  for (const g of agruparPorFechamento(
+    active.map(r => ({ ...r, valor: recordRevenue(r, companiesById) })),
+    companiesById
+  )) {
+    if (g.vencimento <= TODAY_ISO) fatRecebido += g.valor;
+    else fatAReceber += g.valor;
+  }
+  for (const l of (lancamentos || [])) {
+    if (l.tipo !== 'a_receber') continue;
+    const valor = Number(l.valor || 0);
+    if (statusOf(l) === 'recebido') fatRecebido += valor;
+    else fatAReceber += valor;
+  }
+  const fat = fatRecebido + fatAReceber;
 
   // Custos diretos derivados dos registros de ponto (mesma base usada no DRE).
   const folha = folhaDosRegistros(active, employees);
@@ -396,10 +413,10 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
   const custoFixo    = lancamentos.filter(l => l.origem_tipo === 'custo_fixo' && statusOf(l) === 'pago').reduce((s, l) => s + Number(l.valor || 0), 0);
   const endivPeriodo = lancamentos.filter(l => l.origem_tipo === 'divida'     && statusOf(l) === 'pago').reduce((s, l) => s + Number(l.valor || 0), 0);
 
-  // Pendentes do período (ficam fora dos números; sinalizados no aviso).
+  // Pendentes do período. Receitas já entram no faturamento (Recebido + A
+  // Receber), então só os custos pendentes ficam fora dos totais.
   const pendCustos   = lancamentos.filter(l => l.tipo === 'a_pagar'   && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
-  const pendReceitas = lancamentos.filter(l => l.tipo === 'a_receber' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
-  const pendVencidos = lancamentos.filter(l => statusOf(l) === 'pendente' && isVencido(l)).reduce((s, l) => s + Number(l.valor || 0), 0);
+  const pendVencidos = lancamentos.filter(l => l.tipo === 'a_pagar' && statusOf(l) === 'pendente' && isVencido(l)).reduce((s, l) => s + Number(l.valor || 0), 0);
 
   // Totais por classificação, a partir dos lançamentos a pagar CONFIRMADOS. Folha e
   // Benefícios entram por competência (registros de ponto), então os lançamentos
@@ -457,7 +474,8 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
       ].filter(s => s.value > 0);
 
   const kpis = [
-    { label: 'Faturamento', value: fmtCurrency(fat), icon: DollarSign, dark: true, darkColor: '#FFFFFF' },
+    { label: 'Faturamento', value: fmtCurrency(fat), icon: DollarSign, dark: true, darkColor: '#FFFFFF',
+      sub: `${fmtCurrency(fatRecebido)} recebido · ${fmtCurrency(fatAReceber)} a receber` },
     { label: 'Margem de Contribuição', value: fmtCurrency(margemContribValor), icon: Percent,
       dark: true,
       darkColor: margemContribValor >= 0 ? '#E59A82' : '#C9C9C9',
@@ -475,7 +493,7 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
         {kpis.map(k => <KpiCard key={k.label} {...k} />)}
       </div>
 
-      <PendenciaNote custos={pendCustos} receitas={pendReceitas} vencidos={pendVencidos} where="nos totais e no gráfico" />
+      <PendenciaNote custos={pendCustos} receitas={0} vencidos={pendVencidos} where="nos totais e no gráfico" />
 
       {/* Gráfico + legenda */}
       <div className="card" style={{ padding: '32px' }}>
