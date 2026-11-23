@@ -703,7 +703,9 @@ function Relatorios() {
 
     doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(...mid);
     doc.text(`${viewBy === 'empresa' ? 'Empresa' : 'Funcionário'}: ${subjectName}`, 10, headerH + 9);
-    doc.text(`Período: ${label}  ${pdfRange}`, 10, headerH + 15);
+    // O rótulo do período já traz o intervalo (quinzena/fechamento); só completa
+    // com as datas no modo mensal (ex.: "Novembro/2026 (01/11 a 30/11)").
+    doc.text(`Período: ${label}${mensal ? `  ${pdfRange}` : ''}`, 10, headerH + 15);
     if (viewBy === 'empresa') {
       doc.text(`Diária: R$ ${dailyRate}  |  HE 50%: R$ ${heRate.toFixed(2)}/h  |  HE 100%: R$ ${he100Rate.toFixed(2)}/h`, 10, headerH + 21);
     } else {
@@ -839,7 +841,9 @@ function Relatorios() {
             {navBtn(<ChevronLeft size={15} />, () => setOffset(o => o - 1))}
             <div className="flex-1 text-center">
               <p className="text-sm font-bold" style={{ color: '#FFFFFF' }}>{label}</p>
-              <p className="text-xs" style={{ color: '#BDBDBD' }}>{String(sday).padStart(2,'0')}/{String(sm).padStart(2,'0')} — {String(eday).padStart(2,'0')}/{String(sm).padStart(2,'0')}/{tYear}</p>
+              {mensal && (
+                <p className="text-xs" style={{ color: '#BDBDBD' }}>{String(sday).padStart(2,'0')}/{String(sm).padStart(2,'0')} — {String(eday).padStart(2,'0')}/{String(sm).padStart(2,'0')}/{tYear}</p>
+              )}
             </div>
             {navBtn(<ChevronRight size={15} />, () => setOffset(o => Math.min(o + 1, 0)))}
           </div>
