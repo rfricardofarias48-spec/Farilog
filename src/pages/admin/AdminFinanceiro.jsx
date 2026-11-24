@@ -14,12 +14,12 @@ import {
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
 import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
-import { agruparPorFechamento } from '../../lib/fechamento';
+import { agruparPorFechamento, getFechamentoBounds, rotuloFechamento } from '../../lib/fechamento';
 import { payablesAutomaticos } from '../../lib/folha';
 import {
   ComposedChart, Bar, Line, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceDot,
-  ReferenceLine,
+  ReferenceLine, ReferenceArea,
 } from 'recharts';
 import {
   DollarSign, TrendingUp, TrendingDown, Percent,
@@ -2314,6 +2314,375 @@ function TabDRE({ records, lancamentos, employees, bounds, companies, classifica
   );
 }
 
+// ── Tab: Resultados ────────────────────────────────────────────────────────
+// O resultado da operação em dois cortes:
+//   por mês        → a empresa inteira, na mesma base do DRE (receita − mão de
+//                    obra − benefícios − despesas confirmadas = resultado).
+//   por fechamento → a margem de contribuição de UM cliente no seu ciclo de
+//                    fechamento (faturamento − mão de obra − benefícios dos
+//                    dias trabalhados para ele). Despesas gerais não são
+//                    rateadas por cliente, por isso ficam de fora aqui.
+function resultadoDoPeriodo(recs, lancs, employees, companiesById, nomePorClasse, { clienteId = null } = {}) {
+  const base = recs.filter(r => r.status !== 'absent' && (!clienteId || r.companyId === clienteId));
+  const receita    = base.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
+  const folha      = folhaDosRegistros(base, employees);
+  const beneficios = beneficiosDosRegistros(base, employees).total;
+
+  let despesas = 0;
+  if (!clienteId) {
+    despesas = lancs
+      .filter(l => l.tipo === 'a_pagar'
+        && l.origem_tipo !== 'folha'
+        && l.origem_tipo !== 'beneficio'
+        && !['Folha de Pagamento', 'Benefícios'].includes(nomePorClasse[l.classificacao_id])
+        && statusOf(l) === 'pago')
+      .reduce((s, l) => s + Number(l.valor || 0), 0);
+  }
+
+  const custos = folha + beneficios + despesas;
+  return { receita, folha, beneficios, despesas, custos, resultado: receita - custos, diarias: base.length };
+}
+
+// Ponto da linha de resultado: verde quando positivo, terracota quando negativo.
+function ResultadoDot({ cx, cy, payload }) {
+  if (cx == null || cy == null || !payload) return null;
+  const pos = Number(payload.resultado || 0) >= 0;
+  return <circle cx={cx} cy={cy} r={3.6} fill={pos ? PROFIT_COLOR : CASH_OUT} stroke="#fff" strokeWidth={1.4} />;
+}
+
+function ResultadoTip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const b = payload[0]?.payload ?? {};
+  const pos = Number(b.resultado || 0) >= 0;
+  const margem = Number(b.receita) > 0 ? (Number(b.resultado) / Number(b.receita)) * 100 : 0;
+  const row = (cor, nome, valor) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+      <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: cor, flexShrink: 0 }} />
+      <span style={{ color: '#C9C9C9', fontSize: '11.5px', fontWeight: 500 }}>{nome}</span>
+      <span style={{ color: '#F5F5F5', fontSize: '11.5px', fontWeight: 700, marginLeft: 'auto' }}>{fmtCurrency(valor)}</span>
+    </div>
+  );
+  return (
+    <div style={{ background: '#1C1C1C', borderRadius: '10px', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)', minWidth: '200px', boxShadow: '0 8px 24px rgba(0,0,0,0.22)' }}>
+      <p style={{ color: '#A8A8A8', fontSize: '11px', fontWeight: 600, marginBottom: '7px' }}>{b.full || b.label}</p>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', padding: '6px 8px', borderRadius: '7px',
+        background: pos ? 'rgba(47,122,79,0.24)' : 'rgba(188,74,42,0.28)', borderLeft: `3px solid ${pos ? PROFIT_COLOR : CASH_OUT}` }}>
+        <span style={{ color: '#F5F5F5', fontSize: '11.5px', fontWeight: 700 }}>Resultado</span>
+        <span style={{ color: '#FFFFFF', fontSize: '12.5px', fontWeight: 900 }}>{fmtCurrency(b.resultado)}</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '7px', paddingLeft: '2px' }}>
+        {row(CASH_IN, 'Receita', b.receita)}
+        {row(CASH_OUT, 'Custos', b.custos)}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', marginTop: '7px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.10)' }}>
+        <span style={{ color: '#9C9C9C', fontSize: '10.5px', fontWeight: 600 }}>Margem</span>
+        <span style={{ color: margem < 0 ? '#F0A08C' : '#F5F5F5', fontSize: '11px', fontWeight: 800 }}>{margem.toFixed(1)}%</span>
+      </div>
+    </div>
+  );
+}
+
+function TabResultados({ employees, companies, classificacoes }) {
+  const companiesById  = Object.fromEntries((companies || []).map(c => [c.id, c]));
+  const nomePorClasse  = Object.fromEntries((classificacoes || []).map(c => [c.id, c.nome]));
+  const companiesAtivas = (companies || []).filter(c => c.isActive !== false);
+
+  const [mode,       setMode]       = useState('mes');     // 'mes' | 'fechamento'
+  const [mesOffset,  setMesOffset]  = useState(0);
+  const [fechOffset, setFechOffset] = useState(0);
+  const [companyId,  setCompanyId]  = useState('');
+  const [records,    setRecords]    = useState([]);
+  const [lancamentos, setLancamentos] = useState([]);
+  const [loading,    setLoading]    = useState(true);
+
+  // Janela fixa de 18 meses para trás: cobre os meses do gráfico e os ciclos de
+  // fechamento (mesmo os curtos, como o diário) de qualquer cliente.
+  const janela = useMemo(() => {
+    const [y, m] = TODAY_ISO.split('-').map(Number);
+    let sm = m - 1 - 18, sy = y;
+    while (sm < 0) { sm += 12; sy -= 1; }
+    const last = new Date(y, m, 0).getDate();
+    const pad  = n => String(n).padStart(2, '0');
+    return { start: `${sy}-${pad(sm + 1)}-01`, end: `${y}-${pad(m)}-${pad(last)}` };
+  }, []);
+
+  useEffect(() => {
+    let vivo = true;
+    setLoading(true);
+    Promise.all([
+      fetchWorkRecordsByPeriod(null, null, janela.start, janela.end),
+      fetchLancamentos(janela.start, janela.end),
+    ]).then(([recs, lncs]) => {
+      if (!vivo) return;
+      setRecords(recs || []);
+      setLancamentos(lncs || []);
+      setLoading(false);
+    });
+    return () => { vivo = false; };
+  }, [janela.start, janela.end]);
+
+  // Cliente padrão do corte por fechamento: o que mais tem diárias na janela;
+  // sem diárias ainda, o primeiro cliente ativo.
+  useEffect(() => {
+    if (companyId) return;
+    if (!records.length) {
+      if (companiesAtivas.length) setCompanyId(companiesAtivas[0].id);
+      return;
+    }
+    const cont = {};
+    records.forEach(r => { if (r.status !== 'absent' && r.companyId) cont[r.companyId] = (cont[r.companyId] || 0) + 1; });
+    const top = Object.entries(cont).sort((a, b) => b[1] - a[1])[0];
+    setCompanyId(top ? top[0] : (companiesAtivas[0]?.id ?? ''));
+  }, [records, companyId, companiesAtivas]);
+
+  const company = companiesById[companyId] || null;
+  const cfg = { modo: company?.closingCycle, dias: company?.closingDays, prazo: company?.prazoPagamento, uteis: company?.prazoDiasUteis };
+
+  // Série de 6 períodos terminando no selecionado (que é sempre o último).
+  const SERIE = 6;
+  const periodos = [];
+  for (let i = SERIE - 1; i >= 0; i--) {
+    if (mode === 'mes') {
+      const off = mesOffset - i;
+      const b = getBounds('mensal', off);
+      periodos.push({ ...b, offset: off, curto: `${MONTH_SHORT[Number(b.start.slice(5, 7)) - 1]}/${b.start.slice(2, 4)}` });
+    } else {
+      const off = fechOffset - i;
+      const b = getFechamentoBounds(cfg, false, off);
+      periodos.push({ ...b, offset: off, curto: b.label.includes(' a ') ? b.label.split(' a ')[1] : b.label });
+    }
+  }
+
+  const serie = periodos.map(p => {
+    const recs  = records.filter(r => r.date >= p.start && r.date <= p.end);
+    const lancs = lancamentos.filter(l => l.data_vencimento >= p.start && l.data_vencimento <= p.end);
+    const res   = resultadoDoPeriodo(recs, lancs, employees, companiesById, nomePorClasse, { clienteId: mode === 'fechamento' ? companyId : null });
+    const pend  = mode === 'mes' ? lancs.filter(l => statusOf(l) === 'pendente') : [];
+    return {
+      key: p.curto, label: p.curto, full: p.label,
+      receita: res.receita, custos: res.custos, resultado: res.resultado,
+      folha: res.folha, beneficios: res.beneficios, despesas: res.despesas, diarias: res.diarias,
+      margem: res.receita > 0 ? (res.resultado / res.receita) * 100 : 0,
+      start: p.start, end: p.end,
+      pendCustos:   pend.filter(l => l.tipo === 'a_pagar' && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio').reduce((s, l) => s + Number(l.valor || 0), 0),
+      pendReceitas: pend.filter(l => l.tipo === 'a_receber').reduce((s, l) => s + Number(l.valor || 0), 0),
+      pendVencidos: pend.filter(l => isVencido(l)).reduce((s, l) => s + Number(l.valor || 0), 0),
+    };
+  });
+
+  const sel  = serie[serie.length - 1];
+  const prev = serie.length > 1 ? serie[serie.length - 2] : null;
+
+  const navegar = (delta) => {
+    if (mode === 'mes') setMesOffset(o => Math.min(0, o + delta));
+    else setFechOffset(o => Math.min(0, o + delta));
+  };
+  const trocarModo    = (v)  => { setMode(v); setMesOffset(0); setFechOffset(0); };
+  const trocarCliente = (id) => { setCompanyId(id); setFechOffset(0); };
+
+  const semDados = serie.every(s => s.receita === 0 && s.custos === 0);
+
+  const deltaTexto = (d) => {
+    if (prev == null) return null;
+    if (Math.abs(d) < 0.005) return 'igual ao período anterior';
+    return `${d > 0 ? '+' : '−'}${fmtCurrency(Math.abs(d))} vs. período anterior`;
+  };
+  const deltaCor = (d) => (prev == null || Math.abs(d) < 0.005) ? '#9A9A9A' : (d > 0 ? CASH_IN : CASH_OUT);
+
+  const custoRows = [
+    { label: 'Mão de obra (diárias + H.E.)', value: sel.folha,      cor: REVENUE_COLORS.folha },
+    { label: 'Benefícios (VT/VR)',           value: sel.beneficios, cor: REVENUE_COLORS.vt },
+    ...(mode === 'mes' ? [{ label: 'Despesas lançadas (fixos/dívidas)', value: sel.despesas, cor: REVENUE_COLORS.fixos }] : []),
+  ].filter(r => r.value > 0);
+
+  const kpis = [
+    { label: 'Receita do Período', value: fmtCurrency(sel.receita), icon: DollarSign, color: CASH_IN, bg: CASH_IN_BG,
+      sub: deltaTexto(prev == null ? 0 : sel.receita - prev.receita), subColor: deltaCor(prev == null ? 0 : sel.receita - prev.receita) },
+    { label: mode === 'mes' ? 'Custos do Período' : 'Custos Diretos', value: fmtCurrency(sel.custos), icon: TrendingDown, color: CASH_OUT, bg: CASH_OUT_BG,
+      sub: `${sel.diarias} diária${sel.diarias !== 1 ? 's' : ''} no período` },
+    { label: 'Resultado', value: fmtCurrency(sel.resultado), icon: TrendingUp, dark: true,
+      darkColor: sel.resultado >= 0 ? '#7CC79B' : '#E39AA6',
+      sub: `${sel.margem.toFixed(1)}% de margem`, subColor: '#BDBDBD' },
+    { label: 'Margem', value: `${sel.margem.toFixed(1)}%`, icon: Percent, color: '#3A4F6B', bg: '#EEF1F6',
+      sub: mode === 'mes' ? 'resultado ÷ receita' : 'margem do cliente' },
+  ];
+
+  return (
+    <div className="space-y-5">
+      {/* Filtro — corte (mês/fechamento) + cliente + navegação do período */}
+      <div className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '2px', background: '#F3F3F3', border: '1px solid #E8E8E8', borderRadius: '10px', padding: '3px' }}>
+            {[['mes', 'Por mês'], ['fechamento', 'Por fechamento']].map(([v, l]) => (
+              <button key={v} onClick={() => trocarModo(v)}
+                style={{
+                  padding: '6px 14px', borderRadius: '7px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                  fontSize: '12px', fontWeight: 700, transition: 'all 0.15s',
+                  background: mode === v ? '#0B0B0B' : 'transparent',
+                  color: mode === v ? '#fff' : '#7A7A7A',
+                }}>
+                {l}
+              </button>
+            ))}
+          </div>
+
+          {mode === 'fechamento' && (
+            <>
+              <select className="input-field" value={companyId} onChange={e => trocarCliente(e.target.value)}
+                style={{ width: '230px' }}>
+                {companiesAtivas.length === 0 && <option value="">Nenhum cliente cadastrado</option>}
+                {companiesAtivas.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              {company && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 10px', borderRadius: '8px', background: '#FAF4F1', border: '1px solid rgba(188,74,42,0.20)', color: '#8C3B4A', fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  <CalendarDays size={11} /> {rotuloFechamento(company.closingCycle, company.closingDays)}
+                </span>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Navegação: seta troca o mês ou o período de fechamento do cliente */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button onClick={() => navegar(-1)} title="Período anterior"
+            style={{ width: '32px', height: '32px', borderRadius: '9px', background: '#fff', border: '1px solid rgba(11,11,11,0.08)', cursor: 'pointer', color: '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11,11,11,0.06)' }}>
+            <ChevronLeft size={14} />
+          </button>
+          <div style={{ minWidth: '190px', textAlign: 'center' }}>
+            <p style={{ fontSize: '13px', fontWeight: 800, ...T, lineHeight: 1.2 }}>{sel.full}</p>
+            <p style={{ fontSize: '10.5px', ...TM, marginTop: '1px' }}>
+              {mode === 'mes' ? 'Resultado mensal' : (company?.name || 'Fechamento')}
+            </p>
+          </div>
+          <button onClick={() => navegar(1)} disabled={(mode === 'mes' ? mesOffset : fechOffset) >= 0}
+            title="Próximo período"
+            style={{
+              width: '32px', height: '32px', borderRadius: '9px', background: '#fff', border: '1px solid rgba(11,11,11,0.08)',
+              cursor: (mode === 'mes' ? mesOffset : fechOffset) >= 0 ? 'not-allowed' : 'pointer',
+              color: (mode === 'mes' ? mesOffset : fechOffset) >= 0 ? '#D1D1D1' : '#4A4A4A',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11,11,11,0.06)',
+            }}>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ padding: '60px', textAlign: 'center', fontSize: '13px', color: '#9A9A9A' }}>Carregando resultados...</div>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+            {kpis.map(k => (
+              <div key={k.label}>
+                <KpiCard {...k} sub={undefined} />
+                {k.sub && (
+                  <p style={{ fontSize: '10.5px', color: k.subColor || '#9A9A9A', fontWeight: 600, marginTop: '6px', paddingLeft: '2px' }}>{k.sub}</p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Gráfico: receita e custos por período + linha do resultado */}
+          <div className="card p-5">
+            <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <p style={{ fontSize: '15px', fontWeight: 800, ...T }}>
+                  {mode === 'mes' ? 'Resultado por mês' : `Resultado por fechamento — ${company?.name || ''}`}
+                </p>
+                <p style={{ fontSize: '11px', ...TM, marginTop: '2px' }}>
+                  {mode === 'mes'
+                    ? 'Receita, custos e resultado da operação nos últimos meses'
+                    : 'Faturamento, custo direto e margem de cada ciclo de fechamento do cliente'}
+                  {' · '}período em destaque: <b style={{ color: '#0B0B0B' }}>{sel.full}</b>
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '8px', flexWrap: 'wrap' }}>
+                  {[['Receita', CASH_IN], ['Custos', CASH_OUT], ['Resultado', PROFIT_COLOR]].map(([lbl, cor]) => (
+                    <div key={lbl} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: cor }} />
+                      <span style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 500 }}>{lbl}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {semDados ? (
+              <div style={{ height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ fontSize: '13px', color: '#C8C8C8' }}>Sem movimento nos períodos exibidos</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={330}>
+                <ComposedChart data={serie} margin={{ top: 20, right: 16, bottom: 8, left: -10 }} barCategoryGap="28%" barGap={4}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fill: '#9A9A9A', fontSize: 11 }} axisLine={false} tickLine={false} interval={0} height={30} />
+                  <YAxis tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false}
+                    tickFormatter={v => v === 0 ? 'R$0' : `${v < 0 ? '-' : ''}R$${Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(0) + 'k' : Math.abs(v)}`} />
+                  <Tooltip content={<ResultadoTip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+                  <ReferenceLine y={0} stroke="#9A9A9A" strokeOpacity={0.45} strokeDasharray="4 4" />
+                  <ReferenceArea x1={sel.label} x2={sel.label} fill="rgba(188,74,42,0.07)" stroke="none" />
+                  <Bar dataKey="receita" name="Receita" fill={CASH_IN}  fillOpacity={0.55} radius={[3, 3, 0, 0]} maxBarSize={26} />
+                  <Bar dataKey="custos"  name="Custos"  fill={CASH_OUT} fillOpacity={0.55} radius={[3, 3, 0, 0]} maxBarSize={26} />
+                  <Line type="monotone" dataKey="resultado" name="Resultado" stroke={PROFIT_COLOR} strokeWidth={2.8} dot={<ResultadoDot />} activeDot={{ r: 5 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Composição dos custos do período selecionado */}
+          <div className="card" style={{ padding: '20px' }}>
+            <p style={{ fontSize: '11px', fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
+              Composição dos custos — {sel.full}
+            </p>
+            {custoRows.length === 0 ? (
+              <p style={{ fontSize: '12px', color: '#C8C8C8' }}>Sem custos no período selecionado</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {custoRows.map(r => {
+                  const pct = sel.custos > 0 ? (r.value / sel.custos) * 100 : 0;
+                  return (
+                    <div key={r.label}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: r.cor, flexShrink: 0 }} />
+                          <p style={{ fontSize: '14px', fontWeight: 600, ...T }}>{r.label}</p>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <p style={{ fontSize: '15px', fontWeight: 800, color: r.cor }}>{fmtCurrency(r.value)}</p>
+                          <p style={{ fontSize: '13px', color: '#9A9A9A', fontWeight: 500, minWidth: '44px', textAlign: 'right' }}>{pct.toFixed(1)}%</p>
+                        </div>
+                      </div>
+                      <div style={{ height: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: r.cor, borderRadius: '4px', transition: 'width 0.4s ease' }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', marginTop: '2px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total de custos</span>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: CASH_OUT }}>{fmtCurrency(sel.custos)}</span>
+                </div>
+              </div>
+            )}
+            {mode === 'fechamento' && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '14px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '10px', padding: '9px 12px' }}>
+                <AlertTriangle size={13} style={{ color: '#9A9A9A', flexShrink: 0, marginTop: '1px' }} />
+                <p style={{ fontSize: '11px', color: '#6B6B6B', lineHeight: 1.5 }}>
+                  Custos fixos, dívidas e demais despesas gerais não são rateados por cliente. Aqui o resultado é a
+                  <b> margem de contribuição</b> do fechamento: faturamento menos a mão de obra e os benefícios dos dias trabalhados para este cliente.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {mode === 'mes' && (
+            <PendenciaNote custos={sel.pendCustos} receitas={sel.pendReceitas} vencidos={sel.pendVencidos} where="no resultado" />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Modal: Lançar Adiantamento ─────────────────────────────────────────────
 function LancarAdiantamentoModal({ employees, defaultIdx, maxIdx, onSave, onClose }) {
   const [form,   setForm]   = useState({ employeeId: '', valor: '', data: TODAY_ISO, idx: String(defaultIdx) });
@@ -2899,9 +3268,9 @@ export default function AdminFinanceiro() {
     <div className="space-y-5">
       {/* Header — o título da sub-aba é exibido pela topbar do AdminLayout */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
-        {/* A aba Folha tem o seu próprio filtro (Mensal/Quinzenal), então o
-            seletor geral do cabeçalho fica oculto nela — evita 2 filtros na tela. */}
-        {activeTab !== 'folha' && (
+        {/* As abas Folha e Resultados têm o seu próprio filtro de período, então o
+            seletor geral do cabeçalho fica oculto nelas — evita 2 filtros na tela. */}
+        {activeTab !== 'folha' && activeTab !== 'resultados' && (
           <PeriodSelector
             type={periodType}
             offset={offset}
@@ -2927,6 +3296,7 @@ export default function AdminFinanceiro() {
         <>
           {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} classificacoes={classificacoes} />}
           {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} employees={employees} classificacoes={classificacoes} onCreateClassificacao={handleCreateClassificacao} />}
+          {activeTab === 'resultados' && <TabResultados employees={employees} companies={companies} classificacoes={classificacoes} />}
           {activeTab === 'folha'   && <TabFolhaPagamento employees={employees} />}
           {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} showModal={showNovaDivida} setShowModal={setShowNovaDivida} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}

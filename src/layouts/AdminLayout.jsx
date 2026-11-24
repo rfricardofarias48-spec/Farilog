@@ -6,6 +6,7 @@ import {
   DollarSign, ClipboardList, Briefcase, Activity,
   BarChart2, ChevronDown, Users, Heart,
   TrendingUp, CreditCard, Wallet, FileText, UserCheck, MessageCircle, Settings,
+  LineChart,
 } from 'lucide-react';
 
 const OP_TABS = [
@@ -22,12 +23,13 @@ const RH_TABS = [
 ];
 
 const FIN_TABS = [
-  { key: 'visao',   label: 'Visão Geral',        icon: BarChart2  },
-  { key: 'fluxo',   label: 'Fluxo de Caixa',     icon: TrendingUp },
-  { key: 'folha',   label: 'Folha de Pagamento', icon: Users      },
-  { key: 'dividas', label: 'Endividamento',      icon: CreditCard },
-  { key: 'custos',  label: 'Custos Fixos',       icon: Wallet     },
-  { key: 'dre',     label: 'DRE',                icon: FileText   },
+  { key: 'visao',      label: 'Visão Geral',        icon: BarChart2  },
+  { key: 'fluxo',      label: 'Fluxo de Caixa',     icon: TrendingUp },
+  { key: 'resultados', label: 'Resultados',         icon: LineChart  },
+  { key: 'folha',      label: 'Folha de Pagamento', icon: Users      },
+  { key: 'dividas',    label: 'Endividamento',      icon: CreditCard },
+  { key: 'custos',     label: 'Custos Fixos',       icon: Wallet     },
+  { key: 'dre',        label: 'DRE',                icon: FileText   },
 ];
 
 const OP_TAB_LABELS  = Object.fromEntries(OP_TABS.map(t => [t.key, t.label]));
