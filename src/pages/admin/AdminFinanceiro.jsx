@@ -14,12 +14,12 @@ import {
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
 import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
-import { agruparPorFechamento, getFechamentoBounds, rotuloFechamento } from '../../lib/fechamento';
+import { agruparPorFechamento, getFechamentoBounds } from '../../lib/fechamento';
 import { payablesAutomaticos } from '../../lib/folha';
 import {
   ComposedChart, Bar, Line, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceDot,
-  ReferenceLine, ReferenceArea,
+  ReferenceLine,
 } from 'recharts';
 import {
   DollarSign, TrendingUp, TrendingDown, Percent,
@@ -143,7 +143,20 @@ function buildChartData(type, start, end, records, lancamentos, companiesById, p
     }
   }
 
+  // PREVISÃO de caixa: entradas e saídas ESPERADAS, pela data de vencimento,
+  // sem olhar o status (o pendente também entra). É o que responde "vai ter
+  // caixa para pagar?" — por isso a projeção não pode ficar vazia.
+  const prevEntradas = agruparPorFechamento(
+    records.filter(r => r.status !== 'absent').map(r => ({ ...r, valor: recordRevenue(r, companiesById) })),
+    companiesById
+  ).map(g => ({ date: g.vencimento, valor: g.valor }));
+  const prevSaidas = [
+    ...lancamentos.filter(l => l.tipo === 'a_pagar').map(l => ({ date: l.data_vencimento, valor: Number(l.valor || 0) })),
+    ...pagDerivados.map(d => ({ date: d.date, valor: Number(d.valor || 0) })),
+  ].filter(x => x.date);
+
   let acumulado = 0;
+  let prevAcum = 0;
   return buckets.map(b => {
     const match = (date) => isDay ? date === b.key : date.startsWith(b.key);
     const lancReceber = lancamentos.filter(l => l.tipo === 'a_receber' && match(l.data_vencimento));
@@ -167,13 +180,19 @@ function buildChartData(type, start, end, records, lancamentos, companiesById, p
     const aPagarVenc   = lancPagar.filter(isVencido).reduce((s, l) => s + Number(l.valor || 0), 0);
     const saldo = aReceber - aPagar;
     acumulado += saldo;
+
+    const prevIn  = prevEntradas.filter(x => match(x.date)).reduce((s, x) => s + x.valor, 0);
+    const prevOut = prevSaidas.filter(x => match(x.date)).reduce((s, x) => s + x.valor, 0);
+    prevAcum += prevIn - prevOut;
+
     // A coluna de saída é desenhada com o valor limitado ao teto para manter o
     // topo arredondado (igual às demais), sem achatar o eixo dos dias comuns.
     return {
       ...b, aReceber, aPagar, aPagarPlot: Math.min(aPagar, CASH_CAP), saldo, saldoAcum: acumulado,
       aReceberPend, aPagarPend, aReceberVenc, aPagarVenc, pendTotal: aReceberPend + aPagarPend,
+      prevIn, prevOut, prevNet: prevIn - prevOut, prevAcum,
     };
-  }).filter(b => b.aReceber > 0 || b.aPagar > 0 || b.pendTotal > 0); // datas com movimento ou pendência
+  }).filter(b => b.aReceber > 0 || b.aPagar > 0 || b.pendTotal > 0 || b.prevIn > 0 || b.prevOut > 0); // datas com movimento ou previsão
 }
 
 // ── Shared components ──────────────────────────────────────────────────────
@@ -218,7 +237,7 @@ function KpiCard({ label, value, icon: Icon, color, bg, sub, dark = false, darkC
 
 // Marca só os dias em que a operação (saldo do dia) fica negativa.
 function SaldoNegativeDot({ cx, cy, payload }) {
-  if (!payload || payload.saldo >= 0) return null;
+  if (!payload || payload.prevAcum >= 0) return null;
   return <circle cx={cx} cy={cy} r={2.8} fill={CASH_OUT} stroke="#fff" strokeWidth={0.8} />;
 }
 
@@ -227,9 +246,11 @@ function ChartTip({ active, payload, label, mode, breakdown }) {
   const bucket = payload[0]?.payload ?? {};
 
   if (mode === 'saldo') {
-    const net = Number(bucket.saldo || 0);
-    const acumulado = Number(bucket.saldoAcum || 0);
-    const pos = net >= 0;
+    const entradas  = Number(bucket.prevIn ?? 0);
+    const saidas    = Number(bucket.prevOut ?? 0);
+    const net       = entradas - saidas;
+    const acumulado = Number(bucket.prevAcum ?? 0);
+    const pos = acumulado >= 0;
     const accent = pos ? CASH_IN : CASH_OUT;
     const accentBg = pos ? 'rgba(47,122,79,0.26)' : 'rgba(188,74,42,0.30)';
     const row = (cor, nome, valor) => (
@@ -243,16 +264,16 @@ function ChartTip({ active, payload, label, mode, breakdown }) {
       <div style={{ background: '#1C1C1C', borderRadius: '10px', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)', minWidth: '196px', boxShadow: '0 8px 24px rgba(0,0,0,0.22)' }}>
         <p style={{ color: '#A8A8A8', fontSize: '11px', fontWeight: 600, marginBottom: '7px' }}>{label}</p>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', padding: '6px 8px', borderRadius: '7px', background: accentBg, borderLeft: `3px solid ${accent}` }}>
-          <span style={{ color: '#F5F5F5', fontSize: '11.5px', fontWeight: 700 }}>Saldo previsto no dia</span>
-          <span style={{ color: '#FFFFFF', fontSize: '12.5px', fontWeight: 900 }}>{fmtCurrency(net)}</span>
+          <span style={{ color: '#F5F5F5', fontSize: '11.5px', fontWeight: 700 }}>Previsão acumulada</span>
+          <span style={{ color: '#FFFFFF', fontSize: '12.5px', fontWeight: 900 }}>{fmtCurrency(acumulado)}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '7px', paddingLeft: '2px' }}>
-          {row(CASH_IN, 'Entrada do dia', bucket.aReceber)}
-          {row(CASH_OUT, 'Saída do dia', bucket.aPagar)}
+          {row(CASH_IN, 'Entradas previstas', entradas)}
+          {row(CASH_OUT, 'Saídas previstas', saidas)}
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', marginTop: '7px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.10)' }}>
-          <span style={{ color: '#9C9C9C', fontSize: '10.5px', fontWeight: 600 }}>Saldo acumulado</span>
-          <span style={{ color: acumulado < 0 ? '#F0A08C' : '#F5F5F5', fontSize: '11px', fontWeight: 800 }}>{fmtCurrency(acumulado)}</span>
+          <span style={{ color: '#9C9C9C', fontSize: '10.5px', fontWeight: 600 }}>Resultado do dia</span>
+          <span style={{ color: net < 0 ? '#F0A08C' : '#F5F5F5', fontSize: '11px', fontWeight: 800 }}>{fmtCurrency(net)}</span>
         </div>
       </div>
     );
@@ -1186,25 +1207,31 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     () => buildChartData(periodType, bounds.start, bounds.end, records, lancamentos, companiesById, payablesAuto),
     [periodType, bounds.start, bounds.end, records, lancamentos, companiesById, payablesAuto]
   );
-  const hasChart = chartData.some(b => b.aReceber > 0 || b.aPagar > 0 || b.pendTotal > 0);
+  const hasChart = chartData.some(b => b.aReceber > 0 || b.aPagar > 0 || b.pendTotal > 0 || b.prevIn > 0 || b.prevOut > 0);
   // Dia com pagamento acima do teto do eixo (ex.: folha) — recebe etiqueta.
   const clippedDay = chartData.find(b => b.aPagar > CASH_CAP);
   const CHART_MODES = [
-    { key: 'entrada', label: 'Entrada', color: CASH_IN },
-    { key: 'saida',   label: 'Saída',   color: CASH_OUT },
-    { key: 'saldo',   label: 'Saldo',   color: CASH_BAL },
+    { key: 'entrada', label: 'Entrada',  color: CASH_IN },
+    { key: 'saida',   label: 'Saída',    color: CASH_OUT },
+    { key: 'saldo',   label: 'Previsão', color: CASH_BAL },
   ];
   const activeMode = CHART_MODES.find(m => m.key === chartMode) || CHART_MODES[0];
+  const isPrevisao = chartMode === 'saldo';
   // Dias com itens pendentes (fora dos fatos): marcados com um ponto âmbar.
   const pendKey  = chartMode === 'entrada' ? 'aReceberPend' : chartMode === 'saida' ? 'aPagarPend' : 'pendTotal';
   const pendDays = chartData.filter(b => b[pendKey] > 0);
-  const markY    = (b) => chartMode === 'saldo' ? b.saldo : chartMode === 'entrada' ? b.aReceber : b.aPagarPlot;
-  // O gráfico de saldo plota o resultado do dia (operação), não o acumulado:
-  // dias com operação negativa caem abaixo da linha do zero.
-  const saldoVals = chartData.map(b => b.saldo);
-  const saldoDataMax = chartData.length ? Math.max(...saldoVals) : 0;
-  const saldoDataMin = chartData.length ? Math.min(...saldoVals) : 0;
+  const markY    = (b) => isPrevisao ? b.prevAcum : chartMode === 'entrada' ? b.aReceber : b.aPagarPlot;
+  // A Previsão acumula o que entra e o que sai PELA DATA (pendente incluído):
+  // é ela que mostra se o caixa fica negativo em algum momento do período.
+  const prevVals = chartData.map(b => b.prevAcum);
+  const saldoDataMax = prevVals.length ? Math.max(...prevVals) : 0;
+  const saldoDataMin = prevVals.length ? Math.min(...prevVals) : 0;
   const hasNegSaldo = saldoDataMin < 0;
+  // Quando a previsão fica negativa e qual o pior ponto do período.
+  const prevNegativa = chartData.find(b => b.prevAcum < 0) || null;
+  const prevPior     = chartData.length
+    ? chartData.reduce((a, b) => (b.prevAcum < a.prevAcum ? b : a), chartData[0])
+    : null;
   const saldoAbs = Math.max(Math.abs(saldoDataMax), Math.abs(saldoDataMin), 1);
   const saldoFloor = -saldoAbs;
   const saldoCeil = saldoAbs;
@@ -1385,12 +1412,16 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
         <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <p style={{ fontSize: '15px', fontWeight: 800, ...T }}>Fluxo de Caixa — {bounds.label}</p>
-            <p style={{ fontSize: '11px', ...TM, marginTop: '2px' }}>Entradas vs. Saídas por período</p>
+            <p style={{ fontSize: '11px', ...TM, marginTop: '2px' }}>
+              {isPrevisao
+                ? 'Previsão: entradas e saídas esperadas por data de vencimento (pendentes incluídos)'
+                : 'Entradas vs. Saídas por período'}
+            </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '8px', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: activeMode.color }} />
                 <span style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 500 }}>
-                  {chartMode === 'saldo' ? 'Saldo do dia' : activeMode.label}
+                  {isPrevisao ? 'Previsão de caixa (acumulado)' : activeMode.label}
                 </span>
               </div>
               {totalPend > 0 && (
@@ -1417,8 +1448,8 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           </div>
         </div>
 
-        {/* Sinalização de pendências: o gráfico só plota fatos (pago/recebido). */}
-        {totalPend > 0 && (
+        {/* Entrada/Saída plotam só fatos; a Previsão inclui também os pendentes. */}
+        {totalPend > 0 && !isPrevisao && (
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', background: AMBER_BG, border: '1px solid rgba(184,137,31,0.28)', borderRadius: '10px', padding: '9px 12px', marginBottom: '12px' }}>
             <AlertTriangle size={13} style={{ color: AMBER, flexShrink: 0, marginTop: '1px' }} />
             <p style={{ fontSize: '11px', color: '#7A5B12', lineHeight: 1.5 }}>
@@ -1428,6 +1459,30 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
               {recPend > 0 && <> Entradas pendentes: <b>{fmtCurrency(recPend)}</b>.</>}
               {pagPend > 0 && <> Saídas pendentes: <b>{fmtCurrency(pagPend)}</b>.</>}
               {' '}Confirme ou reagende na coluna <b>Status</b>.
+            </p>
+          </div>
+        )}
+
+        {/* Aviso da Previsão: quando (e quanto) o caixa fica negativo. */}
+        {isPrevisao && chartData.length > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: '8px', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px',
+            background: hasNegSaldo ? '#FEF2F2' : '#F0FDF4',
+            border: `1px solid ${hasNegSaldo ? '#FECACA' : '#BBF7D0'}`,
+          }}>
+            <AlertTriangle size={14} style={{ color: hasNegSaldo ? '#B91C1C' : '#047857', flexShrink: 0, marginTop: '1px' }} />
+            <p style={{ fontSize: '11.5px', lineHeight: 1.5, color: hasNegSaldo ? '#B91C1C' : '#047857' }}>
+              {hasNegSaldo ? (
+                <>
+                  <b>Previsão negativa:</b> o caixa fica negativo a partir de <b>{prevNegativa?.label}</b> e chega a
+                  {' '}<b>{fmtCurrency(prevPior?.prevAcum)}</b> em <b>{prevPior?.label}</b>.
+                  {' '}Antecipe recebimentos ou reagende pagamentos.
+                </>
+              ) : (
+                <><b>Previsão positiva</b> no período: o caixa se mantém no positivo (mínimo {fmtCurrency(saldoDataMin)}).</>
+              )}
+              {' '}A projeção considera <b>todas</b> as entradas e saídas pela data de vencimento
+              {totalPend > 0 && <> — os <b>{fmtCurrency(totalPend)}</b> pendentes já estão incluídos</>}.
             </p>
           </div>
         )}
@@ -1468,11 +1523,11 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                 tickFormatter={v => v === 0 ? 'R$0' : `${v < 0 ? '-' : ''}R$${(Math.abs(v) / 1000).toFixed(0)}k`} />
               <Tooltip content={<ChartTip mode={chartMode} breakdown={breakdownByBucket} />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
 
-              {chartMode === 'saldo' ? (
+              {isPrevisao ? (
                 <>
-                  <Area type="monotone" dataKey="saldo" name="Saldo do dia" stroke="none"
+                  <Area type="monotone" dataKey="prevAcum" name="Previsão de caixa" stroke="none"
                     fill={hasNegSaldo ? 'url(#gradSaldoFill)' : 'url(#gradSerie)'} tooltipType="none" />
-                  <Line type="monotone" dataKey="saldo" name="Saldo do dia"
+                  <Line type="monotone" dataKey="prevAcum" name="Previsão de caixa"
                     stroke={hasNegSaldo ? 'url(#gradSaldoLine)' : CASH_BAL} strokeWidth={2.8} dot={SaldoNegativeDot} />
                   <ReferenceLine y={0} stroke={hasNegSaldo ? CASH_OUT : '#9A9A9A'} strokeOpacity={hasNegSaldo ? 0.7 : 0.45} strokeDasharray="4 4" />
                 </>
@@ -2315,368 +2370,215 @@ function TabDRE({ records, lancamentos, employees, bounds, companies, classifica
 }
 
 // ── Tab: Resultados ────────────────────────────────────────────────────────
-// O resultado da operação em dois cortes:
-//   por mês        → a empresa inteira, na mesma base do DRE (receita − mão de
-//                    obra − benefícios − despesas confirmadas = resultado).
-//   por fechamento → a margem de contribuição de UM cliente no seu ciclo de
-//                    fechamento (faturamento − mão de obra − benefícios dos
-//                    dias trabalhados para ele). Despesas gerais não são
-//                    rateadas por cliente, por isso ficam de fora aqui.
-function resultadoDoPeriodo(recs, lancs, employees, companiesById, nomePorClasse, { clienteId = null } = {}) {
-  const base = recs.filter(r => r.status !== 'absent' && (!clienteId || r.companyId === clienteId));
-  const receita    = base.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
-  const folha      = folhaDosRegistros(base, employees);
-  const beneficios = beneficiosDosRegistros(base, employees).total;
-
-  let despesas = 0;
-  if (!clienteId) {
-    despesas = lancs
-      .filter(l => l.tipo === 'a_pagar'
-        && l.origem_tipo !== 'folha'
-        && l.origem_tipo !== 'beneficio'
-        && !['Folha de Pagamento', 'Benefícios'].includes(nomePorClasse[l.classificacao_id])
-        && statusOf(l) === 'pago')
-      .reduce((s, l) => s + Number(l.valor || 0), 0);
-  }
-
-  const custos = folha + beneficios + despesas;
-  return { receita, folha, beneficios, despesas, custos, resultado: receita - custos, diarias: base.length };
-}
-
-// Ponto da linha de resultado: verde quando positivo, terracota quando negativo.
-function ResultadoDot({ cx, cy, payload }) {
-  if (cx == null || cy == null || !payload) return null;
-  const pos = Number(payload.resultado || 0) >= 0;
-  return <circle cx={cx} cy={cy} r={3.6} fill={pos ? PROFIT_COLOR : CASH_OUT} stroke="#fff" strokeWidth={1.4} />;
-}
-
-function ResultadoTip({ active, payload }) {
-  if (!active || !payload?.length) return null;
-  const b = payload[0]?.payload ?? {};
-  const pos = Number(b.resultado || 0) >= 0;
-  const margem = Number(b.receita) > 0 ? (Number(b.resultado) / Number(b.receita)) * 100 : 0;
-  const row = (cor, nome, valor) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-      <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: cor, flexShrink: 0 }} />
-      <span style={{ color: '#C9C9C9', fontSize: '11.5px', fontWeight: 500 }}>{nome}</span>
-      <span style={{ color: '#F5F5F5', fontSize: '11.5px', fontWeight: 700, marginLeft: 'auto' }}>{fmtCurrency(valor)}</span>
-    </div>
-  );
-  return (
-    <div style={{ background: '#1C1C1C', borderRadius: '10px', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)', minWidth: '200px', boxShadow: '0 8px 24px rgba(0,0,0,0.22)' }}>
-      <p style={{ color: '#A8A8A8', fontSize: '11px', fontWeight: 600, marginBottom: '7px' }}>{b.full || b.label}</p>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', padding: '6px 8px', borderRadius: '7px',
-        background: pos ? 'rgba(47,122,79,0.24)' : 'rgba(188,74,42,0.28)', borderLeft: `3px solid ${pos ? PROFIT_COLOR : CASH_OUT}` }}>
-        <span style={{ color: '#F5F5F5', fontSize: '11.5px', fontWeight: 700 }}>Resultado</span>
-        <span style={{ color: '#FFFFFF', fontSize: '12.5px', fontWeight: 900 }}>{fmtCurrency(b.resultado)}</span>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '7px', paddingLeft: '2px' }}>
-        {row(CASH_IN, 'Receita', b.receita)}
-        {row(CASH_OUT, 'Custos', b.custos)}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', marginTop: '7px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.10)' }}>
-        <span style={{ color: '#9C9C9C', fontSize: '10.5px', fontWeight: 600 }}>Margem</span>
-        <span style={{ color: margem < 0 ? '#F0A08C' : '#F5F5F5', fontSize: '11px', fontWeight: 800 }}>{margem.toFixed(1)}%</span>
-      </div>
-    </div>
-  );
-}
-
-function TabResultados({ employees, companies, classificacoes }) {
-  const companiesById  = Object.fromEntries((companies || []).map(c => [c.id, c]));
-  const nomePorClasse  = Object.fromEntries((classificacoes || []).map(c => [c.id, c.nome]));
+// Mesmo desenho da Visão Geral (3 KPIs escuros + rosca do faturamento), porém o
+// resultado é de UM cliente no período escolhido: Mensal (mês inteiro) ou Por
+// fechamento (o ciclo de faturamento daquele cliente). A seta ao lado troca o
+// período de acordo com o tipo selecionado. Custos fixos e dívidas não são
+// rateados por cliente, então o resultado aqui é a margem do cliente:
+// faturamento menos a mão de obra e os benefícios dos dias trabalhados para ele.
+function TabResultados({ employees, companies }) {
+  const companiesById   = Object.fromEntries((companies || []).map(c => [c.id, c]));
   const companiesAtivas = (companies || []).filter(c => c.isActive !== false);
 
-  const [mode,       setMode]       = useState('mes');     // 'mes' | 'fechamento'
-  const [mesOffset,  setMesOffset]  = useState(0);
-  const [fechOffset, setFechOffset] = useState(0);
-  const [companyId,  setCompanyId]  = useState('');
-  const [records,    setRecords]    = useState([]);
-  const [lancamentos, setLancamentos] = useState([]);
-  const [loading,    setLoading]    = useState(true);
+  const [mode,      setMode]      = useState('mensal');   // 'mensal' | 'fechamento'
+  const [offset,    setOffset]    = useState(0);
+  const [companyId, setCompanyId] = useState('');
+  const [openEmp,   setOpenEmp]   = useState(false);
+  const empRef = useRef(null);
+  const [records,   setRecords]   = useState([]);
+  const [loading,   setLoading]   = useState(false);
 
-  // Janela fixa de 18 meses para trás: cobre os meses do gráfico e os ciclos de
-  // fechamento (mesmo os curtos, como o diário) de qualquer cliente.
-  const janela = useMemo(() => {
-    const [y, m] = TODAY_ISO.split('-').map(Number);
-    let sm = m - 1 - 18, sy = y;
-    while (sm < 0) { sm += 12; sy -= 1; }
-    const last = new Date(y, m, 0).getDate();
-    const pad  = n => String(n).padStart(2, '0');
-    return { start: `${sy}-${pad(sm + 1)}-01`, end: `${y}-${pad(m)}-${pad(last)}` };
+  // Cliente padrão: o primeiro ativo.
+  useEffect(() => {
+    if (!companyId && companiesAtivas.length) setCompanyId(companiesAtivas[0].id);
+  }, [companyId, companiesAtivas]);
+
+  // Fecha o menu de empresas ao clicar fora.
+  useEffect(() => {
+    const h = e => { if (empRef.current && !empRef.current.contains(e.target)) setOpenEmp(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
   }, []);
-
-  useEffect(() => {
-    let vivo = true;
-    setLoading(true);
-    Promise.all([
-      fetchWorkRecordsByPeriod(null, null, janela.start, janela.end),
-      fetchLancamentos(janela.start, janela.end),
-    ]).then(([recs, lncs]) => {
-      if (!vivo) return;
-      setRecords(recs || []);
-      setLancamentos(lncs || []);
-      setLoading(false);
-    });
-    return () => { vivo = false; };
-  }, [janela.start, janela.end]);
-
-  // Cliente padrão do corte por fechamento: o que mais tem diárias na janela;
-  // sem diárias ainda, o primeiro cliente ativo.
-  useEffect(() => {
-    if (companyId) return;
-    if (!records.length) {
-      if (companiesAtivas.length) setCompanyId(companiesAtivas[0].id);
-      return;
-    }
-    const cont = {};
-    records.forEach(r => { if (r.status !== 'absent' && r.companyId) cont[r.companyId] = (cont[r.companyId] || 0) + 1; });
-    const top = Object.entries(cont).sort((a, b) => b[1] - a[1])[0];
-    setCompanyId(top ? top[0] : (companiesAtivas[0]?.id ?? ''));
-  }, [records, companyId, companiesAtivas]);
 
   const company = companiesById[companyId] || null;
   const cfg = { modo: company?.closingCycle, dias: company?.closingDays, prazo: company?.prazoPagamento, uteis: company?.prazoDiasUteis };
+  // O período selecionado segue o tipo escolhido: mês inteiro ou o ciclo de
+  // fechamento do cliente. A seta troca exatamente esse período.
+  const bounds = mode === 'mensal' ? getBounds('mensal', offset) : getFechamentoBounds(cfg, false, offset);
 
-  // Série de 6 períodos terminando no selecionado (que é sempre o último).
-  const SERIE = 6;
-  const periodos = [];
-  for (let i = SERIE - 1; i >= 0; i--) {
-    if (mode === 'mes') {
-      const off = mesOffset - i;
-      const b = getBounds('mensal', off);
-      periodos.push({ ...b, offset: off, curto: `${MONTH_SHORT[Number(b.start.slice(5, 7)) - 1]}/${b.start.slice(2, 4)}` });
-    } else {
-      const off = fechOffset - i;
-      const b = getFechamentoBounds(cfg, false, off);
-      periodos.push({ ...b, offset: off, curto: b.label.includes(' a ') ? b.label.split(' a ')[1] : b.label });
-    }
+  useEffect(() => {
+    if (!companyId) { setRecords([]); return; }
+    let vivo = true;
+    setLoading(true);
+    fetchWorkRecordsByPeriod(companyId, null, bounds.start, bounds.end).then(recs => {
+      if (!vivo) return;
+      setRecords(recs || []);
+      setLoading(false);
+    });
+    return () => { vivo = false; };
+  }, [companyId, bounds.start, bounds.end]);
+
+  const active     = records.filter(r => r.status !== 'absent');
+  const receita    = active.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
+  const folha      = folhaDosRegistros(active, employees);
+  const beneficios = beneficiosDosRegistros(active, employees).total;
+  const custos     = folha + beneficios;
+  const lucro      = receita - custos;
+  const margem     = receita > 0 ? (lucro / receita) * 100 : 0;
+
+  // Recebido vs. a receber pelo vencimento dos fechamentos do cliente.
+  let recebido = 0;
+  for (const g of agruparPorFechamento(active.map(r => ({ ...r, valor: recordRevenue(r, companiesById) })), companiesById)) {
+    if (g.vencimento <= TODAY_ISO) recebido += g.valor;
   }
 
-  const serie = periodos.map(p => {
-    const recs  = records.filter(r => r.date >= p.start && r.date <= p.end);
-    const lancs = lancamentos.filter(l => l.data_vencimento >= p.start && l.data_vencimento <= p.end);
-    const res   = resultadoDoPeriodo(recs, lancs, employees, companiesById, nomePorClasse, { clienteId: mode === 'fechamento' ? companyId : null });
-    const pend  = mode === 'mes' ? lancs.filter(l => statusOf(l) === 'pendente') : [];
-    return {
-      key: p.curto, label: p.curto, full: p.label,
-      receita: res.receita, custos: res.custos, resultado: res.resultado,
-      folha: res.folha, beneficios: res.beneficios, despesas: res.despesas, diarias: res.diarias,
-      margem: res.receita > 0 ? (res.resultado / res.receita) * 100 : 0,
-      start: p.start, end: p.end,
-      pendCustos:   pend.filter(l => l.tipo === 'a_pagar' && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio').reduce((s, l) => s + Number(l.valor || 0), 0),
-      pendReceitas: pend.filter(l => l.tipo === 'a_receber').reduce((s, l) => s + Number(l.valor || 0), 0),
-      pendVencidos: pend.filter(l => isVencido(l)).reduce((s, l) => s + Number(l.valor || 0), 0),
-    };
-  });
+  const slices = [
+    { name: 'Lucro Líquido',      value: Math.max(0, lucro), color: PROFIT_COLOR },
+    { name: 'Folha de Pagamento', value: folha,              color: REVENUE_COLORS.folha },
+    { name: 'Benefícios (VT/VR)', value: beneficios,         color: REVENUE_COLORS.fixos },
+  ].filter(s => s.value > 0);
 
-  const sel  = serie[serie.length - 1];
-  const prev = serie.length > 1 ? serie[serie.length - 2] : null;
-
-  const navegar = (delta) => {
-    if (mode === 'mes') setMesOffset(o => Math.min(0, o + delta));
-    else setFechOffset(o => Math.min(0, o + delta));
-  };
-  const trocarModo    = (v)  => { setMode(v); setMesOffset(0); setFechOffset(0); };
-  const trocarCliente = (id) => { setCompanyId(id); setFechOffset(0); };
-
-  const semDados = serie.every(s => s.receita === 0 && s.custos === 0);
-
-  const deltaTexto = (d) => {
-    if (prev == null) return null;
-    if (Math.abs(d) < 0.005) return 'igual ao período anterior';
-    return `${d > 0 ? '+' : '−'}${fmtCurrency(Math.abs(d))} vs. período anterior`;
-  };
-  const deltaCor = (d) => (prev == null || Math.abs(d) < 0.005) ? '#9A9A9A' : (d > 0 ? CASH_IN : CASH_OUT);
-
-  const custoRows = [
-    { label: 'Mão de obra (diárias + H.E.)', value: sel.folha,      cor: REVENUE_COLORS.folha },
-    { label: 'Benefícios (VT/VR)',           value: sel.beneficios, cor: REVENUE_COLORS.vt },
-    ...(mode === 'mes' ? [{ label: 'Despesas lançadas (fixos/dívidas)', value: sel.despesas, cor: REVENUE_COLORS.fixos }] : []),
-  ].filter(r => r.value > 0);
+  const trocarModo    = (v)  => { setMode(v); setOffset(0); };
+  const trocarEmpresa = (id) => { setCompanyId(id); setOffset(0); setOpenEmp(false); };
 
   const kpis = [
-    { label: 'Receita do Período', value: fmtCurrency(sel.receita), icon: DollarSign, color: CASH_IN, bg: CASH_IN_BG,
-      sub: deltaTexto(prev == null ? 0 : sel.receita - prev.receita), subColor: deltaCor(prev == null ? 0 : sel.receita - prev.receita) },
-    { label: mode === 'mes' ? 'Custos do Período' : 'Custos Diretos', value: fmtCurrency(sel.custos), icon: TrendingDown, color: CASH_OUT, bg: CASH_OUT_BG,
-      sub: `${sel.diarias} diária${sel.diarias !== 1 ? 's' : ''} no período` },
-    { label: 'Resultado', value: fmtCurrency(sel.resultado), icon: TrendingUp, dark: true,
-      darkColor: sel.resultado >= 0 ? '#7CC79B' : '#E39AA6',
-      sub: `${sel.margem.toFixed(1)}% de margem`, subColor: '#BDBDBD' },
-    { label: 'Margem', value: `${sel.margem.toFixed(1)}%`, icon: Percent, color: '#3A4F6B', bg: '#EEF1F6',
-      sub: mode === 'mes' ? 'resultado ÷ receita' : 'margem do cliente' },
+    { label: 'Faturamento', value: fmtCurrency(receita), icon: DollarSign, dark: true, darkColor: '#FFFFFF',
+      sub: `${fmtCurrency(recebido)} recebido · ${fmtCurrency(receita - recebido)} a receber` },
+    { label: 'Custos Diretos', value: fmtCurrency(custos), icon: TrendingDown, dark: true,
+      darkColor: custos > 0 ? '#E59A82' : '#FFFFFF',
+      sub: `${fmtCurrency(folha)} de folha · ${fmtCurrency(beneficios)} de benefícios` },
+    { label: 'Lucro Líquido', value: fmtCurrency(lucro), icon: TrendingUp, dark: true,
+      darkColor: lucro >= 0 ? '#7CC79B' : '#E39AA6',
+      sub: `${margem.toFixed(1)}% do faturamento` },
   ];
+
+  const carregando = loading || (!companyId && companiesAtivas.length > 0);
 
   return (
     <div className="space-y-5">
-      {/* Filtro — corte (mês/fechamento) + cliente + navegação do período */}
-      <div className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: '2px', background: '#F3F3F3', border: '1px solid #E8E8E8', borderRadius: '10px', padding: '3px' }}>
-            {[['mes', 'Por mês'], ['fechamento', 'Por fechamento']].map(([v, l]) => (
-              <button key={v} onClick={() => trocarModo(v)}
-                style={{
-                  padding: '6px 14px', borderRadius: '7px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-                  fontSize: '12px', fontWeight: 700, transition: 'all 0.15s',
-                  background: mode === v ? '#0B0B0B' : 'transparent',
-                  color: mode === v ? '#fff' : '#7A7A7A',
-                }}>
-                {l}
-              </button>
-            ))}
-          </div>
-
-          {mode === 'fechamento' && (
-            <>
-              <select className="input-field" value={companyId} onChange={e => trocarCliente(e.target.value)}
-                style={{ width: '230px' }}>
-                {companiesAtivas.length === 0 && <option value="">Nenhum cliente cadastrado</option>}
-                {companiesAtivas.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              {company && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 10px', borderRadius: '8px', background: '#FAF4F1', border: '1px solid rgba(188,74,42,0.20)', color: '#8C3B4A', fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  <CalendarDays size={11} /> {rotuloFechamento(company.closingCycle, company.closingDays)}
-                </span>
-              )}
-            </>
+      {/* Filtro: empresa + tipo de período; a seta troca o mês ou o fechamento */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '10px' }}>
+        {/* Empresa */}
+        <div ref={empRef} style={{ position: 'relative' }}>
+          <button onClick={() => setOpenEmp(v => !v)}
+            style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px', borderRadius: '10px', border: '1px solid rgba(11,11,11,0.08)', cursor: 'pointer', background: '#fff', fontSize: '12px', fontWeight: 600, color: '#0B0B0B', boxShadow: '0 1px 3px rgba(11,11,11,0.06)' }}>
+            <Building2 size={13} style={{ color: '#9A9A9A' }} />
+            {company?.name || 'Selecione a empresa'}
+            <ChevronDown size={12} style={{ color: '#9A9A9A' }} />
+          </button>
+          {openEmp && (
+            <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 200, background: '#fff', borderRadius: '12px', padding: '6px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.07)', minWidth: '210px', maxHeight: '320px', overflowY: 'auto' }}>
+              {companiesAtivas.length === 0 && <p style={{ fontSize: '12px', color: '#9A9A9A', padding: '8px 12px' }}>Nenhuma empresa cadastrada</p>}
+              {companiesAtivas.map(c => (
+                <button key={c.id} onClick={() => trocarEmpresa(c.id)}
+                  style={{ width: '100%', display: 'block', padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', fontWeight: 600, background: c.id === companyId ? '#FAF4F1' : 'transparent', color: c.id === companyId ? '#BC4A2A' : '#333333' }}
+                  onMouseEnter={e => { if (c.id !== companyId) e.currentTarget.style.background = '#F7F7F7'; }}
+                  onMouseLeave={e => { if (c.id !== companyId) e.currentTarget.style.background = 'transparent'; }}>
+                  {c.name}
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Navegação: seta troca o mês ou o período de fechamento do cliente */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button onClick={() => navegar(-1)} title="Período anterior"
-            style={{ width: '32px', height: '32px', borderRadius: '9px', background: '#fff', border: '1px solid rgba(11,11,11,0.08)', cursor: 'pointer', color: '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11,11,11,0.06)' }}>
-            <ChevronLeft size={14} />
+        {/* Tipo de período */}
+        <div style={{ display: 'flex', gap: '2px', background: '#F3F3F3', border: '1px solid #E8E8E8', borderRadius: '10px', padding: '3px' }}>
+          {[['mensal', 'Mensal'], ['fechamento', 'Por fechamento']].map(([v, l]) => (
+            <button key={v} onClick={() => trocarModo(v)}
+              style={{ padding: '5px 13px', borderRadius: '7px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '11.5px', fontWeight: 700, transition: 'all 0.15s',
+                background: mode === v ? '#0B0B0B' : 'transparent', color: mode === v ? '#fff' : '#7A7A7A' }}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {/* Período + seta */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button onClick={() => setOffset(o => o - 1)} title="Período anterior"
+            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(11,11,11,0.08)', cursor: 'pointer', color: '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11,11,11,0.06)' }}>
+            <ChevronLeft size={13} />
           </button>
-          <div style={{ minWidth: '190px', textAlign: 'center' }}>
-            <p style={{ fontSize: '13px', fontWeight: 800, ...T, lineHeight: 1.2 }}>{sel.full}</p>
-            <p style={{ fontSize: '10.5px', ...TM, marginTop: '1px' }}>
-              {mode === 'mes' ? 'Resultado mensal' : (company?.name || 'Fechamento')}
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '7px 13px', borderRadius: '10px', border: '1px solid rgba(11,11,11,0.08)', background: '#fff', fontSize: '12px', fontWeight: 600, color: '#0B0B0B', boxShadow: '0 1px 3px rgba(11,11,11,0.06)', minWidth: '150px' }}>
+            {bounds.label}
+            <span style={{ fontSize: '10px', color: '#9A9A9A', fontWeight: 500 }}>· {mode === 'mensal' ? 'Mensal' : 'Fechamento'}</span>
           </div>
-          <button onClick={() => navegar(1)} disabled={(mode === 'mes' ? mesOffset : fechOffset) >= 0}
-            title="Próximo período"
-            style={{
-              width: '32px', height: '32px', borderRadius: '9px', background: '#fff', border: '1px solid rgba(11,11,11,0.08)',
-              cursor: (mode === 'mes' ? mesOffset : fechOffset) >= 0 ? 'not-allowed' : 'pointer',
-              color: (mode === 'mes' ? mesOffset : fechOffset) >= 0 ? '#D1D1D1' : '#4A4A4A',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11,11,11,0.06)',
-            }}>
-            <ChevronRight size={14} />
+          <button onClick={() => setOffset(o => Math.min(o + 1, 0))} disabled={offset >= 0} title="Próximo período"
+            style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(11,11,11,0.08)', cursor: offset >= 0 ? 'not-allowed' : 'pointer', color: offset >= 0 ? '#D1D1D1' : '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11,11,11,0.06)' }}>
+            <ChevronRight size={13} />
           </button>
         </div>
       </div>
 
-      {loading ? (
-        <div style={{ padding: '60px', textAlign: 'center', fontSize: '13px', color: '#9A9A9A' }}>Carregando resultados...</div>
+      {carregando ? (
+        <div style={{ padding: '60px', textAlign: 'center', fontSize: '13px', color: '#9A9A9A' }}>Carregando dados...</div>
+      ) : !companyId ? (
+        <div className="card" style={{ padding: '64px', textAlign: 'center' }}>
+          <p style={{ fontSize: '13px', color: '#C8C8C8' }}>Nenhuma empresa cadastrada</p>
+        </div>
       ) : (
         <>
+          {/* 3 KPIs do cliente no período */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-            {kpis.map(k => (
-              <div key={k.label}>
-                <KpiCard {...k} sub={undefined} />
-                {k.sub && (
-                  <p style={{ fontSize: '10.5px', color: k.subColor || '#9A9A9A', fontWeight: 600, marginTop: '6px', paddingLeft: '2px' }}>{k.sub}</p>
-                )}
-              </div>
-            ))}
+            {kpis.map(k => <KpiCard key={k.label} {...k} />)}
           </div>
 
-          {/* Gráfico: receita e custos por período + linha do resultado */}
-          <div className="card p-5">
-            <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-              <div>
-                <p style={{ fontSize: '15px', fontWeight: 800, ...T }}>
-                  {mode === 'mes' ? 'Resultado por mês' : `Resultado por fechamento — ${company?.name || ''}`}
-                </p>
-                <p style={{ fontSize: '11px', ...TM, marginTop: '2px' }}>
-                  {mode === 'mes'
-                    ? 'Receita, custos e resultado da operação nos últimos meses'
-                    : 'Faturamento, custo direto e margem de cada ciclo de fechamento do cliente'}
-                  {' · '}período em destaque: <b style={{ color: '#0B0B0B' }}>{sel.full}</b>
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '8px', flexWrap: 'wrap' }}>
-                  {[['Receita', CASH_IN], ['Custos', CASH_OUT], ['Resultado', PROFIT_COLOR]].map(([lbl, cor]) => (
-                    <div key={lbl} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: cor }} />
-                      <span style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 500 }}>{lbl}</span>
-                    </div>
-                  ))}
+          {/* Rosca do faturamento do cliente, com o valor no centro */}
+          <div className="card" style={{ padding: '32px' }}>
+            {receita === 0 ? (
+              <div style={{ padding: '64px', textAlign: 'center' }}>
+                <p style={{ fontSize: '13px', color: '#C8C8C8' }}>Sem faturamento no período selecionado</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '48px' }}>
+                {/* Rosca com o faturamento no centro */}
+                <div style={{ position: 'relative', width: 340, height: 340, flexShrink: 0 }}>
+                  <PieChart width={340} height={340}>
+                    <Pie data={slices} cx="50%" cy="50%" innerRadius={95} outerRadius={155} paddingAngle={2} dataKey="value" startAngle={90} endAngle={-270}>
+                      {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
+                    </Pie>
+                    <Tooltip formatter={v => fmtCurrency(v)} itemStyle={{ color: '#F5F5F5', fontWeight: 600 }} labelStyle={{ color: '#B9B9B9' }} contentStyle={{ background: '#1C1C1C', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#F5F5F5' }} />
+                  </PieChart>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', textAlign: 'center', padding: '0 70px' }}>
+                    <p style={{ fontSize: '11px', color: '#9A9A9A', fontWeight: 600 }}>Faturamento total</p>
+                    <p style={{ fontSize: '21px', fontWeight: 900, color: '#0B0B0B', lineHeight: 1.15, marginTop: '2px' }}>{fmtCurrency(receita)}</p>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {semDados ? (
-              <div style={{ height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <p style={{ fontSize: '13px', color: '#C8C8C8' }}>Sem movimento nos períodos exibidos</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={330}>
-                <ComposedChart data={serie} margin={{ top: 20, right: 16, bottom: 8, left: -10 }} barCategoryGap="28%" barGap={4}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fill: '#9A9A9A', fontSize: 11 }} axisLine={false} tickLine={false} interval={0} height={30} />
-                  <YAxis tick={{ fill: '#9A9A9A', fontSize: 10 }} axisLine={false} tickLine={false}
-                    tickFormatter={v => v === 0 ? 'R$0' : `${v < 0 ? '-' : ''}R$${Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(0) + 'k' : Math.abs(v)}`} />
-                  <Tooltip content={<ResultadoTip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
-                  <ReferenceLine y={0} stroke="#9A9A9A" strokeOpacity={0.45} strokeDasharray="4 4" />
-                  <ReferenceArea x1={sel.label} x2={sel.label} fill="rgba(188,74,42,0.07)" stroke="none" />
-                  <Bar dataKey="receita" name="Receita" fill={CASH_IN}  fillOpacity={0.55} radius={[3, 3, 0, 0]} maxBarSize={26} />
-                  <Bar dataKey="custos"  name="Custos"  fill={CASH_OUT} fillOpacity={0.55} radius={[3, 3, 0, 0]} maxBarSize={26} />
-                  <Line type="monotone" dataKey="resultado" name="Resultado" stroke={PROFIT_COLOR} strokeWidth={2.8} dot={<ResultadoDot />} activeDot={{ r: 5 }} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-
-          {/* Composição dos custos do período selecionado */}
-          <div className="card" style={{ padding: '20px' }}>
-            <p style={{ fontSize: '11px', fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
-              Composição dos custos — {sel.full}
-            </p>
-            {custoRows.length === 0 ? (
-              <p style={{ fontSize: '12px', color: '#C8C8C8' }}>Sem custos no período selecionado</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {custoRows.map(r => {
-                  const pct = sel.custos > 0 ? (r.value / sel.custos) * 100 : 0;
-                  return (
-                    <div key={r.label}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: r.cor, flexShrink: 0 }} />
-                          <p style={{ fontSize: '14px', fontWeight: 600, ...T }}>{r.label}</p>
+                {/* Legenda */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {slices.map(s => {
+                    const pct = receita > 0 ? (s.value / receita) * 100 : 0;
+                    return (
+                      <div key={s.name}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: s.color, flexShrink: 0 }} />
+                            <p style={{ fontSize: '14px', fontWeight: 600, color: '#0B0B0B' }}>{s.name}</p>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <p style={{ fontSize: '15px', fontWeight: 800, color: s.color }}>{fmtCurrency(s.value)}</p>
+                            <p style={{ fontSize: '13px', color: '#9A9A9A', fontWeight: 500, minWidth: '44px', textAlign: 'right' }}>{pct.toFixed(1)}%</p>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                          <p style={{ fontSize: '15px', fontWeight: 800, color: r.cor }}>{fmtCurrency(r.value)}</p>
-                          <p style={{ fontSize: '13px', color: '#9A9A9A', fontWeight: 500, minWidth: '44px', textAlign: 'right' }}>{pct.toFixed(1)}%</p>
+                        <div style={{ height: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: s.color, borderRadius: '4px', transition: 'width 0.4s ease' }} />
                         </div>
                       </div>
-                      <div style={{ height: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: r.cor, borderRadius: '4px', transition: 'width 0.4s ease' }} />
-                      </div>
+                    );
+                  })}
+
+                  {lucro < 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: '#F5F5F5', marginTop: '4px' }}>
+                      <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#4A4A4A', flexShrink: 0 }} />
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A' }}>
+                        Prejuízo de {fmtCurrency(Math.abs(lucro))} — custos diretos superam o faturamento do cliente
+                      </p>
                     </div>
-                  );
-                })}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', marginTop: '2px', borderRadius: '10px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total de custos</span>
-                  <span style={{ fontSize: '15px', fontWeight: 800, color: CASH_OUT }}>{fmtCurrency(sel.custos)}</span>
+                  )}
                 </div>
               </div>
             )}
-            {mode === 'fechamento' && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '14px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '10px', padding: '9px 12px' }}>
-                <AlertTriangle size={13} style={{ color: '#9A9A9A', flexShrink: 0, marginTop: '1px' }} />
-                <p style={{ fontSize: '11px', color: '#6B6B6B', lineHeight: 1.5 }}>
-                  Custos fixos, dívidas e demais despesas gerais não são rateados por cliente. Aqui o resultado é a
-                  <b> margem de contribuição</b> do fechamento: faturamento menos a mão de obra e os benefícios dos dias trabalhados para este cliente.
-                </p>
-              </div>
-            )}
           </div>
-
-          {mode === 'mes' && (
-            <PendenciaNote custos={sel.pendCustos} receitas={sel.pendReceitas} vencidos={sel.pendVencidos} where="no resultado" />
-          )}
         </>
       )}
     </div>
@@ -3296,7 +3198,7 @@ export default function AdminFinanceiro() {
         <>
           {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} classificacoes={classificacoes} />}
           {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} employees={employees} classificacoes={classificacoes} onCreateClassificacao={handleCreateClassificacao} />}
-          {activeTab === 'resultados' && <TabResultados employees={employees} companies={companies} classificacoes={classificacoes} />}
+          {activeTab === 'resultados' && <TabResultados employees={employees} companies={companies} />}
           {activeTab === 'folha'   && <TabFolhaPagamento employees={employees} />}
           {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} showModal={showNovaDivida} setShowModal={setShowNovaDivida} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}
