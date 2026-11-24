@@ -1232,6 +1232,8 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const prevPior     = chartData.length
     ? chartData.reduce((a, b) => (b.prevAcum < a.prevAcum ? b : a), chartData[0])
     : null;
+  // Saldo projetado para o fim do período (último ponto da previsão acumulada).
+  const prevFinal    = prevVals.length ? prevVals[prevVals.length - 1] : 0;
   const saldoAbs = Math.max(Math.abs(saldoDataMax), Math.abs(saldoDataMin), 1);
   const saldoFloor = -saldoAbs;
   const saldoCeil = saldoAbs;
@@ -1297,7 +1299,6 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const pagPend     = pagItems.filter(i => i.status === 'pendente').reduce((s, i) => s + i.valor, 0);
   const recSettled  = totalRec - recPend;
   const pagSettled  = totalPag - pagPend;
-  const saldoReal   = recSettled - pagSettled;
   const pendentes   = [...recGroups.filter(i => i.status === 'pendente'), ...pagItems.filter(i => i.status === 'pendente')];
   const nVencidos   = pendentes.filter(i => i.vencido).length;
   const totalPend   = recPend + pagPend;
@@ -1402,9 +1403,13 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           sub={recPend > 0 ? `${fmtCurrency(recSettled)} confirmado · ${fmtCurrency(recPend)} pendente` : `${fmtCurrency(recSettled)} confirmado`} />
         <KpiCard label="A Pagar no Período" value={fmtCurrency(totalPag)} icon={TrendingDown} dark darkColor="#E59A82"
           sub={pagPend > 0 ? `${fmtCurrency(pagSettled)} pago · ${fmtCurrency(pagPend)} pendente` : `${fmtCurrency(pagSettled)} pago`} />
-        <KpiCard label="Saldo realizado" value={fmtCurrency(saldoReal)} icon={BarChart2} dark
-          darkColor={saldoReal >= 0 ? '#9DB2CC' : '#E39AA6'}
-          sub={totalPend > 0 ? `Só fatos · ${fmtCurrency(totalPend)} pendente fora do cálculo` : 'Só itens pagos/recebidos'} />
+        <KpiCard label={hasNegSaldo ? 'Caixa negativo previsto' : 'Previsão de Caixa'} icon={hasNegSaldo ? AlertTriangle : BarChart2} dark
+          value={chartData.length ? fmtCurrency(hasNegSaldo ? prevPior.prevAcum : prevFinal) : '—'}
+          darkColor={!chartData.length ? '#9DB2CC' : hasNegSaldo ? '#E39AA6' : '#7CC79B'}
+          sub={!chartData.length ? 'Sem movimento no período'
+            : hasNegSaldo
+              ? `Pior em ${prevPior?.label} · termina em ${fmtCurrency(prevFinal)}`
+              : `Sem caixa negativo · mínimo ${fmtCurrency(saldoDataMin)}`} />
       </div>
 
       {/* Gráfico */}
