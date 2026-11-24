@@ -111,7 +111,7 @@ function Modal({ company, onSave, onClose }) {
                 <input type="number" min="0" step="1" required value={form.prazoFolha ?? 7}
                   onChange={e => setForm({ ...form, prazoFolha: e.target.value })} className="input-field" />
                 <p className="text-xs mt-1" style={{ color: '#9A9A9A' }}>
-                  Usado para lançar automaticamente a Folha em Contas a Pagar.
+                  Usado para lançar automaticamente a Folha/VT/VR em Contas a Pagar.
                 </p>
               </div>
             ) : (
