@@ -26,7 +26,7 @@ import {
   DollarSign, TrendingUp, TrendingDown, Percent,
   ChevronLeft, ChevronRight, ChevronDown,
   Plus, Trash2, BarChart2, CreditCard, FileText, Wallet, Building2, X, Pencil, AlertTriangle,
-  Maximize2, Users, Clock, CalendarDays, HandCoins, Check,
+  Maximize2, Users, Clock, CalendarDays, HandCoins, Check, RotateCcw,
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -120,7 +120,7 @@ function getBounds(type, offset) {
   return { start: `${yr}-01-01`, end: `${yr}-12-31`, label: String(yr) };
 }
 
-function buildChartData(type, start, end, records, lancamentos, companiesById, pagDerivados = [], recDerivados = []) {
+function buildChartData(type, start, end, lancamentos, pagDerivados = [], recDerivados = []) {
   const isDay = type === 'quinzenal' || type === 'mensal';
   const buckets = [];
 
@@ -147,10 +147,12 @@ function buildChartData(type, start, end, records, lancamentos, companiesById, p
   // PREVISÃO de caixa: entradas e saídas ESPERADAS, pela data de vencimento,
   // sem olhar o status (o pendente também entra). É o que responde "vai ter
   // caixa para pagar?" — por isso a projeção não pode ficar vazia.
-  const prevEntradas = agruparPorFechamento(
-    records.filter(r => r.status !== 'absent').map(r => ({ ...r, valor: recordRevenue(r, companiesById) })),
-    companiesById
-  ).map(g => ({ date: g.vencimento, valor: g.valor }));
+  // Usa a data do item derivado (que pode ter vencimento especial escolhido na
+  // tela) e, como nas saídas, também os lançamentos manuais a receber.
+  const prevEntradas = [
+    ...recDerivados.map(d => ({ date: d.date, valor: Number(d.valor || 0) })),
+    ...lancamentos.filter(l => l.tipo === 'a_receber').map(l => ({ date: l.data_vencimento, valor: Number(l.valor || 0) })),
+  ].filter(x => x.date);
   const prevSaidas = [
     ...lancamentos.filter(l => l.tipo === 'a_pagar').map(l => ({ date: l.data_vencimento, valor: Number(l.valor || 0) })),
     ...pagDerivados.map(d => ({ date: d.date, valor: Number(d.valor || 0) })),
@@ -921,22 +923,40 @@ function StatusCell({ item, rec, status, vencido, onStatus }) {
   );
 }
 
-// Data de pagamento editável: clique abre um input de data; salva no blur/Enter.
-function DateCell({ item, stored, onChange }) {
+// Data de vencimento editável: clique abre um input de data; salva no blur/Enter.
+// Vale para lançamentos gravados (id) e para as linhas derivadas (serviço/folha),
+// que guardam o vencimento especial pela chave derivada. Nas derivadas, o
+// "voltar" limpa o ajuste e devolve a data calculada automaticamente.
+function DateCell({ item, onChange, onOverride }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue]     = useState(item.date);
   useEffect(() => { setValue(item.date); }, [item.date]);
 
-  if (!stored) return <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B6B6B' }}>{fmtShortDate(item.date)}</span>;
+  const editable = !!item.id || !!item.derivKey;
+  if (!editable) return <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B6B6B' }}>{fmtShortDate(item.date)}</span>;
 
-  const commit = () => { setEditing(false); if (value && value !== item.date) onChange(item.id, value); };
+  const commit = () => {
+    setEditing(false);
+    if (!value || value === item.date) return;
+    if (item.id) onChange(item.id, value);
+    else onOverride(item.derivKey, value);
+  };
 
   if (!editing) {
     return (
-      <button onClick={() => setEditing(true)} title="Mudar a data"
-        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 7px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#6B6B6B' }}>
-        {fmtShortDate(item.date)}
-      </button>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+        <button onClick={() => setEditing(true)}
+          title={item.dateOverridden ? 'Vencimento ajustado — clique para mudar' : 'Mudar a data'}
+          style={{ background: item.dateOverridden ? 'rgba(188,74,42,0.08)' : 'none', border: 'none', cursor: 'pointer', padding: '3px 7px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: item.dateOverridden ? '#BC4A2A' : '#6B6B6B' }}>
+          {fmtShortDate(item.date)}
+        </button>
+        {item.dateOverridden && (
+          <button onClick={() => onOverride(item.derivKey, null)} title="Voltar à data automática"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
+            <RotateCcw size={11} />
+          </button>
+        )}
+      </span>
     );
   }
   return (
@@ -1063,7 +1083,7 @@ function EditarLancamentoModal({ item, classificacoes = [], onSave, onClose }) {
   );
 }
 
-function ListModal({ title, items, onDelete, onStatus, onDate, onEdit, onClose }) {
+function ListModal({ title, items, onDelete, onStatus, onDate, onDateOverride, onEdit, onClose }) {
   useEffect(() => {
     const h = e => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', h);
@@ -1119,7 +1139,7 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onEdit, onClose }
                   {rec ? '+' : '−'}{fmtCurrency(item.valor)}
                 </span>
                 <span style={{ textAlign: 'center' }}>
-                  <DateCell item={item} stored={!!item.id} onChange={onDate} />
+                  <DateCell item={item} onChange={onDate} onOverride={onDateOverride} />
                 </span>
                 <span style={{ display: 'flex', justifyContent: 'center' }}>
                   <StatusCell item={item} rec={rec} status={item.status || 'pendente'} vencido={!!item.vencido} onStatus={onStatus} />
@@ -1193,12 +1213,14 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
       const chave = `REC:${g.key}`;
       const o = derivSt[chave];
       const status = o?.status || 'pendente';
+      // Vencimento especial escolhido na tela (ex.: cobrança em data própria).
+      const date = o?.data_vencimento || g.vencimento;
       return {
-        date: g.vencimento,
+        date, dateAuto: g.vencimento, dateOverridden: !!o?.data_vencimento,
         descricao: `${g.rotulo} - ${g.empresa}`,
         origem: 'Serviço', valor: g.valor, tipo: 'a_receber', isManual: false, derivado: true,
         derivKey: chave, status, dataRecebimento: o?.data_recebimento || null,
-        vencido: status === 'pendente' && g.vencimento < TODAY_ISO,
+        vencido: status === 'pendente' && date < TODAY_ISO,
         classificacaoNome: receitasClass.nome, classificacaoCor: receitasClass.cor,
         periodo: { inicio: g.inicio, fim: g.fim, rotulo: g.rotulo, ajudantes: g.count, dias: g.dias.size },
       };
@@ -1213,15 +1235,17 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     () => payablesAutomaticos(records, employees, companies, TODAY_ISO).map(d => {
       const o = derivSt[d.derivKey];
       const status = o?.status || 'pendente';
-      return { ...d, status, dataRecebimento: o?.data_recebimento || null,
-               vencido: status === 'pendente' && d.date < TODAY_ISO };
+      const date = o?.data_vencimento || d.date;
+      return { ...d, date, dateAuto: d.date, dateOverridden: !!o?.data_vencimento,
+               status, dataRecebimento: o?.data_recebimento || null,
+               vencido: status === 'pendente' && date < TODAY_ISO };
     }),
     [records, employees, companies, derivSt]
   );
 
   const chartData = useMemo(
-    () => buildChartData(periodType, bounds.start, bounds.end, records, lancamentos, companiesById, payablesAuto, recDerivados),
-    [periodType, bounds.start, bounds.end, records, lancamentos, companiesById, payablesAuto, recDerivados]
+    () => buildChartData(periodType, bounds.start, bounds.end, lancamentos, payablesAuto, recDerivados),
+    [periodType, bounds.start, bounds.end, lancamentos, payablesAuto, recDerivados]
   );
   const hasChart = chartData.some(b => b.aReceber > 0 || b.aPagar > 0 || b.pendTotal > 0 || b.prevIn > 0 || b.prevOut > 0);
   // Dia com pagamento acima do teto do eixo (ex.: folha) — recebe etiqueta.
@@ -1383,7 +1407,18 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     if (!item.derivKey) return;
     const salvo = await setFluxoStatusDerivado(item.derivKey, status, dataRecebimento);
     if (!salvo) console.error('[fluxo] não foi possível salvar o status da linha derivada', item.derivKey);
-    setFluxoStatus(prev => ({ ...prev, [item.derivKey]: { chave: item.derivKey, status, data_recebimento: data } }));
+    setFluxoStatus(prev => ({ ...prev, [item.derivKey]: { ...prev[item.derivKey], chave: item.derivKey, status, data_recebimento: data } }));
+  };
+
+  // Vencimento especial de uma linha derivada (cobrança com data própria).
+  // novaData = null volta à data calculada automaticamente.
+  const handleDateOverride = async (chave, novaData) => {
+    const salvo = await setFluxoDateDerivado(chave, novaData);
+    if (!salvo) console.error('[fluxo] não foi possível salvar o vencimento da linha derivada', chave);
+    setFluxoStatus(prev => ({
+      ...prev,
+      [chave]: { ...prev[chave], chave, data_vencimento: novaData || null },
+    }));
   };
 
   // Reagenda o vencimento (mudar a data).
@@ -1628,7 +1663,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                     {rec ? '+' : '−'}{fmtCurrency(item.valor)}
                   </span>
                   <span style={{ textAlign: 'center' }}>
-                    <DateCell item={item} stored={!!item.id} onChange={handleDate} />
+                    <DateCell item={item} onChange={handleDate} onOverride={handleDateOverride} />
                   </span>
                   <span style={{ display: 'flex', justifyContent: 'center' }}>
                     <StatusCell item={item} rec={rec} status={item.status || 'pendente'} vencido={!!item.vencido} onStatus={handleStatus} />
@@ -1671,6 +1706,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           onDelete={handleDelete}
           onStatus={handleStatus}
           onDate={handleDate}
+          onDateOverride={handleDateOverride}
           onEdit={setEditItem}
           onClose={() => setModal(null)}
         />
