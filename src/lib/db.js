@@ -1776,18 +1776,11 @@ export async function fetchDividas() {
   return data || [];
 }
 
-// ── Lançamentos: status automático e inserção tolerante ────────────────────
-function hojeISO() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-}
-
-// O app identifica o status pela data do lançamento: vencimento até hoje = já
-// liquidado ('pago'/'recebido'); vencimento futuro = ainda a pagar/receber ('pendente').
-export function statusPorVencimento(tipo, dataVencimento) {
-  if (!dataVencimento) return 'pendente';
-  if (dataVencimento > hojeISO()) return 'pendente';
-  return tipo === 'a_receber' ? 'recebido' : 'pago';
-}
+// ── Lançamentos: status e inserção tolerante ──────────────────────────────
+// Todo lançamento do Fluxo de Caixa nasce PENDENTE. Ele só passa a contar como
+// fato ('pago'/'recebido') quando o status é confirmado na tela — o app não pode
+// considerar no caixa um valor que ainda não foi pago/recebido.
+const STATUS_INICIAL = 'pendente';
 
 // Insere lançamentos tolerando colunas ainda não migradas no banco
 // (status / classificacao_id): em vez de falhar, reenvia sem a coluna.
@@ -1843,7 +1836,7 @@ export async function createDivida({ nome, valorPrincipal, valorParcela, numParc
       data_vencimento: venc,
       origem_tipo: 'divida',
       origem_id: divida.id,
-      status: statusPorVencimento('a_pagar', venc),
+      status: STATUS_INICIAL,
     };
     if (classId) row.classificacao_id = classId;
     return row;
@@ -1911,7 +1904,7 @@ export async function createCustoFixo({ nome, valor, diaVencimento, dataInicio, 
       data_vencimento: data,
       origem_tipo: 'custo_fixo',
       origem_id: custo.id,
-      status: statusPorVencimento('a_pagar', data),
+      status: STATUS_INICIAL,
     };
     if (classId) row.classificacao_id = classId;
     return row;
@@ -1975,7 +1968,7 @@ export async function createLancamentoManual({ tipo, descricao, valor, dataVenci
   const payload = {
     id: crypto.randomUUID(), tipo, descricao, valor,
     data_vencimento: dataVencimento, origem_tipo: 'manual',
-    status: statusPorVencimento(tipo, dataVencimento),
+    status: STATUS_INICIAL,
   };
   if (classificacaoId || fallback) payload.classificacao_id = classificacaoId || fallback;
 
@@ -2016,7 +2009,7 @@ export async function fecharFolha({ quinzenaIdx, total, dataVencimento, label })
     valor: total,
     data_vencimento: dataVencimento,
     origem_id: folhaOrigemId(quinzenaIdx),
-    status: statusPorVencimento('a_pagar', dataVencimento),
+    status: STATUS_INICIAL,
   };
   if (classId) base.classificacao_id = classId;
 
@@ -2079,6 +2072,48 @@ export async function updateLancamentoStatus(id, status, dataRecebimento = null)
       .from('financeiro_lancamentos').update({ status }).eq('id', id).select().single());
   }
   if (error) { console.error('[db] updateLancamentoStatus:', error.message); return null; }
+  return data;
+}
+
+// ── Status das linhas DERIVADAS do Fluxo de Caixa ─────────────────────────
+// Serviços (fechamentos) e Folha são calculados em tempo real, sem linha em
+// financeiro_lancamentos. A confirmação de recebimento/pagamento fica aqui,
+// identificada pela chave derivada (ex.: "REC:<empresa>__<início>",
+// "PAG:<empresa>__Q<quinzena>"). Sem registro, a linha é PENDENTE.
+export async function fetchFluxoStatus() {
+  const { data, error } = await supabase.from('financeiro_fluxo_status').select('*');
+  if (error) { console.error('[db] fetchFluxoStatus:', error.message); return []; }
+  return data || [];
+}
+
+export async function setFluxoStatusDerivado(chave, status, dataRecebimento = null) {
+  const settled = status === 'pago' || status === 'recebido';
+  const payload = {
+    chave,
+    status,
+    data_recebimento: settled ? (dataRecebimento || null) : null,
+    atualizado_em: new Date().toISOString(),
+  };
+
+  let { data, error } = await supabase
+    .from('financeiro_fluxo_status').upsert(payload, { onConflict: 'chave' }).select().single();
+  if (error && /data_recebimento/.test(error.message || '')) {
+    const { data_recebimento, ...rest } = payload;
+    ({ data, error } = await supabase
+      .from('financeiro_fluxo_status').upsert(rest, { onConflict: 'chave' }).select().single());
+  }
+  if (error) { console.error('[db] setFluxoStatusDerivado:', error.message); return null; }
+  return data;
+}
+
+// Vencimento especial de uma linha derivada (cobrança com data própria).
+// Passar data vencimento = null volta para a data calculada automaticamente.
+// Faz upsert só da coluna data_vencimento — o status guardado é preservado.
+export async function setFluxoDateDerivado(chave, dataVencimento) {
+  const payload = { chave, data_vencimento: dataVencimento || null };
+  const { data, error } = await supabase
+    .from('financeiro_fluxo_status').upsert(payload, { onConflict: 'chave' }).select().single();
+  if (error) { console.error('[db] setFluxoDateDerivado:', error.message); return null; }
   return data;
 }
 
@@ -2199,7 +2234,7 @@ export async function createRecarga({ nome, tipo, dataPagamento, dataRecarga, da
       data_vencimento: dataPagamento || dataRecarga || null,
       origem_tipo: 'beneficio',
       origem_id: loteId,
-      status: statusPorVencimento('a_pagar', dataPagamento || dataRecarga),
+      status: STATUS_INICIAL,
       classificacao_id: classId,
     };
     let err = await insertLancamentos([lancamento]);

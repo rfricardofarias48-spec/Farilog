@@ -6,8 +6,9 @@ import {
   fetchWorkRecordsByPeriod, fetchLancamentos,
   fetchDividas, createDivida, deleteDivida,
   fetchCustosFixos, createCustoFixo, updateCustoFixo, deleteCustoFixo,
-  gerarVencimentosCustoFixo, CUSTO_FIXO_HORIZONTE, statusPorVencimento,
+  gerarVencimentosCustoFixo, CUSTO_FIXO_HORIZONTE,
   createLancamentoManual, deleteLancamento, updateLancamentoStatus, updateLancamentoData, updateLancamento,
+  fetchFluxoStatus, setFluxoStatusDerivado, setFluxoDateDerivado,
   fetchAdiantamentosPorQuinzena, createAdiantamento, deleteAdiantamento,
   fetchPagosPorQuinzena, marcarPago, desmarcarPago,
   fetchClassificacoes, createClassificacao,
@@ -119,7 +120,7 @@ function getBounds(type, offset) {
   return { start: `${yr}-01-01`, end: `${yr}-12-31`, label: String(yr) };
 }
 
-function buildChartData(type, start, end, records, lancamentos, companiesById, pagDerivados = []) {
+function buildChartData(type, start, end, records, lancamentos, companiesById, pagDerivados = [], recDerivados = []) {
   const isDay = type === 'quinzenal' || type === 'mensal';
   const buckets = [];
 
@@ -163,21 +164,25 @@ function buildChartData(type, start, end, records, lancamentos, companiesById, p
     const lancPagar   = lancamentos.filter(l => l.tipo === 'a_pagar'   && match(l.data_vencimento));
     // Custos automáticos do período (Folha/VT/VR) — derivados dos registros.
     const pagAuto     = pagDerivados.filter(d => match(d.date));
-    // O gráfico só trabalha com FATOS: lançamentos com status 'pago'/'recebido'.
-    // Serviços realizados (records) entram como receita da operação — mas só a
-    // partir de hoje, para casar com o status identificado pela data.
+    // Receitas de serviço do período (fechamentos) — também derivadas.
+    const recAuto     = recDerivados.filter(d => match(d.date));
+    // O gráfico só trabalha com FATOS: linhas confirmadas como 'pago'/'recebido'.
+    // Serviço/folha não confirmados ficam de fora (entram só como pendente); o
+    // app não considera no caixa o que ainda não foi recebido/pago.
     const aReceber =
-      records.filter(r => r.status !== 'absent' && match(r.date) && r.date <= TODAY_ISO)
-        .reduce((s, r) => s + recordRevenue(r, companiesById), 0) +
+      recAuto.filter(d => d.status !== 'pendente').reduce((s, d) => s + Number(d.valor || 0), 0) +
       lancReceber.filter(l => statusOf(l) === 'recebido').reduce((s, l) => s + Number(l.valor || 0), 0);
     const aPagar = lancPagar.filter(l => statusOf(l) === 'pago').reduce((s, l) => s + Number(l.valor || 0), 0)
                  + pagAuto.filter(d => d.status === 'pago').reduce((s, d) => s + Number(d.valor || 0), 0);
     // Pendentes (fora dos fatos) — só para sinalizar no gráfico e nos totais.
-    const aReceberPend = lancReceber.filter(l => statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
+    const aReceberPend = recAuto.filter(d => d.status === 'pendente').reduce((s, d) => s + Number(d.valor || 0), 0)
+                       + lancReceber.filter(l => statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
     const aPagarPend   = lancPagar.filter(l => statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0)
                        + pagAuto.filter(d => d.status === 'pendente').reduce((s, d) => s + Number(d.valor || 0), 0);
-    const aReceberVenc = lancReceber.filter(isVencido).reduce((s, l) => s + Number(l.valor || 0), 0);
-    const aPagarVenc   = lancPagar.filter(isVencido).reduce((s, l) => s + Number(l.valor || 0), 0);
+    const aReceberVenc = lancReceber.filter(isVencido).reduce((s, l) => s + Number(l.valor || 0), 0)
+                       + recAuto.filter(d => d.status === 'pendente' && d.date < TODAY_ISO).reduce((s, d) => s + Number(d.valor || 0), 0);
+    const aPagarVenc   = lancPagar.filter(isVencido).reduce((s, l) => s + Number(l.valor || 0), 0)
+                       + pagAuto.filter(d => d.status === 'pendente' && d.date < TODAY_ISO).reduce((s, d) => s + Number(d.valor || 0), 0);
     const saldo = aReceber - aPagar;
     acumulado += saldo;
 
@@ -386,39 +391,23 @@ function folhaDosRegistros(activeRecords, employees) {
   }, 0);
 }
 
-// Benefícios (VT/VR) = valor/dia cadastrado do ajudante × dias distintos
-// trabalhados no período. Ex.: VT R$ 10/dia × 5 diárias = R$ 50.
-function beneficiosDosRegistros(activeRecords, employees) {
-  const porAjudante = {};
-  activeRecords.forEach(r => {
-    if (!porAjudante[r.employeeId]) porAjudante[r.employeeId] = new Set();
-    porAjudante[r.employeeId].add(r.date);
-  });
-  let vt = 0;
-  let vr = 0;
-  Object.entries(porAjudante).forEach(([empId, dias]) => {
-    const emp = employees.find(e => e.id === empId);
-    vt += dias.size * Number(emp?.vtDiario ?? 0);
-    vr += dias.size * Number(emp?.vrDiario ?? 0);
-  });
-  return { vt, vr, total: vt + vr };
-}
-
 // ── Tab: Visão Geral ───────────────────────────────────────────────────────
-function TabVisaoGeral({ records, lancamentos, employees, companies, classificacoes }) {
+function TabVisaoGeral({ records, lancamentos, employees, companies, classificacoes, fluxoStatus = {} }) {
   const active = records.filter(r => r.status !== 'absent');
   const companiesById = Object.fromEntries((companies || []).map(c => [c.id, c]));
 
   // Faturamento na mesma base do Fluxo de Caixa: diárias agrupadas pelo
   // fechamento de cada empresa + lançamentos manuais a receber do período.
-  // O total é Recebido + A Receber, igual ao "A Receber no Período" do Fluxo.
+  // O total é Recebido + A Receber. Só entra como Recebido o que foi confirmado
+  // no Fluxo de Caixa — serviço pendente fica em "A Receber".
   let fatRecebido = 0;
   let fatAReceber = 0;
   for (const g of agruparPorFechamento(
     active.map(r => ({ ...r, valor: recordRevenue(r, companiesById) })),
     companiesById
   )) {
-    if (g.vencimento <= TODAY_ISO) fatRecebido += g.valor;
+    const recebido = (fluxoStatus[`REC:${g.key}`]?.status || 'pendente') !== 'pendente';
+    if (recebido) fatRecebido += g.valor;
     else fatAReceber += g.valor;
   }
   for (const l of (lancamentos || [])) {
@@ -429,9 +418,8 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
   }
   const fat = fatRecebido + fatAReceber;
 
-  // Custos diretos derivados dos registros de ponto (mesma base usada no DRE).
+  // Custos diretos: mão de obra (diárias + HE) derivada dos registros de ponto.
   const folha = folhaDosRegistros(active, employees);
-  const { vt: beneficiosVT, vr: beneficiosVR, total: beneficios } = beneficiosDosRegistros(active, employees);
 
   // Custos lançados só entram quando confirmados (status 'pago') — o painel
   // trabalha com fatos, igual ao Fluxo de Caixa.
@@ -440,24 +428,26 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
 
   // Pendentes do período. Receitas já entram no faturamento (Recebido + A
   // Receber), então só os custos pendentes ficam fora dos totais.
-  const pendCustos   = lancamentos.filter(l => l.tipo === 'a_pagar'   && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
+  const pendCustos   = lancamentos.filter(l => l.tipo === 'a_pagar' && l.origem_tipo !== 'folha' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
   const pendVencidos = lancamentos.filter(l => l.tipo === 'a_pagar' && statusOf(l) === 'pendente' && isVencido(l)).reduce((s, l) => s + Number(l.valor || 0), 0);
 
-  // Totais por classificação, a partir dos lançamentos a pagar CONFIRMADOS. Folha e
-  // Benefícios entram por competência (registros de ponto), então os lançamentos
-  // dessas duas origens não são somados aqui — evita duplicidade.
+  // Totais por classificação, a partir dos lançamentos a pagar CONFIRMADOS. A
+  // Folha continua por competência (registros de ponto), então seus lançamentos
+  // não são somados aqui — evita duplicidade. Benefícios agora são lançamentos
+  // manuais (VT/VR não são mais calculados), então entram normalmente.
   const totalsPorClasse = {};
   const nomePorClasse = Object.fromEntries((classificacoes || []).map(c => [c.id, c.nome]));
   lancamentos
-    .filter(l => l.tipo === 'a_pagar' && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio' && statusOf(l) === 'pago')
+    .filter(l => l.tipo === 'a_pagar' && l.origem_tipo !== 'folha' && statusOf(l) === 'pago')
     .forEach(l => {
-      // Classes Folha/Benefícios não entram aqui: esses custos vêm por competência
-      // (registros de ponto) e duplicariam o valor. O banco grava os lançamentos
-      // de benefícios como 'manual' (fallback), por isso filtramos pela classe.
-      if (['Folha de Pagamento', 'Benefícios'].includes(nomePorClasse[l.classificacao_id])) return;
+      if (nomePorClasse[l.classificacao_id] === 'Folha de Pagamento') return;
       const key = l.classificacao_id || '__sem';
       totalsPorClasse[key] = (totalsPorClasse[key] || 0) + Number(l.valor || 0);
     });
+
+  // Benefícios lançados manualmente (classe "Benefícios").
+  const beneficiosLancados = Object.entries(totalsPorClasse)
+    .reduce((s, [id, v]) => s + (nomePorClasse[id] === 'Benefícios' ? v : 0), 0);
 
   const temClassificacoes = (classificacoes || []).length > 0;
   const classSlices = (classificacoes || [])
@@ -465,20 +455,18 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
     .map(c => ({
       name:  c.nome,
       color: c.cor,
-      value: c.nome === 'Folha de Pagamento' ? folha
-           : c.nome === 'Benefícios'         ? beneficios
-           : (totalsPorClasse[c.id] || 0),
+      value: c.nome === 'Folha de Pagamento' ? folha : (totalsPorClasse[c.id] || 0),
     }))
     .filter(s => s.value > 0);
 
   // Custos totais: usa as classificações quando existem; senão, o modelo antigo.
   const totalCustos = temClassificacoes
     ? classSlices.reduce((s, x) => s + x.value, 0)
-    : folha + beneficios + custoFixo + endivPeriodo;
+    : folha + beneficiosLancados + custoFixo + endivPeriodo;
   const lucroLiquido  = fat - totalCustos;
-  // Margem de contribuição = faturamento − salários (diárias + HE) − VT − VR.
+  // Margem de contribuição = faturamento − mão de obra − benefícios.
   // É a margem bruta do negócio, antes de custos fixos, dívidas e despesas variáveis.
-  const margemContribValor = fat - folha - beneficios;
+  const margemContribValor = fat - folha - beneficiosLancados;
   const margemContrib = fat > 0 ? (margemContribValor / fat) * 100 : 0;
   const margemLucro   = fat > 0 ? (lucroLiquido / fat) * 100 : 0;
 
@@ -490,12 +478,11 @@ function TabVisaoGeral({ records, lancamentos, employees, companies, classificac
         ...classSlices,
       ]
     : [
-        { name: 'Lucro Líquido',        value: Math.max(0, lucroLiquido), color: PROFIT_COLOR },
-        { name: 'Folha de Pagamento',   value: folha,                     color: REVENUE_COLORS.folha },
-        { name: 'Vale Transporte (VT)', value: beneficiosVT,              color: REVENUE_COLORS.vt },
-        { name: 'Vale Refeição (VR)',   value: beneficiosVR,              color: REVENUE_COLORS.vr },
-        { name: 'Custos Fixos',         value: custoFixo,                 color: REVENUE_COLORS.fixos },
-        { name: 'Endividamento',        value: endivPeriodo,              color: REVENUE_COLORS.divida },
+        { name: 'Lucro Líquido',      value: Math.max(0, lucroLiquido), color: PROFIT_COLOR },
+        { name: 'Folha de Pagamento', value: folha,                     color: REVENUE_COLORS.folha },
+        { name: 'Benefícios',         value: beneficiosLancados,        color: REVENUE_COLORS.vr },
+        { name: 'Custos Fixos',       value: custoFixo,                 color: REVENUE_COLORS.fixos },
+        { name: 'Endividamento',      value: endivPeriodo,              color: REVENUE_COLORS.divida },
       ].filter(s => s.value > 0);
 
   const kpis = [
@@ -635,8 +622,9 @@ function AddLancamentoModal({ onSave, onClose, classificacoes = [], onCreateClas
   }, [onClose]);
 
   const isPagar = form.tipo === 'a_pagar';
-  // O app identifica o status pela data: vencimento até hoje = já liquidado.
-  const statusPreview = statusPorVencimento(form.tipo, form.data);
+  // Todo lançamento nasce PENDENTE: só vira pago/recebido quando o status é
+  // confirmado no Fluxo de Caixa.
+  const statusPreview = 'pendente';
   const classOptions = (classificacoes || []).filter(c => c.tipo === (isPagar ? 'despesa' : 'receita'));
 
   // Mantém sempre uma classificação válida para o tipo selecionado.
@@ -772,23 +760,19 @@ function AddLancamentoModal({ onSave, onClose, classificacoes = [], onCreateClas
             </div>
           </div>
 
-          {/* Status identificado automaticamente pela data */}
+          {/* Status inicial do lançamento */}
           {form.data && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '10px', padding: '9px 12px' }}>
-              <span style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 600 }}>Status identificado</span>
+              <span style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 600 }}>Status inicial</span>
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 9px', borderRadius: '6px',
-                background: statusPreview === 'pendente' ? AMBER_BG : (statusPreview === 'recebido' ? CASH_IN_BG : '#EFEFEF'),
-                color: statusPreview === 'pendente' ? '#7A5B12' : (statusPreview === 'recebido' ? CASH_IN : '#4A4A4A'),
-                fontSize: '11px', fontWeight: 700 }}>
-                {statusPreview === 'pendente' ? <Clock size={11} /> : <Check size={11} />}
-                {statusPreview === 'pendente' ? (isPagar ? 'A pagar (pendente)' : 'A receber (pendente)') : (statusPreview === 'recebido' ? 'Recebido' : 'Pago')}
+                background: AMBER_BG, color: '#7A5B12', fontSize: '11px', fontWeight: 700 }}>
+                <Clock size={11} />
+                {isPagar ? 'A pagar (pendente)' : 'A receber (pendente)'}
               </span>
             </div>
           )}
           <p style={{ fontSize: '11px', color: '#9A9A9A', marginTop: '-6px' }}>
-            {statusPreview === 'pendente'
-              ? 'Vencimento futuro: entra como pendente até você confirmar o pagamento/recebimento.'
-              : 'Vencimento até hoje: o app considera já liquidado (pago/recebido).'}
+            Entra como <b>pendente</b> e só vira pago/recebido quando você confirmar o status no Fluxo de Caixa.
           </p>
 
           {/* Ações */}
@@ -886,11 +870,10 @@ function ConfirmarStatusModal({ rec, dataVencimento, onConfirm, onClose }) {
   );
 }
 
-// Status por linha. Linhas com lançamento salvo são acionáveis (botão
-// "Pago"/"Recebido"); linhas derivadas dos serviços mostram o status, que é
-// identificado automaticamente pela data (vencido → Pendente, futuro → A receber).
-// A coluna nunca fica vazia.
-function StatusCell({ item, rec, stored, status, vencido, onStatus }) {
+// Status por linha, sempre editável: toda linha nasce pendente e só vira
+// "Pago"/"Recebido" quando confirmada aqui — tanto os lançamentos gravados
+// quanto as linhas derivadas (serviços e folha). A coluna nunca fica vazia.
+function StatusCell({ item, rec, status, vencido, onStatus }) {
   const [confirming, setConfirming] = useState(false);
   const settled = status === 'pago' || status === 'recebido';
   const actionLabel = rec ? 'Recebido' : 'Pago';
@@ -898,10 +881,10 @@ function StatusCell({ item, rec, stored, status, vencido, onStatus }) {
 
   if (settled) {
     return (
-      <button onClick={() => stored && onStatus(item.id, 'pendente')} disabled={!stored}
-        title={stored ? 'Clique para voltar a pendente' : 'Confirmado automaticamente pela data'}
+      <button onClick={() => onStatus(item, 'pendente')}
+        title="Clique para voltar a pendente"
         style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '7px', border: 'none',
-          cursor: stored ? 'pointer' : 'default', whiteSpace: 'nowrap',
+          cursor: 'pointer', whiteSpace: 'nowrap',
           background: rec ? CASH_IN_BG : '#EFEFEF', color: rec ? CASH_IN : '#4A4A4A', fontSize: '11px', fontWeight: 700 }}>
         <Check size={11} /> {actionLabel}{quando}
       </button>
@@ -919,24 +902,20 @@ function StatusCell({ item, rec, stored, status, vencido, onStatus }) {
         style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 8px', borderRadius: '6px', background: stateBg, color: stateColor, fontSize: '10.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>
         {vencido ? <AlertTriangle size={9} /> : <Clock size={9} />} {stateLabel}
       </span>
-      {stored && (
-        <>
-          <button onClick={() => setConfirming(true)}
-            title={rec ? 'Confirmar recebimento' : 'Confirmar pagamento'}
-            style={{ padding: '5px 10px', borderRadius: '7px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 700,
-              background: '#fff', color: vencido ? CASH_OUT : '#4A4A4A',
-              border: `1px solid ${vencido ? 'rgba(188,74,42,0.45)' : 'rgba(11,11,11,0.12)'}` }}>
-            {actionLabel}
-          </button>
-          {confirming && (
-            <ConfirmarStatusModal
-              rec={rec}
-              dataVencimento={item.date}
-              onConfirm={(data) => { setConfirming(false); onStatus(item.id, rec ? 'recebido' : 'pago', data); }}
-              onClose={() => setConfirming(false)}
-            />
-          )}
-        </>
+      <button onClick={() => setConfirming(true)}
+        title={rec ? 'Confirmar recebimento' : 'Confirmar pagamento'}
+        style={{ padding: '5px 10px', borderRadius: '7px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 700,
+          background: '#fff', color: vencido ? CASH_OUT : '#4A4A4A',
+          border: `1px solid ${vencido ? 'rgba(188,74,42,0.45)' : 'rgba(11,11,11,0.12)'}` }}>
+        {actionLabel}
+      </button>
+      {confirming && (
+        <ConfirmarStatusModal
+          rec={rec}
+          dataVencimento={item.date}
+          onConfirm={(data) => { setConfirming(false); onStatus(item, rec ? 'recebido' : 'pago', data); }}
+          onClose={() => setConfirming(false)}
+        />
       )}
     </div>
   );
@@ -1091,7 +1070,7 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onEdit, onClose }
     return () => document.removeEventListener('keydown', h);
   }, [onClose]);
 
-  const nPend = items.filter(i => i.id && (i.status || 'pendente') === 'pendente').length;
+  const nPend = items.filter(i => (i.status || 'pendente') === 'pendente').length;
 
   return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()}
@@ -1143,7 +1122,7 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onEdit, onClose }
                   <DateCell item={item} stored={!!item.id} onChange={onDate} />
                 </span>
                 <span style={{ display: 'flex', justifyContent: 'center' }}>
-                  <StatusCell item={item} rec={rec} stored={!!item.id} status={item.status || 'pendente'} vencido={!!item.vencido} onStatus={onStatus} />
+                  <StatusCell item={item} rec={rec} status={item.status || 'pendente'} vencido={!!item.vencido} onStatus={onStatus} />
                 </span>
                 <span style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
                   {item.id && onEdit ? (
@@ -1168,7 +1147,7 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onEdit, onClose }
 }
 
 // ── Tab: Fluxo de Caixa ────────────────────────────────────────────────────
-function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType, bounds, companies, employees, classificacoes, onCreateClassificacao }) {
+function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType, bounds, companies, employees, classificacoes, onCreateClassificacao, fluxoStatus, setFluxoStatus }) {
   const [modal,    setModal]    = useState(null); // 'receber' | 'pagar' | 'all'
   const [showAdd,  setShowAdd]  = useState(false);
   const [chartMode, setChartMode] = useState('entrada'); // entrada | saida | saldo
@@ -1196,16 +1175,53 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     return (classificacoes || []).find(x => x.nome === nome) || { nome, cor: '#4A4A4A' };
   };
 
-  // Custos automáticos (Folha/VT/VR) derivados das diárias realizadas; a data
-  // de pagamento usa o prazo de folha do cadastro de cada empresa.
+  // Status confirmado das linhas derivadas (serviço/folha) vem do componente
+  // pai (fluxoStatus), compartilhado com a Visão Geral. Sem registro é pendente.
+  const derivSt = fluxoStatus;
+
+  // Receitas de serviço (fechamentos) derivadas dos registros, com o status
+  // confirmado na tela — a linha nasce pendente e só é confirmada manualmente.
+  const recDerivados = useMemo(() => {
+    const grupos = agruparPorFechamento(
+      records
+        .filter(r => r.status !== 'absent')
+        .map(r => ({ ...r, valor: recordRevenue(r, companiesById) })),
+      companiesById
+    );
+
+    return grupos.map(g => {
+      const chave = `REC:${g.key}`;
+      const o = derivSt[chave];
+      const status = o?.status || 'pendente';
+      return {
+        date: g.vencimento,
+        descricao: `${g.rotulo} - ${g.empresa}`,
+        origem: 'Serviço', valor: g.valor, tipo: 'a_receber', isManual: false, derivado: true,
+        derivKey: chave, status, dataRecebimento: o?.data_recebimento || null,
+        vencido: status === 'pendente' && g.vencimento < TODAY_ISO,
+        classificacaoNome: receitasClass.nome, classificacaoCor: receitasClass.cor,
+        periodo: { inicio: g.inicio, fim: g.fim, rotulo: g.rotulo, ajudantes: g.count, dias: g.dias.size },
+      };
+    }).sort((a, b) => a.date.localeCompare(b.date));
+  }, [records, companiesById, receitasClass, derivSt]);
+
+  // Custo automático de Folha derivado das diárias realizadas; a data de
+  // pagamento usa o prazo de folha do cadastro de cada empresa. Benefícios
+  // (VT/VR) não entram aqui — são lançamentos manuais no financeiro.
+  // O status também vem da confirmação na tela (pendente por padrão).
   const payablesAuto = useMemo(
-    () => payablesAutomaticos(records, employees, companies, TODAY_ISO),
-    [records, employees, companies]
+    () => payablesAutomaticos(records, employees, companies, TODAY_ISO).map(d => {
+      const o = derivSt[d.derivKey];
+      const status = o?.status || 'pendente';
+      return { ...d, status, dataRecebimento: o?.data_recebimento || null,
+               vencido: status === 'pendente' && d.date < TODAY_ISO };
+    }),
+    [records, employees, companies, derivSt]
   );
 
   const chartData = useMemo(
-    () => buildChartData(periodType, bounds.start, bounds.end, records, lancamentos, companiesById, payablesAuto),
-    [periodType, bounds.start, bounds.end, records, lancamentos, companiesById, payablesAuto]
+    () => buildChartData(periodType, bounds.start, bounds.end, records, lancamentos, companiesById, payablesAuto, recDerivados),
+    [periodType, bounds.start, bounds.end, records, lancamentos, companiesById, payablesAuto, recDerivados]
   );
   const hasChart = chartData.some(b => b.aReceber > 0 || b.aPagar > 0 || b.pendTotal > 0 || b.prevIn > 0 || b.prevOut > 0);
   // Dia com pagamento acima do teto do eixo (ex.: folha) — recebe etiqueta.
@@ -1251,30 +1267,15 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   // diárias do período viram UM único lançamento ("Nov 2 - Fitlog"), com
   // vencimento = fim do período + prazo de pagamento da empresa.
   const recGroups = useMemo(() => {
-    const grupos = agruparPorFechamento(
-      records
-        .filter(r => r.status !== 'absent')
-        .map(r => ({ ...r, valor: recordRevenue(r, companiesById) })),
-      companiesById
-    );
-
-    const fromRecs = grupos.map(g => ({
-      date: g.vencimento,
-      descricao: `${g.rotulo} - ${g.empresa}`,
-      origem: 'Serviço', valor: g.valor, tipo: 'a_receber', isManual: false, derivado: true,
-      status: g.vencimento <= TODAY_ISO ? 'recebido' : 'pendente', vencido: false,
-      classificacaoNome: receitasClass.nome, classificacaoCor: receitasClass.cor,
-      periodo: { inicio: g.inicio, fim: g.fim, rotulo: g.rotulo, ajudantes: g.count, dias: g.dias.size },
-    }));
     const fromManual = lancamentos
       .filter(l => l.tipo === 'a_receber')
       .map(l => { const cl = classOf(l); return { date: l.data_vencimento, descricao: l.descricao, origem: 'Manual', valor: Number(l.valor || 0), tipo: 'a_receber', isManual: true, id: l.id, status: statusOf(l), dataRecebimento: l.data_recebimento || null, vencido: isVencido(l), classificacaoId: l.classificacao_id || '', classificacaoNome: cl.nome, classificacaoCor: cl.cor }; });
-    return [...fromRecs, ...fromManual].sort((a, b) => a.date.localeCompare(b.date));
-  }, [records, lancamentos, companiesById, classificacoes]);
+    return [...recDerivados, ...fromManual].sort((a, b) => a.date.localeCompare(b.date));
+  }, [recDerivados, lancamentos, classificacoes]);
 
-  // a_pagar: lançamentos gravados (dívida/custo fixo/benefício/manual) + os
-  // custos automáticos do período (Folha/VT/VR). A folha gravada pelo antigo
-  // "Fechar folha" é ignorada para não duplicar a linha automática.
+  // a_pagar: lançamentos gravados (dívida/custo fixo/benefício/manual) + o custo
+  // automático de Folha do período. A folha gravada pelo antigo "Fechar folha"
+  // é ignorada para não duplicar a linha automática.
   const pagItems = useMemo(() => {
     const fromStored = lancamentos
       .filter(l => l.tipo === 'a_pagar' && l.origem_tipo !== 'folha')
@@ -1291,8 +1292,8 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     return [...fromStored, ...payablesAuto].sort((a, b) => a.date.localeCompare(b.date));
   }, [lancamentos, classificacoes, payablesAuto]);
 
-  // Totais: realizados (fatos — pago/recebido) x pendentes.
-  // Serviços realizados sempre contam como entrada (receita da operação).
+  // Totais: realizados (fatos — confirmados como pago/recebido) x pendentes.
+  // Serviço/folha só entram nos fatos depois de confirmados na coluna Status.
   const totalRec    = recGroups.reduce((s, g) => s + g.valor, 0);
   const totalPag    = pagItems.reduce((s, l) => s + l.valor, 0);
   const recPend     = recGroups.filter(i => i.status === 'pendente').reduce((s, i) => s + i.valor, 0);
@@ -1364,13 +1365,25 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     setLancamentos(prev => prev.filter(l => l.id !== id));
   };
 
-  // Confirma/reverte o status (Pago / Recebido / Pendente).
-  const handleStatus = async (id, status, dataRecebimento = null) => {
-    await updateLancamentoStatus(id, status, dataRecebimento);
+  // Confirma/reverte o status (Pago / Recebido / Pendente). Vale para os
+  // lançamentos gravados (id) e para as linhas derivadas (serviço/folha), que
+  // guardam a confirmação em financeiro_fluxo_status pela chave derivada.
+  const handleStatus = async (item, status, dataRecebimento = null) => {
     const settled = status === 'pago' || status === 'recebido';
-    setLancamentos(prev => prev.map(l => l.id === id
-      ? { ...l, status, data_recebimento: settled ? (dataRecebimento || l.data_recebimento || null) : null }
-      : l));
+    const data = settled ? (dataRecebimento || null) : null;
+
+    if (item.id) {
+      await updateLancamentoStatus(item.id, status, dataRecebimento);
+      setLancamentos(prev => prev.map(l => l.id === item.id
+        ? { ...l, status, data_recebimento: data || (settled ? l.data_recebimento : null) }
+        : l));
+      return;
+    }
+
+    if (!item.derivKey) return;
+    const salvo = await setFluxoStatusDerivado(item.derivKey, status, dataRecebimento);
+    if (!salvo) console.error('[fluxo] não foi possível salvar o status da linha derivada', item.derivKey);
+    setFluxoStatus(prev => ({ ...prev, [item.derivKey]: { chave: item.derivKey, status, data_recebimento: data } }));
   };
 
   // Reagenda o vencimento (mudar a data).
@@ -1618,7 +1631,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                     <DateCell item={item} stored={!!item.id} onChange={handleDate} />
                   </span>
                   <span style={{ display: 'flex', justifyContent: 'center' }}>
-                    <StatusCell item={item} rec={rec} stored={!!item.id} status={item.status || 'pendente'} vencido={!!item.vencido} onStatus={handleStatus} />
+                    <StatusCell item={item} rec={rec} status={item.status || 'pendente'} vencido={!!item.vencido} onStatus={handleStatus} />
                   </span>
                   <span style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
                     {item.id ? (
@@ -2280,19 +2293,22 @@ function TabDRE({ records, lancamentos, employees, bounds, companies, classifica
 
   // Receita bruta: diária da empresa (admin) + HE proporcional (diária ÷ 8 × 1,5)
   const receitaBruta   = active.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
-  // Custo dos serviços = custos diretos: folha (diárias + HE) e benefícios VT/VR.
+  // Custo dos serviços = custos diretos: mão de obra (diárias + HE, derivada dos
+  // registros de ponto) e benefícios (VT/VR) lançados manualmente na classe
+  // "Benefícios" — não há mais cálculo automático de VT/VR.
   const folha          = folhaDosRegistros(active, employees);
-  const beneficios     = beneficiosDosRegistros(active, employees).total;
+  const beneficios     = lancamentos
+    .filter(l => l.tipo === 'a_pagar' && statusOf(l) === 'pago' && nomePorClasse[l.classificacao_id] === 'Benefícios')
+    .reduce((s, l) => s + Number(l.valor || 0), 0);
   const custServicos   = folha + beneficios;
   const lucroBruto     = receitaBruta - custServicos;
   // Despesas lançadas entram apenas quando confirmadas (status 'pago'): o DRE,
-  // como o Fluxo de Caixa, só considera fatos. Folha e benefícios entram por
-  // competência (acima), então seus lançamentos são ignorados mesmo quando o
-  // banco os grava como 'manual' (fallback) — evitando dupla contagem.
+  // como o Fluxo de Caixa, só considera fatos. A Folha entra por competência
+  // (acima) e os Benefícios já foram somados no custo dos serviços — por isso
+  // esses lançamentos são ignorados aqui, evitando dupla contagem.
   const custosConfirmados = lancamentos.filter(l =>
     l.tipo === 'a_pagar'
     && l.origem_tipo !== 'folha'
-    && l.origem_tipo !== 'beneficio'
     && !['Folha de Pagamento', 'Benefícios'].includes(nomePorClasse[l.classificacao_id])
     && statusOf(l) === 'pago');
   const somaPorClasse = nome => custosConfirmados
@@ -2305,7 +2321,7 @@ function TabDRE({ records, lancamentos, employees, bounds, companies, classifica
     .filter(l => !['Custo Fixo', 'Endividamento'].includes(nomePorClasse[l.classificacao_id]))
     .reduce((s, l) => s + Number(l.valor || 0), 0);
   // Pendentes do período (não entram no resultado).
-  const pendCustos     = lancamentos.filter(l => l.tipo === 'a_pagar'   && l.origem_tipo !== 'folha' && l.origem_tipo !== 'beneficio' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
+  const pendCustos     = lancamentos.filter(l => l.tipo === 'a_pagar' && l.origem_tipo !== 'folha' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
   const pendReceitas   = lancamentos.filter(l => l.tipo === 'a_receber' && statusOf(l) === 'pendente').reduce((s, l) => s + Number(l.valor || 0), 0);
   const pendVencidos   = lancamentos.filter(l => statusOf(l) === 'pendente' && isVencido(l)).reduce((s, l) => s + Number(l.valor || 0), 0);
   const totalDespesas  = custFixoPer + encargosDiv + despVariaveis;
@@ -2343,7 +2359,7 @@ function TabDRE({ records, lancamentos, employees, bounds, companies, classifica
         <Row label="(+) Receita Bruta de Serviços" value={receitaBruta} bold positive={receitaBruta > 0} />
         <Row label="(−) Custo dos Serviços" value={-custServicos} indent={1} muted negative={custServicos > 0} />
         <Row label="Mão de obra (diárias + H.E.)" value={-folha} indent={2} muted />
-        <Row label="Benefícios (VT/VR)" value={-beneficios} indent={2} muted />
+        <Row label="Benefícios" value={-beneficios} indent={2} muted />
         <Row label="= LUCRO BRUTO" value={lucroBruto} bold sep positive={lucroBruto >= 0} negative={lucroBruto < 0} />
 
         <Row label="DESPESAS OPERACIONAIS" value={-totalDespesas} bold sep />
@@ -2381,17 +2397,19 @@ function TabDRE({ records, lancamentos, employees, bounds, companies, classifica
 // período de acordo com o tipo selecionado. Custos fixos e dívidas não são
 // rateados por cliente, então o resultado aqui é a margem do cliente:
 // faturamento menos a mão de obra e os benefícios dos dias trabalhados para ele.
-function TabResultados({ employees, companies }) {
+function TabResultados({ employees, companies, classificacoes }) {
   const companiesById   = Object.fromEntries((companies || []).map(c => [c.id, c]));
   const companiesAtivas = (companies || []).filter(c => c.isActive !== false);
+  const nomePorClasse   = Object.fromEntries((classificacoes || []).map(c => [c.id, c.nome]));
 
   const [mode,      setMode]      = useState('mensal');   // 'mensal' | 'fechamento'
   const [offset,    setOffset]    = useState(0);
   const [companyId, setCompanyId] = useState('');
   const [openEmp,   setOpenEmp]   = useState(false);
   const empRef = useRef(null);
-  const [records,   setRecords]   = useState([]);
-  const [loading,   setLoading]   = useState(false);
+  const [records,     setRecords]     = useState([]);
+  const [lancamentos, setLancamentos] = useState([]);
+  const [loading,     setLoading]     = useState(false);
 
   // Cliente padrão: o primeiro ativo.
   useEffect(() => {
@@ -2415,13 +2433,17 @@ function TabResultados({ employees, companies }) {
   const bounds = effMode === 'mensal' ? getBounds('mensal', offset) : getFechamentoBounds(cfg, false, offset);
 
   useEffect(() => {
-    if (!companyId) { setRecords([]); return; }
+    if (!companyId) { setRecords([]); setLancamentos([]); return; }
     let vivo = true;
     setLoading(true);
     const alvo = companyId === GERAL ? null : companyId;   // null = todas as empresas
-    fetchWorkRecordsByPeriod(alvo, null, bounds.start, bounds.end).then(recs => {
+    Promise.all([
+      fetchWorkRecordsByPeriod(alvo, null, bounds.start, bounds.end),
+      fetchLancamentos(bounds.start, bounds.end),
+    ]).then(([recs, lncs]) => {
       if (!vivo) return;
       setRecords(recs || []);
+      setLancamentos(lncs || []);
       setLoading(false);
     });
     return () => { vivo = false; };
@@ -2429,8 +2451,12 @@ function TabResultados({ employees, companies }) {
 
   const active     = records.filter(r => r.status !== 'absent');
   const receita    = active.reduce((s, r) => s + recordRevenue(r, companiesById), 0);
-  const folha      = folhaDosRegistros(active, employees);
-  const beneficios = beneficiosDosRegistros(active, employees).total;
+  const folha = folhaDosRegistros(active, employees);
+  // Benefícios agora são lançamentos manuais classificados como "Benefícios".
+  // Não são vinculados a um cliente, então entram apenas no corte Geral.
+  const beneficios = isGeral
+    ? lancamentos.filter(l => l.tipo === 'a_pagar' && statusOf(l) === 'pago' && nomePorClasse[l.classificacao_id] === 'Benefícios').reduce((s, l) => s + Number(l.valor || 0), 0)
+    : 0;
   const custos     = folha + beneficios;
   const lucro      = receita - custos;
   const margem     = receita > 0 ? (lucro / receita) * 100 : 0;
@@ -2444,7 +2470,7 @@ function TabResultados({ employees, companies }) {
   const slices = [
     { name: 'Lucro Líquido',      value: Math.max(0, lucro), color: PROFIT_COLOR },
     { name: 'Folha de Pagamento', value: folha,              color: REVENUE_COLORS.folha },
-    { name: 'Benefícios (VT/VR)', value: beneficios,         color: REVENUE_COLORS.fixos },
+    { name: 'Benefícios',        value: beneficios,         color: REVENUE_COLORS.fixos },
   ].filter(s => s.value > 0);
 
   const trocarModo = (v) => {
@@ -2464,7 +2490,7 @@ function TabResultados({ employees, companies }) {
       sub: `${fmtCurrency(recebido)} recebido · ${fmtCurrency(receita - recebido)} a receber` },
     { label: 'Custos Diretos', value: fmtCurrency(custos), icon: TrendingDown, dark: true,
       darkColor: custos > 0 ? '#E59A82' : '#FFFFFF',
-      sub: `${fmtCurrency(folha)} de folha · ${fmtCurrency(beneficios)} de benefícios` },
+      sub: `${fmtCurrency(folha)} de folha${beneficios > 0 ? ` · ${fmtCurrency(beneficios)} de benefícios` : ''}` },
     { label: 'Lucro Líquido', value: fmtCurrency(lucro), icon: TrendingUp, dark: true,
       darkColor: lucro >= 0 ? '#7CC79B' : '#E39AA6',
       sub: `${margem.toFixed(1)}% do faturamento` },
@@ -2608,6 +2634,16 @@ function TabResultados({ employees, companies }) {
               </div>
             )}
           </div>
+
+          {!isGeral && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', background: '#F7F7F7', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '10px', padding: '9px 12px' }}>
+              <AlertTriangle size={13} style={{ color: '#9A9A9A', flexShrink: 0, marginTop: '1px' }} />
+              <p style={{ fontSize: '11px', color: '#6B6B6B', lineHeight: 1.5 }}>
+                Aqui o resultado é a <b>margem do cliente</b>: faturamento menos a mão de obra dos dias trabalhados para ele.
+                Os <b>benefícios</b> (lançamentos) não são vinculados a um cliente e entram apenas na visão <b>Geral</b>.
+              </p>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -3158,6 +3194,10 @@ export default function AdminFinanceiro() {
   const [dividas,     setDividas]     = useState([]);
   const [custosFixos, setCustosFixos] = useState([]);
   const [classificacoes, setClassificacoes] = useState([]);
+  // Status confirmado das linhas DERIVADAS do Fluxo de Caixa (serviços e folha),
+  // por chave derivada. Sem entrada, a linha é pendente. Fica aqui porque tanto
+  // o Fluxo de Caixa quanto a Visão Geral precisam da mesma confirmação.
+  const [fluxoStatus, setFluxoStatus] = useState({});
   const [loading,     setLoading]     = useState(true);
   // Modal "Nova Dívida": o botão fica no header (ao lado do filtro de período).
   const [showNovaDivida, setShowNovaDivida] = useState(false);
@@ -3190,6 +3230,7 @@ export default function AdminFinanceiro() {
     fetchDividas().then(d => setDividas(d || []));
     fetchCustosFixos().then(c => setCustosFixos(c || []));
     fetchClassificacoes().then(c => setClassificacoes(c || []));
+    fetchFluxoStatus().then(rows => setFluxoStatus(Object.fromEntries((rows || []).map(r => [r.chave, r]))));
   }, []);
 
   // Ao sair da sub-aba de endividamento, fecha o modal de nova dívida.
@@ -3225,9 +3266,9 @@ export default function AdminFinanceiro() {
         </div>
       ) : (
         <>
-          {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} classificacoes={classificacoes} />}
-          {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} employees={employees} classificacoes={classificacoes} onCreateClassificacao={handleCreateClassificacao} />}
-          {activeTab === 'resultados' && <TabResultados employees={employees} companies={companies} />}
+          {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} classificacoes={classificacoes} fluxoStatus={fluxoStatus} />}
+          {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} employees={employees} classificacoes={classificacoes} onCreateClassificacao={handleCreateClassificacao} fluxoStatus={fluxoStatus} setFluxoStatus={setFluxoStatus} />}
+          {activeTab === 'resultados' && <TabResultados employees={employees} companies={companies} classificacoes={classificacoes} />}
           {activeTab === 'folha'   && <TabFolhaPagamento employees={employees} />}
           {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} showModal={showNovaDivida} setShowModal={setShowNovaDivida} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}

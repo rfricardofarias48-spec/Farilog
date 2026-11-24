@@ -1,18 +1,20 @@
-// ── Contas a pagar automáticas (Folha, VT e VR) ────────────────────────────
+// ── Contas a pagar automáticas (Folha) ─────────────────────────────────────
 //
-// Mesma lógica do faturamento: as diárias realizadas geram custos que entram no
-// Fluxo de Caixa sem precisar de lançamento manual. Os valores vêm do cadastro
-// de cada ajudante (diaria, hora_extra, vt_diario, vr_diario).
+// Mesma lógica do faturamento: as diárias realizadas geram o custo de mão de
+// obra que entra no Fluxo de Caixa sem precisar de lançamento manual. Os valores
+// vêm do cadastro de cada ajudante (diaria, hora_extra).
+//
+// Benefícios (VT/VR) NÃO são calculados aqui: são lançados manualmente e
+// classificados como "Benefícios" no financeiro.
 //
 // Regras:
 //   • "Trabalhou" = registro com entrada (checkIn) ou já ativo/concluído.
 //     Ausente e diárias apenas agendadas (scheduled) não contam.
 //   • Dias = dias DISTINTOS trabalhados por ajudante na quinzena.
 //   • Folha = dias × diaria + minutos de HE × hora_extra.
-//   • VT    = dias × vt_diario   ·   VR = dias × vr_diario.
 //   • Cada linha é datada no pagamento: fim da quinzena + prazo_folha do
-//     cadastro da empresa (padrão 7 dias). A folha fica pendente até essa data
-//     passar; VT/VR entram como já pagos.
+//     cadastro da empresa (padrão 7 dias). A linha nasce PENDENTE e só é
+//     confirmada como paga no Fluxo de Caixa.
 
 import { overtimeToMinutes } from './timeUtils';
 
@@ -21,10 +23,8 @@ const iso = (y, m, d) => `${y}-${pad(m)}-${pad(d)}`;
 const ultimoDiaDoMes = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate(); // m = 1..12
 const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-// Cores usadas nas fatias/etiquetas quando não há classificação no cadastro.
+// Cor usada nas fatias/etiquetas quando não há classificação no cadastro.
 const COR_FOLHA = '#3A4F6B';
-const COR_VT    = '#96671F';
-const COR_VR    = '#557A3E';
 
 // O ajudante trabalhou neste registro?
 export function trabalhou(r) {
@@ -77,7 +77,7 @@ function sextaDaSemana(dateIso) {
   return d.toISOString().slice(0, 10);
 }
 
-// Linhas a pagar derivadas (Folha/VT/VR) por empresa × período de pagamento.
+// Linhas a pagar derivadas (Folha) por empresa × período de pagamento.
 //   • modo 'quinzena' → agrupa por quinzena e paga fim da quinzena + prazo_folha;
 //   • modo 'semanal'  → agrupa por semana (fecha na sexta) e paga na quarta
 //     seguinte (sexta + 5 dias).
@@ -114,7 +114,7 @@ export function payablesAutomaticos(records, employees, companies, hojeIso) {
 
   const itens = [];
   for (const { semanal, ref, co, dias, heMin } of porGrupo.values()) {
-    let folha = 0, vt = 0, vr = 0, nAjudantes = 0, nDias = 0;
+    let folha = 0, nAjudantes = 0, nDias = 0;
     for (const [empId, datas] of dias) {
       const emp = empById.get(empId);
       const d = datas.size;
@@ -122,8 +122,6 @@ export function payablesAutomaticos(records, employees, companies, hojeIso) {
       nDias += d;
       folha += d * Number(emp.dailyRate || 0)
              + (heMin.get(empId) || 0) / 60 * Number(emp.overtimeRate || 0);
-      vt += d * Number(emp.vtDiario || 0);
-      vr += d * Number(emp.vrDiario || 0);
     }
     const resumo = `${nAjudantes} ajudante${nAjudantes !== 1 ? 's' : ''} · ${nDias} diária${nDias !== 1 ? 's' : ''}`;
 
@@ -140,23 +138,14 @@ export function payablesAutomaticos(records, employees, companies, hojeIso) {
 
     if (folha > 0) {
       itens.push({
-        ...base, origem: 'Folha', valor: folha, status: dataPagamento <= hojeIso ? 'pago' : 'pendente',
+        ...base, origem: 'Folha', valor: folha,
+        // Chave estável da linha derivada: por ela o Fluxo de Caixa guarda a
+        // confirmação de pagamento (tabela financeiro_fluxo_status).
+        derivKey: `PAG:${key}`,
+        // Nasce PENDENTE: só vira 'pago' quando confirmada na tela.
+        status: 'pendente',
         descricao: `Folha de Pagamento — ${periodo} (${resumo})`,
         classificacaoNome: 'Folha de Pagamento', classificacaoCor: COR_FOLHA,
-      });
-    }
-    if (vt > 0) {
-      itens.push({
-        ...base, origem: 'Benefício', valor: vt, status: 'pago',
-        descricao: `Vale Transporte (VT) — ${periodo} (${resumo})`,
-        classificacaoNome: 'Benefícios', classificacaoCor: COR_VT,
-      });
-    }
-    if (vr > 0) {
-      itens.push({
-        ...base, origem: 'Benefício', valor: vr, status: 'pago',
-        descricao: `Vale Refeição (VR) — ${periodo} (${resumo})`,
-        classificacaoNome: 'Benefícios', classificacaoCor: COR_VR,
       });
     }
   }
