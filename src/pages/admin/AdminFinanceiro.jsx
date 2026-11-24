@@ -1192,6 +1192,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const [showAdd,  setShowAdd]  = useState(false);
   const [chartMode, setChartMode] = useState('entrada'); // entrada | saida | saldo
   const [editItem, setEditItem]   = useState(null); // lançamento em edição
+  const [erroPersist, setErroPersist] = useState(null); // falha ao gravar status/vencimento derivado
 
   const companiesById = useMemo(
     () => Object.fromEntries((companies || []).map(c => [c.id, c])),
@@ -1425,7 +1426,12 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
 
     if (!item.derivKey) return;
     const salvo = await setFluxoStatusDerivado(item.derivKey, status, dataRecebimento);
-    if (!salvo) console.error('[fluxo] não foi possível salvar o status da linha derivada', item.derivKey);
+    if (!salvo) {
+      console.error('[fluxo] não foi possível salvar o status da linha derivada', item.derivKey);
+      setErroPersist('status');
+    } else {
+      setErroPersist(null);
+    }
     setFluxoStatus(prev => ({ ...prev, [item.derivKey]: { ...prev[item.derivKey], chave: item.derivKey, status, data_recebimento: data } }));
   };
 
@@ -1433,7 +1439,12 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   // novaData = null volta à data calculada automaticamente.
   const handleDateOverride = async (chave, novaData) => {
     const salvo = await setFluxoDateDerivado(chave, novaData);
-    if (!salvo) console.error('[fluxo] não foi possível salvar o vencimento da linha derivada', chave);
+    if (!salvo) {
+      console.error('[fluxo] não foi possível salvar o vencimento da linha derivada', chave);
+      setErroPersist('vencimento');
+    } else {
+      setErroPersist(null);
+    }
     setFluxoStatus(prev => ({
       ...prev,
       [chave]: { ...prev[chave], chave, data_vencimento: novaData || null },
@@ -1464,6 +1475,23 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
 
   return (
     <div className="space-y-5">
+      {/* Falha ao gravar o status/vencimento das linhas derivadas (Serviço/Folha/VT/VR).
+          Em geral é a tabela financeiro_fluxo_status ausente no Supabase. */}
+      {erroPersist && (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', background: '#FBEDE8', border: '1px solid rgba(188,74,42,0.28)', borderRadius: '10px', padding: '9px 12px' }}>
+          <AlertTriangle size={13} style={{ color: CASH_OUT, flexShrink: 0, marginTop: '1px' }} />
+          <p style={{ fontSize: '11px', color: '#7A3B2A', lineHeight: 1.5, flex: 1 }}>
+            Não foi possível salvar o {erroPersist === 'status' ? 'status' : 'vencimento'} das linhas automáticas (Serviço/Folha/VT/VR).
+            Falta a tabela <b>financeiro_fluxo_status</b> no Supabase — rode <b>supabase/fluxo-status-derivados.sql</b> no SQL Editor (uma vez).
+            Lançamentos manuais salvam normalmente.
+          </p>
+          <button onClick={() => setErroPersist(null)} title="Fechar"
+            style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#7A3B2A', padding: 0, lineHeight: 1 }}>
+            <X size={13} />
+          </button>
+        </div>
+      )}
+
       {/* Totais — valores do período com o quanto já é fato (pago/recebido) e o pendente */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
         <KpiCard label="A Receber no Período" value={fmtCurrency(totalRec)} icon={TrendingUp} dark darkColor="#7CC79B"
