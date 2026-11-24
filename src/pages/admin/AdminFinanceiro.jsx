@@ -2400,17 +2400,21 @@ function TabResultados({ employees, companies }) {
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  const company = companiesById[companyId] || null;
+  const GERAL   = '__geral__';                 // opção que agrega todas as empresas
+  const isGeral = companyId === GERAL;
+  const company = isGeral ? null : (companiesById[companyId] || null);
   const cfg = { modo: company?.closingCycle, dias: company?.closingDays, prazo: company?.prazoPagamento, uteis: company?.prazoDiasUteis };
-  // O período selecionado segue o tipo escolhido: mês inteiro ou o ciclo de
-  // fechamento do cliente. A seta troca exatamente esse período.
-  const bounds = mode === 'mensal' ? getBounds('mensal', offset) : getFechamentoBounds(cfg, false, offset);
+  // No modo Geral o fechamento não se aplica (cada cliente fecha num ciclo
+  // próprio), então só há o corte mensal; nos demais o período segue o tipo.
+  const effMode = isGeral ? 'mensal' : mode;
+  const bounds = effMode === 'mensal' ? getBounds('mensal', offset) : getFechamentoBounds(cfg, false, offset);
 
   useEffect(() => {
     if (!companyId) { setRecords([]); return; }
     let vivo = true;
     setLoading(true);
-    fetchWorkRecordsByPeriod(companyId, null, bounds.start, bounds.end).then(recs => {
+    const alvo = companyId === GERAL ? null : companyId;   // null = todas as empresas
+    fetchWorkRecordsByPeriod(alvo, null, bounds.start, bounds.end).then(recs => {
       if (!vivo) return;
       setRecords(recs || []);
       setLoading(false);
@@ -2438,8 +2442,17 @@ function TabResultados({ employees, companies }) {
     { name: 'Benefícios (VT/VR)', value: beneficios,         color: REVENUE_COLORS.fixos },
   ].filter(s => s.value > 0);
 
-  const trocarModo    = (v)  => { setMode(v); setOffset(0); };
-  const trocarEmpresa = (id) => { setCompanyId(id); setOffset(0); setOpenEmp(false); };
+  const trocarModo = (v) => {
+    if (v === 'fechamento' && isGeral) return;   // fechamento é sempre de um cliente
+    setMode(v);
+    setOffset(0);
+  };
+  const trocarEmpresa = (id) => {
+    setCompanyId(id);
+    setOffset(0);
+    setOpenEmp(false);
+    if (id === GERAL) setMode('mensal');
+  };
 
   const kpis = [
     { label: 'Faturamento', value: fmtCurrency(receita), icon: DollarSign, dark: true, darkColor: '#FFFFFF',
@@ -2463,11 +2476,18 @@ function TabResultados({ employees, companies }) {
           <button onClick={() => setOpenEmp(v => !v)}
             style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px', borderRadius: '10px', border: '1px solid rgba(11,11,11,0.08)', cursor: 'pointer', background: '#fff', fontSize: '12px', fontWeight: 600, color: '#0B0B0B', boxShadow: '0 1px 3px rgba(11,11,11,0.06)' }}>
             <Building2 size={13} style={{ color: '#9A9A9A' }} />
-            {company?.name || 'Selecione a empresa'}
+            {isGeral ? 'Geral (todas as empresas)' : (company?.name || 'Selecione a empresa')}
             <ChevronDown size={12} style={{ color: '#9A9A9A' }} />
           </button>
           {openEmp && (
             <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 200, background: '#fff', borderRadius: '12px', padding: '6px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.07)', minWidth: '210px', maxHeight: '320px', overflowY: 'auto' }}>
+              <button onClick={() => trocarEmpresa(GERAL)}
+                style={{ width: '100%', display: 'block', padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', fontWeight: 700, background: isGeral ? '#FAF4F1' : 'transparent', color: isGeral ? '#BC4A2A' : '#333333' }}
+                onMouseEnter={e => { if (!isGeral) e.currentTarget.style.background = '#F7F7F7'; }}
+                onMouseLeave={e => { if (!isGeral) e.currentTarget.style.background = 'transparent'; }}>
+                Geral (todas as empresas)
+              </button>
+              <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '5px 6px' }} />
               {companiesAtivas.length === 0 && <p style={{ fontSize: '12px', color: '#9A9A9A', padding: '8px 12px' }}>Nenhuma empresa cadastrada</p>}
               {companiesAtivas.map(c => (
                 <button key={c.id} onClick={() => trocarEmpresa(c.id)}
@@ -2483,13 +2503,17 @@ function TabResultados({ employees, companies }) {
 
         {/* Tipo de período */}
         <div style={{ display: 'flex', gap: '2px', background: '#F3F3F3', border: '1px solid #E8E8E8', borderRadius: '10px', padding: '3px' }}>
-          {[['mensal', 'Mensal'], ['fechamento', 'Por fechamento']].map(([v, l]) => (
-            <button key={v} onClick={() => trocarModo(v)}
-              style={{ padding: '5px 13px', borderRadius: '7px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '11.5px', fontWeight: 700, transition: 'all 0.15s',
-                background: mode === v ? '#0B0B0B' : 'transparent', color: mode === v ? '#fff' : '#7A7A7A' }}>
-              {l}
-            </button>
-          ))}
+          {[['mensal', 'Mensal'], ['fechamento', 'Por fechamento']].map(([v, l]) => {
+            const bloq = v === 'fechamento' && isGeral;
+            return (
+              <button key={v} onClick={() => trocarModo(v)} disabled={bloq}
+                title={bloq ? 'O fechamento é por cliente — escolha uma empresa para usar' : undefined}
+                style={{ padding: '5px 13px', borderRadius: '7px', border: 'none', cursor: bloq ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', fontSize: '11.5px', fontWeight: 700, transition: 'all 0.15s',
+                  background: effMode === v ? '#0B0B0B' : 'transparent', color: bloq ? '#C4C4C4' : (effMode === v ? '#fff' : '#7A7A7A') }}>
+                {l}
+              </button>
+            );
+          })}
         </div>
 
         {/* Período + seta */}
@@ -2500,7 +2524,7 @@ function TabResultados({ employees, companies }) {
           </button>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '7px 13px', borderRadius: '10px', border: '1px solid rgba(11,11,11,0.08)', background: '#fff', fontSize: '12px', fontWeight: 600, color: '#0B0B0B', boxShadow: '0 1px 3px rgba(11,11,11,0.06)', minWidth: '150px' }}>
             {bounds.label}
-            <span style={{ fontSize: '10px', color: '#9A9A9A', fontWeight: 500 }}>· {mode === 'mensal' ? 'Mensal' : 'Fechamento'}</span>
+            <span style={{ fontSize: '10px', color: '#9A9A9A', fontWeight: 500 }}>· {effMode === 'mensal' ? 'Mensal' : 'Fechamento'}</span>
           </div>
           <button onClick={() => setOffset(o => Math.min(o + 1, 0))} disabled={offset >= 0} title="Próximo período"
             style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(11,11,11,0.08)', cursor: offset >= 0 ? 'not-allowed' : 'pointer', color: offset >= 0 ? '#D1D1D1' : '#4A4A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(11,11,11,0.06)' }}>
