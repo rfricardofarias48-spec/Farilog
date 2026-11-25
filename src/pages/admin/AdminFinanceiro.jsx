@@ -3062,35 +3062,76 @@ function PagamentoDetalheModal({ pagamento, onClose }) {
 
   if (!pagamento) return null;
   const itens = Array.isArray(pagamento.breakdown) ? pagamento.breakdown : [];
-  const COLS = '1fr 1.4fr 64px 76px 96px 96px 100px';
-  const th = { fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.05em' };
+  const pago  = pagamento.status === 'pago' || pagamento.status === 'recebido';
+  const COLS  = '1.1fr 1.5fr 70px 80px 104px 104px 104px';
+  const th    = { fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.06em' };
+  const inicial = nome => String(nome || '?').trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+  const CORES_AVATAR = ['#0B0B0B', '#3A4F6B', '#8C3B4A', '#96671F', '#2F6F73', '#7B5EA7'];
+
+  // Chip de métrica do cabeçalho (sobre o fundo escuro).
+  const Chip = ({ label, valor }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 12px', borderRadius: '10px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <span style={{ fontSize: '10px', fontWeight: 700, color: '#BDBDBD', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
+      <span style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>{valor}</span>
+    </div>
+  );
 
   return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(11,11,11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '940px', maxHeight: '86vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
-        <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid rgba(0,0,0,0.06)', position: 'relative' }}>
-          <button onClick={onClose} title="Fechar"
-            style={{ position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '8px', background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <X size={15} />
-          </button>
-          <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: 'rgba(58,79,107,0.12)', color: '#3A4F6B' }}>
-            Folha de Pagamento
-          </span>
-          <p style={{ fontSize: '16px', fontWeight: 800, ...T, marginTop: '10px', paddingRight: '36px' }}>{pagamento.empresa}</p>
-          <p style={{ fontSize: '12px', ...TM }}>
-            {pagamento.periodoLabel} · Pagamento em {fmtShortDate(pagamento.date)}
-            {pagamento.status === 'pago' ? ' · Pago' : ''}
-          </p>
-          <p style={{ fontSize: '24px', fontWeight: 900, color: CASH_OUT, marginTop: '6px' }}>{fmtCurrency(pagamento.valor)}</p>
+      style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(11,11,11,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '940px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 80px rgba(0,0,0,0.30)', overflow: 'hidden' }}>
+
+        {/* Cabeçalho escuro — mesmo padrão dos cards do app */}
+        <div style={{ position: 'relative', padding: '22px 24px 20px', background: 'linear-gradient(135deg, #0B0B0B 0%, #1C1C1C 100%)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+            <div style={{ minWidth: 0 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: 800, padding: '4px 9px', borderRadius: '6px', background: 'rgba(188,74,42,0.18)', border: '1px solid rgba(188,74,42,0.30)', color: '#E08A70', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                <FileText size={11} /> Folha de Pagamento
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px', minWidth: 0 }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Building2 size={17} style={{ color: '#E08A70' }} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: '19px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pagamento.empresa}</p>
+                  <p style={{ fontSize: '12px', color: '#BDBDBD', marginTop: '2px' }}>
+                    {pagamento.periodoLabel} · Pagamento em {fmtShortDate(pagamento.date)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <button onClick={onClose} title="Fechar"
+              style={{ width: '32px', height: '32px', borderRadius: '9px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer', color: '#E4E4E4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <X size={15} />
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginTop: '16px' }}>
+            <div>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#BDBDBD', textTransform: 'uppercase', letterSpacing: '0.09em' }}>Total a pagar</p>
+              <p style={{ fontSize: '26px', fontWeight: 900, color: '#FFFFFF', lineHeight: 1.1 }}>{fmtCurrency(pagamento.valor)}</p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <Chip label="Diárias" valor={pagamento.dias} />
+              <Chip label="H. extra" valor={fmtHorasMin(pagamento.heMin)} />
+              <Chip label="Ajudantes" valor={itens.length} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '8px 12px', borderRadius: '10px', fontSize: '11px', fontWeight: 800,
+                background: pago ? 'rgba(47,122,79,0.20)' : 'rgba(184,137,31,0.20)',
+                border: `1px solid ${pago ? 'rgba(47,122,79,0.45)' : 'rgba(184,137,31,0.45)'}`,
+                color: pago ? '#8FD3AC' : '#E7C169' }}>
+                {pago ? <Check size={11} /> : <Clock size={11} />} {pago ? 'Pago' : 'Pendente'}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div style={{ overflowY: 'auto', padding: '0 22px 20px' }}>
+        {/* Corpo: detalhe por ajudante */}
+        <div style={{ overflowY: 'auto', padding: '0 24px 20px' }}>
           {itens.length === 0 ? (
-            <p style={{ padding: '32px 0', textAlign: 'center', fontSize: '13px', color: '#C8C8C8' }}>Sem detalhe por ajudante</p>
+            <p style={{ padding: '40px 0', textAlign: 'center', fontSize: '13px', color: '#C8C8C8' }}>Sem detalhe por ajudante</p>
           ) : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: '8px', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: '10px', padding: '12px 4px', borderBottom: '1px solid rgba(0,0,0,0.08)', position: 'sticky', top: 0, background: '#fff' }}>
                 <span style={th}>Empresa</span>
                 <span style={th}>Ajudante</span>
                 <span style={{ ...th, textAlign: 'center' }}>Diárias</span>
@@ -3100,27 +3141,43 @@ function PagamentoDetalheModal({ pagamento, onClose }) {
                 <span style={{ ...th, textAlign: 'right' }}>Total</span>
               </div>
               {itens.map((b, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: COLS, gap: '8px', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.04)', alignItems: 'center' }}>
+                <div key={i}
+                  style={{ display: 'grid', gridTemplateColumns: COLS, gap: '10px', padding: '11px 4px', borderBottom: '1px solid rgba(0,0,0,0.05)', alignItems: 'center' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#FAFAFA'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
                   <span style={{ fontSize: '12px', fontWeight: 600, ...TM, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={pagamento.empresa}>{pagamento.empresa}</span>
-                  <span style={{ fontSize: '12.5px', fontWeight: 700, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.nome}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: CORES_AVATAR[i % CORES_AVATAR.length], color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10.5px', fontWeight: 800, flexShrink: 0 }}>
+                      {inicial(b.nome)}
+                    </div>
+                    <span style={{ fontSize: '13px', fontWeight: 700, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.nome}</span>
+                  </div>
                   <span style={{ fontSize: '12.5px', textAlign: 'center', color: '#4A4A4A', fontWeight: 600 }}>{b.dias}</span>
                   <span style={{ fontSize: '12.5px', textAlign: 'center', color: '#6B6B6B', fontWeight: 600 }}>{fmtHorasMin(b.heMin)}</span>
                   <span style={{ fontSize: '12.5px', textAlign: 'right', color: '#4A4A4A', fontWeight: 600 }}>{fmtCurrency(b.diarias)}</span>
                   <span style={{ fontSize: '12.5px', textAlign: 'right', color: '#6B6B6B', fontWeight: 600 }}>{fmtCurrency(b.he)}</span>
-                  <span style={{ fontSize: '12.5px', textAlign: 'right', fontWeight: 800, color: '#0B0B0B' }}>{fmtCurrency(b.valor)}</span>
+                  <span style={{ fontSize: '13px', textAlign: 'right', fontWeight: 800, color: '#0B0B0B' }}>{fmtCurrency(b.valor)}</span>
                 </div>
               ))}
-              <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: '8px', padding: '12px 0 0', alignItems: 'center' }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</span>
+              <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: '10px', padding: '14px 4px 0', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total</span>
                 <span />
                 <span style={{ fontSize: '12.5px', textAlign: 'center', fontWeight: 800, color: '#4A4A4A' }}>{pagamento.dias}</span>
                 <span style={{ fontSize: '12.5px', textAlign: 'center', fontWeight: 800, color: '#4A4A4A' }}>{fmtHorasMin(pagamento.heMin)}</span>
                 <span />
                 <span />
-                <span style={{ fontSize: '14px', textAlign: 'right', fontWeight: 900, color: CASH_OUT }}>{fmtCurrency(pagamento.valor)}</span>
+                <span style={{ fontSize: '15px', textAlign: 'right', fontWeight: 900, color: CASH_OUT }}>{fmtCurrency(pagamento.valor)}</span>
               </div>
             </>
           )}
+        </div>
+
+        {/* Rodapé */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '14px 24px', borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA' }}>
+          <button onClick={onClose}
+            style={{ padding: '10px 18px', borderRadius: '11px', border: 'none', cursor: 'pointer', background: '#0B0B0B', color: '#fff', fontSize: '12.5px', fontWeight: 700 }}>
+            Fechar
+          </button>
         </div>
       </div>
     </div>,
@@ -3201,6 +3258,9 @@ function TabFolhaPagamento({ employees, companies, fluxoStatus = {}, setFluxoSta
   }, [records, employees, companies, fluxoStatus, limitePassado]);
 
   const totalPagar = pagamentos.reduce((s, p) => s + Number(p.valor || 0), 0);
+  // Já pago = linhas confirmadas no Fluxo de Caixa; falta pagar = o restante.
+  const totalPago     = pagamentos.filter(p => p.status === 'pago' || p.status === 'recebido').reduce((s, p) => s + Number(p.valor || 0), 0);
+  const totalRestante = totalPagar - totalPago;
   const totalDias  = pagamentos.reduce((s, p) => s + Number(p.dias || 0), 0);
   const totalHe    = pagamentos.reduce((s, p) => s + Number(p.heMin || 0), 0);
   const nAjudantes = new Set(pagamentos.flatMap(p => (p.breakdown || []).map(b => b.nome))).size;
@@ -3282,7 +3342,9 @@ function TabFolhaPagamento({ employees, companies, fluxoStatus = {}, setFluxoSta
         <>
           {/* KPIs dos pagamentos listados */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
-            <Card label="Total a Pagar" value={fmtCurrency(totalPagar)} icon={Wallet} />
+            <Card label="Total dos Pagamentos" value={fmtCurrency(totalPagar)} icon={Wallet} />
+            <Card label="Já Pago" value={fmtCurrency(totalPago)} icon={Check} valueColor="#7CC79B" />
+            <Card label="Falta Pagar" value={fmtCurrency(totalRestante)} icon={HandCoins} valueColor={totalRestante > 0.005 ? '#E08A70' : '#7CC79B'} />
             <Card label="Diárias" value={`${totalDias} dia${totalDias !== 1 ? 's' : ''}`} icon={DollarSign} />
             <Card label="Horas Extras" value={fmtHorasMin(totalHe)} icon={Clock} />
             <Card label="Ajudantes" value={String(nAjudantes)} icon={Users} valueColor="#E08A70" />
@@ -3344,6 +3406,19 @@ function TabFolhaPagamento({ employees, companies, fluxoStatus = {}, setFluxoSta
                   <span style={{ fontSize: '15px', fontWeight: 800, color: '#0B0B0B', textAlign: 'center' }}>{fmtCurrency(totalPagar)}</span>
                   <span />
                   <span />
+                </div>
+                {/* Resumo: total dos pagamentos, o que já foi pago e o que falta pagar.
+                    Acompanha a confirmação de status feita no Fluxo de Caixa. */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '24px', flexWrap: 'wrap', padding: '12px 16px', background: '#fff', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                  <span style={{ fontSize: '12px', color: '#6B6B6B', fontWeight: 600 }}>
+                    Total dos pagamentos <b style={{ color: '#0B0B0B' }}>{fmtCurrency(totalPagar)}</b>
+                  </span>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: CASH_IN }}>
+                    Já pago <b>{fmtCurrency(totalPago)}</b>
+                  </span>
+                  <span style={{ fontSize: '14px', fontWeight: 900, color: totalRestante > 0.005 ? CASH_OUT : CASH_IN }}>
+                    Falta pagar {fmtCurrency(totalRestante)}
+                  </span>
                 </div>
               </>
             )}
