@@ -1103,7 +1103,7 @@ function EditarLancamentoModal({ item, classificacoes = [], onSave, onClose }) {
   );
 }
 
-function ListModal({ title, items, onDelete, onStatus, onDate, onDateOverride, onEdit, onClose }) {
+function ListModal({ title, items, onDelete, onStatus, onDate, onDateOverride, onEdit, onRowClick, onClose }) {
   useEffect(() => {
     const h = e => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', h);
@@ -1148,7 +1148,8 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onDateOverride, o
             const rec = item.tipo === 'a_receber';
             const pend = (item.status || 'pendente') === 'pendente';
             return (
-              <div key={idx} style={{ display: 'grid', gridTemplateColumns: FLUXO_COLS, padding: '12px 24px', borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '10px', boxShadow: `inset 3px 0 0 ${rec ? CASH_IN : CASH_OUT}`, background: item.vencido ? 'rgba(188,74,42,0.045)' : undefined }}>
+              <div key={idx} onClick={onRowClick ? () => onRowClick(item) : undefined} title="Ver detalhes"
+                style={{ display: 'grid', gridTemplateColumns: FLUXO_COLS, padding: '12px 24px', borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '10px', cursor: onRowClick ? 'pointer' : 'default', boxShadow: `inset 3px 0 0 ${rec ? CASH_IN : CASH_OUT}`, background: item.vencido ? 'rgba(188,74,42,0.045)' : undefined }}>
                 <span style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0B0B0B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.descricao}>{item.descricao}</span>
                 <span style={{ textAlign: 'center' }}>
                   <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: `${item.classificacaoCor || CASH_OUT}1A`, color: item.classificacaoCor || '#6B6B6B', whiteSpace: 'nowrap' }}>
@@ -1158,13 +1159,13 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onDateOverride, o
                 <span style={{ textAlign: 'center', fontSize: '13px', fontWeight: 700, color: pend ? '#9A9A9A' : (rec ? CASH_IN : CASH_OUT) }}>
                   {rec ? '+' : '−'}{fmtCurrency(item.valor)}
                 </span>
-                <span style={{ textAlign: 'center' }}>
+                <span style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
                   <DateCell item={item} onChange={onDate} onOverride={onDateOverride} />
                 </span>
-                <span style={{ display: 'flex', justifyContent: 'center' }}>
+                <span style={{ display: 'flex', justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
                   <StatusCell item={item} rec={rec} status={item.status || 'pendente'} vencido={!!item.vencido} onStatus={onStatus} />
                 </span>
-                <span style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+                <span style={{ display: 'flex', justifyContent: 'center', gap: '4px' }} onClick={e => e.stopPropagation()}>
                   {item.id && onEdit ? (
                     <button onClick={() => onEdit(item)} title="Editar lançamento" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
                       <Pencil size={13} />
@@ -1186,6 +1187,94 @@ function ListModal({ title, items, onDelete, onStatus, onDate, onDateOverride, o
   );
 }
 
+// ── Detalhes de um lançamento (abre ao clicar na linha) ────────────────────
+// Para linhas de Folha/VT/VR mostra os recebedores (nome, diárias e valor) e o
+// total a pagar; para os demais mostra os dados do lançamento.
+function FluxoDetalheModal({ item, onClose }) {
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  if (!item) return null;
+  const rec  = item.tipo === 'a_receber';
+  const pend = (item.status || 'pendente') === 'pendente';
+  const fmtDia = iso => {
+    if (!iso) return '—';
+    const [y, m, d] = String(iso).slice(0, 10).split('-');
+    return (d && m && y) ? `${d}/${m}/${y}` : '—';
+  };
+  const bd = Array.isArray(item.breakdown) ? item.breakdown : null;
+  const totalBd = bd ? bd.reduce((s, x) => s + Number(x.valor || 0), 0) : 0;
+
+  const info = (label, value, cor) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '8px 0', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+      <span style={{ fontSize: '12px', color: '#9A9A9A', fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: '12px', color: cor || '#0B0B0B', fontWeight: 700, textAlign: 'right' }}>{value}</span>
+    </div>
+  );
+
+  return createPortal(
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(11,11,11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '560px', maxHeight: '86vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+        {/* Header */}
+        <div style={{ padding: '20px 24px 16px', position: 'relative', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <button onClick={onClose} title="Fechar"
+            style={{ position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '8px', background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={15} />
+          </button>
+          <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: `${item.classificacaoCor || '#4A4A4A'}1A`, color: item.classificacaoCor || '#6B6B6B' }}>
+            {item.classificacaoNome || '—'}
+          </span>
+          <p style={{ fontSize: '16px', fontWeight: 800, ...T, marginTop: '10px', lineHeight: 1.25, paddingRight: '36px' }}>{item.descricao}</p>
+          <p style={{ fontSize: '24px', fontWeight: 900, color: pend ? '#9A9A9A' : (rec ? CASH_IN : CASH_OUT), marginTop: '6px' }}>
+            {rec ? '+' : '−'}{fmtCurrency(item.valor)}
+          </p>
+        </div>
+
+        {/* Corpo */}
+        <div style={{ padding: '8px 24px 20px', overflowY: 'auto' }}>
+          {info('Tipo', rec ? 'A receber (entrada)' : 'A pagar (saída)')}
+          {info('Data de pagamento', fmtDia(item.date))}
+          {info('Status', pend ? 'Pendente' : (rec ? 'Recebido' : 'Pago'), pend ? AMBER : '#0B0B0B')}
+          {item.origem ? info('Origem', item.origem) : null}
+          {item.periodo ? info('Período', `${item.periodo.rotulo} · ${item.periodo.ajudantes} ajudante(s) · ${item.periodo.dias} diária(s)`) : null}
+
+          {bd && bd.length > 0 ? (
+            <div style={{ marginTop: '16px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
+                Recebedores ({bd.length})
+              </p>
+              <div style={{ border: '1px solid rgba(0,0,0,0.08)', borderRadius: '12px', overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 70px 110px', padding: '8px 12px', background: '#F7F7F7', fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.05em', gap: '8px' }}>
+                  <span>Ajudante</span>
+                  <span style={{ textAlign: 'center' }}>Diárias</span>
+                  <span style={{ textAlign: 'right' }}>Valor</span>
+                </div>
+                {bd.map((b, i) => (
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 70px 110px', padding: '9px 12px', gap: '8px', borderTop: '1px solid rgba(0,0,0,0.05)', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12.5px', fontWeight: 600, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.nome}</span>
+                    <span style={{ fontSize: '12.5px', textAlign: 'center', color: '#6B6B6B', fontWeight: 600 }}>{b.dias}</span>
+                    <span style={{ fontSize: '12.5px', textAlign: 'right', fontWeight: 700, color: CASH_OUT }}>{fmtCurrency(b.valor)}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 70px 110px', padding: '10px 12px', gap: '8px', borderTop: '1px solid rgba(0,0,0,0.10)', background: '#F7F7F7', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total a pagar</span>
+                  <span />
+                  <span style={{ fontSize: '14px', textAlign: 'right', fontWeight: 900, color: CASH_OUT }}>{fmtCurrency(totalBd)}</span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ── Tab: Fluxo de Caixa ────────────────────────────────────────────────────
 function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType, bounds, companies, employees, classificacoes, onCreateClassificacao, fluxoStatus, setFluxoStatus }) {
   const [modal,    setModal]    = useState(null); // 'receber' | 'pagar' | 'all'
@@ -1193,6 +1282,8 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const [chartMode, setChartMode] = useState('entrada'); // entrada | saida | saldo
   const [editItem, setEditItem]   = useState(null); // lançamento em edição
   const [erroPersist, setErroPersist] = useState(null); // falha ao gravar status/vencimento derivado
+  const [filtroClasse, setFiltroClasse] = useState('');   // '' = todas as categorias
+  const [detalheItem, setDetalheItem]   = useState(null); // lançamento aberto em detalhes
 
   const companiesById = useMemo(
     () => Object.fromEntries((companies || []).map(c => [c.id, c])),
@@ -1387,12 +1478,22 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
   const inlineMode = chartMode === 'entrada' ? 'receber' : chartMode === 'saida' ? 'pagar' : 'all';
 
   // Lista exibida inline (limitada a 8 itens)
-  const inlineItems = useMemo(() => {
+  // Categorias presentes na lista (para o filtro de classificação).
+  const todasCategorias = useMemo(() => {
+    const set = new Set();
+    [...recGroups, ...pagItems].forEach(i => { if (i.classificacaoNome) set.add(i.classificacaoNome); });
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [recGroups, pagItems]);
+
+  const inlineSource = useMemo(() => {
     const items = [];
     if (inlineMode !== 'pagar')   items.push(...recGroups);
     if (inlineMode !== 'receber') items.push(...pagItems);
-    return items.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8);
-  }, [inlineMode, recGroups, pagItems]);
+    return items
+      .filter(i => !filtroClasse || i.classificacaoNome === filtroClasse)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [inlineMode, recGroups, pagItems, filtroClasse]);
+  const inlineItems = inlineSource.slice(0, 8);
 
   const handleSave = async ({ tipo, descricao, valor, dataVencimento, classificacaoId }) => {
     const l = await createLancamentoManual({ tipo, descricao, valor, dataVencimento, classificacaoId });
@@ -1469,9 +1570,9 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
     }
   };
 
-  const modalItems = modal === 'receber' ? recGroups
-    : modal === 'pagar' ? pagItems
-    : [...recGroups, ...pagItems].sort((a, b) => a.date.localeCompare(b.date));
+  const modalItems = (modal === 'receber' ? recGroups : modal === 'pagar' ? pagItems : [...recGroups, ...pagItems])
+    .filter(i => !filtroClasse || i.classificacaoNome === filtroClasse)
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <div className="space-y-5">
@@ -1656,6 +1757,19 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
       {/* Barra de ações */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Filtro por categoria/classificação */}
+          <select value={filtroClasse} onChange={e => setFiltroClasse(e.target.value)}
+            title="Filtrar por categoria"
+            style={{ width: 'auto', minWidth: '190px', padding: '7px 12px', borderRadius: '8px', border: '1px solid rgba(11,11,11,0.08)', background: filtroClasse ? '#FAF4F1' : '#fff', color: filtroClasse ? '#8C3B4A' : '#4A4A4A', fontSize: '12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(11,11,11,0.06)' }}>
+            <option value="">Todas as categorias</option>
+            {todasCategorias.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          {filtroClasse && (
+            <button onClick={() => setFiltroClasse('')} title="Limpar filtro"
+              style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(188,74,42,0.20)', background: '#FAF4F1', color: '#8C3B4A', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>
+              <X size={11} /> {filtroClasse}
+            </button>
+          )}
           {/* Ver lista completa (segue o seletor do gráfico) */}
           <button onClick={() => setModal(inlineMode)} title="Ver lista completa"
             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', borderRadius: '8px', border: '1px solid rgba(11, 11, 11,0.08)', background: '#fff', color: '#6B6B6B', fontSize: '12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(11, 11, 11,0.06)' }}>
@@ -1691,7 +1805,9 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
         </div>
         {inlineItems.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center' }}>
-            <p style={{ fontSize: '13px', color: '#C8C8C8' }}>Nenhum lançamento no período</p>
+            <p style={{ fontSize: '13px', color: '#C8C8C8' }}>
+              {filtroClasse ? `Nenhum lançamento em "${filtroClasse}"` : 'Nenhum lançamento no período'}
+            </p>
           </div>
         ) : (
           <>
@@ -1699,7 +1815,8 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
               const rec  = item.tipo === 'a_receber';
               const pend = (item.status || 'pendente') === 'pendente';
               return (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: FLUXO_COLS, padding: '11px 16px', borderBottom: idx < inlineItems.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '10px', boxShadow: `inset 3px 0 0 ${rec ? CASH_IN : CASH_OUT}`, background: item.vencido ? 'rgba(188,74,42,0.045)' : undefined }}>
+                <div key={idx} onClick={() => setDetalheItem(item)} title="Ver detalhes"
+                  style={{ display: 'grid', gridTemplateColumns: FLUXO_COLS, padding: '11px 16px', borderBottom: idx < inlineItems.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'center', gap: '10px', cursor: 'pointer', boxShadow: `inset 3px 0 0 ${rec ? CASH_IN : CASH_OUT}`, background: item.vencido ? 'rgba(188,74,42,0.045)' : undefined }}>
                   <span style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.descricao}>{item.descricao}</span>
                   <span style={{ textAlign: 'center' }}>
                     <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: `${item.classificacaoCor || '#4A4A4A'}1A`, color: item.classificacaoCor || '#6B6B6B', whiteSpace: 'nowrap' }}>
@@ -1709,13 +1826,13 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
                   <span style={{ textAlign: 'center', fontSize: '13px', fontWeight: 700, color: pend ? '#9A9A9A' : (rec ? CASH_IN : CASH_OUT) }} title={pend ? 'Valor ainda não confirmado' : undefined}>
                     {rec ? '+' : '−'}{fmtCurrency(item.valor)}
                   </span>
-                  <span style={{ textAlign: 'center' }}>
+                  <span style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
                     <DateCell item={item} onChange={handleDate} onOverride={handleDateOverride} />
                   </span>
-                  <span style={{ display: 'flex', justifyContent: 'center' }}>
+                  <span style={{ display: 'flex', justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
                     <StatusCell item={item} rec={rec} status={item.status || 'pendente'} vencido={!!item.vencido} onStatus={handleStatus} />
                   </span>
-                  <span style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+                  <span style={{ display: 'flex', justifyContent: 'center', gap: '4px' }} onClick={e => e.stopPropagation()}>
                     {item.id ? (
                       <button onClick={() => setEditItem(item)} title="Editar lançamento"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
@@ -1733,7 +1850,7 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
               );
             })}
             {/* Rodapé com total de itens ocultos */}
-            {(inlineMode !== 'pagar' ? recGroups : []).length + (inlineMode !== 'receber' ? pagItems : []).length > 8 && (
+            {inlineSource.length > 8 && (
               <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'center' }}>
                 <button onClick={() => setModal(inlineMode)}
                   style={{ fontSize: '12px', fontWeight: 600, color: '#BC4A2A', background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -1755,9 +1872,13 @@ function TabFluxoCaixa({ records, lancamentos, setLancamentos, type: periodType,
           onDate={handleDate}
           onDateOverride={handleDateOverride}
           onEdit={setEditItem}
+          onRowClick={setDetalheItem}
           onClose={() => setModal(null)}
         />
       )}
+
+      {/* Detalhes do lançamento (clique na linha) */}
+      {detalheItem && <FluxoDetalheModal item={detalheItem} onClose={() => setDetalheItem(null)} />}
 
       {/* Modal Editar lançamento */}
       {editItem && (

@@ -114,29 +114,53 @@ export function payablesAutomaticos(records, employees, companies, hojeIso) {
 
   const itens = [];
   for (const [key, { semanal, ref, co, dias, heMin }] of porGrupo.entries()) {
-    let folha = 0, vt = 0, vr = 0, nAjudantes = 0, nDias = 0;
+    let folha = 0, vt = 0, vr = 0, nAjudantes = 0, nDias = 0, heTotal = 0;
+    const detalhe = []; // por ajudante: diárias, HE e valor de cada componente
     for (const [empId, datas] of dias) {
       const emp = empById.get(empId);
       const d = datas.size;
+      const he = heMin.get(empId) || 0;
+      const vDiarias = d * Number(emp.dailyRate || 0);
+      const vHe = he / 60 * Number(emp.overtimeRate || 0);
+      const vFolha = vDiarias + vHe;
+      const vVt = d * Number(emp.vtDiario || 0);
+      const vVr = d * Number(emp.vrDiario || 0);
       nAjudantes += 1;
       nDias += d;
-      folha += d * Number(emp.dailyRate || 0)
-             + (heMin.get(empId) || 0) / 60 * Number(emp.overtimeRate || 0);
-      vt += d * Number(emp.vtDiario || 0);
-      vr += d * Number(emp.vrDiario || 0);
+      heTotal += he;
+      folha += vFolha; vt += vVt; vr += vVr;
+      detalhe.push({
+        nome: emp.name || '—', dias: d, heMin: he,
+        diarias: vDiarias, he: vHe, folha: vFolha, vt: vVt, vr: vVr,
+      });
     }
+
+    // Recebedores do item: só quem tem valor no componente (folha/VT/VR).
+    // Mantém os campos de detalhe (dias, HE, diárias) para a tela de Folha.
+    const detalheDe = (campo) => detalhe
+      .filter(x => x[campo] > 0)
+      .map(x => ({ ...x, valor: x[campo] }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
     const resumo = `${nAjudantes} ajudante${nAjudantes !== 1 ? 's' : ''} · ${nDias} diária${nDias !== 1 ? 's' : ''}`;
 
-    let dataPagamento, periodo;
+    let dataPagamento, periodo, periodoLabel;
     if (semanal) {
       dataPagamento = addDias(ref, 5); // sexta + 5 = quarta-feira seguinte
-      periodo = `Semana ${ddmm(addDias(ref, -4))} a ${ddmm(ref)}${co?.name ? ` · ${co.name}` : ''}`;
+      periodoLabel = `Semana ${ddmm(addDias(ref, -4))} a ${ddmm(ref)}`;
+      periodo = `${periodoLabel}${co?.name ? ` · ${co.name}` : ''}`;
     } else {
       dataPagamento = addDias(ref.fim, Number(co?.prazoFolha ?? 7));
+      periodoLabel = ref.label;
       periodo = co?.name ? `${ref.label} · ${co.name}` : ref.label;
     }
 
-    const base = { date: dataPagamento, tipo: 'a_pagar', isManual: false, derivado: true, vencido: false };
+    // Empresa, período, quantidade de diárias e HE ficam no item para a lista
+    // de pagamentos (por data) da aba Folha, sem recalcular nada lá.
+    const base = {
+      date: dataPagamento, tipo: 'a_pagar', isManual: false, derivado: true, vencido: false,
+      empresa: co?.name || 'Sem empresa', companyId: co?.id || null,
+      periodoLabel, dias: nDias, heMin: heTotal,
+    };
 
     if (folha > 0) {
       itens.push({
@@ -148,6 +172,7 @@ export function payablesAutomaticos(records, employees, companies, hojeIso) {
         status: 'pendente',
         descricao: `Folha de Pagamento — ${periodo} (${resumo})`,
         classificacaoNome: 'Folha de Pagamento', classificacaoCor: COR_FOLHA,
+        breakdown: detalheDe('folha'),
       });
     }
     if (vt > 0) {
@@ -158,6 +183,7 @@ export function payablesAutomaticos(records, employees, companies, hojeIso) {
         status: 'pendente',
         descricao: `Vale Transporte (VT) — ${periodo} (${resumo})`,
         classificacaoNome: 'Benefícios', classificacaoCor: COR_VT,
+        breakdown: detalheDe('vt'),
       });
     }
     if (vr > 0) {
@@ -167,6 +193,7 @@ export function payablesAutomaticos(records, employees, companies, hojeIso) {
         status: 'pendente',
         descricao: `Vale Refeição (VR) — ${periodo} (${resumo})`,
         classificacaoNome: 'Benefícios', classificacaoCor: COR_VR,
+        breakdown: detalheDe('vr'),
       });
     }
   }
