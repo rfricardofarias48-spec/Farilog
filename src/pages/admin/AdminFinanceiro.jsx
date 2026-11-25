@@ -10,13 +10,12 @@ import {
   createLancamentoManual, deleteLancamento, updateLancamentoStatus, updateLancamentoData, updateLancamento,
   fetchFluxoStatus, setFluxoStatusDerivado, setFluxoDateDerivado,
   fetchAdiantamentosPorQuinzena, createAdiantamento, deleteAdiantamento,
-  fetchPagosPorQuinzena, marcarPago, desmarcarPago,
   fetchClassificacoes, createClassificacao,
 } from '../../lib/db';
 import { fmtCurrency } from '../../data/mockData';
 import { overtimeToMinutes, recordRevenue } from '../../lib/timeUtils';
 import { agruparPorFechamento, getFechamentoBounds } from '../../lib/fechamento';
-import { payablesAutomaticos } from '../../lib/folha';
+import { payablesAutomaticos, quinzenaDaData } from '../../lib/folha';
 import {
   ComposedChart, Bar, Line, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceDot,
@@ -3044,62 +3043,184 @@ function quinzenaBounds(idx) {
   };
 }
 
-function TabFolhaPagamento({ employees }) {
+// ── Tab: Folha de Pagamento ────────────────────────────────────────────────
+// Lista por DATA DE PAGAMENTO (e não por quinzena). Cada linha é exatamente o
+// lançamento de Folha que aparece no Fluxo de Caixa (empresa × período), então
+// os valores batem com o caixa. Clicar na linha abre os detalhes daquele
+// pagamento, ajudante por ajudante (diárias, HE e valores).
+function fmtHorasMin(min) {
+  const m = Math.max(0, Number(min) || 0);
+  return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
+}
+
+function PagamentoDetalheModal({ pagamento, onClose }) {
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  if (!pagamento) return null;
+  const itens = Array.isArray(pagamento.breakdown) ? pagamento.breakdown : [];
+  const COLS = '1fr 1.4fr 64px 76px 96px 96px 100px';
+  const th = { fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.05em' };
+
+  return createPortal(
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(11,11,11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '940px', maxHeight: '86vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+        <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid rgba(0,0,0,0.06)', position: 'relative' }}>
+          <button onClick={onClose} title="Fechar"
+            style={{ position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '8px', background: '#F5F5F5', border: 'none', cursor: 'pointer', color: '#9A9A9A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={15} />
+          </button>
+          <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: 'rgba(58,79,107,0.12)', color: '#3A4F6B' }}>
+            Folha de Pagamento
+          </span>
+          <p style={{ fontSize: '16px', fontWeight: 800, ...T, marginTop: '10px', paddingRight: '36px' }}>{pagamento.empresa}</p>
+          <p style={{ fontSize: '12px', ...TM }}>
+            {pagamento.periodoLabel} · Pagamento em {fmtShortDate(pagamento.date)}
+            {pagamento.status === 'pago' ? ' · Pago' : ''}
+          </p>
+          <p style={{ fontSize: '24px', fontWeight: 900, color: CASH_OUT, marginTop: '6px' }}>{fmtCurrency(pagamento.valor)}</p>
+        </div>
+
+        <div style={{ overflowY: 'auto', padding: '0 22px 20px' }}>
+          {itens.length === 0 ? (
+            <p style={{ padding: '32px 0', textAlign: 'center', fontSize: '13px', color: '#C8C8C8' }}>Sem detalhe por ajudante</p>
+          ) : (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: '8px', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                <span style={th}>Empresa</span>
+                <span style={th}>Ajudante</span>
+                <span style={{ ...th, textAlign: 'center' }}>Diárias</span>
+                <span style={{ ...th, textAlign: 'center' }}>H. extra</span>
+                <span style={{ ...th, textAlign: 'right' }}>Diárias (R$)</span>
+                <span style={{ ...th, textAlign: 'right' }}>H. extras (R$)</span>
+                <span style={{ ...th, textAlign: 'right' }}>Total</span>
+              </div>
+              {itens.map((b, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: COLS, gap: '8px', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.04)', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, ...TM, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={pagamento.empresa}>{pagamento.empresa}</span>
+                  <span style={{ fontSize: '12.5px', fontWeight: 700, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.nome}</span>
+                  <span style={{ fontSize: '12.5px', textAlign: 'center', color: '#4A4A4A', fontWeight: 600 }}>{b.dias}</span>
+                  <span style={{ fontSize: '12.5px', textAlign: 'center', color: '#6B6B6B', fontWeight: 600 }}>{fmtHorasMin(b.heMin)}</span>
+                  <span style={{ fontSize: '12.5px', textAlign: 'right', color: '#4A4A4A', fontWeight: 600 }}>{fmtCurrency(b.diarias)}</span>
+                  <span style={{ fontSize: '12.5px', textAlign: 'right', color: '#6B6B6B', fontWeight: 600 }}>{fmtCurrency(b.he)}</span>
+                  <span style={{ fontSize: '12.5px', textAlign: 'right', fontWeight: 800, color: '#0B0B0B' }}>{fmtCurrency(b.valor)}</span>
+                </div>
+              ))}
+              <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: '8px', padding: '12px 0 0', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</span>
+                <span />
+                <span style={{ fontSize: '12.5px', textAlign: 'center', fontWeight: 800, color: '#4A4A4A' }}>{pagamento.dias}</span>
+                <span style={{ fontSize: '12.5px', textAlign: 'center', fontWeight: 800, color: '#4A4A4A' }}>{fmtHorasMin(pagamento.heMin)}</span>
+                <span />
+                <span />
+                <span style={{ fontSize: '14px', textAlign: 'right', fontWeight: 900, color: CASH_OUT }}>{fmtCurrency(pagamento.valor)}</span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function TabFolhaPagamento({ employees, companies, fluxoStatus = {}, setFluxoStatus }) {
+  const [records, setRecords]   = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [detalhe, setDetalhe]   = useState(null);
+  const [adiantamentos, setAdiantamentos] = useState([]);
+  const [showLancarModal, setShowLancarModal] = useState(false);
+
+  // Quinzena atual (para o lançamento de adiantamento).
   const curIdx = (Number(TODAY_ISO.split('-')[0]) - 2000) * 24
     + (Number(TODAY_ISO.split('-')[1]) - 1) * 2
     + (Number(TODAY_ISO.split('-')[2]) <= 15 ? 0 : 1);
-  const [qi, setQi]     = useState(curIdx);
-  const [modo, setModo] = useState('quinzena'); // 'quinzena' | 'mes'
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [adiantamentos, setAdiantamentos] = useState([]);
-  const [showLancarModal, setShowLancarModal] = useState(false);
-  const [detalheEmp, setDetalheEmp] = useState(null);
-  const [pagos, setPagos] = useState([]);
+  const nextPayIdx = quinzenaBounds(curIdx - 1).payDate >= TODAY_ISO ? curIdx - 1 : curIdx;
 
-  // Índices das quinzenas cobertas pela seleção (1 no modo quinzenal, 2 no mensal).
-  const monthQ1 = Math.floor(qi / 2) * 2;
+  // Janela de registros: mês anterior até 2 meses à frente — cobre os próximos
+  // pagamentos (que podem cair no mês seguinte ao período trabalhado).
+  const janela = useMemo(() => {
+    const [y, m] = TODAY_ISO.split('-').map(Number);
+    const iso = d => d.toISOString().slice(0, 10);
+    return {
+      start: iso(new Date(Date.UTC(y, m - 2, 1))),
+      end:   iso(new Date(Date.UTC(y, m + 2, 0))),
+    };
+  }, []);
 
-  const q = useMemo(() => {
-    if (modo === 'quinzena') return quinzenaBounds(qi);
-    const a = quinzenaBounds(monthQ1), b = quinzenaBounds(monthQ1 + 1);
-    return { start: a.start, end: b.end, payDate: a.payDate, label: a.monthLabel, monthLabel: a.monthLabel };
-  }, [qi, modo, monthQ1]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const h = e => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, [menuOpen]);
-
-  // Quinzena padrão do lançamento = a do próximo pagamento que ainda vai ocorrer:
-  // dias 01–07 → Q2 do mês anterior (paga dia 07); dias 08–22 → Q1 do mês (paga dia 22);
-  // dias 23–31 → Q2 do mês (paga dia 07 do mês seguinte).
-  const nextPayIdx = useMemo(
-    () => (quinzenaBounds(curIdx - 1).payDate >= TODAY_ISO ? curIdx - 1 : curIdx),
-    [curIdx]
-  );
+  // Mostra do mês anterior em diante: próximos pagamentos + pendentes recentes.
+  const limitePassado = useMemo(() => {
+    const d = new Date(`${TODAY_ISO}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - 30);
+    return d.toISOString().slice(0, 10);
+  }, []);
 
   useEffect(() => {
+    let vivo = true;
     setLoading(true);
-    fetchWorkRecordsByPeriod(null, null, q.start, q.end).then(recs => {
+    fetchWorkRecordsByPeriod(null, null, janela.start, janela.end).then(recs => {
+      if (!vivo) return;
       setRecords(recs || []);
       setLoading(false);
     });
-    const list = modo === 'quinzena' ? [qi] : [monthQ1, monthQ1 + 1];
-    Promise.all(list.map(i => fetchAdiantamentosPorQuinzena(i))).then(arr => setAdiantamentos(arr.flatMap(x => x || [])));
-    Promise.all(list.map(i => fetchPagosPorQuinzena(i))).then(arr => setPagos(arr.flatMap(x => x || [])));
-  }, [q.start, q.end, modo, qi]);
+    return () => { vivo = false; };
+  }, [janela.start, janela.end]);
+
+  // Adiantamentos lançados no intervalo de quinzenas coberto pela janela.
+  useEffect(() => {
+    const ini = quinzenaDaData(janela.start)?.idx;
+    const fim = quinzenaDaData(janela.end)?.idx;
+    if (ini == null || fim == null) return;
+    let vivo = true;
+    const idxs = [];
+    for (let i = ini; i <= fim; i++) idxs.push(i);
+    Promise.all(idxs.map(fetchAdiantamentosPorQuinzena))
+      .then(arr => { if (vivo) setAdiantamentos(arr.flatMap(x => x || [])); });
+    return () => { vivo = false; };
+  }, [janela.start, janela.end]);
+
+  // Pagamentos = linhas de Folha do Fluxo de Caixa, com a confirmação de status.
+  const pagamentos = useMemo(() => {
+    return payablesAutomaticos(records, employees, companies, TODAY_ISO)
+      .filter(p => p.origem === 'Folha')
+      .map(p => {
+        const o = fluxoStatus[p.derivKey];
+        const status = o?.status || 'pendente';
+        const date = o?.data_vencimento || p.date;
+        return {
+          ...p, date, status, dataRecebimento: o?.data_recebimento || null,
+          vencido: status === 'pendente' && date < TODAY_ISO,
+        };
+      })
+      .filter(p => p.date >= limitePassado)
+      .sort((a, b) => a.date.localeCompare(b.date) || String(a.empresa).localeCompare(String(b.empresa)));
+  }, [records, employees, companies, fluxoStatus, limitePassado]);
+
+  const totalPagar = pagamentos.reduce((s, p) => s + Number(p.valor || 0), 0);
+  const totalDias  = pagamentos.reduce((s, p) => s + Number(p.dias || 0), 0);
+  const totalHe    = pagamentos.reduce((s, p) => s + Number(p.heMin || 0), 0);
+  const nAjudantes = new Set(pagamentos.flatMap(p => (p.breakdown || []).map(b => b.nome))).size;
+
+  const handleStatus = async (item, status, dataRecebimento = null) => {
+    if (!item.derivKey) return;
+    const settled = status === 'pago' || status === 'recebido';
+    const data = settled ? (dataRecebimento || null) : null;
+    const salvo = await setFluxoStatusDerivado(item.derivKey, status, dataRecebimento);
+    if (!salvo) console.error('[folha] não foi possível salvar o status do pagamento', item.derivKey);
+    setFluxoStatus?.(prev => ({
+      ...prev,
+      [item.derivKey]: { ...prev?.[item.derivKey], chave: item.derivKey, status, data_recebimento: data },
+    }));
+  };
 
   const handleSalvarAdiantamento = async (dados) => {
     const criado = await createAdiantamento(dados);
     if (!criado) return false;
-    if (criado.quinzenaIdx === qi) {
-      setAdiantamentos(prev => [...prev, criado].sort((a, b) => a.data.localeCompare(b.data)));
-    }
+    setAdiantamentos(prev => [...prev, criado].sort((a, b) => a.data.localeCompare(b.data)));
     return true;
   };
 
@@ -3107,51 +3228,6 @@ function TabFolhaPagamento({ employees }) {
     await deleteAdiantamento(id);
     setAdiantamentos(prev => prev.filter(a => a.id !== id));
   };
-
-  // Marca/desmarca o pagamento de um ajudante na quinzena exibida.
-  const handleTogglePago = async (employeeId) => {
-    if (modo !== 'quinzena') return; // pagamento é sempre por quinzena
-    const jaPago = pagos.find(p => p.employeeId === employeeId);
-    if (jaPago) {
-      await desmarcarPago(employeeId, qi);
-      setPagos(prev => prev.filter(p => p.employeeId !== employeeId));
-    } else {
-      const criado = await marcarPago(employeeId, qi);
-      if (criado) setPagos(prev => [...prev, criado]);
-    }
-  };
-
-  // Agrupa por ajudante: diárias (dias distintos trabalhados) + HE (taxa do próprio cadastro).
-  // Adiantamentos lançados para a quinzena são descontados do total a pagar.
-  const linhas = useMemo(() => {
-    const byEmp = {};
-    records.forEach(r => {
-      if (r.status === 'absent' || !r.employeeId) return;
-      const emp = employees.find(e => e.id === r.employeeId);
-      if (!emp) return;
-      if (!byEmp[r.employeeId]) {
-        byEmp[r.employeeId] = { emp, days: new Set(), heMin: 0 };
-      }
-      byEmp[r.employeeId].days.add(r.date);
-      byEmp[r.employeeId].heMin += overtimeToMinutes(r.overtime);
-    });
-    return Object.values(byEmp).map(({ emp, days, heMin }) => {
-      const diarias = days.size * Number(emp.dailyRate || 0);
-      const he      = (heMin / 60) * Number(emp.overtimeRate || 0);
-      const adiantado = adiantamentos
-        .filter(a => a.employeeId === emp.id)
-        .reduce((s, a) => s + a.valor, 0);
-      return { emp, dias: days.size, heMin, diarias, he, total: diarias + he, adiantado, aPagar: diarias + he - adiantado };
-    }).sort((a, b) => b.total - a.total);
-  }, [records, employees, adiantamentos]);
-
-  const totalGeral    = linhas.reduce((s, l) => s + l.total, 0);
-  const totalHE       = linhas.reduce((s, l) => s + l.he, 0);
-  const totalDiar     = linhas.reduce((s, l) => s + l.diarias, 0);
-  const totalAdiant   = adiantamentos.reduce((s, a) => s + a.valor, 0);
-  const totalAPagar   = totalGeral - totalAdiant;
-  const payLabel   = `${q.payDate.split('-')[2]}/${q.payDate.split('-')[1]}/${q.payDate.split('-')[0]}`;
-  const isPaid     = q.payDate < TODAY_ISO;
 
   const Card = ({ label, value, icon: Icon, valueColor = '#FFFFFF' }) => (
     <div style={{
@@ -3175,174 +3251,128 @@ function TabFolhaPagamento({ employees }) {
     </div>
   );
 
+  const COLS = '1.5fr 1.2fr 0.95fr 0.6fr 0.65fr 0.95fr 1.15fr 30px';
+
   return (
     <div className="space-y-4">
-      {/* Seletor de quinzena */}
+      {/* Barra superior: contexto + lançar adiantamento */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', background: 'linear-gradient(135deg, #0B0B0B 0%, #1C1C1C 100%)', borderRadius: '14px', padding: '12px 16px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 14px 34px -18px rgba(11,11,11,0.60)' }}>
-        {/* Filtro único da folha: Mensal/Quinzenal no estilo do seletor do cabeçalho */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div ref={menuRef} style={{ position: 'relative' }}>
-            <button onClick={() => setMenuOpen(v => !v)}
-              style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', fontSize: '12px', fontWeight: 600, color: '#FFFFFF', whiteSpace: 'nowrap' }}>
-              {modo === 'mes' ? q.monthLabel : `${q.label} — ${q.monthLabel}`}
-              <span style={{ fontSize: '10px', color: '#A8A8A8', fontWeight: 500 }}>· {modo === 'mes' ? 'Mensal' : 'Quinzenal'}</span>
-              <ChevronDown size={12} style={{ color: '#A8A8A8' }} />
-            </button>
-            {menuOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 200, background: '#1C1C1C', borderRadius: '12px', padding: '6px', boxShadow: '0 12px 32px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.10)', minWidth: '150px' }}>
-                {[['quinzena', 'Quinzenal'], ['mes', 'Mensal']].map(([val, lbl]) => (
-                  <button key={val} onClick={() => { setModo(val); setMenuOpen(false); }}
-                    style={{ width: '100%', display: 'block', padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', fontWeight: 600, background: modo === val ? 'rgba(188,74,42,0.20)' : 'transparent', color: modo === val ? '#E08A70' : '#D6D6D6' }}
-                    onMouseEnter={e => { if (modo !== val) e.currentTarget.style.background = '#2A2A2A'; }}
-                    onMouseLeave={e => { if (modo !== val) e.currentTarget.style.background = 'transparent'; }}>
-                    {lbl}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <button onClick={() => setQi(v => (modo === 'mes' ? v - 2 : v - 1))}
-            title="Anterior"
-            style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer', color: '#E4E4E4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ChevronLeft size={13} />
-          </button>
-          <button onClick={() => setQi(v => Math.min(modo === 'mes' ? v + 2 : v + 1, curIdx))}
-            disabled={modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx}
-            title="Próximo"
-            style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', cursor: (modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx) ? 'not-allowed' : 'pointer', color: (modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx) ? '#6B6B6B' : '#E4E4E4', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: (modo === 'mes' ? monthQ1 + 2 > curIdx : qi >= curIdx) ? 0.5 : 1 }}>
-            <ChevronRight size={13} />
-          </button>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          {modo === 'quinzena' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 13px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            <CalendarDays size={14} style={{ color: isPaid ? '#C9C9C9' : '#FFFFFF' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: isPaid ? '#C9C9C9' : '#FFFFFF' }}>
-              {isPaid ? 'Pago em' : 'Pagamento em'} {payLabel}
-            </span>
+            <CalendarDays size={14} style={{ color: '#FFFFFF' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#FFFFFF' }}>Próximos pagamentos por data</span>
           </div>
-          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 13px', borderRadius: '10px', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.14)' }}>
             <FileText size={13} style={{ color: '#C9C9C9' }} />
             <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#C9C9C9' }}>
-              Folha, VT e VR entram automaticamente no Fluxo de Caixa
+              Mesmos lançamentos do Fluxo de Caixa (empresa × período)
             </span>
           </div>
-          <button onClick={() => setShowLancarModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.16)', cursor: 'pointer', background: 'rgba(255,255,255,0.12)', color: '#FFFFFF', fontSize: '12px', fontWeight: 700 }}>
-            <HandCoins size={14} />
-            Lançar Adiantamento
-          </button>
         </div>
+        <button onClick={() => setShowLancarModal(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.16)', cursor: 'pointer', background: 'rgba(255,255,255,0.12)', color: '#FFFFFF', fontSize: '12px', fontWeight: 700 }}>
+          <HandCoins size={14} />
+          Lançar Adiantamento
+        </button>
       </div>
 
       {loading ? (
-        <div style={{ padding: '60px', textAlign: 'center', fontSize: '13px', color: '#9A9A9A' }}>
-          Carregando folha...
-        </div>
+        <div style={{ padding: '60px', textAlign: 'center', fontSize: '13px', color: '#9A9A9A' }}>Carregando folha...</div>
       ) : (
         <>
-          {/* KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-            <Card label="Total a Pagar" value={fmtCurrency(totalAPagar)} icon={Wallet} />
-            <Card label="Diárias" value={fmtCurrency(totalDiar)} icon={DollarSign} />
-            <Card label="Horas Extras" value={fmtCurrency(totalHE)} icon={Clock} />
-            <Card label="Adiantamentos" value={fmtCurrency(totalAdiant)} icon={HandCoins} />
-            <Card label="Ajudantes na Quinzena" value={String(linhas.length)} icon={Users} valueColor="#E08A70" />
+          {/* KPIs dos pagamentos listados */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
+            <Card label="Total a Pagar" value={fmtCurrency(totalPagar)} icon={Wallet} />
+            <Card label="Diárias" value={`${totalDias} dia${totalDias !== 1 ? 's' : ''}`} icon={DollarSign} />
+            <Card label="Horas Extras" value={fmtHorasMin(totalHe)} icon={Clock} />
+            <Card label="Ajudantes" value={String(nAjudantes)} icon={Users} valueColor="#E08A70" />
           </div>
 
-          {/* Lista de ajudantes */}
+          {/* Lista por data de pagamento */}
           <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid rgba(11, 11, 11,0.06)', boxShadow: '0 1px 3px rgba(11, 11, 11,0.05)', overflow: 'hidden' }}>
-            <div style={{ padding: '14px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+            <div style={{ padding: '14px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
               <p style={{ fontSize: '11px', fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
-                Pagamentos por Ajudante — {modo === 'mes' ? `${q.monthLabel} (mês)` : q.label}
+                Pagamentos por data — clique para ver os detalhes
               </p>
+              <span style={{ fontSize: '11px', color: '#9A9A9A', fontWeight: 600 }}>{pagamentos.length} pagamento{pagamentos.length !== 1 ? 's' : ''}</span>
             </div>
-            {linhas.length === 0 ? (
+
+            {pagamentos.length === 0 ? (
               <div style={{ padding: '50px', textAlign: 'center' }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#6B6B6B' }}>Nenhum trabalho registrado {modo === 'mes' ? 'neste mês' : 'nesta quinzena'}</p>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#6B6B6B' }}>Nenhum pagamento previsto</p>
                 <p style={{ fontSize: '12px', color: '#9A9A9A', marginTop: '4px' }}>Os pagamentos aparecem conforme os registros de ponto.</p>
               </div>
             ) : (
               <>
-                {/* Header */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr 0.55fr', gap: '8px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA' }}>
-                  {['Ajudante', 'Diárias', 'Horas Extra', 'Diárias (R$)', 'H. Extras (R$)', 'Adiantamento', 'A Pagar', 'Pago'].map(h => (
-                    <span key={h} style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
+                <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: '8px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA' }}>
+                  {['Empresa', 'Período', 'Pagamento', 'Diárias', 'H. extra', 'Total a pagar', 'Status', ''].map((h, i) => (
+                    <span key={i} style={{ fontSize: '10px', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: i >= 3 && i <= 6 ? 'center' : 'left' }}>{h}</span>
                   ))}
                 </div>
-                {linhas.map(l => {
-                  const registroPago = modo === 'quinzena' ? pagos.find(p => p.employeeId === l.emp.id) : null;
-                  const fmtDataPago = registroPago
-                    ? (() => { const d = new Date(registroPago.pagoEm); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; })()
-                    : null;
-                  return (
-                    <div key={l.emp.id} style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr 0.55fr', gap: '8px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)', background: registroPago ? '#F5F5F5' : 'transparent' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                      <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: l.emp.color || '#0B0B0B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
-                        {l.emp.initials || l.emp.name?.split(' ').map(p => p[0]).slice(0, 2).join('')}
+                {pagamentos.map(p => (
+                  <div key={p.derivKey}
+                    onClick={() => setDetalhe(p)}
+                    style={{ display: 'grid', gridTemplateColumns: COLS, gap: '8px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#FAFAFA'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(188,74,42,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Building2 size={13} style={{ color: '#BC4A2A' }} />
                       </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: '13px', fontWeight: 700, ...T, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.emp.name}</p>
-                        <p style={{ fontSize: '11px', ...TM }}>Diária {fmtCurrency(Number(l.emp.dailyRate || 0))} · HE {fmtCurrency(Number(l.emp.overtimeRate || 0))}/h</p>
-                      </div>
+                      <p style={{ fontSize: '13px', fontWeight: 700, ...T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.empresa}>{p.empresa}</p>
                     </div>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A' }}>{l.dias} {l.dias === 1 ? 'dia' : 'dias'}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A' }}>
-                      {Math.floor(l.heMin / 60)}h{String(l.heMin % 60).padStart(2, '0')}
+                    <span style={{ fontSize: '12px', color: '#6B6B6B', fontWeight: 600 }}>{p.periodoLabel}</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: p.vencido ? CASH_OUT : '#0B0B0B' }}>
+                      {fmtShortDate(p.date)}
+                      {p.vencido && <span style={{ display: 'block', fontSize: '10px', fontWeight: 600 }}>vencido</span>}
                     </span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A' }}>{fmtCurrency(l.diarias)}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#6B6B6B' }}>{fmtCurrency(l.he)}</span>
-                    <div>
-                      {l.adiantado > 0 ? (
-                        <button onClick={() => setDetalheEmp(l.emp.id)} title="Ver detalhes dos adiantamentos"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 9px', borderRadius: '8px', background: '#F5F5F5', border: '1px dashed #E6E6E6', cursor: 'pointer', fontSize: '12px', fontWeight: 800, color: '#4A4A4A' }}>
-                          −{fmtCurrency(l.adiantado)}
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: '12px', color: '#C8C8C8' }}>—</span>
-                      )}
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#4A4A4A', textAlign: 'center' }}>{p.dias}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#6B6B6B', textAlign: 'center' }}>{fmtHorasMin(p.heMin)}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#0B0B0B', textAlign: 'center' }}>{fmtCurrency(p.valor)}</span>
+                    <div onClick={e => e.stopPropagation()} style={{ display: 'flex', justifyContent: 'center' }}>
+                      <StatusCell item={p} rec={false} status={p.status} vencido={p.vencido} onStatus={handleStatus} />
                     </div>
-                    <div>
-                      <p style={{ fontSize: '14px', fontWeight: 800, color: l.aPagar < 0 ? '#4A4A4A' : registroPago ? '#9A9A9A' : '#0B0B0B' }}>{fmtCurrency(l.aPagar)}</p>
-                      {registroPago ? (
-                        <p style={{ fontSize: '10px', fontWeight: 700, color: '#0B0B0B' }}>Pago {fmtDataPago}</p>
-                      ) : l.adiantado > 0 ? (
-                        <p style={{ fontSize: '10px', color: '#9A9A9A', textDecoration: 'line-through' }}>Bruto {fmtCurrency(l.total)}</p>
-                      ) : null}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                      {modo === 'mes' ? (
-                        <span style={{ fontSize: '12px', color: '#C8C8C8' }} title="Marque os pagamentos na visão por quinzena">—</span>
-                      ) : (
-                      <button onClick={() => handleTogglePago(l.emp.id)}
-                        title={registroPago ? `Pago em ${fmtDataPago} — clique para desfazer` : 'Marcar como pago'}
-                        style={{ width: '27px', height: '27px', borderRadius: '9px', border: registroPago ? 'none' : '1.5px solid #C8C8C8', background: registroPago ? '#0B0B0B' : '#fff', color: registroPago ? '#fff' : '#C8C8C8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: registroPago ? '0 2px 6px rgba(11, 11, 11,0.35)' : 'none', transition: 'all 0.15s' }}>
-                        <Check size={15} strokeWidth={3.5} />
-                      </button>
-                      )}
-                    </div>
+                    <ChevronRight size={14} style={{ color: '#C8C8C8' }} />
                   </div>
-                  );
-                })}
-                {/* Total */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr 1fr 0.55fr', gap: '8px', alignItems: 'center', padding: '14px 16px', background: '#F7F7F7' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 800, ...T }}>TOTAL</span>
+                ))}
+                <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: '8px', alignItems: 'center', padding: '14px 16px', background: '#F7F7F7' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 800, ...T, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</span>
                   <span />
                   <span />
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#4A4A4A' }}>{fmtCurrency(totalDiar)}</span>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#6B6B6B' }}>{fmtCurrency(totalHE)}</span>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#4A4A4A' }}>−{fmtCurrency(totalAdiant)}</span>
-                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#0B0B0B' }}>{fmtCurrency(totalAPagar)}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#4A4A4A', textAlign: 'center' }}>{totalDias}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#4A4A4A', textAlign: 'center' }}>{fmtHorasMin(totalHe)}</span>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#0B0B0B', textAlign: 'center' }}>{fmtCurrency(totalPagar)}</span>
+                  <span />
                   <span />
                 </div>
               </>
             )}
           </div>
+
+          {/* Adiantamentos lançados (mantém o lançamento/exclusão) */}
+          {adiantamentos.length > 0 && (
+            <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid rgba(11, 11, 11,0.06)', overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', background: '#F7F7F7', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: '0.09em' }}>Adiantamentos lançados</p>
+              </div>
+              {adiantamentos.map(a => (
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 600, ...T, flex: 1 }}>{employees.find(e => e.id === a.employeeId)?.name || '—'}</span>
+                  <span style={{ fontSize: '12px', color: '#6B6B6B' }}>{fmtShortDate(a.data)}</span>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0B0B0B' }}>{fmtCurrency(a.valor)}</span>
+                  <button onClick={() => handleExcluirAdiantamento(a.id)} title="Excluir adiantamento"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C8C8', display: 'flex', padding: '2px' }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 
-      {/* Modais de adiantamento */}
+      {detalhe && <PagamentoDetalheModal pagamento={detalhe} onClose={() => setDetalhe(null)} />}
+
       {showLancarModal && (
         <LancarAdiantamentoModal
           employees={employees}
@@ -3350,14 +3380,6 @@ function TabFolhaPagamento({ employees }) {
           maxIdx={curIdx}
           onSave={handleSalvarAdiantamento}
           onClose={() => setShowLancarModal(false)}
-        />
-      )}
-      {detalheEmp && (
-        <AdiantamentoDetalheModal
-          empName={employees.find(e => e.id === detalheEmp)?.name || ''}
-          itens={adiantamentos.filter(a => a.employeeId === detalheEmp)}
-          onDelete={handleExcluirAdiantamento}
-          onClose={() => setDetalheEmp(null)}
         />
       )}
     </div>
@@ -3450,7 +3472,7 @@ export default function AdminFinanceiro() {
           {activeTab === 'visao'   && <TabVisaoGeral   records={records} lancamentos={lancamentos} dividas={dividas} employees={employees} companies={companies} classificacoes={classificacoes} fluxoStatus={fluxoStatus} />}
           {activeTab === 'fluxo'   && <TabFluxoCaixa   records={records} lancamentos={lancamentos} setLancamentos={setLancamentos} type={periodType} bounds={bounds} companies={companies} employees={employees} classificacoes={classificacoes} onCreateClassificacao={handleCreateClassificacao} fluxoStatus={fluxoStatus} setFluxoStatus={setFluxoStatus} />}
           {activeTab === 'resultados' && <TabResultados employees={employees} companies={companies} />}
-          {activeTab === 'folha'   && <TabFolhaPagamento employees={employees} />}
+          {activeTab === 'folha'   && <TabFolhaPagamento employees={employees} companies={companies} fluxoStatus={fluxoStatus} setFluxoStatus={setFluxoStatus} />}
           {activeTab === 'dividas' && <TabEndividamento dividas={dividas} setDividas={setDividas} showModal={showNovaDivida} setShowModal={setShowNovaDivida} />}
           {activeTab === 'custos'  && <TabCustosFixos   custosFixos={custosFixos} setCustosFixos={setCustosFixos} />}
           {activeTab === 'dre'     && <TabDRE           records={records} lancamentos={lancamentos} employees={employees} bounds={bounds} companies={companies} classificacoes={classificacoes} />}
