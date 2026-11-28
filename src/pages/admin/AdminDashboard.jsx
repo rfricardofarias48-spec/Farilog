@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { fetchWorkRecordsByPeriod, fetchLancamentos } from '../../lib/db';
+import { fetchWorkRecordsByPeriod, fetchLancamentos, fetchFluxoStatus } from '../../lib/db';
 import { sumOvertimeMinutes, minutesToOvertimeString, recordRevenue } from '../../lib/timeUtils';
 import { agruparPorFechamento } from '../../lib/fechamento';
 import { fmtCurrency } from '../../data/mockData';
@@ -99,6 +99,10 @@ export default function AdminDashboard() {
   const [offset,  setOffset]  = useState(0);
   const [records, setRecords] = useState([]);
   const [lancamentos, setLancamentos] = useState([]);
+  // Status confirmado das linhas DERIVADAS do Fluxo de Caixa (serviços), pela
+  // chave "REC:<empresa>__<inicio>". É a mesma fonte que o Fluxo usa — sem
+  // isso o painel contava como recebido tudo com vencimento no passado.
+  const [fluxoStatus, setFluxoStatus] = useState({});
   const [loading, setLoading] = useState(true);
 
   const handlePeriod = (p) => { setPeriod(p); setOffset(0); };
@@ -111,10 +115,12 @@ export default function AdminDashboard() {
     Promise.all([
       fetchWorkRecordsByPeriod(null, null, start, end),
       fetchLancamentos(start, end),
+      fetchFluxoStatus(),
     ])
-      .then(([recs, lancs]) => {
+      .then(([recs, lancs, status]) => {
         setRecords(recs || []);
         setLancamentos(lancs || []);
+        setFluxoStatus(Object.fromEntries((status || []).map(s => [s.chave, s])));
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -149,8 +155,11 @@ export default function AdminDashboard() {
     );
     let recebido = 0;
     let aReceber = 0;
+    // O "recebido" segue o STATUS CONFIRMADO no Fluxo de Caixa (chave REC),
+    // não a data de vencimento. Assim o painel bate com o Fluxo de Caixa.
     for (const g of grupos) {
-      if (g.vencimento <= TODAY) recebido += g.valor;
+      const status = fluxoStatus[`REC:${g.key}`]?.status;
+      if (status === 'recebido') recebido += g.valor;
       else aReceber += g.valor;
     }
     for (const l of (lancamentos || [])) {
@@ -160,7 +169,7 @@ export default function AdminDashboard() {
       else aReceber += valor;
     }
     return { recebido, aReceber, total: recebido + aReceber };
-  }, [periodRecs, companiesById, lancamentos]);
+  }, [periodRecs, companiesById, lancamentos, fluxoStatus]);
 
   const periodRevenue = faturamento.total;
 
