@@ -10,8 +10,21 @@
 // O dia 31 vale como "último dia do mês" nos meses menores (30, 29, 28).
 
 export const MODOS_FECHAMENTO = [
-  { val: 'diaria', label: 'Diária (cada diária é um fechamento)' },
-  { val: 'datas',  label: 'Datas de fechamento' },
+  { val: 'diaria',  label: 'Diária (cada diária é um fechamento)' },
+  { val: 'datas',   label: 'Datas de fechamento' },
+  { val: 'semanal', label: 'Semanal (dia da semana)' },
+];
+
+// Dias da semana no padrão ISO (1 = segunda … 7 = domingo), usados no modo
+// semanal: o fechamento cai num dia da semana e o pagamento no dia escolhido.
+export const DIAS_SEMANA = [
+  { val: 1, label: 'Segunda-feira' },
+  { val: 2, label: 'Terça-feira' },
+  { val: 3, label: 'Quarta-feira' },
+  { val: 4, label: 'Quinta-feira' },
+  { val: 5, label: 'Sexta-feira' },
+  { val: 6, label: 'Sábado' },
+  { val: 7, label: 'Domingo' },
 ];
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -22,6 +35,25 @@ const ddmm = (dateIso) => `${dateIso.slice(8, 10)}/${dateIso.slice(5, 7)}`;
 function addDias(dateIso, n) {
   const d = new Date(`${dateIso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+// Próxima data (>= dateIso) que cai no dia da semana ISO informado (1=seg..7=dom).
+function diaSemanaAtualOuSeguinte(dateIso, isoDow) {
+  const alvo = isoDow % 7; // Date.getUTCDay: 0=domingo … 6=sábado
+  const d = new Date(`${dateIso}T12:00:00Z`);
+  const delta = (alvo - d.getUTCDay() + 7) % 7;
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+// Próxima data (> dateIso) no dia da semana ISO informado.
+function diaSemanaSeguinte(dateIso, isoDow) {
+  const alvo = isoDow % 7;
+  const d = new Date(`${dateIso}T12:00:00Z`);
+  let delta = (alvo - d.getUTCDay() + 7) % 7;
+  if (delta === 0) delta = 7;
+  d.setUTCDate(d.getUTCDate() + delta);
   return d.toISOString().slice(0, 10);
 }
 
@@ -47,12 +79,27 @@ export function normalizarDias(dias) {
 }
 
 export function normalizarModo(valor) {
-  return valor === 'datas' ? 'datas' : 'diaria';
+  if (valor === 'datas') return 'datas';
+  if (valor === 'semanal') return 'semanal';
+  return 'diaria';
+}
+
+// Configuração semanal: até 2 dias ISO (1..7) — [dia do fechamento, dia do
+// pagamento]. Mantém a ordem (não ordena) porque a posição tem significado.
+export function normalizarSemanaDias(dias) {
+  const bruto = Array.isArray(dias) ? dias : String(dias ?? '').split(/[^\d]+/);
+  return [...new Set(bruto.map(Number).filter(n => Number.isInteger(n) && n >= 1 && n <= 7))].slice(0, 2);
 }
 
 // Texto curto para exibir no cadastro/lista da empresa.
 export function rotuloFechamento(modo, dias) {
-  if (normalizarModo(modo) !== 'datas') return 'Diária';
+  const m = normalizarModo(modo);
+  if (m === 'semanal') {
+    const d = normalizarSemanaDias(dias);
+    const nome = (DIAS_SEMANA.find(x => x.val === d[0]) || {}).label;
+    return nome ? `Semanal · ${nome}` : 'Semanal (dia não definido)';
+  }
+  if (m !== 'datas') return 'Diária';
   const d = normalizarDias(dias);
   return d.length ? `Dias ${d.join(', ')}` : 'Sem datas definidas';
 }
@@ -63,6 +110,19 @@ export function rotuloFechamento(modo, dias) {
 export function periodoDeFechamento(dateIso, { modo = 'diaria', dias = [], prazo = 5, uteis = false } = {}) {
   const [y, m, d] = String(dateIso || '').split('-').map(Number);
   if (!y || !m || !d) return null;
+
+  // Modo semanal: o período é a semana que termina no dia de fechamento; o
+  // vencimento cai no dia de pagamento seguinte (ou fechamento + prazo).
+  if (normalizarModo(modo) === 'semanal') {
+    const semana   = normalizarSemanaDias(dias);
+    const closeIso = semana[0] || 5;             // padrão: sexta-feira
+    const payIso   = semana[1] || null;          // dia do pagamento (opcional)
+    const prazoNum = Number.isFinite(Number(prazo)) ? Number(prazo) : 5;
+    const fim      = diaSemanaAtualOuSeguinte(dateIso, closeIso);
+    const inicio   = addDias(fim, -6);           // 7 dias terminando no fechamento
+    const vencimento = payIso ? diaSemanaSeguinte(fim, payIso) : addDias(fim, prazoNum);
+    return { inicio, fim, vencimento, modo: 'semanal', rotulo: `${ddmm(inicio)} a ${ddmm(fim)}` };
+  }
 
   const last = ultimoDiaDoMes(y, m);
   const listaDias = normalizarDias(dias);
@@ -188,6 +248,26 @@ function periodosDoMes(ano, mes, config = {}) {
 export function getFechamentoBounds(config = {}, mensal = false, offset = 0) {
   const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
   const [cy, cm] = hoje.split('-').map(Number);
+
+  // Modo semanal: navega por semanas (offset em semanas), terminando no dia de
+  // fechamento do cliente. O vencimento cai no dia de pagamento seguinte.
+  if (!mensal && normalizarModo(config.modo) === 'semanal') {
+    const semana   = normalizarSemanaDias(config.dias);
+    const closeIso = semana[0] || 5;
+    const payIso   = semana[1] || null;
+    const prazoNum = Number.isFinite(Number(config.prazo)) ? Number(config.prazo) : 5;
+    const fechamentoAtual = diaSemanaAtualOuSeguinte(hoje, closeIso);
+    const fim      = addDias(fechamentoAtual, offset * 7);
+    const inicio   = addDias(fim, -6);
+    const vencimento = payIso ? diaSemanaSeguinte(fim, payIso) : addDias(fim, prazoNum);
+    return {
+      start: inicio, end: fim,
+      label: `${ddmm(inicio)} a ${ddmm(fim)}`,
+      vencimento,
+      sday: Number(inicio.slice(8, 10)), eday: Number(fim.slice(8, 10)),
+      sm: Number(fim.slice(5, 7)), tYear: Number(fim.slice(0, 4)),
+    };
+  }
 
   if (mensal) {
     let m = (cm - 1) + offset;

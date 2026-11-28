@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { fmtCurrency } from '../../data/mockData';
 import { createCompany, updateCompany, deleteCompany } from '../../lib/db';
 import { parseEmpresaLocalizacao } from '../../lib/cidades';
-import { MODOS_FECHAMENTO, normalizarDias, rotuloFechamento } from '../../lib/fechamento';
+import { MODOS_FECHAMENTO, DIAS_SEMANA, normalizarDias, normalizarSemanaDias, rotuloFechamento } from '../../lib/fechamento';
 import SeletorLocalizacao from '../../components/shared/SeletorLocalizacao';
 import { Plus, Edit2, Trash2, X, Building2, Search, Phone, Mail, MapPin } from 'lucide-react';
 const EMPTY = { name: '', cnpj: '', email: '', password: '', phone: '', contact: '', address: '', location: '', latitude: null, longitude: null, dailyRate: 150, valorDescarga: 0, prazoPagamento: 5, prazoDiasUteis: false, prazoFolha: 7, folhaModo: 'quinzena', closingCycle: 'diaria', closingDays: [] };
@@ -14,6 +14,13 @@ const TM = { color: '#9A9A9A' };
 function Modal({ company, onSave, onClose }) {
   const [form, setForm] = useState(company ? { ...company } : { ...EMPTY });
   const [diasTexto, setDiasTexto] = useState(() => (company?.closingDays || []).join(', '));
+  // Modo semanal: [dia de fechamento, dia de pagamento] (ISO 1=seg … 7=dom).
+  const semanaIni = normalizarSemanaDias(company?.closingDays || []);
+  const [semanaFech, setSemanaFech] = useState(semanaIni[0] || 5); // padrão: sexta
+  const [semanaPag,  setSemanaPag]  = useState(semanaIni[1] || 3); // padrão: quarta
+  const semanal = form.closingCycle === 'semanal';
+  const diasAtePag = ((Number(semanaPag) - Number(semanaFech) + 7 - 1) % 7) + 1;
+  const nomeDia = v => (DIAS_SEMANA.find(d => d.val === Number(v)) || {}).label || '—';
 
   const rate    = Number(form.dailyRate) || 0;
   const he50    = (rate / 8 * 1.5).toFixed(2);
@@ -47,20 +54,24 @@ function Modal({ company, onSave, onClose }) {
         <form onSubmit={e => {
             e.preventDefault();
             const dias = normalizarDias(diasTexto);
+            const ehSemanal = form.closingCycle === 'semanal';
             if (form.closingCycle === 'datas' && dias.length === 0) {
               alert('Informe pelo menos um dia de fechamento.');
               return;
             }
+            const closeIso = Number(semanaFech);
+            const payIso   = Number(semanaPag);
+            const diasAtePagar = ((payIso - closeIso + 7 - 1) % 7) + 1; // > 0 = semana seguinte
             onSave({
               ...form,
               dailyRate: Number(form.dailyRate),
               valorDescarga: Number(form.valorDescarga ?? 0),
-              prazoPagamento: Math.max(0, Number(form.prazoPagamento) || 0),
-              prazoDiasUteis: !!form.prazoDiasUteis,
+              prazoPagamento: ehSemanal ? diasAtePagar : Math.max(0, Number(form.prazoPagamento) || 0),
+              prazoDiasUteis: ehSemanal ? false : !!form.prazoDiasUteis,
               prazoFolha: Math.max(0, Number(form.prazoFolha ?? 7) || 0),
               folhaModo: form.folhaModo === 'semanal' ? 'semanal' : 'quinzena',
-              closingCycle: form.closingCycle === 'datas' ? 'datas' : 'diaria',
-              closingDays: dias,
+              closingCycle: ehSemanal ? 'semanal' : form.closingCycle === 'datas' ? 'datas' : 'diaria',
+              closingDays: ehSemanal ? [closeIso, payIso] : dias,
             });
           }} className="space-y-3" autoComplete="off">
           <div className="grid grid-cols-2 gap-3">
@@ -82,21 +93,43 @@ function Modal({ company, onSave, onClose }) {
 {/* Linha 4b: Fechamento | Prazo de Pagamento */}
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Fechamento</label>
-              <select className="input-field" value={form.closingCycle === 'datas' ? 'datas' : 'diaria'}
+              <select className="input-field" value={form.closingCycle === 'semanal' ? 'semanal' : form.closingCycle === 'datas' ? 'datas' : 'diaria'}
                 onChange={e => setForm({ ...form, closingCycle: e.target.value })}>
                 {MODOS_FECHAMENTO.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Prazo de Pagamento (dias após o fechamento)</label>
-              <input type="number" min="0" step="1" required value={form.prazoPagamento ?? 5}
-                onChange={e => setForm({ ...form, prazoPagamento: e.target.value })} className="input-field" />
-              <label className="flex items-center gap-2 mt-2" style={{ fontSize: '11px', color: '#4A4A4A', cursor: 'pointer' }}>
-                <input type="checkbox" checked={!!form.prazoDiasUteis}
-                  onChange={e => setForm({ ...form, prazoDiasUteis: e.target.checked })} />
-                Contar em dias úteis (pula sábado e domingo)
-              </label>
-            </div>
+            {semanal ? (
+              <div className="col-span-2 grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Fecha toda</label>
+                  <select className="input-field" value={semanaFech} onChange={e => setSemanaFech(e.target.value)}>
+                    {DIAS_SEMANA.map(d => <option key={d.val} value={d.val}>{d.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Cliente paga toda (semana seguinte)</label>
+                  <select className="input-field" value={semanaPag} onChange={e => setSemanaPag(e.target.value)}>
+                    {DIAS_SEMANA.map(d => <option key={d.val} value={d.val}>{d.label}</option>)}
+                  </select>
+                </div>
+                <p className="col-span-2 text-xs" style={{ color: '#9A9A9A', marginTop: '-4px', lineHeight: 1.5 }}>
+                  O fechamento cai toda <b>{nomeDia(semanaFech)}</b> e o pagamento toda <b>{nomeDia(semanaPag)}</b> seguinte
+                  ({diasAtePag} dia{diasAtePag !== 1 ? 's' : ''} após o fechamento). As diárias da semana entram num único
+                  lançamento a receber, com esse vencimento. Não depende de data fixa no mês.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Prazo de Pagamento (dias após o fechamento)</label>
+                <input type="number" min="0" step="1" required value={form.prazoPagamento ?? 5}
+                  onChange={e => setForm({ ...form, prazoPagamento: e.target.value })} className="input-field" />
+                <label className="flex items-center gap-2 mt-2" style={{ fontSize: '11px', color: '#4A4A4A', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={!!form.prazoDiasUteis}
+                    onChange={e => setForm({ ...form, prazoDiasUteis: e.target.checked })} />
+                  Contar em dias úteis (pula sábado e domingo)
+                </label>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#6B6B6B' }}>Pagamento dos ajudantes</label>
               <select className="input-field" value={form.folhaModo === 'semanal' ? 'semanal' : 'quinzena'}
@@ -212,15 +245,19 @@ export default function AdminCompanies() {
     (c.address || '').toLowerCase().includes(search.toLowerCase())
   );
 
+  const AVISO_SEMANAL = 'Não foi possível salvar. Se você escolheu o fechamento "Semanal", o banco ainda não aceita esse modo — rode o script supabase/fechamento-semanal.sql no SQL Editor do Supabase e tente de novo.';
+
   const handleSave = async (form) => {
     if (modal === 'new') {
       const saved = await createCompany({ ...form, id: crypto.randomUUID() });
-      if (saved) setCompanies(prev => [...prev, saved]);
+      if (!saved) { alert(AVISO_SEMANAL); return; }
+      setCompanies(prev => [...prev, saved]);
     } else {
       const patch = { ...form };
       if (!patch.password) delete patch.password;
       const saved = await updateCompany(modal.id, patch);
-      if (saved) setCompanies(prev => prev.map(c => c.id === modal.id ? saved : c));
+      if (!saved) { alert(AVISO_SEMANAL); return; }
+      setCompanies(prev => prev.map(c => c.id === modal.id ? saved : c));
     }
     setModal(null);
   };

@@ -3,7 +3,7 @@ import { calculateWorkAndOvertime, overtimeMinutesToTimeString, recordRevenue } 
 import { getCompanyCity, rankCandidatos, avatarTone, compararProximidade } from './notas';
 import { coordsFuncionario, coordsEmpresa, distanciaKm, jitterCoords } from './geo';
 import { parseCidade, parseEmpresaLocalizacao, normalizarCidade, cidadeMaisProxima, coordsDeLink } from './cidades.js';
-import { normalizarDias, periodoDeFechamento } from './fechamento';
+import { normalizarDias, normalizarSemanaDias, periodoDeFechamento } from './fechamento';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -426,10 +426,16 @@ export async function createCompany(co) {
     prazo_dias_uteis: !!co.prazoDiasUteis,
     prazo_folha:     co.prazoFolha ?? 7,
     folha_modo:      co.folhaModo === 'semanal' ? 'semanal' : 'quinzena',
-    periodicidade_fechamento: co.closingCycle === 'datas' ? 'datas' : 'diaria',
-    dias_fechamento: normalizarDias(co.closingDays),
+    periodicidade_fechamento: co.closingCycle === 'semanal' ? 'semanal' : co.closingCycle === 'datas' ? 'datas' : 'diaria',
+    dias_fechamento: co.closingCycle === 'semanal' ? normalizarSemanaDias(co.closingDays) : normalizarDias(co.closingDays),
   };
   let { data, error } = await supabase.from('empresas').insert(payload).select().single();
+  // Constraint antiga só aceita diaria/datas: avisa (não deixa o tratamento
+  // tolerante apagar a configuração silenciosamente).
+  if (error && error.code === '23514') {
+    console.error('[db] createCompany: constraint de fechamento rejeitou o modo semanal — rode supabase/fechamento-semanal.sql. ', error.message);
+    return null;
+  }
   if (error && missingPrazoColumn(error)) {
     console.warn('[db] createCompany: coluna prazo_pagamento ausente — rode supabase/prazo-pagamento.sql no Supabase.');
     delete payload.prazo_pagamento;
@@ -480,8 +486,8 @@ export async function updateCompany(id, co) {
   if (co.prazoPagamento !== undefined) patch.prazo_pagamento = co.prazoPagamento;
   if (co.prazoFolha     !== undefined) patch.prazo_folha     = co.prazoFolha;
   if (co.folhaModo      !== undefined) patch.folha_modo      = co.folhaModo === 'semanal' ? 'semanal' : 'quinzena';
-  if (co.closingCycle   !== undefined) patch.periodicidade_fechamento = co.closingCycle === 'datas' ? 'datas' : 'diaria';
-  if (co.closingDays    !== undefined) patch.dias_fechamento = normalizarDias(co.closingDays);
+  if (co.closingCycle   !== undefined) patch.periodicidade_fechamento = co.closingCycle === 'semanal' ? 'semanal' : co.closingCycle === 'datas' ? 'datas' : 'diaria';
+  if (co.closingDays    !== undefined) patch.dias_fechamento = (co.closingCycle === 'semanal' ? normalizarSemanaDias : normalizarDias)(co.closingDays);
   if (co.prazoDiasUteis  !== undefined) patch.prazo_dias_uteis = !!co.prazoDiasUteis;
 
   const latInformada = co.latitude;
@@ -511,6 +517,10 @@ export async function updateCompany(id, co) {
     .eq('id', id)
     .select()
     .single();
+  if (error && error.code === '23514') {
+    console.error('[db] updateCompany: constraint de fechamento rejeitou o modo semanal — rode supabase/fechamento-semanal.sql. ', error.message);
+    return null;
+  }
   if (error && missingPrazoColumn(error)) {
     console.warn('[db] updateCompany: coluna prazo_pagamento ausente — rode supabase/prazo-pagamento.sql no Supabase.');
     delete patch.prazo_pagamento;
